@@ -1,0 +1,475 @@
+/* sim.cfg -- Simulator configuration script file
+   Copyright (C) 2001, Marko Mlinar, markom@opencores.org
+
+This file includes a lot of help about configurations and default one
+
+This file is part of OpenRISC 1000 Architectural Simulator.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
+
+
+/* INTRODUCTION
+
+   The or1ksim have various parameters, which can be set in configuration
+   files.  Multiple configurations may be used and switched between at
+   or1ksim startup.
+   By default, or1ksim loads condfiguration file from './sim.cfg' and if not
+   found it checks '~/.or1k/sim.cfg'. If even this file is not found or
+   all parameters are not defined, default configuration is used.
+   Users should not rely on default configuration, but rather redefine all
+   critical settings, since default configuration may differ in newer
+   versions of the or1ksim.
+   If multiple configurations are used, user can switch between them by
+   supplying -f <filename.cfg> option when starting simulator.
+
+   This file may contain (standard C) only comments - no // support.
+
+   Like normal configuration file, this file is divided in sections,
+   where each section is described in detail also.
+
+   Some section also have subsections. One example of such subsection is
+   block:
+
+   device <index>
+     instance specific parameters...
+   enddevice
+
+   which creates a device instance.
+*/
+
+
+/* MEMORY SECTION
+
+   This section specifies how is initial memory generated and which blocks
+   it consist of.
+
+   type = random/unknown/pattern
+      specifies the initial memory values. 'random' parameter generate
+      random memory using seed 'random_seed' parameter. 'pattern' parameter
+      fills memory with 'pattern' parameter and 'unknown' does not specify
+      how memory should be generated - the fastest option.
+
+   random_seed = <value>
+      random seed for randomizer, used if type = random
+
+   pattern = <value>
+      pattern to fill memory, used if type = pattern
+
+   nmemories = <value>
+      number of memory instances connected
+
+   instance specific:
+     baseaddr = <hex_value>
+        memory start address
+
+     size = <hex_value>
+        memory size
+
+     name = "<string>"
+        memory block name
+
+     ce = <value>
+        chip enable index of the memory instance
+
+     delayr = <value>
+        cycles, required for read access, -1 if instance does not support reading
+
+     delayw = <value>
+        cycles, required for write access, -1 if instance does not support writing
+
+     16550 = 0/1
+        0, if this device is uart 16450 and 1, if it is 16550
+
+     log = "<filename>"
+        filename, where to log memory accesses to, no log, if log command is not specified
+*/
+
+section memory
+  /*random_seed = 12345
+  type = random*/
+  pattern = 0x00
+  type = unknown /* Fastest */
+
+  nmemories = 3
+  device 0
+    name = "RAM"
+    ce = 1
+    baseaddr = 0x00000000
+    size = 0x00200000
+    delayr = 1
+    delayw = 5
+  enddevice
+
+  device 1
+    name = "FLASH"
+    ce = 0
+    baseaddr = 0x04000000
+    size = 0x00200000
+    delayr = 1
+    delayw = -1
+  enddevice
+
+  device 2
+    name = "ICM"
+    ce = 2
+    baseaddr = 0x00800000
+    size = 0x00004000
+    delayr = 1
+    delayw = 1
+  enddevice
+
+end
+
+/* IMMU SECTION
+
+    This section configures Instruction Memory Menangement Unit
+
+    enabled = 0/1
+       whether IMMU is enabled
+       (NOTE: UPR bit is set)
+
+    nsets = <value>
+       number of ITLB sets; must be power of two
+
+    nways = <value>
+       number of ITLB ways
+
+    pagesize = <value>
+       instruction page size; must be power of two
+
+    entrysize = <value>
+       instruction entry size in bytes
+
+    ustates = <value>
+       number of ITLB usage states (2, 3, 4 etc., max is 4)
+*/
+
+section immu
+  enabled = 1
+  nsets = 32
+  nways = 1
+  pagesize = 8192
+end
+
+/* DMMU SECTION
+
+    This section configures Data Memory Menangement Unit
+
+    enabled = 0/1
+       whether DMMU is enabled
+       (NOTE: UPR bit is set)
+
+    nsets = <value>
+       number of DTLB sets; must be power of two
+
+    nways = <value>
+       number of DTLB ways
+
+    pagesize = <value>
+       data page size; must be power of two
+
+    entrysize = <value>
+       data entry size in bytes
+
+    ustates = <value>
+       number of DTLB usage states (2, 3, 4 etc., max is 4)
+*/
+
+section dmmu
+  enabled = 1
+  nsets = 32
+  nways = 1
+  pagesize = 8192
+end
+
+
+/* IC SECTION
+
+    This section configures Instruction Cache
+
+    enabled = 0/1
+       whether IC is enabled
+       (NOTE: UPR bit is set)
+
+    nsets = <value>
+       number of IC sets; must be power of two
+
+    nways = <value>
+       number of IC ways
+
+    blocksize = <value>
+       IC block size in bytes; must be power of two
+
+    ustates = <value>
+       number of IC usage states (2, 3, 4 etc., max is 4)
+*/
+
+section ic
+  enabled = 1
+  nsets = 512
+  nways = 1
+  blocksize = 16
+end
+
+/* DC SECTION
+
+    This section configures Data Cache
+
+    enabled = 0/1
+       whether DC is enabled
+       (NOTE: UPR bit is set)
+
+    nsets = <value>
+       number of DC sets; must be power of two
+
+    nways = <value>
+       number of DC ways
+
+    blocksize = <value>
+       DC block size in bytes; must be power of two
+
+    ustates = <value>
+       number of DC usage states (2, 3, 4 etc., max is 4)
+*/
+
+section dc
+  enabled = 1
+  nsets = 512
+  nways = 1
+  blocksize = 16
+end
+
+/* SIM SECTION
+
+  This section specifies how should sim behave.
+
+  verbose = 0/1
+      whether to print out extra messages
+
+  debug = 0-9
+      = 0 disabled debug messages
+      1-9 level of sim debug information, greater the number more verbose is
+          the output
+
+  profile = 0/1
+      whether to generate profiling file 'sim.profile'
+
+  prof_fn = "<filename>"
+      filename, where to generate profiling info, used
+      only if 'profile' is set
+
+  history = 0/1
+      whether instruction execution flow is tracked for
+      display by simulator hist command. Useful for
+      back-trace debugging.
+
+  iprompt = 0/1
+      whether we strart in interactive prompt
+
+  exe_log = 0/1
+      whether execution log should be generated
+
+  exe_log_fn = "<filename>"
+      where to put execution log in, used only if 'exe_log'
+      is set
+      
+  clkcycle = <value>[ps|ns|us|ms]
+      specifies time measurement for one cycle
+*/
+
+section sim
+  /* verbose = 1 */
+  debug = 0
+  profile = 0
+  prof_fn = "sim.profile"
+  mprofile = 0
+  mprof_fn = "sim.mprofile"
+
+  history = 1
+  /* iprompt = 0 */
+  exe_log = 1
+  exe_log_type = hardware
+  exe_log_fn = "executed.log"
+  spr_log = 1
+  spr_log_fn = "sprs.log"
+end
+
+
+/* SECTION VAPI
+
+    This section configures Verification API, used for Advanced
+    Core Verification.
+
+    enabled = 0/1
+        whether to start VAPI server
+
+    server_port = <value>
+        TCP/IP port to start VAPI server on
+
+    log_enabled = 0/1
+       whether logging of VAPI requests is enabled
+
+    vapi_fn = <filename>
+       specifies filename where to log into, if log_enabled is selected
+*/
+
+section VAPI
+  enabled = 0
+  server_port = 9998
+  log_enabled = 0
+  vapi_log_fn = "vapi.log"
+end
+
+
+/* CPU SECTION
+
+   This section specifies various CPU parameters.
+
+   ver = <value>
+   rev = <value>
+      specifies version and revision of the CPU used
+
+   upr = <value>
+      changes the upr register
+
+   superscalar = 0/1
+      whether CPU is scalar or superscalar
+      (modify cpu/or32/execute.c to tune superscalar model)
+
+   hazards = 0/1
+      whether data hazards are tracked in superscalar CPU
+      and displayed by the simulator r command
+
+   dependstats = 0/1
+      whether inter-instruction dependencies are calculated
+      and displayed by simulator stats command.
+*/
+
+section cpu
+  ver = 0x1200
+  rev = 0x0001
+  /* upr = */
+  superscalar = 0
+  hazards = 1
+  dependstats = 1
+  sbuf_len = 1
+end
+
+section bpb
+  enabled = 1
+  btic = 1
+end
+
+
+/* DEBUG SECTION
+
+   This sections specifies how debug unit should behave.
+
+   enabled = 0/1
+      whether debug unit is enabled
+
+   gdb_enabled = 0/1
+      whether to start gdb server at 'server_port' port
+
+   server_port = <value>
+      TCP/IP port to start gdb server on, used only if gdb_enabled
+      is set
+
+section debug
+  enabled = 0
+  gdb_enabled = 0
+  server_port = 9999
+end
+
+
+/* MC SECTION
+
+   This section configures the memory controller
+
+   enabled = 0/1
+      whether memory controller is enabled
+
+   baseaddr = <hex_value>
+      address of first MC register
+
+   POC = <hex_value>
+      Power On Configuration register
+*/
+
+section mc
+  enabled = 1
+  baseaddr = 0x60000000
+  POC = 0x00000008                 /* Power on configuration register */
+end
+
+
+/* TICK TIMER SECTION
+
+    This section configures tick timer
+
+    enabled = 0/1
+      whether tick timer is enabled
+
+    irq = <value>
+      irq number
+*/
+
+section tick
+  enabled = 1
+  irq = 3
+end
+
+section uart
+  nuarts = 1
+
+  device 0  
+    baseaddr = 0x90000000
+    irq = 2
+    channel = "file:uart0.rx,uart0.tx"
+    jitter = -1                     /* async behaviour */
+  enddevice
+end
+
+/* CUC SECTION
+
+    This section configures the OpenRISC Custom Unit Compiler
+
+    memory_order = none/weak/strong/exact
+      none   different memory ordering, even if there are dependencies,
+             burst can be made, width can change
+      weak   different memory ordering, if there cannot be dependencies
+             burst can be made, width can change
+      strong same memory ordering, burst can be made, width can change
+      exact  exacltly the same memory ordering and widths
+
+    calling_convention = 0/1
+      whether programs follow OpenRISC calling conventions
+
+    enable_bursts = 0/1
+      whether burst are detected
+
+    no_multicycle = 0/1
+      if selected no multicycle logic paths will be generated
+
+    timings_fn = "<filename>"
+*/
+  
+section cuc
+  memory_order = weak
+  calling_convention = 1
+  enable_bursts = 1
+  no_multicycle = 1
+  timings_fn = "../support/virtex.tim"
+end

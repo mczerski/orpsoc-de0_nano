@@ -1,0 +1,34 @@
+// This file should be processed by the Makefile before being used
++incdir+$BENCH_DIR
++incdir+$BACKEND_DIR
++incdir+$RTL_DIR
++incdir+$RTL_DIR/components/uart16550
++incdir+$RTL_DIR/components/ethernet
++incdir+$RTL_DIR/components/or1k_startup
++incdir+$RTL_DIR/components/or1k_top
++incdir+$RTL_DIR/components/or1200r2
++incdir+$RTL_DIR/components/tap
++incdir+$RTL_DIR/components/smii
++incdir+$RTL_DIR/components/debug_if
++incdir+$RTL_DIR/components/wb_sdram_ctrl
+
+-y $BENCH_DIR
+-y $BACKEND_DIR
+-y $RTL_DIR
+-y $RTL_DIR/components/uart16550
+-y $RTL_DIR/components/ethernet
+-y $RTL_DIR/components/or1k_startup
+-y $RTL_DIR/components/or1k_top
+-y $RTL_DIR/components/or1200r2
+-y $RTL_DIR/components/tap
+-y $RTL_DIR/components/smii
+-y $RTL_DIR/components/debug_if
+-y $RTL_DIR/components/wb_sdram_ctrl
+-y $RTL_DIR/components/ram_wb
+
+// RTL files (top)
+$BENCH_DIR/orpsoc_testbench.v
+
+// Couple of library files
+$RTL_DIR/components/smii/generic_buffers.v
+$BACKEND_DIR/sim_lib.v
