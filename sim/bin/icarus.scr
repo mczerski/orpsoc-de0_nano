@@ -1,5 +1,6 @@
 // This file should be processed by the Makefile before being used
 +incdir+$BENCH_DIR
++incdir+$BENCH_DIR/vpi/verilog
 +incdir+$BACKEND_DIR
 +incdir+$RTL_DIR
 +incdir+$RTL_DIR/components/uart16550
@@ -13,6 +14,7 @@
 +incdir+$RTL_DIR/components/wb_sdram_ctrl
 
 -y $BENCH_DIR
+-y $BENCH_DIR/vpi/verilog
 -y $BACKEND_DIR
 -y $RTL_DIR
 -y $RTL_DIR/components/uart16550

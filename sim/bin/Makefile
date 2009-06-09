@@ -64,6 +64,22 @@
 #	
 #	Run all the software tests in the architectural simulator
 #
+#
+# Debugging modes:
+#	
+#	make rtl-debug
+#
+#	Enable a GDB stub integrated into the simulation via VPI. This will
+#	start a simulation, then the GDB server, and allow the user to connect
+#	using the OpenRISC GDB port. It should provide the same functionality
+#	as GDB to a physical target, although a little slower.
+#	It is provided here as an example of how to compile and run an OpenRISC
+#	model at RTL level with support for debugging from GDB.
+#	UART output from printf() is enabled by default. The model loads with
+# 	the dhrystone test running as default, but can be changed by defining
+#	VPI_TEST_SW at the command line. Logging of the processor's execution
+#	is also disabled by default to speed up simulation.
+#	
 
 # Simulation results:
 #
@@ -293,6 +309,8 @@ prepare_sw_uart_printf:
 	@$(MAKE) -C $(SW_DIR)/support all UART_PRINTF=1 $(TEST_SW_MAKE_OPTS)
 	@$(MAKE) -C $(SW_DIR)/utils all
 
+prepare_dirs:
+	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 
 # Rough guide to how these tests work:
 # First, the couple of custom, required, software tools under sw/utils are 
@@ -339,8 +357,7 @@ prepare_sw_uart_printf:
 # Define USE_SDRAM to enable the external SDRAM, otherwise the simulation
 # defaults to an internal SRAM. Eg. $ make rtl-tests USE_SDRAM=1 VCD=1
 # Verilator defaults to internal memories
-rtl-tests: prepare_sw prepare_rtl
-	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
+rtl-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -369,7 +386,7 @@ rtl-tests: prepare_sw prepare_rtl
 		fi; \
 		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
 		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
-		if [ -z $$NO_SIM_LOGGING ]; then \
+		if [ ! -z $$SIM_LOGGING ]; then \
 			echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; \
 		fi; \
 		echo ; \
@@ -394,8 +411,7 @@ rtl-tests: prepare_sw prepare_rtl
 
 
 # Use NCSIM instead of icarus
-rtl-nc-tests: prepare_sw prepare_rtl
-	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
+rtl-nc-tests: prepare_sw prepare_rtl prepare_dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -447,6 +463,60 @@ rtl-nc-tests: prepare_sw prepare_rtl
 		TESTS_PERFORMED=`expr $$TESTS_PERFORMED + 1`;\
 	done; \
 	echo "Test results: "$$TESTS_PASSED" out of "$$TESTS_PERFORMED" tests passed"; echo
+
+################################################################################
+# RTL simulation in Icarus with GDB stub via VPI for debugging
+################################################################################
+# This compiles a version of the system which starts up the dhrystone nocache
+# test, and launches the simulator with a VPI module that provides a GDB stub
+# allowing the OpenRISC compatible GDB to connect and debug the system.
+# The launched test can be changed by defining VPI_TEST_SW on the make line
+VPI_DIR=$(BENCH_VERILOG_DIR)/vpi
+VPI_C_DIR=$(VPI_DIR)/c
+VPI_VERILOG_DIR=$(VPI_DIR)/verilog
+VPI_LIB_NAME=jp_vpi
+ICARUS_VPI_OPTS=-M$(VPI_C_DIR) -m$(VPI_LIB_NAME)
+VPI_TEST_SW ?= dhry-nocache-O2
+
+prepare_vpi:
+## Build the VPI library
+	$(MAKE) -C $(VPI_C_DIR) $(VPI_LIB_NAME)
+
+clean_vpi:
+	$(MAKE) -C $(VPI_C_DIR) clean
+
+rtl-debug: prepare_sw_uart_printf prepare_rtl prepare_vpi prepare_dirs
+## Prepare the software for the test
+	@echo "\t#### Compiling software ####"; echo; \
+	CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $(VPI_TEST_SW) | cut -d "-" -f 1`; \
+	$(MAKE) -C $$CURRENT_TEST_SW_DIR $(VPI_TEST_SW) $(TEST_SW_MAKE_OPTS); \
+	rm -f $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
+	rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
+	ln -s $$CURRENT_TEST_SW_DIR/$(VPI_TEST_SW)$(FLASH_MEM_FILE_SUFFIX) $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
+	ln -s $$CURRENT_TEST_SW_DIR/$(VPI_TEST_SW).vmem $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE)
+## Generate the icarus script we'll compile with
+	@sed < $(SIM_BIN_DIR)/$(ICARUS_COMMAND_FILE) > $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated \
+		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
+		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
+		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
+		-e \\!^//.*\$$!d -e \\!^\$$!d 
+## Add a couple of extra defines to the icarus compile script
+	@echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
+## The define that enables the VPI debug module
+	@echo "+define+VPI_DEBUG_ENABLE" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
+	@if [ ! -z $$VCD ];then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated;fi
+## Unless NO_UART_PRINTF=1 we use printf via the UART
+	@if [ -z $$NO_UART_PRINTF ];then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; fi
+	@echo "\`define TEST_NAME_STRING \"$(VPI_TEST_SW)-vpi\"" > $(SIM_RUN_DIR)/test_define.v
+	@echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v
+	@if [ -z $$NO_SIM_LOGGING ]; then echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; fi
+	@echo
+	@echo "\t#### Compiling RTL ####"
+	@rm -f $(SIM_RUN_DIR)/a.out
+	@$(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
+	@echo
+	@echo "\t#### Beginning simulation with VPI debug module enabled ####"; echo
+	@$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log a.out
 
 ################################################################################
 # Verilator model build rules
@@ -556,8 +626,7 @@ vlt_model_links:
 ################################################################################
 
 # Verilator defaults to internal memories
-vlt-tests: prepare_sw_uart_printf prepare_rtl prepare_vlt
-	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
+vlt-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs prepare_vlt
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -628,7 +697,7 @@ sim-tests: prepare_sw_uart_printf
 # Cleaning rules
 ################################################################################
 
-clean: clean-sw clean-sim clean-sysc clean-rtl
+clean: clean-sw clean-sim clean-sysc clean-rtl clean_vpi
 
 clean-sw:
 	@for TEST in $(TESTS); do \

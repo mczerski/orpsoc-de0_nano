@@ -124,9 +124,6 @@ module orpsoc_testbench();
    // Tie off some inputs   
    assign spi1_miso_i = 0;
    assign uart0_srx_i = 1;
-   assign dbg_tdi_i = 1;
-   assign dbg_tck_i = 0;
-   assign dbg_tms_i = 1;
 
 
    orpsoc_top dut 
@@ -178,6 +175,22 @@ module orpsoc_testbench();
 `endif
       .rst_pad_i				(rst_i),
       .clk_pad_i				(clk_i));
+
+`ifdef VPI_DEBUG_ENABLE
+   // Debugging interface
+   vpi_debug_module vpi_dbg(
+			    .tms(dbg_tms_i), 
+			    .tck(dbg_tck_i), 
+			    .tdi(dbg_tdi_i), 
+			    .tdo(dbg_tdo_o));
+`else
+   // If no VPI debugging, tie off JTAG inputs
+   assign dbg_tdi_i = 1;
+   assign dbg_tck_i = 0;
+   assign dbg_tms_i = 1;
+`endif
+
+
 
    // External memories, if enabled
 `ifdef USE_SDRAM   
