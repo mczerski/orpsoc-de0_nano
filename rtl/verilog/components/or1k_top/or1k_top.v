@@ -96,9 +96,8 @@ wire    tdo_o;
 wire    debug_tdi_o;
 
 //-------------------------------------------------------
-//BA12 BSEMI RISC Architecture 1 32-bit processor
+//OR1200 other RISC Architecture 1 32-bit processor
 //-------------------------------------------------------
-wire    boot_devsel_i;
 //Debug interface
 wire    dbg_stall_i;
 wire    dbg_bp_o;
@@ -116,11 +115,11 @@ wire    dwb_stb_o_tmp;
 assign dwb_stb_o = (dwb_cyc_o == 1'b1) ? dwb_stb_o_tmp : 1'b0;
 
 
-`ifdef USE_OR1200			// use OR1200 processor IP
+`ifndef USE_OR1200_OTHER			// use OR1200r2 processor IP
 
 //=============================================================================
 //
-// OR1200 RISC Architecture 32-bit processor instantation
+// OR1200r2 RISC Architecture 32-bit processor instantation
 //
 //=============================================================================
 or1200_top i_or1200_top(
@@ -191,15 +190,14 @@ or1200_top i_or1200_top(
   .pm_lvolt_o     (   )
 );
 
-`else		// use BA12 processor IP
+`else		// use other OR1200 version processor IP
 
-assign boot_devsel_i = 1'b0;
 //=============================================================================
 //
-// RISC Architecture 1 32-bit processor instantation
+// OR1200 other RISC Architecture 32-bit processor instantation
 //
 //=============================================================================
-ba12_top #(32 /* dw */, 32 /* aw */, 31 /* ppic_ints */) i_ba12_top(
+or1200_other_top i_or1200_top(
   // System
   .clk_i      ( clk_i     ),
   .rst_i      ( rst_i     ),
@@ -253,9 +251,6 @@ ba12_top #(32 /* dw */, 32 /* aw */, 31 /* ppic_ints */) i_ba12_top(
   .dbg_dat_o    ( cpu0_data_o1    ),
   .dbg_dat_i    ( cpu0_data_o2    ),
   .dbg_ack_o    ( dbg_ack_o   ),
-
-  // SR register input
-  .boot_devsel_i  ( boot_devsel_i ),
 
   // Power Management
   .pm_cpustall_i  ( 1'b0  ),

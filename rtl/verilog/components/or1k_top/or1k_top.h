@@ -1,3 +1,2 @@
-// to use or1200 define
-// to use ba12   undefine
-`define USE_OR1200
+// to use or1200r2 do NOT define the following, otherwise, to use the alternate processor, uncomment the following
+//`define USE_OR1200_OTHER
