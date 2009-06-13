@@ -28,6 +28,8 @@
 
 #include "UartSC.h"
 
+//#define UART_SC_DEBUG
+
 
 SC_HAS_PROCESS( UartSC );
 
@@ -54,6 +56,10 @@ UartSC::initUart (int clk_freq_hz, // Presume in NS
 {
   // Calculate number of clocks per UART bit
   clocks_per_bit = (int)(clk_freq_hz/uart_baud);
+  bits_received=0;
+#ifdef UART_SC_DEBUG
+  printf("UartSC Initialised: Sys. clk. freq.: %d Hz, Baud: %d, cpb: %d\n", clk_freq_hz, uart_baud, clocks_per_bit);
+#endif
 }  
 
 
@@ -61,7 +67,9 @@ UartSC::initUart (int clk_freq_hz, // Presume in NS
 void 
 UartSC::checkTx () {
 
+#ifdef UART_SC_DEBUG
   //printf("Uart TX activity: level is : 0x%x\n", uarttx.read()&1);
+#endif
   
   // Check the number of bits received
   if (bits_received==0)
@@ -74,7 +82,9 @@ UartSC::checkTx () {
 	  // Start 
 	  counter = 1;
 	  bits_received++; // We got the start bit
-	  //cout << "UartSC checkTx: got start bit at time " << sc_time_stamp() << endl;
+#ifdef UART_SC_DEBUG
+	  cout << "UartSC checkTx: got start bit at time " << sc_time_stamp() << endl;
+#endif
 	}
     }
   else if (bits_received > 0 && bits_received < 9)
@@ -116,9 +126,14 @@ UartSC::checkTx () {
 	  else
 	    {
 	      // Print the char
-	      //printf("Char received: 0x%2x time: ", current_char);
-	      //cout << sc_time_stamp() << endl;
-	      cout << current_char;
+#ifdef UART_SC_DEBUG
+	      printf("Char received: 0x%2x time: ", current_char);
+	      cout << sc_time_stamp() << endl;
+#endif
+	      // cout'ing the char didn't work for some systems - jb 090613ol
+	      //cout << current_char;
+	      printf("%c",current_char);
+
 	      bits_received = 0;
 	      counter = 0;
 	    }

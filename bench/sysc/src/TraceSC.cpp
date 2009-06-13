@@ -28,6 +28,8 @@
 
 #include "TraceSC.h"
 
+using namespace std;
+
 SC_HAS_PROCESS( TraceSC );
 
 //! Constructor for the trace module
@@ -46,38 +48,32 @@ TraceSC::TraceSC (sc_core::sc_module_name  name,
 #if VM_TRACE
 
   // Setup the name of the VCD dump file
-
-  char* dumpName;
-  char* dumpSuffix = "-vlt.vcd\0";
-  char* dumpNameDefault = "vlt-dump.vcd\0";
-  // We will be passed the current test-name when we're called
-  if (argc > 1)
+  string dumpNameDefault("vlt-dump.vcd");
+  string dumpSuffix("-vlt.vcd");
+  string dumpDir("../results/"); // Note: hardcoded to store all VCDs in the ../results dir
+  string testNameString;
+  string vcdDumpFile;
+  
+  if (argc > 1) // If we were passed a name on the command line, use it
     {
-      // Assume test name is first thing
-      int testname_argv_index = 1;
-      // Take the second argument as the test name and we'll 
-      // concatendate "-vlt.vcd" on the end
-      dumpName = (char*) malloc((strlen(argv[testname_argv_index] + 
-					      strlen(dumpSuffix))*sizeof(char)));
-      // Copy in the test name
-      strcpy(dumpName, argv[testname_argv_index]);
-      // Now add on the suffix
-      strcat(dumpName, dumpSuffix);
-      
-      printf("VCD dumpfile: %s\n", dumpName);
+      testNameString = (argv[1]);
+      vcdDumpFile = dumpDir + testNameString + dumpSuffix;
     }
-  else
-    dumpName = dumpNameDefault;
-
+  else // otherwise use our default VCD dump file name
+    vcdDumpFile = dumpDir + dumpNameDefault;
+  
   Verilated::traceEverOn (true);
+  
   cout << "Enabling VCD trace" << endl;
+
+  printf("VCD dumpfile: %s\n", vcdDumpFile.c_str());
 
   // Establish a new trace with its correct time resolution, and trace to
   // great depth.
   spTraceFile = new SpTraceVcdCFile ();
   setSpTimeResolution (sc_get_time_resolution ());
   traceTarget->trace (spTraceFile, 99);
-  spTraceFile->open (dumpName);
+  spTraceFile->open (vcdDumpFile.c_str());
 
   // Method to drive the dump on each clock edge
   SC_METHOD (driveTrace);
