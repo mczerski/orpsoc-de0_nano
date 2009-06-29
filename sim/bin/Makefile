@@ -165,7 +165,7 @@
 # and into SDRAM before it is executed. Although this more closely mimics the
 # behaviour of the hardware, for simulation purposes it is purely time-consuming
 # however it may be useful to track down any problems with this boot-loading
-# process. Therefore, becuase it enables SDRAM memory, ir also enables the flash
+# process. Therefore, becuase it enables SDRAM memory, it also enables the flash
 # memory model and SPI controller inside ORPSoC.
 #
 # Ethernet
@@ -386,7 +386,7 @@ rtl-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs
 		fi; \
 		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
 		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
-		if [ ! -z $$SIM_LOGGING ]; then \
+		if [ -z $$NO_SIM_LOGGING ]; then \
 			echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; \
 		fi; \
 		echo ; \
