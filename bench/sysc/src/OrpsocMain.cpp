@@ -160,6 +160,9 @@ int sc_main (int   argc,
   // Init the UART function
   uart->initUart(25000000, 115200);
 
+  // Turn on logging by setting the "-log logfilename" option on the command line
+  monitor->init_displayState(argc, argv);
+
   // Execute until we stop
   sc_start ();
 

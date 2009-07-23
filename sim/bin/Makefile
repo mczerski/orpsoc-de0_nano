@@ -201,38 +201,53 @@
 # SystemC cycle-accurate model compilation
 #
 # A new addition to ORPSoC v2 is the cycle-accurate model. The primary enabler
-# behind this is verilator, which processes the RTL sources and generates a c++
-# description of the system. This c++ description is then compiled with a
+# behind this is verilator, which processes the RTL source and generates a c++
+# description of the system. This c++ description is then compiled, with a
 # SystemC wrapper. Finally a top-level SystemC testbench instantiates the
-# model, as well as any other modules - in this case a reset generation, UART
+# model, and other useful modules - in this case a reset generation, UART
 # decoder, and monitor module are included at the top level. These additional
-# modules and models are written in SystemC and compiled all together with the
-# cycle-accurate ORPSoC model to create the simulation executable. Finally this
-# executable is run and should be a cycle-representation of the system. VCDs
-# can be generated if enabled. The compiled mentioned above is all done with
-# the GNU c++ compiler, g++.
-# The compilation process is a little more tricky than a typical even-driven
+# modules and models are written in SystemC. Finally, everything is linked with
+# the cycle-accurate ORPSoC model to create the simulation executable. This
+# executable is the cycle-representation of the system. 
+#
+# VCDs can be generated if the model is made with VCD=1 specified on the 
+# command line. Specify a dump file with the "-vcd" option at runtime, eg:
+# "./Vorpsoc_top -vcd dump.vcd"
+# Note that this slows down the simulation.
+#
+# Logging of the processor's execution can be done by specifying a log file
+# on the command line at runtime, eg: "./Vorpsoc_top -log or1200_exec.log"
+# Note that this slows down the simulation.
+#
+# There are performance metrics printed at the conclusion of simulations. To
+# disable these launch the executable with either the -q or --no-perf-summary
+# options. eg: "./Vorpsoc_top -q"
+#
+# The compilation is all done with the GNU c++ compiler, g++.
+#
+# The compilation process is a little more complicated than the event-driven
 # simulator. It proceeds basically by generating the makefiles for compiling
 # the design with verilator, running these makes which produces a library
 # containing the cycle-accurate ORPSoC design, compiling the additional
 # top-level, and testbench, systemC models into a library, and then linking it
 # all together into the simulation executable.
+#
 # The major advantage of the cycle-accurate model is that it is quicker, in
 # terms of simulated cycles/second, when compared with event-driven simulators.
 # It is, of course, less accurate in that it cannot model propegation delays.
 # However this is usually not an issue for simulating a design which is known
 # to synthesize and run OK. It is very useful for running complex software,
 # such as the linux kernel and real-time OS applications, which generally
-# require long simulation times. 
+# result in long simulation times. 
+#
 # Currently the cycle-accurate model being used doesn't contain much more than
 # the processor and a UART, however it's exepected in future this will be
 # expanded on and more complex software test suites will be implemented to put
 # the system through its paces.
 #
+# 
 
-
-# Name of
-# the directory we're currently in
+# Name of the directory we're currently in
 CUR_DIR=$(shell pwd)
 
 # The root path of the whole project
@@ -275,7 +290,9 @@ endif
 
 # Enable ethernet if defined on the command line
 ifdef USE_ETHERNET
-EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET)"
+EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET) -D USE_ETHERNET_IO=$(USE_ETHERNET)"
+# Extra tests we do if ethernet is enabled
+TESTS += eth-basic
 endif
 
 SIM_FLASH_MEM_FILE="flash.in"
@@ -296,7 +313,7 @@ prepare_rtl:
 
 
 ifdef UART_PRINTF
-TEST_SW_MAKE_OPTS=UART_PRINTF=1
+TEST_SW_MAKE_OPTS="UART_PRINTF=1"
 endif
 
 .PHONY: prepare_sw
@@ -357,7 +374,7 @@ prepare_dirs:
 # Define USE_SDRAM to enable the external SDRAM, otherwise the simulation
 # defaults to an internal SRAM. Eg. $ make rtl-tests USE_SDRAM=1 VCD=1
 # Verilator defaults to internal memories
-rtl-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs
+rtl-tests: prepare_sw prepare_rtl prepare_dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -386,6 +403,10 @@ rtl-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs
 		fi; \
 		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
 		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
+		if echo $$TEST | grep -q -i ^eth; then \
+			echo "\`define ENABLE_ETH_STIM" >> $(SIM_RUN_DIR)/test_define.v; \
+			echo "\`define ETH_PHY_VERBOSE" >> $(SIM_RUN_DIR)/test_define.v; \
+		fi; \
 		if [ -z $$NO_SIM_LOGGING ]; then \
 			echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; \
 		fi; \
@@ -441,6 +462,10 @@ rtl-nc-tests: prepare_sw prepare_rtl prepare_dirs
 		fi; \
 		if [ ! -z $$USE_SDRAM ]; then \
 			echo "\`define USE_SDRAM" >> $(SIM_RUN_DIR)/test_define.v; \
+		fi; \
+		if echo $$TEST | grep -q -i ^eth; then \
+			echo "\`define ENABLE_ETH_STIM" >> $(SIM_RUN_DIR)/test_define.v; \
+			echo "\`define ETH_PHY_VERBOSE" >> $(SIM_RUN_DIR)/test_define.v; \
 		fi; \
 		echo "+nocopyright" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
 		echo "+nowarn+MACRDF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
@@ -700,14 +725,10 @@ sim-tests: prepare_sw_uart_printf
 clean: clean-sw clean-sim clean-sysc clean-rtl clean_vpi
 
 clean-sw:
-	@for TEST in $(TESTS); do \
-		echo "Current test: $$TEST"; \
-		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		echo "Current test sw directory: " $$CURRENT_TEST_SW_DIR; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR clean; \
+	@for SWDIR in `ls $(SW_DIR)`; do \
+		echo $$SWDIR; \
+		$(MAKE) -C $(SW_DIR)/$$SWDIR clean; \
 	done
-	$(MAKE) -C $(SW_DIR)/support clean
-	$(MAKE) -C $(SW_DIR)/utils clean
 
 clean-sim:
 	rm -rf $(SIM_RESULTS_DIR) $(SIM_RUN_DIR)/*.* $(SIM_VLT_DIR)
@@ -720,3 +741,4 @@ clean-rtl:
 # Clean away temporary verilog source files
 	rm -f $(RTL_VERILOG_DIR)/intercon.v
 	rm -f $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v
+

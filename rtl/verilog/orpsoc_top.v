@@ -1,4 +1,46 @@
-//module ref_design_top
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+////  orpsoc_top.v                                                ////
+////                                                              ////
+////  This file is part of the ORPSoCv2 project                   ////
+////  http://opencores.org/openrisc/?orpsocv2                     ////
+////                                                              ////
+////  This is the top level RTL file for ORPSoCv2                 ////
+////                                                              ////
+////  Author(s):                                                  ////
+////       - Michael Unneback, unneback@opencores.org             ////
+////        ORSoC AB          michael.unneback@orsoc.se           ////
+////       - Julius Baxter, julius.baxter@orsoc.se                ////
+////                                                              ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// Copyright (C) 2008, 2009 Authors                             ////
+////                                                              ////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE.  See the GNU Lesser General Public License for more ////
+//// details.                                                     ////
+////                                                              ////
+//// You should have received a copy of the GNU Lesser General    ////
+//// Public License along with this source; if not, download it   ////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+
+
 module orpsoc_top
   (
    output spi_sd_sclk_pad_o  ,
@@ -24,14 +66,14 @@ module orpsoc_top
    output spi_flash_w_n_pad_o   ,
    output spi_flash_hold_n_pad_o,
 `endif //  `ifdef USE_SDRAM
-`ifdef USE_ETHERNET
+`ifdef USE_ETHERNET_IO
    output [1:1] eth_sync_pad_o,
    output [1:1] eth_tx_pad_o,
    input [1:1]  eth_rx_pad_i,
    input 	eth_clk_pad_i,
    inout [1:1]  eth_md_pad_io,
    output [1:1] eth_mdc_pad_o,   
-`endif //  `ifdef USE_ETHERNET
+`endif //  `ifdef USE_ETHERNET_IO
    output spi1_mosi_pad_o,
    input  spi1_miso_pad_i,
    output spi1_ss_pad_o  ,
@@ -349,7 +391,7 @@ intercon intercon1 (
    assign 	 pic_ints[7] = 1'b0;
    assign 	 pic_ints[6] = 1'b0;
    assign 	 pic_ints[5] = 1'b0;
-   assign 	 pic_ints[4] = 1'b0;
+   assign 	 pic_ints[4] = eth_int[1]; /* IRQ4, just like in Linux. Added jb 090716 */
    assign 	 pic_ints[3] = 1'b0;
    assign 	 pic_ints[2] = uart0_irq;
    assign 	 pic_ints[1] = 1'b0;
@@ -550,8 +592,7 @@ wire 	     m1rxdv;
 wire 	     m1rxerr;
 wire 	     m1coll;
 wire 	     m1crs;   
-//wire [1:10] 	     state;
-wire [10:1] 	     state;   // Changed for verilator -- jb
+wire [10:1]  state;
 wire              sync;
 wire [1:1]    rx, tx;
 wire [1:1]    mdc_o, md_i, md_o, md_oe;
@@ -602,6 +643,8 @@ eth_top eth_top1
 	 .md_padoe_o(md_oe[1]),
 	 .int_o(eth_int[1])
 	 );
+
+`ifdef USE_ETHERNET_IO
 iobuftri iobuftri1
   (
    .i(md_o[1]),
@@ -632,6 +675,7 @@ smii_txrx smii_txrx1
    .clk(eth_clk),
    .rst(wb_rst)
    );
+
 obufdff obufdff_sync1
   (
    .d(sync),
@@ -653,6 +697,8 @@ ibufdff ibufdff_rx1
    .clk(eth_clk),
    .rst(wb_rst)
    );
+`endif // `ifdef USE_ETHERNET_IO
+
 `else // !`ifdef USE_ETHERNET
    // If ethernet core is disabled, still ack anyone who tries
    // to access its config port. This allows linux to boot in

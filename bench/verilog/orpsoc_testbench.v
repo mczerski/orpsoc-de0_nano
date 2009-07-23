@@ -149,9 +149,9 @@ module orpsoc_testbench();
 `ifdef USE_ETHERNET
       // Ethernet ports
       .eth_md_pad_io			(eth_md_io[1:1]),
+      .eth_mdc_pad_o			(eth_mdc_o[1:1]),
       .eth_sync_pad_o			(eth_sync_o[1:1]),
       .eth_tx_pad_o			(eth_tx_o[1:1]),
-      .eth_mdc_pad_o			(eth_mdc_o[1:1]),
       .eth_rx_pad_i			(eth_rx_i[1:1]),
       .eth_clk_pad_i			(eth_clk_i),
 `endif  //  `ifdef USE_ETHERNET      
@@ -225,6 +225,89 @@ module orpsoc_testbench();
 
 `endif // !`ifdef USE_SDRAM
 
+`ifdef USE_ETHERNET
+
+   reg 		eth_clk;
+   initial
+     eth_clk <= 0;
+
+   always
+     #(8/2) eth_clk <= ~eth_clk; // 125 Mhz clock
+
+   assign eth_clk_i = eth_clk;
+   
+   
+   
+   wire [3:0]		ethphy_mii_tx_d;	
+   wire			ethphy_mii_tx_en;	
+   wire			ethphy_mii_tx_err;	
+   wire			mcoll_o;		
+   wire			mcrs_o;			
+   wire			md_io;			
+   wire			mrx_clk_o;		
+   wire [3:0]		mrxd_o;			
+   wire			mrxdv_o;		
+   wire			mrxerr_o;		
+   wire			mtx_clk_o;		
+   wire			smii_rx;		
+   wire 		fast_ethernet, duplex, link;
+
+   /* Converts SMII back to MII */
+   smii_phy smii_phyend
+     (
+      // Outputs
+      .smii_rx				(eth_rx_i[1:1]), /* SMII RX */
+      .ethphy_mii_tx_d			(ethphy_mii_tx_d[3:0]), /* MII TX */
+      .ethphy_mii_tx_en			(ethphy_mii_tx_en),     /* MII TX */
+      .ethphy_mii_tx_err		(ethphy_mii_tx_err),    /* MII TX */
+      // Inputs
+      .smii_tx				(eth_tx_o[1:1]),        /* SMII TX */ 
+      .smii_sync			(eth_sync_o[1:1]),      /* SMII SYNC */
+      .ethphy_mii_tx_clk		(mtx_clk_o),            /* MII TX */
+      
+      .ethphy_mii_rx_d			(mrxd_o[3:0]), /* MII RX */
+      .ethphy_mii_rx_dv			(mrxdv_o),     /* MII RX */
+      .ethphy_mii_rx_err		(mrxerr_o),    /* MII RX */
+      .ethphy_mii_rx_clk		(mrx_clk_o),   /* MII RX */
+      
+      .ethphy_mii_mcoll			(),
+      .ethphy_mii_crs			(mcrs_o),
+      .fast_ethernet			(fast_ethernet),
+      .duplex				(duplex),
+      .link				(link),
+      .clk				(eth_clk_i),
+      .rst_n				(rst_i));
+
+`ifdef ENABLE_ETH_STIM
+   /* Generates an RX packet */
+ `include "eth_stim.v"
+`endif
+
+   eth_phy eth_phy0
+     (
+      // Outputs
+      .mtx_clk_o			(mtx_clk_o),
+      .mrx_clk_o			(mrx_clk_o),
+      .mrxd_o				(mrxd_o[3:0]),
+      .mrxdv_o				(mrxdv_o),
+      .mrxerr_o				(mrxerr_o),
+      .mcoll_o				(mcoll_o),
+      .mcrs_o				(mcrs_o),
+      // Sideband outputs for smii converter --jb
+      .link_o                             (link),
+      .speed_o                            (fast_ethernet), 
+      .duplex_o                           (duplex),
+      // Inouts
+      .md_io				(eth_md_io[1:1]),
+      // Inputs
+      .m_rst_n_i			(rst_i),
+      .mtxd_i				(ethphy_mii_tx_d[3:0]),
+      .mtxen_i				(ethphy_mii_tx_en),
+      .mtxerr_i				(ethphy_mii_tx_err),
+      .mdc_i				(eth_mdc_o[1:1]));
+   
+`endif //  `ifdef USE_ETHERNET
+   
 
 initial
   begin

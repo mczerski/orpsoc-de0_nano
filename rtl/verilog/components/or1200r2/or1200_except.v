@@ -228,7 +228,7 @@ input				dcpu_err_i;
 reg	[`OR1200_EXCEPT_WIDTH-1:0]	except_type;
 reg	[31:0]			id_pc;
 reg	[31:0]			ex_pc;
-reg	[31:0]			wb_pc;
+reg	[31:0]			wb_pc /* verilator public */;
 reg	[31:0]			epcr;
 reg	[31:0]			eear;
 reg	[`OR1200_SR_WIDTH-1:0]		esr;
@@ -237,12 +237,12 @@ reg	[2:0]			ex_exceptflags;
 reg	[`OR1200_EXCEPTFSM_WIDTH-1:0]	state;
 reg				extend_flush;
 reg				extend_flush_last;
-reg				ex_dslot;
+reg				ex_dslot /* verilator public */;
 reg				delayed1_ex_dslot;
 reg				delayed2_ex_dslot;
 wire				except_started;
 wire	[12:0]			except_trig;
-wire				except_flushpipe;
+wire				except_flushpipe /* verilator public */;
 reg	[2:0]			delayed_iee;
 reg	[2:0]			delayed_tee;
 wire				int_pending;
@@ -293,6 +293,18 @@ assign except_stop = {
 			sig_trap		& du_dsr[`OR1200_DU_DSR_TE] & ~ex_freeze,
 			sig_syscall		& du_dsr[`OR1200_DU_DSR_SCE] & ~ex_freeze
 		};
+
+`ifdef verilator
+   // Function to access wb_pc (for Verilator). Have to hide this from
+   // simulator, since functions with no inputs are not allowed in IEEE
+   // 1364-2001.
+   function [31:0] get_wb_pc;
+      // verilator public
+      get_wb_pc = wb_pc;
+   endfunction // get_wb_pc
+
+`endif
+
 
 //
 // PC and Exception flags pipelines

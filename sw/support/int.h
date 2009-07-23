@@ -13,3 +13,6 @@ int int_add(unsigned long vect, void (* handler)(void *), void *arg);
 
 /* Initialize routine */
 int int_init();
+
+/* Actual interrup handler function */
+void int_main();

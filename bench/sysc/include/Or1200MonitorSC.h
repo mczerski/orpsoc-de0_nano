@@ -5,6 +5,7 @@
 // Copyright (C) 2008  Embecosm Limited <info@embecosm.com>
 
 // Contributor Jeremy Bennett <jeremy.bennett@embecosm.com>
+// Contributor Julius Baxter <jb@orsoc.se>
 
 // This file is part of the cycle accurate model of the OpenRISC 1000 based
 // system-on-chip, ORPSoC, built using Verilator.
@@ -29,6 +30,9 @@
 #ifndef OR1200_MONITOR_SC__H
 #define OR1200_MONITOR_SC__H
 
+#include <fstream>
+#include <ctime>
+
 #include "systemc.h"
 
 #include "OrpsocAccess.h"
@@ -52,10 +56,17 @@ public:
   // Method to check instructions
   void  checkInstruction();
 
+  // Methods to setup and output state of processor to a file
+  void init_displayState(int argc,char *argv[]);
+  void displayState();
+
   // The ports
   sc_in<bool>   clk;
 
 private:
+
+  // Function to calculate performance of the sim
+  void perfSummary();
 
   // Special NOP instructions
   static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction
@@ -63,6 +74,15 @@ private:
   static const uint32_t NOP_REPORT = 0x15000002;  //!< Simple report
   static const uint32_t NOP_PRINTF = 0x15000003;  //!< Simprintf instruction
   static const uint32_t NOP_PUTC   = 0x15000004;  //!< Putc instruction
+
+  // Variables for processor status output
+  ofstream statusFile;
+  int logging_enabled;
+  int exit_perf_summary_enabled;
+  int insn_count;
+  
+  // Time measurement variables - for calculating performance of the sim
+  clock_t start;
 
   //! The accessor for the Orpsoc instance
   OrpsocAccess *accessor;

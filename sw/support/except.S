@@ -1,6 +1,6 @@
 #include "spr_defs.h"
 
-// Linked from 0x200, so subtract 0x200 from each .org
+// Linked from 0x200, so add 0x200 to the .org for the physical address
 .section .vectors, "ax" 
 
 /*

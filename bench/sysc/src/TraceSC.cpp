@@ -49,18 +49,27 @@ TraceSC::TraceSC (sc_core::sc_module_name  name,
 
   // Setup the name of the VCD dump file
   string dumpNameDefault("vlt-dump.vcd");
-  string dumpSuffix("-vlt.vcd");
-  string dumpDir("../results/"); // Note: hardcoded to store all VCDs in the ../results dir
   string testNameString;
   string vcdDumpFile;
-  
-  if (argc > 1) // If we were passed a name on the command line, use it
+
+  // Search through the command line parameters for the "-vcd" option
+  int cmdline_name_found=0;
+  if (argc > 1)
+  {
+    for(int i=1; i<argc; i++)
     {
-      testNameString = (argv[1]);
-      vcdDumpFile = dumpDir + testNameString + dumpSuffix;
+      if (strcmp(argv[i], "-vcd")==0)
+        {
+          testNameString = (argv[i+1]);
+          vcdDumpFile = testNameString;
+          cmdline_name_found=1;
+	  break;
+         }
     }
-  else // otherwise use our default VCD dump file name
-    vcdDumpFile = dumpDir + dumpNameDefault;
+  }
+
+  if(cmdline_name_found==0) // otherwise use our default VCD dump file name
+    vcdDumpFile = dumpNameDefault;
   
   Verilated::traceEverOn (true);
   

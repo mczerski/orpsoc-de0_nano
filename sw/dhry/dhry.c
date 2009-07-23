@@ -16,8 +16,9 @@
  */
 #include "support.h"
 #include "dhry.h"
-
+#ifndef NUM_RUNS
 #define NUM_RUNS (1)
+#endif
 #define DLX_FREQ 200  /* in MHz */
 #define PROC_6 1
 

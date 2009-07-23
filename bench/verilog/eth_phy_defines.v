@@ -1,20 +1,20 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  ORPSoC Testbench Defines                                    ////
+////  File name: eth_phy_defines.v                                ////
 ////                                                              ////
-////  Description                                                 ////
-////  ORPSoC testbench defines file                               ////
-////                                                              ////
-////  To Do:                                                      ////
-////   -                                                          ////
+////  This file is part of the Ethernet IP core project           ////
+////  http://www.opencores.org/projects/ethmac/                   ////
 ////                                                              ////
 ////  Author(s):                                                  ////
-////      - jb, jb@orsoc.se                                       ////
+////      - Tadej Markovic, tadej@opencores.org                   ////
+////                                                              ////
+////  All additional information is available in the README.txt   ////
+////  file.                                                       ////
 ////                                                              ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009 Authors and OPENCORES.ORG                 ////
+//// Copyright (C) 2002,  Authors                                 ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -38,23 +38,54 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
+//
+// CVS Revision History
+//
+// $Log: not supported by cvs2svn $
+// Revision 1.1  2002/09/13 11:57:20  mohor
+// New testbench. Thanks to Tadej M - "The Spammer".
+//
+//
+//
 
-// 25Mhz clock = 40ns period
-`define CLOCK_PERIOD 40
-`define CLOCK_RATE 25000000
+// Address of PHY device (LXT971A)
+`define ETH_PHY_ADDR                 5'h00 //Changed to 0 -jb
 
-// Period for 125MHz clock is 8ns
- `define ETH_CLK_PERIOD 8
-   
+// LED/Configuration pins on PHY device - see the specification, page 26, table 8
+// Initial set of bits 13, 12 and 8 of Control Register
+`define LED_CFG1                     1'b0
+`define LED_CFG2                     1'b0
+`define LED_CFG3                     1'b1
 
 
-// The ORPSoC tests makefile should generate the test_define.v file in
-// the sim/run directory.
-`ifdef TEST_DEFINE_FILE
- `include "test_define.v"
-`else
- `define TEST_NAME_STRING "unspecified-test"
- `define TEST_RESULTS_DIR "./"
-`endif
+// Supported speeds and physical ports - see the specification, page 67, table 41
+// Set bits 15 to 9 of Status Register
+`define SUPPORTED_SPEED_AND_PORT     7'h3F
 
-`undef UART_LOG_TX
+// Extended status register (address 15)
+// Set bit 8 of Status Register
+`define EXTENDED_STATUS              1'b0
+
+// Default status bits - see the specification, page 67, table 41
+// Set bits 6 to 0 of Status Register
+`define DEFAULT_STATUS               7'h09
+
+// PHY ID 1 number - see the specification, page 68, table 42
+// Set bits of Phy Id Register 1
+`define PHY_ID1                      16'h0013
+
+// PHY ID 2 number - see the specification, page 68, table 43
+// Set bits 15 to 10 of Phy Id Register 2
+`define PHY_ID2                      6'h1E
+
+// Manufacturer MODEL number - see the specification, page 68, table 43
+// Set bits 9 to 4 of Phy Id Register 2
+`define MAN_MODEL_NUM                6'h0E
+
+// Manufacturer REVISION number - see the specification, page 68, table 43
+// Set bits 3 to 0 of Phy Id Register 2
+`define MAN_REVISION_NUM             4'h2
+
+
+
+

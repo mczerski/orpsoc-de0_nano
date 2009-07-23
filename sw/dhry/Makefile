@@ -4,6 +4,12 @@ cases = dhry-nocache-O0 dhry-nocache-O2 dhry-icdc-O2
 #common = ../support/libsupport.a
 common = ../support/libsupport.a ../support/except.o
 
+ifdef NUM_RUNS
+NUM_RUNS=($(NUM_RUNS))
+else
+NUM_RUNS="(10)"
+endif
+
 all: $(cases)
 
 dhry-nocache-O0: dhry-O0.o ../support/reset-nocache.o $(common)
@@ -28,7 +34,7 @@ dhry-icdc-O2: dhry-O2.o ../support/reset-icdc.o $(common)
 
 
 dhry-O0.o: dhry.c
-	$(OR32_TOOL_PREFIX)-gcc -I../support -O0 $(GCC_OPT) $? -mhard-div -c -o $@
+	$(OR32_TOOL_PREFIX)-gcc -DNUM_RUNS=$(NUM_RUNS) -I../support -O0 $(GCC_OPT) $? -mhard-div -c -o $@
 
 dhry-O2.o: dhry.c
-	$(OR32_TOOL_PREFIX)-gcc -I../support -O2 $(GCC_OPT) $? -mhard-div -c -o $@
+	$(OR32_TOOL_PREFIX)-gcc -DNUM_RUNS=$(NUM_RUNS) -I../support -O2 $(GCC_OPT) $? -mhard-div -c -o $@

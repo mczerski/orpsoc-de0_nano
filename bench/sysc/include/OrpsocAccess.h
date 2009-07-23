@@ -35,6 +35,8 @@
 class Vorpsoc_top;
 class Vorpsoc_top_orpsoc_top;
 class Vorpsoc_top_or1200_ctrl;
+class Vorpsoc_top_or1200_except;
+class Vorpsoc_top_or1200_sprs;
 class Vorpsoc_top_or1200_dpram;
 
 
@@ -53,13 +55,24 @@ public:
   // Accessor functions
   bool      getWbFreeze ();
   uint32_t  getWbInsn ();
+  uint32_t  getWbPC ();
+  bool  getExceptFlushpipe ();
+  bool  getExDslot ();
+  // Get a specific GPR from the register file
   uint32_t  getGpr (uint32_t regNum);
+  //SPR accessessors
+  uint32_t  getSprSr ();
+  uint32_t  getSprEpcr ();
+  uint32_t  getSprEear ();
+  uint32_t  getSprEsr ();
 
 private:
 
   // Pointers to modules with accessor functions
-  Vorpsoc_top_or1200_ctrl          *or1200_ctrl;
-  Vorpsoc_top_or1200_dpram *rf_a;
+  Vorpsoc_top_or1200_ctrl	*or1200_ctrl;
+  Vorpsoc_top_or1200_except	*or1200_except;
+  Vorpsoc_top_or1200_sprs	*or1200_sprs;
+  Vorpsoc_top_or1200_dpram	*rf_a;
 
 };	// OrpsocAccess ()
 

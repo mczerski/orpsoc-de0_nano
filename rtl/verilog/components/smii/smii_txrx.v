@@ -66,7 +66,7 @@ module smii_txrx
     output reg	 link,
 `endif
    // internal
-    input [10:1] state, // Change bit size declaration order, was [1:10], not verilator compatible: %Error: Unsupported: MSB < LSB of bit range: 1<10
+    input [10:1] state,
    // clock and reset
     input 	 clk,
     input 	 rst
@@ -112,14 +112,27 @@ module smii_txrx
    
    /////////////////////////////////////////////////
    // Transmit
+
+   /* Timing scheme:
+    On the first clock of segment 0 (so each segment when 100Mb/s,
+    fast ethernet, or every 10 segments for 10Mb/s ethernet) we 
+    deteremine if that segment is data or not, depending on what is 
+    in the tx_data_reg_valid register. If the MAC wants to transmit 
+    something, we overwrite the previously sent values when they're 
+    no longer needed. Once the first nibble is sent, we can then 
+    overwrite it, and same for the second - so we generate the TX 
+    clock when state is 5, and sample the new nibble on the next 
+    clock, same with the second nibble, that is clocked when state 
+    is 9, and sampled when it is 10, so it gets overwritten when 
+    we've finished putting it on the serial line.*/
       
      always @ (posedge clk or posedge rst)
      if (rst)
        mtx_clk_tmp <= 1'b0;
      else
-       if ((state[10] | state[5]) & (tx_cnt == 4'd0))
+       if ((state[5] | state[9]) & (tx_cnt == 4'd0))
 	 mtx_clk_tmp <= 1'b1;
-       else if (state[2] | state[7])
+       else if (state[6] | state[10])
 	 mtx_clk_tmp <= 1'b0;
 
 `ifdef ACTEL
@@ -141,37 +154,50 @@ module smii_txrx
 	  a0 <= 1'b0;
        end
      else
-       if ((state[4] | state[9]) & (tx_cnt == 4'd0))
+       if ((state[6] | state[10]) & (tx_cnt == 4'd0))
 	 begin
+	    /* Toggale a0 when MII TX_EN goes high */
 	    if (!mtxen)
 	      a0 <= 1'b0;
 	    else
 	      a0 <= ~a0;
+
+	    /* byte will be valid when MII TX_EN 
+	     is high from the MAC */
 	    if (!mtxen & !a0)
 	      tx_data_reg_valid <= 1'b0;	    
 	    else if (a0)
 	      tx_data_reg_valid <= 1'b1;
+
+	    /* Sample the nibble */
 	    if (mtxen & !a0)
-	      //tx_data_reg[0:3] <= {mtxd[0],mtxd[1],mtxd[2],mtxd[3]};
-	      tx_data_reg[3:0] <= {mtxd[3],mtxd[2],mtxd[1],mtxd[0]}; // Changed for verilator -- jb
+	      tx_data_reg[3:0] <= mtxd;	    
 	    else if (mtxen & a0)
-	      //tx_data_reg[4:7] <= {mtxd[0],mtxd[1],mtxd[2],mtxd[3]};
-	      tx_data_reg[7:4] <= {mtxd[3],mtxd[2],mtxd[1],mtxd[0]}; // Changed for verilator -- jb
+	      tx_data_reg[7:4] <= mtxd;	    
+	    
 	 end // if ((state[4] | state[9]) & (tx_cnt == 4'd0))
    
 
-   // state flag
+   /* Determine if we output a data byte or the inter-frame sequence 
+    with status information */
    always @ (posedge clk or posedge rst)
      if (rst)
        state_data <= 1'b0;
      else
        if (state[1] & (tx_cnt == 4'd0))
 	 state_data <= tx_data_reg_valid;
-
+   
+   /* A wire hooked up from bit 0 with the last byte of the state counter/shiftreg */
+   wire [7:0] state_data_byte;
+   assign state_data_byte[7:0] = state[10:3];
+   
+   /* Assign the SMII TX wire */
+   /* First bit always TX_ERR, then depending on the next bit, TX_EN, output
+    either the inter-frame status byte or a data byte */
    assign tx = state[1] ? mtxerr :
 	       state[2] ? ((tx_data_reg_valid & (tx_cnt == 4'd0)) | state_data) :
-	       state_data ? |(state[10:2] & tx_data_reg) :  // changed bit select order to 10:2 -- jb
-	       |(state[10:2] & {mtxerr,speed,duplex,link,jabber,3'b111}); // changed bit select order to 10:2 -- jb
+	       state_data ? |(state_data_byte & tx_data_reg) :
+	       |(state_data_byte & {3'b111,jabber,link,duplex,speed,mtxerr});
 
    /////////////////////////////////////////////////
    // Receive
@@ -199,20 +225,33 @@ module smii_txrx
        end
      else
        begin
+	  /* Continually shift rx into rx_tmp bit 2, and shift rx_tmp along */
 	  rx_tmp[2:0] <= {rx,rx_tmp[2:1]};
+
+	  /* We appear to be beginning our sampling when state bit 3 is set */
 	  if (state[3])
 	    mcrs <= rx;	  
+	  
+	  /* rx_tmp[3] is used as the RX_DV bit*/
 	  if (state[4])
 	    rx_tmp[3] <= rx;
-	  if (rx_tmp[3]) //rxdv
+
+	  if (rx_tmp[3]) //If data byte valid, and when we've got the first nibble, output it */
 	    begin
+	       /* At this stage we've got the first 3 bits of the bottom 
+		nibble - we can sample the rx line directly to get the 
+		4th, and we'll also indicate that this byte is valid by 
+		raising the MII RX data valid (dv) line. */
 	       if (state[8])
 		 {mrxdv,mrxd} <= #1 {rx_tmp[3],rx,rx_tmp[2:0]};
+	       /* High nibble, we have 3 bits and the final one is on 
+		the line - put it out for the MAC to read.*/
 	       else if (state[2])
 		 mrxd <= #1 {rx,rx_tmp[2:0]};
 	    end
 	  else
 	    begin
+	       /* Not a data byte, it's the inter-frame status byte */
 	       if (state[5])
 		 mrxerr <= #1 rx;
 	       if (state[6])
@@ -248,6 +287,7 @@ module smii_txrx
    assign #1 mrx_clk = mrx_clk_tmp;
 `endif
    
-   assign mcoll = mcrs & mtxen;
+assign mcoll =  mcrs & mtxen & !duplex;
+      
    
 endmodule // smii_top

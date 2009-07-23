@@ -43,7 +43,7 @@ module smii_sync
    // SMII sync
     output            sync,
    // internal
-   output reg [10:1] state, // Changed for verilator -- jb
+    output reg [10:1] state,
    // clock amd reset
     input 	      clk,
     input 	      rst
@@ -52,7 +52,7 @@ module smii_sync
    // sync shall go high every 10:th cycle
    always @ (posedge clk or posedge rst)
      if (rst)
-       state <= 10'b1000000000;
+       state <= 10'b0000000001;
      else
        state <= {state[9:1],state[10]};
 

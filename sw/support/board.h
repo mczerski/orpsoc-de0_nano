@@ -20,7 +20,8 @@
 #define UART_BASE  	    0x90000000
 #define UART_IRQ        19
 #define ETH_BASE        0xD0000000
-#define ETH_IRQ         15
+//#define ETH_IRQ         15
+#define IRQ_ETH_0             (4)       /* interrupt source for Ethernet dvice 0 */
 #define MC_BASE_ADDR    0x60000000
 #define SPI_BASE        0xa0000000
 

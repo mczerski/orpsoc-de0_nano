@@ -37,7 +37,7 @@
 *
 **************************************************************************/
 
-`timescale 1ns / 1ps
+`include "timescale.v"
 
 module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
 
