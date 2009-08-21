@@ -63,16 +63,6 @@ _int_vector:
         l.jal   store_regs
         l.nop
 
-        l.mfspr r3,r0,SPR_EPCR_BASE
-        l.movhi r4,hi(_except_pc)
-        l.ori   r4,r4,lo(_except_pc)
-        l.sw    0(r4),r3
-
-        l.mfspr r3,r0,SPR_EEAR_BASE
-        l.movhi r4,hi(_except_ea)
-        l.ori   r4,r4,lo(_except_ea)
-        l.sw    0(r4),r3
-
         l.movhi r9,hi(end_except)
         l.ori   r9,r9,lo(end_except)
         l.movhi r10,hi(_excpt_int)

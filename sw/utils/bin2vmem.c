@@ -51,9 +51,22 @@
 //     @0000000c 00000000 00000000 00000000 00000000
 //     etc..
 //
+// OR
+// 
+// Output a list of the words, one per line, as Synplify appears to like
+// specify this option with the -synfmt switch on the command line after
+// the input file
+// eg: ./bin2vmem data.bin -synfmt > data.vmem
+//
 
 #define WORDS_PER_LINE 4
 #define BYTES_PER_WORD 4
+
+#define FILENAME_CMDLINE_INDEX 1
+#define FMT_CMDLINE_INDEX 2
+
+#define FMT_WITH_ADDR 0
+#define FMT_SYN 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,8 +79,8 @@ int main(int argc, char **argv)
 	int c;
 	int i = 0;
 	int write_size_word=0; // Disabled by default
-	int filename_index=1;
 	unsigned int image_size;
+	int output_fmt = FMT_WITH_ADDR; // 0 - standard 4 per line with address, 1 - synfmt
 
 	// Counters keeping track of what we've printed
 	int current_addr = 0;
@@ -78,10 +91,22 @@ int main(int argc, char **argv)
 	  fprintf(stderr,"\n\tInsufficient options.\n");
 	  fprintf(stderr,"\tPlease specify a binary file to convert to VMEM\n");
 	  fprintf(stderr,"\n\tbin2vmem - creates vmem output to stdout from bin\n");
+	  fprintf(stderr,"\n\tBy default the output is word addressed 32-bit words\n");
+	  fprintf(stderr,"\tSpecify -synfmt on the command line after the filename\n");
+	  fprintf(stderr,"\tto output in the alterative format, which is a simple\n");
+	  fprintf(stderr,"\tlist of the data words.\n");
+
+	  fprintf(stderr,"\n");
 	  exit(1);
 	}
-	
-	fd = fopen( argv[filename_index], "r" );
+
+	fd = fopen( argv[FILENAME_CMDLINE_INDEX], "r" );
+
+	if (argc > 2) // check for the -synfmt switch
+	  {
+	    if (strcmp("-synfmt", argv[FMT_CMDLINE_INDEX]) == 0)
+	      output_fmt = FMT_SYN; // synthesis friendly format - single column, no addr
+	  }
 
 	if (fd == NULL) {
 		fprintf(stderr,"failed to open input file: %s\n",argv[1]);
@@ -115,45 +140,64 @@ int main(int argc, char **argv)
 	    printf("%8x", image_size);
 	    current_addr += WORDS_PER_LINE * BYTES_PER_WORD;
 	  }
-	else
-	  {
-	  }
 
 
-	// Fix for the current bootloader software! Skip the first 4 bytes of application data. Hopefully it's not important. 030509 -- jb
+	// Fix for the current bootloader software! Skip the first 4 
+	// bytes of application data. Hopefully it's not important. 030509 -- jb
 	//for(i=0;i<4;i++)
 	//  c=fgetc(fd);
 	i=0;
 	int starting_new_line  = 1;
-	// Now write out the binary data to VMEM format: @ADDRESSS XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX
-	while ((c = fgetc(fd)) != EOF) {
-	  if (starting_new_line)
-	    {
-	      // New line - print the current addr and then increment it
-	      printf("@%.8x", current_addr);
-	      //current_addr += WORDS_PER_LINE * BYTES_PER_WORD;
-	      current_addr += WORDS_PER_LINE;
-	      starting_new_line = 0;
-	    }
-	  if (byte_counter == 0)
-	    printf(" ");
-	  
-	  printf("%.2x", (unsigned int) c); // now print the actual char
-	 
-	  byte_counter++;
-	  
-	  if (byte_counter == BYTES_PER_WORD)
-	    {
-	      word_counter++;
-	      byte_counter=0;
-	    }
-	  if (word_counter == WORDS_PER_LINE)
-	    {
-	      printf("\n");   
-	      word_counter = 0;
-	      starting_new_line = 1;
-	    }
-	}
+	// Now write out the binary data to specified format. Either
+	// more complicated, addressed format:
+	// VMEM format: @ADDRESSS XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX
+	// or simple, synplifyfriendly format which is just a list of
+	// the words
 	
+	while ((c = fgetc(fd)) != EOF) {
+	  
+	  if (output_fmt == FMT_WITH_ADDR) // Default format
+	    {
+	      
+	      if (starting_new_line)
+		{
+		  // New line - print the current addr and then increment it
+		  printf("@%.8x", current_addr);
+		  current_addr += WORDS_PER_LINE;
+		  starting_new_line = 0;
+		}
+	      if (byte_counter == 0)
+		printf(" ");
+	      
+	      printf("%.2x", (unsigned int) c); // now print the actual char
+	      
+	      byte_counter++;
+	      
+	      if (byte_counter == BYTES_PER_WORD)
+		{
+		  word_counter++;
+		  byte_counter=0;
+		}
+	      if (word_counter == WORDS_PER_LINE)
+		{
+		  printf("\n");   
+		  word_counter = 0;
+		  starting_new_line = 1;
+		}
+	    } // End of FMT_WITH_ADDR
+	  else if (output_fmt == FMT_SYN) // simple list of data words
+	    {
+	      printf("%.2x", (unsigned int) c); // now print the actual char
+	      byte_counter++;
+	      if (byte_counter == BYTES_PER_WORD)
+		{
+		  printf("\n");
+		  byte_counter=0;
+		}
+	    }
+	      
+
+	}
+
 	return 0;
 }	

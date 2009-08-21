@@ -66,12 +66,6 @@ void res1_except(){}
 void trap_except(){}
 void res2_except(){}
 
-/* Exception efective address */
-volatile unsigned long except_ea;
-
-/* Eception PC */
-volatile unsigned long except_pc;
-
 volatile unsigned tx_done;
 
 /* Functions in this file */
