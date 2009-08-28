@@ -98,6 +98,7 @@ module vpi_debug_module(tms, tck, tdi, tdo);
    
    reg [1:0] cpu_ctrl_val; // two important bits for the ctrl reg
    reg [31:0] cmd_adr;
+   reg [31:0]  cmd_size;
    reg [31:0] cmd_data;
 
    
@@ -228,15 +229,34 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 		  
 	       end
 	     
-	     `CMD_WB_WR32 :
+	     `CMD_WB_WR :
 	       begin
 		  
 		  $get_command_address(cmd_adr);
 
+		  $get_command_data(cmd_size);
+
 		  $get_command_data(cmd_data);
 
-		  wb_write_32(cmd_data, cmd_adr, 16'h3);
-
+		  case (cmd_size)
+		    4 :
+		      begin
+			 wb_write_32(cmd_data, cmd_adr, 16'h3);
+		      end
+		    2 :
+		      begin
+			 wb_write_16(cmd_data[15:0], cmd_adr, 16'h1);
+		      end
+		    1 :
+		      begin
+			 wb_write_8(cmd_data[7:0], cmd_adr, 16'h0);
+		      end
+		    default:
+		      begin
+			 $display("* vpi_debug_module: CMD_WB_WR size incorrect: %d\n", cmd_size);
+		      end
+		  endcase // case (cmd_size)
+		  
 	       end
 	     
 	     `CMD_WB_RD32 :

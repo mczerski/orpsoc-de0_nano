@@ -60,11 +60,15 @@
 
 #define DBG_ON  0
 
+#define DBG_JP_VPI 0
+
 #define DBG_VPI 0
 
-extern int vpi_to_rsp_pipe[2]; // [0] - read, [1] - write
-extern int rsp_to_vpi_pipe[2]; // [0] - read, [1] - write
-extern int command_pipe[2]; // RSP end writes, VPI end reads ONLY
+#define DBG_CALLS 0
+
+extern uint32_t vpi_to_rsp_pipe[2]; // [0] - read, [1] - write
+extern uint32_t rsp_to_vpi_pipe[2]; // [0] - read, [1] - write
+extern uint32_t command_pipe[2]; // RSP end writes, VPI end reads ONLY
 
 #if (DEBUG) || (DEBUG2)
 #define flush_debug() fflush(stdout)
@@ -89,6 +93,8 @@ int dbg_wb_read32(uint32_t adr, uint32_t *data);
 
 /* write a word to wishbone */
 int dbg_wb_write32(uint32_t adr, uint32_t data);
+int dbg_wb_write16(uint32_t adr, uint16_t data);
+int dbg_wb_write8(uint32_t adr, uint8_t data);
 
 /* read a block from wishbone */
 int dbg_wb_read_block32(uint32_t adr, uint32_t *data, int len);

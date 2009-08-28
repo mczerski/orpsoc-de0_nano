@@ -191,7 +191,7 @@
 `define CMD_CPU_CTRL_RD          4'h4
 `define CMD_CPU_WR_REG           4'h5
 `define CMD_CPU_RD_REG           4'h6
-`define CMD_WB_WR32              4'h7
+`define CMD_WB_WR                4'h7
 `define CMD_WB_RD32              4'h8
 `define CMD_WB_BLOCK_WR32        4'h9
 `define CMD_WB_BLOCK_RD32        4'ha
@@ -206,7 +206,7 @@
 // 4'h4 cpu_ctrl_rd (output: ctrl value (2bits))
 // 4'h5 cpu wr reg (inputs: address, data)
 // 4'h6 cpu rd reg (input: address; output: data)
-// 4'h7 wb wr 32 (inputs: address, data)
+// 4'h7 wb wr (inputs: address, size, data)
 // 4'h8 wb rd 32 (input: address; output: data)
 // 4'h9 wb wr block 32 (inputs: address, length, data)
 // 4'ha wb rd block 32 (inputs: address, length; output: data)

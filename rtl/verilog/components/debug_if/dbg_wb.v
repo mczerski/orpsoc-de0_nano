@@ -337,7 +337,8 @@ begin
             end
           else
             begin
-              dr[31:24] <= #1 {dr[30:24], 1'b0};
+	       if (enable) // jb
+		 dr[31:24] <= #1 {dr[30:24], 1'b0};
               latch_data <= #1 1'b0;
             end
         end
@@ -353,7 +354,8 @@ begin
             end
           else
             begin
-              dr[31:16] <= #1 {dr[30:16], 1'b0};
+	       if (enable) // jb
+		 dr[31:16] <= #1 {dr[30:16], 1'b0};
               latch_data <= #1 1'b0;
             end
         end
@@ -366,7 +368,8 @@ begin
             end
           else
             begin
-              dr[31:0] <= #1 {dr[30:0], 1'b0};
+	       if (enable) // jb
+		 dr[31:0] <= #1 {dr[30:0], 1'b0};
               latch_data <= #1 1'b0;
             end
         end
@@ -499,7 +502,7 @@ begin
   else
     crc_cnt_en = 1'b0;
 end
-
+   
 
 // crc counter
 always @ (posedge tck_i or posedge rst_i)
@@ -605,7 +608,6 @@ begin
   else if(crc_cnt_end & (~crc_cnt_end_q))
     crc_match_reg <= #1 crc_match_i;
 end
-
 
 // Length counter
 always @ (posedge tck_i or posedge rst_i)

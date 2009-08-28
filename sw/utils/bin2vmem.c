@@ -81,6 +81,7 @@ int main(int argc, char **argv)
 	int write_size_word=0; // Disabled by default
 	unsigned int image_size;
 	int output_fmt = FMT_WITH_ADDR; // 0 - standard 4 per line with address, 1 - synfmt
+	int bytes_per_word = BYTES_PER_WORD;
 
 	// Counters keeping track of what we've printed
 	int current_addr = 0;
@@ -94,8 +95,13 @@ int main(int argc, char **argv)
 	  fprintf(stderr,"\n\tBy default the output is word addressed 32-bit words\n");
 	  fprintf(stderr,"\tSpecify -synfmt on the command line after the filename\n");
 	  fprintf(stderr,"\tto output in the alterative format, which is a simple\n");
-	  fprintf(stderr,"\tlist of the data words.\n");
+	  fprintf(stderr,"\tlist of the data words. The default bytes per word is 4.\n");
 
+	  fprintf(stderr,"\n");
+	  fprintf(stderr,"\tAdditionally, to specify the bytes per word (per line)\n");
+	  fprintf(stderr,"\twhen specifying the -synfmt simple list format, use the\n");
+	  fprintf(stderr,"\tswitch -bpw=N after specifying the -synfmt option. Example:\n");
+	  fprintf(stderr,"\t\t./bin2vmem prog.bin -synfmt -bpw=2 > prog.vmem\n");
 	  fprintf(stderr,"\n");
 	  exit(1);
 	}
@@ -105,7 +111,21 @@ int main(int argc, char **argv)
 	if (argc > 2) // check for the -synfmt switch
 	  {
 	    if (strcmp("-synfmt", argv[FMT_CMDLINE_INDEX]) == 0)
-	      output_fmt = FMT_SYN; // synthesis friendly format - single column, no addr
+	      {
+		output_fmt = FMT_SYN; // synthesis friendly format - single column, no addr
+		int bytes_per_word_tmp;
+		if (argc > 3) // Check for extra bytes per word option
+		  if (1 == sscanf(argv[FMT_CMDLINE_INDEX+1], "-bpw=%d", &bytes_per_word_tmp))
+		    {
+		      if(bytes_per_word_tmp < 4 && bytes_per_word_tmp > 0)
+			{
+			  //printf("# Bytes per word: %d\n", bytes_per_word_tmp);
+			  bytes_per_word = bytes_per_word_tmp;
+			}
+		      
+		    }
+	      }
+	    
 	  }
 
 	if (fd == NULL) {
@@ -138,7 +158,7 @@ int main(int argc, char **argv)
 	    // Now write out the image size
 	    printf("@%8x", current_addr);
 	    printf("%8x", image_size);
-	    current_addr += WORDS_PER_LINE * BYTES_PER_WORD;
+	    current_addr += WORDS_PER_LINE * bytes_per_word;
 	  }
 
 
@@ -173,7 +193,7 @@ int main(int argc, char **argv)
 	      
 	      byte_counter++;
 	      
-	      if (byte_counter == BYTES_PER_WORD)
+	      if (byte_counter == bytes_per_word)
 		{
 		  word_counter++;
 		  byte_counter=0;
@@ -189,7 +209,7 @@ int main(int argc, char **argv)
 	    {
 	      printf("%.2x", (unsigned int) c); // now print the actual char
 	      byte_counter++;
-	      if (byte_counter == BYTES_PER_WORD)
+	      if (byte_counter == bytes_per_word)
 		{
 		  printf("\n");
 		  byte_counter=0;

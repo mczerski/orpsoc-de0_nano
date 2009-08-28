@@ -217,9 +217,9 @@ void return_response();
   
 #include <time.h>
 
-int vpi_to_rsp_pipe[2]; // [0] - read, [1] - write
-int rsp_to_vpi_pipe[2]; // [0] - read, [1] - write
-int command_pipe[2]; // RSP end writes, VPI end reads ONLY
+uint32_t vpi_to_rsp_pipe[2]; // [0] - read, [1] - write
+uint32_t rsp_to_vpi_pipe[2]; // [0] - read, [1] - write
+uint32_t command_pipe[2]; // RSP end writes, VPI end reads ONLY
 
 /* Global static to store the child rsp server PID if we want to kill it */
 static pid_t rsp_server_child_pid = (pid_t) 0; // pid_t is just a signed int
@@ -282,7 +282,7 @@ void init_rsp_server(){
   pid_t pid;
   int rv;
 
-  if(DBG_ON) printf("jp_vpi: init_rsp_server\n");
+  if(DBG_JP_VPI) printf("jp_vpi: init_rsp_server\n");
 
   // Setup pipes
   if(pipe(vpi_to_rsp_pipe) == -1)
@@ -380,7 +380,7 @@ void print_command_string(unsigned char cmd)
       printf("  CPU reg read\n");
       break;
     case 0x7 :
-      printf("  WB write 32\n");
+      printf("  WB write\n");
       break;
     case 0x8 :
       printf("  WB read 32\n");
@@ -414,7 +414,7 @@ void check_for_command(char *userdata){
 
   unsigned char data;
 
-  //if(DBG_ON) printf("check_for_command\n");
+  //if(DBG_JP_VPI) printf("check_for_command\n");
   
   //n = read(rsp_to_vpi_pipe[0], &data, 1);
   
@@ -433,7 +433,7 @@ void check_for_command(char *userdata){
       exit(1);
     }
   
-  if (DBG_ON)
+  if (DBG_JP_VPI)
   {
     printf("jp_vpi: c = %x:",data);
     print_command_string(data);
@@ -457,7 +457,7 @@ void check_for_command(char *userdata){
   // Now set the command value
   vpi_get_value(argh, &argval);
 
-  argval.value.integer = (unsigned int) data;
+  argval.value.integer = (uint32_t) data;
 
   // And vpi_put_value() it back into the sim
   vpi_put_value(argh, &argval, NULL, vpiNoDelay);
@@ -466,9 +466,9 @@ void check_for_command(char *userdata){
   vpi_free_object(args_iter);
 
   n = write(vpi_to_rsp_pipe[1],&data,1);
-  if (DBG_ON) printf("jp_vpi: r");
+  if (DBG_JP_VPI) printf("jp_vpi: r");
 
-  if (DBG_ON) printf("\n");
+  if (DBG_JP_VPI) printf("\n");
    
   return;
 }
@@ -483,7 +483,7 @@ void get_command_address(char *userdata){
 
   int n;
 
-  unsigned int data;
+  uint32_t data;
   
   char* recv_buf;
 
@@ -497,7 +497,7 @@ void get_command_address(char *userdata){
       return;
     }      
   
-  if (DBG_ON) printf("jp_vpi: get_command_address adr=0x%.8x\n",data);
+  if (DBG_JP_VPI) printf("jp_vpi: get_command_address adr=0x%.8x\n",data);
 
   // now put the address into the argument passed to the task
   
@@ -515,7 +515,7 @@ void get_command_address(char *userdata){
   
   // Now set the address value
   vpi_get_value(argh, &argval);
-  argval.value.integer = (unsigned int) data;
+  argval.value.integer = (uint32_t) data;
   
   // And vpi_put_value() it back into the sim
   vpi_put_value(argh, &argval, NULL, vpiNoDelay);
@@ -537,7 +537,7 @@ void get_command_data(char *userdata){
 
   int n = 0;
 
-  unsigned int data;
+  uint32_t data;
   
   char* recv_buf;
 
@@ -553,7 +553,7 @@ void get_command_data(char *userdata){
       printf("jp_vpi: get_command_data errno: %d\n",errno);
       perror("jp_vpi: get_command_data read failed");
     }
-  if (DBG_ON) printf("jp_vpi: get_command_data = 0x%.8x\n",data);
+  if (DBG_JP_VPI) printf("jp_vpi: get_command_data = 0x%.8x\n",data);
 
   // Obtain a handle to the argument list
   systfref = vpi_handle(vpiSysTfCall, NULL);
@@ -569,7 +569,7 @@ void get_command_data(char *userdata){
   
   // Now set the data value
   vpi_get_value(argh, &argval);
-  argval.value.integer = (unsigned int) data;
+  argval.value.integer = (uint32_t) data;
   
   // And vpi_put_value() it back into the sim
   vpi_put_value(argh, &argval, NULL, vpiNoDelay);
@@ -592,8 +592,8 @@ void get_command_block_data(){ // $get_command_block_data(length, mem_array)
 
   int n;
 
-  unsigned int data;
-  unsigned int length;
+  uint32_t data;
+  uint32_t length;
 
   char* recv_buf;
 
@@ -616,14 +616,14 @@ void get_command_block_data(){ // $get_command_block_data(length, mem_array)
   length = argval.value.integer;
 
   int num_words = length/4;
-
-  if((length % 4) != 0) vpi_printf("length of %d bytes is not exactly word-aligned\n",length);
+  
+  //if((length % 4) != 0) vpi_printf("length of %d bytes is not exactly word-aligned\n",length);
   // If non-word aligned we throw away remainder
   int throw_away_bytes = length %4;
 
   int loaded_words = 0;
 
-  if(DBG_ON)printf("jp_vpi: get_command_block_data: length=%d, num_words=%d\n",length,num_words);
+  if(DBG_JP_VPI)printf("jp_vpi: get_command_block_data: length=%d, num_words=%d\n",length,num_words);
 
   // now get a handle on the next object (memory array)
   argh = vpi_scan(args_iter);
@@ -658,7 +658,7 @@ void get_command_block_data(){ // $get_command_block_data(length, mem_array)
     
     if (array_word != NULL)
       {
-	argval.value.integer = (unsigned int) data;
+	argval.value.integer = (uint32_t) data;
 	
 	// And vpi_put_value() it back into the sim
 	vpi_put_value(array_word, &argval, NULL, vpiNoDelay);
@@ -712,12 +712,12 @@ void return_command_data(char *userdata){
   // Now set the data value
   vpi_get_value(argh, &argval);
 
-  data = (unsigned int) argval.value.integer;
+  data = (uint32_t) argval.value.integer;
   
   // Cleanup and return
   vpi_free_object(args_iter);
 
-  if (DBG_ON) printf("jp_vpi: return_command_data 0x%.8x\n",data);
+  if (DBG_JP_VPI) printf("jp_vpi: return_command_data 0x%.8x\n",data);
   
   send_buf = (char *) &data; //cast our long as a char buf
   
@@ -738,11 +738,17 @@ void return_command_block_data(){
 
   int n;
 
-  unsigned int data;
-  unsigned int length;
+  uint32_t data;
+  uint32_t length;
 
-  char* recv_buf;
+  char *block_data_buf;
+  uint32_t *block_word_data_buf_ptr;
 
+  int num_words;
+  int sent_words = 0;
+
+  vpiHandle array_word;
+  
   // Now setup the handles to verilog objects and check things
   // Obtain a handle to the argument list
   systfref = vpi_handle(vpiSysTfCall, NULL);
@@ -771,38 +777,67 @@ void return_command_block_data(){
       return;
     }
   
-  vpiHandle array_word;
+  // We have to alloc memory here for lengths > 4
+  if (length > 4);
+  {
+    block_data_buf = (char*) malloc(length * sizeof(char));
+    if (block_data_buf == NULL)
+      {
+	vpi_printf("jp_vpi: return_command_block_data: Error. Could not allocate memory\n");
+	// Cleanup and return
+	vpi_free_object(args_iter);
+	return;
+      }
+
+    // Now cast it as a uint32_t array
+    block_word_data_buf_ptr = (uint32_t *) block_data_buf;
+  }
+
+  num_words = length / 4; // We're always going to be dealing with whole words here
   
-  int num_words = length/4;
-  
-  int sent_words = 0;
-  
-  // Loop to load the words
+  if (DBG_JP_VPI) printf("jp_vpi: return_command_block_data: num_words %d\n",
+			 num_words);
+
+    // Loop to load the words
   while (sent_words < num_words) {
     
-    // now get a handle on the current word we want in the array that was passed to us
+    // Get a handle on the current word we want in the array that was passed to us
     array_word = vpi_handle_by_index(argh, sent_words);
     
     if (array_word != NULL)
       {
 	vpi_get_value(array_word, &argval);
 	
-	data = (unsigned int) argval.value.integer;
+	data = (uint32_t) argval.value.integer;
+	
+	block_word_data_buf_ptr[sent_words] = data;
       }
     else
       return;
 
-    recv_buf = (char *) &data;
-    
-    n = write(vpi_to_rsp_pipe[1],recv_buf,4);
-    
+    if (DBG_JP_VPI) printf ( "jp_vpi: return_command_block_data: word %d 0x%.8x\n",
+			     sent_words, data);
     sent_words++;
-    
   }
+  
+  if (!(length > 4))
+    {
+      block_data_buf = (char *) &data; 
+    }
+  
+  n = write(vpi_to_rsp_pipe[1],block_data_buf,length);
+
+  
+  if (length > 4)
+    {
+      // Free the array
+      free(block_data_buf);
+    }
+    
   
   // Cleanup and return
   vpi_free_object(args_iter);
-  
+
   return;
 
 }
@@ -818,7 +853,7 @@ void return_response(char *userdata){
   // send a response byte
   n = write(vpi_to_rsp_pipe[1],&resp,1);
   
-  if (DBG_ON) printf("jp_vpi: ret\n\n");
+  if (DBG_JP_VPI) printf("jp_vpi: ret\n\n");
   
   return;
 

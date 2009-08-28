@@ -92,6 +92,7 @@ void send_command_to_vpi(char CMD)
   int n;
   char cmd_resp;
   
+  if (DBG_CALLS)printf("send_command_to_vpi: cmd 0x%x \n", CMD);
   
   //n = write(rsp_to_vpi_pipe[1],&CMD, 1); // send the command to the sim
   n = write(command_pipe[1],&CMD, 1); // send the command to the sim
@@ -112,6 +113,8 @@ void send_address_to_vpi(uint32_t address)
 
   char* send_buf;
 
+  if (DBG_CALLS)printf("send_address_to_vpi: address 0x%.8x\n",address);
+
   send_buf = (char *) &address;
   
   n = write(rsp_to_vpi_pipe[1],send_buf, 4); // send the address to the sim
@@ -127,6 +130,8 @@ void send_data_to_vpi(uint32_t data)
   int n;
 
   char* send_buf;
+
+  if (DBG_CALLS)printf("send_data_to_vpi: data 0x%.8x\n",data);
 
   send_buf = (char *) &data;
   
@@ -144,6 +149,8 @@ void send_block_data_to_vpi(int len, uint32_t *data)
   int n, i;
   
   char* send_buf;
+
+  if (DBG_CALLS)printf("send_block_data_to_vpi: len %d\n",len);
   
   send_buf = (char *) data;
   
@@ -190,6 +197,8 @@ void get_block_data_from_vpi(int len, uint32_t* data)
 
   n=0;
 
+  if (DBG_CALLS)printf("rsp_rtl_sim: get_block_data_from_vpi len %d\n",len);
+  
   while (n < len)
     {
       
@@ -198,13 +207,16 @@ void get_block_data_from_vpi(int len, uint32_t* data)
       if (status > 0) n += status; // we read "status" number of bytes
       
     }
-
-
+  
+  
   if (DBG_VPI){
-    printf("rsp-rtl_sim: get_block_data_from_vpi: %d bytes",len);
-    for (i = 0;i < (len/4); i++)
+    printf("rsp-rtl_sim: get_block_data_from_vpi: %d bytes: ",len);
+    for (i = 0;i < (len); i++)
       {
-	printf("0x%.8x ",data[i]);
+	if ((i%12) == 0) printf("\n\t");
+	printf("%.2x",recv_buf[i]);
+	if ((i%3) == 0) printf(" ");
+	
       }
     printf("\n");
   }
@@ -221,14 +233,13 @@ void get_response_from_vpi()
   int n = 0;
   char tmp;
 
+  if (DBG_CALLS)printf("get_response_from_vpi\n");
+
   n = read(vpi_to_rsp_pipe[0],&tmp,1); // block and wait
   
   return;
 }
 
-/* Resets JTAG
-   Writes TRST=0
-   and    TRST=1 */
 static void jp2_reset_JTAG() {
   int i;
 
@@ -309,6 +320,8 @@ int dbg_set_chain(int chain) {
   
   if (current_chain == chain)
     return DBG_ERR_OK;
+
+  if (DBG_CALLS)printf("dbg_set_chain chain %d \n", chain);
   
   dbg_chain = chain;
   
@@ -329,6 +342,8 @@ int dbg_ctrl(int reset, int stall)
   
   debug("\n");
   debug2("ctrl\n");
+
+  if (DBG_CALLS)printf("dbg_ctrl: reset %d stall %d \n", reset, stall);
   
   dbg_set_chain(dbg_chain);
   
@@ -352,6 +367,8 @@ int dbg_ctrl_read(int *reset, int *stall)
     
   debug("\n");
   debug2("ctrl\n");
+
+  if (DBG_CALLS)printf("dbg_ctrl_read\n");
   
   dbg_set_chain(dbg_chain);
   
@@ -373,7 +390,7 @@ int dbg_ctrl_read(int *reset, int *stall)
 /* read a word from wishbone */
 int dbg_wb_read32(uint32_t adr, uint32_t *data) 
 {
-  //uint32_t resp;
+  if (DBG_CALLS)printf("dbg_wb_read32: adr 0x%.8x \n",adr);
 
   dbg_set_chain(DC_WISHBONE);
   
@@ -391,12 +408,16 @@ int dbg_wb_read32(uint32_t adr, uint32_t *data)
 /* write a word to wishbone */
 int dbg_wb_write32(uint32_t adr, uint32_t data) 
 {
-
+  
+  if (DBG_CALLS)printf("dbg_wb_write32: adr 0x%.8x data 0x%.8x\n",adr, data);
+  
   dbg_set_chain(DC_WISHBONE);
   
-  send_command_to_vpi(CMD_WB_WR32);
+  send_command_to_vpi(CMD_WB_WR);
   
   send_address_to_vpi(adr);
+
+  send_data_to_vpi(sizeof(data));
 
   send_data_to_vpi(data);
   
@@ -405,13 +426,56 @@ int dbg_wb_write32(uint32_t adr, uint32_t data)
   return 0;
 } 
 
+/* write a hword to wishbone */
+int dbg_wb_write16(uint32_t adr, uint16_t data) 
+{
+
+  if (DBG_CALLS)printf("dbg_wb_write16: adr 0x%.8x data 0x%.4x\n",adr, data);
+
+  dbg_set_chain(DC_WISHBONE);
+  
+  send_command_to_vpi(CMD_WB_WR);
+  
+  send_address_to_vpi(adr);
+
+  send_data_to_vpi(sizeof(data));
+
+  send_data_to_vpi(data);
+  
+  get_response_from_vpi();
+  
+  return 0;
+} 
+
+/* write a word to wishbone */
+int dbg_wb_write8(uint32_t adr, uint8_t data) 
+{
+
+  if (DBG_CALLS)printf("dbg_wb_write8: adr 0x%.8x data 0x%.2x\n",adr, data);
+
+  dbg_set_chain(DC_WISHBONE);
+  
+  send_command_to_vpi(CMD_WB_WR);
+  
+  send_address_to_vpi(adr);
+
+  send_data_to_vpi(sizeof(data));
+
+  send_data_to_vpi(data);
+  
+  get_response_from_vpi();
+  
+  return 0;
+} 
+
+
 /* read a block from wishbone */
 int dbg_wb_read_block32(uint32_t adr, uint32_t *data, int len) 
 {
   
   // len is in B Y T E S ! !
 
-  if (DBG_VPI) printf("rsp-rtl_sim: block read len: %d from addr: 0x%.8x\n",len, adr);
+  if (DBG_VPI) printf("xbrsp-rtl_sim: block read len: %d from addr: 0x%.8x\n",len, adr);
 
   dbg_set_chain(DC_WISHBONE);
   
@@ -431,6 +495,8 @@ int dbg_wb_read_block32(uint32_t adr, uint32_t *data, int len)
 /* write a block to wishbone */
 int dbg_wb_write_block32(uint32_t adr, uint32_t *data, int len) 
 {
+
+  if (DBG_CALLS)printf("dbg_wb_block32: adr 0x%.8x len %d bytes\n",adr, len);
   
   dbg_set_chain(DC_WISHBONE);
   
@@ -450,6 +516,8 @@ int dbg_wb_write_block32(uint32_t adr, uint32_t *data, int len)
 /* read a register from cpu */
 int dbg_cpu0_read(uint32_t adr, uint32_t *data) 
 {
+
+  if (DBG_CALLS)printf("dbg_cpu0_read: adr 0x%.8x\n",adr);
   
   dbg_set_chain(DC_CPU0);
   
@@ -469,7 +537,7 @@ int dbg_cpu0_read(uint32_t adr, uint32_t *data)
 int dbg_cpu0_write(uint32_t adr, uint32_t data) 
 {
 
-  uint32_t resp;
+  if (DBG_CALLS)printf("dbg_cpu0_write: adr 0x%.8x\n",adr);
   
   dbg_set_chain(DC_CPU0);
   
