@@ -239,6 +239,9 @@ end
     * shouldn't be needed - but is handy if someone changes something and stops
     * the test continuing forever.
     */
+   integer num_nul_inst;
+   initial num_nul_inst = 0;
+      
    task monitor_for_crash;
       `define OR1200_MONITOR_CRASH_TRACE_SIZE 32
       reg [31:0] insn_trace [0:`OR1200_MONITOR_CRASH_TRACE_SIZE-1]; //Trace buffer of 32 instructions
@@ -247,6 +250,9 @@ end
       
      begin
 	if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h00000000)
+	  num_nul_inst = num_nul_inst + 1;
+
+	if (num_nul_inst == 1000) // Sat a loop a bit too long...
 	  begin
 	     $fdisplay(fgeneral, "ERROR - no instruction at PC %h", `OR1200_TOP.or1200_cpu.or1200_except.wb_pc);
 	     $fdisplay(fgeneral, "Crash trace: Last %d instructions: ",`OR1200_MONITOR_CRASH_TRACE_SIZE);

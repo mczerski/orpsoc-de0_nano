@@ -514,7 +514,7 @@ int dbg_wb_write_block32(uint32_t adr, uint32_t *data, int len)
 }
 
 /* read a register from cpu */
-int dbg_cpu0_read(uint32_t adr, uint32_t *data) 
+int dbg_cpu0_read(uint32_t adr, uint32_t *data, uint32_t length) 
 {
 
   if (DBG_CALLS)printf("dbg_cpu0_read: adr 0x%.8x\n",adr);
@@ -524,8 +524,10 @@ int dbg_cpu0_read(uint32_t adr, uint32_t *data)
   send_command_to_vpi(CMD_CPU_RD_REG);
   
   send_address_to_vpi(adr);
-  
-  get_data_from_vpi(data);
+
+  send_data_to_vpi(length); // Added 090901 --jb
+
+  get_block_data_from_vpi(length, data); // changed 090901 --jb //get_data_from_vpi(data);
   
   get_response_from_vpi();
   
@@ -534,7 +536,7 @@ int dbg_cpu0_read(uint32_t adr, uint32_t *data)
 }
 
 /* write a cpu register */
-int dbg_cpu0_write(uint32_t adr, uint32_t data) 
+int dbg_cpu0_write(uint32_t adr, uint32_t *data, uint32_t length) 
 {
 
   if (DBG_CALLS)printf("dbg_cpu0_write: adr 0x%.8x\n",adr);
@@ -545,7 +547,9 @@ int dbg_cpu0_write(uint32_t adr, uint32_t data)
   
   send_address_to_vpi(adr);
   
-  send_data_to_vpi(data);
+  send_data_to_vpi(length); // Added 090901 -- jb
+
+  send_block_data_to_vpi(length, data); // Added 090901 -- jb
   
   get_response_from_vpi();
   
@@ -621,14 +625,16 @@ void dbg_test() {
     printf("\tor1k stall failed. read: 0x%x\n", stalled);   // check stall or1k
     //exit(1);
   }
+
+  /* Read NPC,PPC and SR regs, they are consecutive in CPU, at adr. 16, 17 and 18 */
+  uint32_t pcs_and_sr[3]; 
+  debug2("  Reading npc, ppc\n");
+  dbg_cpu0_read(16, (uint32_t *)pcs_and_sr, 3 * 4);
   
-  debug2("  Reading npc\n");
-  dbg_cpu0_read((0 << 11) + 16, &npc); 
-  debug2("  Reading ppc\n");
-  dbg_cpu0_read((0 << 11) + 18, &ppc); 
   debug2("  Reading r1\n");
-  dbg_cpu0_read(0x401, &r1);
-  printf("  Read      npc = %.8x ppc = %.8x r1 = %.8x\n", npc, ppc, r1);
+  dbg_cpu0_read(0x401, &r1, 4);
+  printf("  Read      npc = %.8x ppc = %.8x r1 = %.8x\n", 
+	 pcs_and_sr[0], pcs_and_sr[2], r1);
     
 }
 

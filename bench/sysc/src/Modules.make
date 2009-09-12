@@ -26,8 +26,13 @@
 # Tools and flags
 ARFLAGS = rcs
 #CXXFLAGS += $(OPT_FAST) $(OPT_SLOW) $(OPT) $(PROF_FLAGS)
+
+ifdef VLT_CPPFLAGS
+CXXFLAGS += $(VLT_CPPFLAGS)
+endif
+
 CXX ?= g++
-PROF_OPTS ?= -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer
+#PROF_OPTS ?= -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
 OPT_ALL ?= $(OPT_SLOW) $(OPT_FAST) $(OPT)
 
 # Sub-directories
@@ -40,6 +45,10 @@ OBJS = Or1200MonitorSC.o \
 	UartSC.o
 LIB  = libmodules.a
 
+ifdef VLT_DEBUG
+CXXFLAGS += -g
+endif
+
 # -----------------------------------------------------------------------------
 # Rule to make dependency files
 %.d: %.cpp
@@ -50,7 +59,7 @@ LIB  = libmodules.a
 
 # Rule to make object files
 %.o: %.cpp
-	$(CXX) $(CPPFLAGS) $(INCDIRS) $(CXXFLAGS) -c  $<
+	$(CXX) $(CPPFLAGS) $(PROF_OPTS) $(INCDIRS) $(CXXFLAGS) -c  $<
 
 
 # -----------------------------------------------------------------------------

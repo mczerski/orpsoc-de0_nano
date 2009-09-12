@@ -114,25 +114,39 @@ module smii_txrx
    // Transmit
 
    /* Timing scheme:
-    On the first clock of segment 0 (so each segment when 100Mb/s,
-    fast ethernet, or every 10 segments for 10Mb/s ethernet) we 
-    deteremine if that segment is data or not, depending on what is 
-    in the tx_data_reg_valid register. If the MAC wants to transmit 
-    something, we overwrite the previously sent values when they're 
-    no longer needed. Once the first nibble is sent, we can then 
-    overwrite it, and same for the second - so we generate the TX 
-    clock when state is 5, and sample the new nibble on the next 
-    clock, same with the second nibble, that is clocked when state 
-    is 9, and sampled when it is 10, so it gets overwritten when 
-    we've finished putting it on the serial line.*/
-      
+    If we're fast ethernet, we clock every segment. Otherwise it's every 10 segments for 10mbit ethernet.
+    For 10mbit ethernet it doesn't really matter where we clock it - we have plenty of time to put out the right bits.
+    For fast ethernet, we have to do it at the right points.
+    so the MII TX nibble clocks come on the 8th state of the segment prior to the one we will output, then on the 3rd clock of the segment we're currently outputting.*/
+`define MII_TXNIB1_CLK 8
+`define MII_TXNIB2_CLK 3
+
+   // tx_data_reg_valid here helps us make sure we always sample data beginning with the nib1 clock
+`define MII_TX_CLK_ASSERT ( \
+  ((state[`MII_TXNIB1_CLK] | (state[`MII_TXNIB2_CLK] & tx_data_reg_valid))  \
+			   & \
+			   ( \
+			     ((tx_cnt == 4'd0) & speed) | \
+			     ((tx_cnt == 4'd9) & !(speed) & state[`MII_TXNIB1_CLK]) | \
+      			     ((tx_cnt == 4'd0) & !(speed) & tx_data_reg_valid & state[`MII_TXNIB2_CLK]) \
+			      )))
+
+`define MII_TX_CLOCKED ( \
+  ((state[`MII_TXNIB1_CLK+1] | (state[`MII_TXNIB2_CLK+1] & tx_data_reg_valid))  \
+			   & \
+			   ( \
+			     ((tx_cnt == 4'd0) & speed) | \
+			     ((tx_cnt == 4'd9) & !(speed) & state[`MII_TXNIB1_CLK + 1]) | \
+      			     ((tx_cnt == 4'd0) & !(speed) & tx_data_reg_valid & state[`MII_TXNIB2_CLK + 1]) \
+			      )))
+  
      always @ (posedge clk or posedge rst)
      if (rst)
        mtx_clk_tmp <= 1'b0;
      else
-       if ((state[5] | state[9]) & (tx_cnt == 4'd0))
+       if (`MII_TX_CLK_ASSERT)
 	 mtx_clk_tmp <= 1'b1;
-       else if (state[6] | state[10])
+       else //if (state[`MII_TXNIB1_CLK + 1] | state[`MII_TXNIB2_CLK + 1])
 	 mtx_clk_tmp <= 1'b0;
 
 `ifdef ACTEL
@@ -142,7 +156,7 @@ module smii_txrx
       .GL(mtx_clk)
       );
 `else
-   assign #1 mtx_clk = mtx_clk_tmp;
+   assign  mtx_clk = mtx_clk_tmp;
 `endif
 
    // storage of data from MII
@@ -154,7 +168,7 @@ module smii_txrx
 	  a0 <= 1'b0;
        end
      else
-       if ((state[6] | state[10]) & (tx_cnt == 4'd0))
+       if (`MII_TX_CLOCKED)
 	 begin
 	    /* Toggale a0 when MII TX_EN goes high */
 	    if (!mtxen)
@@ -162,13 +176,8 @@ module smii_txrx
 	    else
 	      a0 <= ~a0;
 
-	    /* byte will be valid when MII TX_EN 
-	     is high from the MAC */
-	    if (!mtxen & !a0)
-	      tx_data_reg_valid <= 1'b0;	    
-	    else if (a0)
-	      tx_data_reg_valid <= 1'b1;
-
+	    tx_data_reg_valid <= mtxen;
+	    
 	    /* Sample the nibble */
 	    if (mtxen & !a0)
 	      tx_data_reg[3:0] <= mtxd;	    
@@ -208,9 +217,9 @@ module smii_txrx
      else
        if (speed)
 	 rx_cnt <= 4'd0;
-       else if (!mrxdv & state[8] & rx_tmp[3])
+       else if (!mrxdv & state[8] & rx_tmp[3]) // Getting ready for data
 	 rx_cnt <= 4'd9;
-       else if (state[10])
+       else if (state[10]) // wrap
 	 if (rx_cnt == 4'd9)
 	   rx_cnt <= 4'd0;
 	 else
@@ -227,13 +236,13 @@ module smii_txrx
        begin
 	  /* Continually shift rx into rx_tmp bit 2, and shift rx_tmp along */
 	  rx_tmp[2:0] <= {rx,rx_tmp[2:1]};
-
+`define RX_BEGIN_STATE 3
 	  /* We appear to be beginning our sampling when state bit 3 is set */
-	  if (state[3])
+	  if (state[`RX_BEGIN_STATE]) //3
 	    mcrs <= rx;	  
 	  
 	  /* rx_tmp[3] is used as the RX_DV bit*/
-	  if (state[4])
+	  if (state[`RX_BEGIN_STATE+1])
 	    rx_tmp[3] <= rx;
 
 	  if (rx_tmp[3]) //If data byte valid, and when we've got the first nibble, output it */
@@ -242,29 +251,29 @@ module smii_txrx
 		nibble - we can sample the rx line directly to get the 
 		4th, and we'll also indicate that this byte is valid by 
 		raising the MII RX data valid (dv) line. */
-	       if (state[8])
-		 {mrxdv,mrxd} <= #1 {rx_tmp[3],rx,rx_tmp[2:0]};
+	       if (state[`RX_BEGIN_STATE+5])
+		 {mrxdv,mrxd} <=  {rx_tmp[3],rx,rx_tmp[2:0]};
 	       /* High nibble, we have 3 bits and the final one is on 
 		the line - put it out for the MAC to read.*/
-	       else if (state[2])
-		 mrxd <= #1 {rx,rx_tmp[2:0]};
+	       else if (state[`RX_BEGIN_STATE-1])
+		 mrxd <=  {rx,rx_tmp[2:0]};
 	    end
 	  else
 	    begin
 	       /* Not a data byte, it's the inter-frame status byte */
-	       if (state[5])
-		 mrxerr <= #1 rx;
-	       if (state[6])
-		 speed <= #1 rx;
-	       if (state[7])
-		 duplex <= #1 rx;
-	       if (state[8])
+	       if (state[`RX_BEGIN_STATE+2])
+		 mrxerr <=  rx;
+	       if (state[`RX_BEGIN_STATE+3])
+		 speed <=  rx;
+	       if (state[`RX_BEGIN_STATE+4])
+		 duplex <=  rx;
+	       if (state[`RX_BEGIN_STATE+5])
 		 begin
-		    link <= #1 rx;
-		    mrxdv <= #1 1'b0;
+		    link <=  rx;
+		    mrxdv <=  1'b0;
 		 end
-	       if (state[9])
-		 jabber <= #1 rx;
+	       if (state[`RX_BEGIN_STATE+6])
+		 jabber <=  rx;
 	    end
        end // else: !if(rst)
    
@@ -272,9 +281,12 @@ module smii_txrx
      if (rst)
        mrx_clk_tmp <= 1'b0;
      else
-       if ((state[1] | state[6]) & (rx_cnt == 4'd0))
+       //if ((state[1] | state[6]) & (rx_cnt == 4'd0))
+       if (((state[`RX_BEGIN_STATE+3] | state[`RX_BEGIN_STATE-1]) & (rx_cnt == 4'd0) & speed)
+	   | ((((state[`RX_BEGIN_STATE+3] & (rx_cnt == 4'd0)) | (state[`RX_BEGIN_STATE-1]) & (rx_cnt == 4'd1) & !speed ) )))
 	 mrx_clk_tmp <= 1'b1;
-       else if (state[3] | state[8])
+       //else if (state[3] | state[8])
+       else if (state[`RX_BEGIN_STATE+5] | state[`RX_BEGIN_STATE+1])
 	 mrx_clk_tmp <= 1'b0;
 
 `ifdef ACTEL
@@ -284,10 +296,76 @@ module smii_txrx
       .GL(mrx_clk)
       );
 `else
-   assign #1 mrx_clk = mrx_clk_tmp;
+   assign  mrx_clk = mrx_clk_tmp;
 `endif
    
 assign mcoll =  mcrs & mtxen & !duplex;
       
    
 endmodule // smii_top
+
+module smii_sync
+  (
+   // SMII sync
+    output            sync,
+   // internal
+    output reg [10:1] state,
+   // clock amd reset
+    input 	      clk,
+    input 	      rst
+   );
+   
+   // sync shall go high every 10:th cycle
+   always @ (posedge clk or posedge rst)
+     if (rst)
+       state <= 10'b0000000001;
+     else
+       state <= {state[9:1],state[10]};
+
+   assign sync = state[1];
+   
+endmodule // smii_sync
+
+module obufdff
+  (
+   input d,
+   output reg pad,
+   input clk,
+   input rst
+   );
+   always @ (posedge clk or posedge rst)
+     if (rst)
+       pad <=  1'b0;
+     else
+       pad <=  d;
+endmodule 
+module ibufdff
+  (
+   input pad,
+   output reg q,
+   input clk,
+   input rst
+   );
+   always @ (posedge clk or posedge rst)
+     if (rst)
+       q <=  1'b0;
+     else
+       q <=  pad;
+endmodule 
+module iobuftri
+  (
+   input i,
+   input oe,
+   output o,
+   inout pad
+   );
+   assign  pad = oe ? i : 1'bz;
+   assign  o = pad;
+endmodule 
+module obuf
+  (
+   input i,
+   inout pad
+   );
+   assign  pad = i;
+endmodule 

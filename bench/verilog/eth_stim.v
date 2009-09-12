@@ -49,7 +49,7 @@ parameter Tp = 1;
 initial 
   begin
 
-     repeat(30000) @(posedge eth_clk);
+     repeat(170000) @(posedge eth_clk);
      
      rx_packet_length = 16'd96; // Bytes
      
@@ -58,9 +58,18 @@ initial
      set_rx_addr_type(0, 48'h0102_0304_0506, 48'h0708_090A_0B0C, 16'h0D0E);
      append_rx_crc(0, rx_packet_length, 1'b0, 1'b0);
 
+     /*
      // write to phy's control register for 10Mbps
      #Tp eth_phy0.control_bit14_10 = 5'b00000; // bit 13 reset - speed 10
      #Tp eth_phy0.control_bit8_0   = 9'h1_00;  // bit 6 reset  - (10/100), bit 8 set - FD
+     */
+     
+     /*
+     // write to phy's control register for 100Mbps
+     #Tp eth_phy0.control_bit14_10 = 5'b01000; // bit 13 reset - speed 100
+     #Tp eth_phy0.control_bit8_0   = 9'h1_00;  // bit 6 reset  - (10/100), bit 8 set - FD
+      */
+
      //#Tp eth_phy0.carrier_sense_tx_fd_detect(1); // Full duplex CRS detect normally off
 
      /*
@@ -74,9 +83,10 @@ initial
       input 	  plus_drible_nibble; // if length is longer for one nibble
       
       */
-     #100000 eth_phy0.send_rx_packet(64'h0055_5555_5555_5555, 4'h7, 8'hD5, 0, rx_packet_length, 1'b0);
-     
-
+     //     while (1)
+      // begin
+	  #300000 eth_phy0.send_rx_packet(64'h0055_5555_5555_5555, 4'h7, 8'hD5, 0, rx_packet_length, 1'b0);
+  //end
      /* TODO: Some checking here that the packet's contents actually ended up in RAM correctly */
      
   end

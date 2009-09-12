@@ -51,22 +51,29 @@ public:
 
   // Constructor
   Or1200MonitorSC (sc_core::sc_module_name  name,
-		   OrpsocAccess            *_accessor);
+		   OrpsocAccess            *_accessor,
+		   int argc, 
+		   char *argv[]);
 
   // Method to check instructions
   void  checkInstruction();
 
   // Methods to setup and output state of processor to a file
-  void init_displayState(int argc,char *argv[]);
   void displayState();
+
+  // Function to calculate performance of the sim
+  void perfSummary();
+
+  // Print out the command-line switches for this module's options  
+  void printSwitches();
+
+  // Print out the usage for each option
+  void printUsage();
 
   // The ports
   sc_in<bool>   clk;
 
 private:
-
-  // Function to calculate performance of the sim
-  void perfSummary();
 
   // Special NOP instructions
   static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction

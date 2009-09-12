@@ -8,8 +8,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <limits.h>
-#define OR1K 1  //ME added
-#if OR1K
+
 
 /* Register access macros */
 #define REG8(add) *((volatile unsigned char *)(add))
@@ -24,11 +23,6 @@ void mtspr(unsigned long spr, unsigned long value);
 /* For reading SPR. */
 unsigned long mfspr(unsigned long spr);
 
-#else /* OR1K */
-
-#include <stdio.h>
-
-#endif /* OR1K */
 
 /* Function to be called at entry point - not defined here.  */
 int main ();

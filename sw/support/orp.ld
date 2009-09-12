@@ -7,13 +7,22 @@ MEMORY
         icm     : ORIGIN = 0x00800000, LENGTH = 0x00004000
         }
  */
+
 MEMORY
 	{
 	reset	: ORIGIN = 0x00000000, LENGTH = 0x00000200
-	vectors : ORIGIN = 0x00000200, LENGTH = 0x00001000
-        ram     : ORIGIN = 0x00001200, LENGTH = 0x00FFED00
+	vectors : ORIGIN = 0x00000200, LENGTH = 0x00001E00
+        ram     : ORIGIN = 0x00002000, LENGTH = 0x00FFE000
 	}
 
+/*
+MEMORY
+        {
+        reset   : ORIGIN = 0xc0000000, LENGTH = 0x00000200
+        vectors : ORIGIN = 0xc0000200, LENGTH = 0x00001000
+        ram     : ORIGIN = 0xc0001200, LENGTH = 0x00FFED00
+        }
+*/
 SECTIONS
 {
 	.reset :

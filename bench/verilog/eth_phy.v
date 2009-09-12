@@ -79,7 +79,7 @@
 `define UNICAST_WRONG_XFR      3
 
 
-//`define ETH_PHY_VERBOSE 1
+`define ETH_PHY_VERBOSE 1
 
 module eth_phy // This PHY model simulate simplified Intel LXT971A PHY
 (

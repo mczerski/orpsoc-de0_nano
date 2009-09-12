@@ -338,6 +338,6 @@ initial
 endmodule // orpsoc_testbench
 
 // Local Variables:
-// verilog-library-files:("../../rtl/verilog/orp_soc.v")
+// verilog-library-files:("../../rtl/verilog/orpsoc_top.v")
 // verilog-library-directories:("." "../../rtl/verilog")
 // End:

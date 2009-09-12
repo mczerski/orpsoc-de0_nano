@@ -27,8 +27,11 @@
 // $Id: TraceSC.cpp 302 2009-02-13 17:22:07Z jeremy $
 
 #include "TraceSC.h"
+#include <systemc.h>
 
 using namespace std;
+
+#define DEBUG_TRACESC 1
 
 SC_HAS_PROCESS( TraceSC );
 
@@ -52,30 +55,61 @@ TraceSC::TraceSC (sc_core::sc_module_name  name,
   string testNameString;
   string vcdDumpFile;
 
-  // Search through the command line parameters for the "-vcd" option
+  // Search through the command line parameters for VCD dump options
+  dump_start_delay = 0;
+  dump_stop_set = 0;
+  int time_val;
   int cmdline_name_found=0;
   if (argc > 1)
   {
     for(int i=1; i<argc; i++)
     {
-      if (strcmp(argv[i], "-vcd")==0)
+      if ((strcmp(argv[i], "-vcd")==0) ||
+	  (strcmp(argv[i], "--vcd")==0))
         {
           testNameString = (argv[i+1]);
           vcdDumpFile = testNameString;
           cmdline_name_found=1;
+         }
+      else if ( (strcmp(argv[i], "-vcdstart")==0) ||
+	   (strcmp(argv[i], "--vcdstart")==0) )
+        {
+          time_val = atoi(argv[i+1]);	  
+	  sc_time dump_start_time(time_val,SC_NS);
+	  dump_start = dump_start_time;
+	  if (DEBUG_TRACESC) cout << "TraceSC(): Dump start time set at " << dump_start.to_string() << endl;
+	  dump_start_delay = 1;
 	  break;
          }
+      else if ( (strcmp(argv[i], "-vcdstop")==0) ||
+	   (strcmp(argv[i], "--vcdstop")==0) )
+        {
+          time_val = atoi(argv[i+1]);	  
+	  sc_time dump_stop_time(time_val,SC_NS);
+	  dump_stop = dump_stop_time;
+	  if (DEBUG_TRACESC) cout << "TraceSC(): Dump stop time set at " << dump_stop.to_string() << endl;
+	  dump_stop_set = 1;
+	  break;
+	}
     }
   }
-
+  
   if(cmdline_name_found==0) // otherwise use our default VCD dump file name
     vcdDumpFile = dumpNameDefault;
   
   Verilated::traceEverOn (true);
   
-  cout << "Enabling VCD trace" << endl;
+  cout << "* Enabling VCD trace";
+  
+  if (dump_start_delay)
+    cout << ", on at time " << dump_start.to_string();
+  if (dump_stop_set)
+    cout << ", off at time " << dump_stop.to_string();
+  
+  cout << endl;
 
-  printf("VCD dumpfile: %s\n", vcdDumpFile.c_str());
+
+  printf("* VCD dumpfile: %s\n", vcdDumpFile.c_str());
 
   // Establish a new trace with its correct time resolution, and trace to
   // great depth.
@@ -84,9 +118,15 @@ TraceSC::TraceSC (sc_core::sc_module_name  name,
   traceTarget->trace (spTraceFile, 99);
   spTraceFile->open (vcdDumpFile.c_str());
 
+  if (dump_start_delay == 1)
+    dumping_now = 0; // We'll wait for the time to dump
+  else
+    dumping_now = 1; // Begin with dumping turned on
+
+
   // Method to drive the dump on each clock edge
-  SC_METHOD (driveTrace);
-  sensitive << clk;
+  //SC_METHOD (driveTrace);
+  //sensitive << clk;
   
 #endif
     
@@ -106,13 +146,40 @@ TraceSC::~TraceSC ()
 }	// ~TraceSC ()
 
 
-//! Method to drive the trace. We're called on ever clock edge, and also at
+//! Method to drive the trace. We're called on every clock edge, and also at
 //! initialization (to get initial values into the dump).
 void
 TraceSC::driveTrace()
 {
 #if VM_TRACE
-  spTraceFile->dump (sc_time_stamp().to_double());
+
+  if (DEBUG_TRACESC) cout << "TraceSC(): " << endl;
+  if (dumping_now == 0)
+    {
+      // Check the time, see if we should enable dumping
+      if (sc_time_stamp() >=  dump_start)
+	{
+	  // Give a message
+	  cout << "* VCD tracing turned on at time " << dump_start.to_string() << endl;	  
+	  dumping_now = 1;
+	}
+    }
+
+  if (dumping_now == 1)
+    spTraceFile->dump (sc_time_stamp().to_double());
+
+  
+  // Should we turn off tracing?
+  if ((dumping_now == 1) && (dump_stop_set == 1))
+    {
+      if (sc_time_stamp() >=  dump_stop)
+	{
+	  // Give a message
+	  cout << "* VCD tracing turned off at time " << dump_stop.to_string() << endl;	  
+	  dumping_now = 0; // Turn off the dump
+	}
+    }
+
 #endif
 
 }	// driveTrace()
@@ -135,7 +202,7 @@ TraceSC::setSpTimeResolution (sc_time  t)
 
   if (secs < 1.0e-15)
     {
-      cerr << "VCD time resolution " << secs << " too small: ignored" << endl;
+      cerr << "* VCD time resolution " << secs << " too small: ignored" << endl;
       return;
     }
   else if (secs < 1.0e-12)

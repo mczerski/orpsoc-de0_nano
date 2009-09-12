@@ -54,7 +54,7 @@
 // LED/Configuration pins on PHY device - see the specification, page 26, table 8
 // Initial set of bits 13, 12 and 8 of Control Register
 `define LED_CFG1                     1'b0
-`define LED_CFG2                     1'b0
+`define LED_CFG2                     1'b1
 `define LED_CFG3                     1'b1
 
 

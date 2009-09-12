@@ -685,7 +685,8 @@ begin
   else if (set_addr_cpu && (!set_addr_cpu_q)) // Setting starting address
     cpu_addr_dsff <= #1 adr;
   else if (cpu_ack_i && (!cpu_ack_q))
-    cpu_addr_dsff <= #1 cpu_addr_dsff + 3'd4;
+    //cpu_addr_dsff <= #1 cpu_addr_dsff + 3'd4;
+    cpu_addr_dsff <= #1 cpu_addr_dsff + 3'd1; // Increment by just 1, to allow block reading -- jb 090901
 end
 
 

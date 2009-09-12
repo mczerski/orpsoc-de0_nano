@@ -226,7 +226,7 @@ input				dcpu_err_i;
 // Internal regs and wires
 //
 reg	[`OR1200_EXCEPT_WIDTH-1:0]	except_type;
-reg	[31:0]			id_pc;
+reg	[31:0]			id_pc /* verilator public */;
 reg	[31:0]			ex_pc;
 reg	[31:0]			wb_pc /* verilator public */;
 reg	[31:0]			epcr;
@@ -305,6 +305,17 @@ assign except_stop = {
 
 `endif
 
+
+`ifdef verilator
+   // Function to access id_pc (for Verilator). Have to hide this from
+   // simulator, since functions with no inputs are not allowed in IEEE
+   // 1364-2001.
+   function [31:0] get_id_pc;
+      // verilator public
+      get_id_pc = id_pc;
+   endfunction // get_id_pc
+
+`endif
 
 //
 // PC and Exception flags pipelines

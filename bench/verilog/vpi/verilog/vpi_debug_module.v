@@ -201,15 +201,24 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 	       begin
 		  
 		  $get_command_address(cmd_adr);
-		  
-		  $get_command_data(cmd_data);
 
+		  $get_command_data(block_cmd_length);
+
+		  $get_command_block_data(block_cmd_length, data_storage);
+		  
+		  if (block_cmd_length > 4)
+		    cpu_write_block(cmd_adr, block_cmd_length);
+		  else
+		    begin
+		       cmd_data = data_storage[0]; // Get the single word we'll write
+		       cpu_write_32(cmd_data, cmd_adr,16'h3);
 `ifdef VPI_DEBUG_INFO
 		  $display("CPU reg write. adr: 0x%x (reg group: %d reg#: %d), val: 0x%x",
 			   cmd_adr,cmd_adr[15:11], cmd_adr[10:0], cmd_data);
 `endif
+		    end
 		  		  
-		  cpu_write_32(cmd_data, cmd_adr,16'h3);
+
 		  
 	       end
 	     
@@ -218,14 +227,26 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 
 		  $get_command_address(cmd_adr);
 
-		  cpu_read_32(cmd_data, cmd_adr, 16'h3);
+		  $get_command_data(block_cmd_length); // Added 090901 --jb
 
+		  /* Depending on size, issue a block or single read */
+		  if (block_cmd_length > 4 )
+		    cpu_read_block(cmd_adr, block_cmd_length);
+		  else
+		    cpu_read_32(cmd_data, cmd_adr, 16'h3);
+
+		  
 `ifdef VPI_DEBUG_INFO
-		  $display("CPU reg read. adr: 0x%x (reg group: %d reg#: %d), val: 0x%x",
-			   cmd_adr,cmd_adr[15:11], cmd_adr[10:0], cmd_data);
+		  if (cmd_size > 4 )
+		    $display("CPU reg read. block adr: 0x%x (reg group: %d reg#: %d), num: %d",
+				cmd_adr,cmd_adr[15:11], cmd_adr[10:0],  block_cmd_length);
+		  else
+		    $display("CPU reg read. adr: 0x%x (reg group: %d reg#: %d), val: 0x%x",
+				cmd_adr,cmd_adr[15:11], cmd_adr[10:0], cmd_data);
 `endif
 
-		  $return_command_data(cmd_data);
+		  
+		  $return_command_block_data(block_cmd_length, data_storage);
 		  
 	       end
 	     
@@ -1255,6 +1276,30 @@ module vpi_debug_module(tms, tck, tdi, tdo);
       end
    endtask
 
+   // block of 32-bit reads from cpu
+   task cpu_read_block;
+      //output [31:0] data;
+      input [`DBG_WB_ADR_LEN -1:0] addr;
+      input [`DBG_WB_LEN_LEN -1:0] length;
+
+      reg [31:0] 		   tmp;
+
+      begin
+	 debug_cpu_wr_comm(`DBG_CPU_READ, addr, length-1, 1'b0);
+	 
+	 last_cpu_cmd = `DBG_CPU_READ;  last_cpu_cmd_text = "DBG_CPU_READ";
+	 
+	 length_global = length;
+	 
+	 debug_cpu_go(1'b0, 1'b0);
+	 
+	 //data = data_storage[0];
+	 
+	 //if (length>3)
+	 //  $display("WARNING: Only first data word is returned( See module %m.)");
+	 
+      end
+   endtask
 
 
    // 32-bit write to cpu
@@ -1276,6 +1321,22 @@ module vpi_debug_module(tms, tck, tdi, tdo);
       end
    endtask
 
+   // block of 32-bit writes to cpu
+   // Data will already be in data_storage
+   task cpu_write_block;
+      //input [31:0] data;
+      input [`DBG_WB_ADR_LEN -1:0] addr;
+      input [`DBG_WB_LEN_LEN -1:0] length;
+
+      reg [31:0] 		   tmp;
+
+      begin
+	 debug_cpu_wr_comm(`DBG_CPU_WRITE, addr, length-1, 1'b0);
+	 last_cpu_cmd = `DBG_CPU_WRITE;  last_cpu_cmd_text = "DBG_CPU_WRITE";
+	 length_global = length;
+	 debug_cpu_go(1'b0, 1'b0);
+      end
+   endtask
 
 
    task debug_cpu_wr_comm;

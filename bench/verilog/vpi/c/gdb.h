@@ -120,6 +120,25 @@ typedef enum {
    order.
 */
 
+/* Special purpose groups */
+
+#define OR1K_SPG_SIZE_BITS  11
+#define OR1K_SPG_SIZE       (1 << OR1K_SPG_SIZE_BITS)
+
+#define OR1K_SPG_SYS      0
+#define OR1K_SPG_DMMU     1
+#define OR1K_SPG_IMMU     2
+#define OR1K_SPG_DC       3
+#define OR1K_SPG_IC       4
+#define OR1K_SPG_MAC      5
+#define OR1K_SPG_DEBUG    6
+#define OR1K_SPG_PC       7
+#define OR1K_SPG_PM       8
+#define OR1K_SPG_PIC      9
+#define OR1K_SPG_TT      10
+#define OR1K_SPG_FPU     11
+
+
 typedef struct {
   uint32_t command;
   uint32_t length;

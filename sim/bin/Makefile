@@ -8,9 +8,6 @@
 ####  ORPSoC(v2) design.                                          ####
 ####                                                              ####
 ####  To do:                                                      ####
-####	* Arrange verilator make rules so that the whole thing    ####
-####	  isn't recompiled when a single SystemC module is 	  ####
-####	  updated.						  ####
 ####	* Test if each software test file gets made properly	  ####
 ####	  before it's run in whatever model we're using           ####
 ####  	* Expand software test-suite (uClibc, ecos tests, LTP?)	  ####
@@ -210,18 +207,7 @@
 # the cycle-accurate ORPSoC model to create the simulation executable. This
 # executable is the cycle-representation of the system. 
 #
-# VCDs can be generated if the model is made with VCD=1 specified on the 
-# command line. Specify a dump file with the "-vcd" option at runtime, eg:
-# "./Vorpsoc_top -vcd dump.vcd"
-# Note that this slows down the simulation.
-#
-# Logging of the processor's execution can be done by specifying a log file
-# on the command line at runtime, eg: "./Vorpsoc_top -log or1200_exec.log"
-# Note that this slows down the simulation.
-#
-# There are performance metrics printed at the conclusion of simulations. To
-# disable these launch the executable with either the -q or --no-perf-summary
-# options. eg: "./Vorpsoc_top -q"
+# Run the resulting executable with the -h switch for usage.
 #
 # The compilation is all done with the GNU c++ compiler, g++.
 #
@@ -245,6 +231,7 @@
 # expanded on and more complex software test suites will be implemented to put
 # the system through its paces.
 #
+# 
 # 
 
 # Name of the directory we're currently in
@@ -507,7 +494,7 @@ prepare_vpi:
 ## Build the VPI library
 	$(MAKE) -C $(VPI_C_DIR) $(VPI_LIB_NAME)
 
-clean_vpi:
+clean-vpi:
 	$(MAKE) -C $(VPI_C_DIR) clean
 
 rtl-debug: prepare_sw_uart_printf prepare_rtl prepare_vpi prepare_dirs
@@ -553,16 +540,38 @@ SYSC_LIB_ARCH_DIR=$(shell ls $$SYSTEMC | grep "lib-")
 
 # List of System C models - use this list to link the sources into the Verilator
 # build directory
-SYSC_MODELS=OrpsocAccess TraceSC
+SYSC_MODELS=OrpsocAccess
 
-ifdef VCD
-VLT_FLAGS +=-trace
+ifdef VLT_DEBUG
+VLT_DEBUG_COMPILE_FLAGS = -g
+# Enabling the following generates a TON of debugging
+# when running verilator. Not so helpful.
+#VLT_DEBUG_OPTIONS = --debug --dump-tree
+VLT_SYSC_DEBUG_DEFINE = VLT_DEBUG=1
 endif
+
+# If set on the command line we build the cycle accurate model which will generate verilator-specific profiling information. This is useful for checking the efficiency of the model - not really useful for checking code or the function of the model.
+ifdef VLT_ORPSOC_PROFILING
+VLT_CPPFLAGS=-g -pg
+VLT_DEBUG_OPTIONS +=-profile-cfuncs
+else
+VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+endif
+
+ifdef VLT_DO_PROFILING
+VLT_CPPFLAGS=-O3 -ftest-coverage -fprofile-generate
+endif
+
+# VCD Enabled by default when building, enable it at runtime
+#ifdef VCD
+VLT_FLAGS +=-trace
+TRACE_FLAGS=-DVM_TRACE=1 -I${SYSTEMPERL}/src
+#endif
 
 # Only need the trace target if we are tracing
-ifneq (,$(findstring -trace, $(VLT_FLAGS)))
+#ifneq (,$(findstring -trace, $(VLT_FLAGS)))
 VLT_TRACEOBJ = SpTraceVcdC
-endif
+#endif
 
 # This is the list of extra models we'll issue make commands for
 # Included is the SystemPerl trace model
@@ -573,12 +582,12 @@ prepare_vlt: prepare_rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
 $(SIM_VLT_DIR)/Vorpsoc_top: $(SIM_VLT_DIR)/libVorpsoc_top.a $(SIM_VLT_DIR)/OrpsocMain.o
 # Final linking of the simulation executable. Order of libraries here is important!
 	@echo; echo "\tGenerating simulation executable"; echo
-	cd $(SIM_VLT_DIR) && g++ -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -o Vorpsoc_top -L. -L$(BENCH_SYSC_SRC_DIR) -L$(SYSTEMC)/$(SYSC_LIB_ARCH_DIR) OrpsocMain.o -lVorpsoc_top -lmodules -lsystemc
+	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -o Vorpsoc_top -L. -L$(BENCH_SYSC_SRC_DIR) -L$(SYSTEMC)/$(SYSC_LIB_ARCH_DIR) OrpsocMain.o -lVorpsoc_top -lmodules -lsystemc
 
 $(SIM_VLT_DIR)/OrpsocMain.o:
 # Now compile the top level systemC "testbench" module
 	@echo; echo "\tCompiling top level SystemC testbench"; echo
-	cd $(SIM_VLT_DIR) && g++ -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp
+	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) $(TRACE_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp 
 
 $(SIM_VLT_DIR)/libVorpsoc_top.a: $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a vlt_modules_compile $(SIM_VLT_DIR)/verilated.o
 # Now archive all of the libraries from verilator witht he other modules we might have
@@ -593,6 +602,9 @@ $(SIM_VLT_DIR)/libVorpsoc_top.a: $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a vlt_modules_c
 $(SIM_VLT_DIR)/verilated.o:
 	@echo; echo "\tCompiling verilated.o"; echo
 	@cd $(SIM_VLT_DIR) && \
+	export CXXFLAGS=$(VLT_DEBUG_COMPILE_FLAGS); \
+	export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+	export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -f Vorpsoc_top.mk verilated.o
 
 .PHONY: vlt_modules_compile
@@ -602,24 +614,30 @@ vlt_modules_compile:
 	@cd $(SIM_VLT_DIR) && \
 	for SYSCMODEL in $(SYSC_MODELS_BUILD); do \
 		echo;echo "\t$$SYSCMODEL"; echo; \
-		$(MAKE) -f Vorpsoc_top.mk $$SYSCMODEL.o; \
-	done
+		export CXXFLAGS=$(VLT_DEBUG_COMPILE_FLAGS); \
+		export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+		export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
+		 $(MAKE) -f Vorpsoc_top.mk $$SYSCMODEL.o; \
+	done	
 
 $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a: $(SIM_VLT_DIR)/Vorpsoc_top.mk
 	@echo; echo "\tCompiling main design"; echo
 	@cd $(SIM_VLT_DIR) && \
+	export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+	export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -f Vorpsoc_top.mk Vorpsoc_top__ALL.a
 
 $(SIM_VLT_DIR)/Vorpsoc_top.mk: $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated $(SIM_VLT_DIR)/libmodules.a 
 # Now call verilator to generate the .mk files
 	@echo; echo "\tGenerating makefiles with Verilator"; echo
 	cd $(SIM_VLT_DIR) && \
-	verilator -language 1364-2001 -Wno-lint --top-module orpsoc_top -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(VLT_COMMAND_FILE).generated
+	verilator -language 1364-2001 -Wno-lint --top-module orpsoc_top $(VLT_DEBUG_OPTIONS) -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(VLT_COMMAND_FILE).generated
 
 # SystemC modules library
 $(SIM_VLT_DIR)/libmodules.a:
 	@echo; echo "\tCompiling SystemC modules"; echo
-	@$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make
+	@export VLT_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+	$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make $(VLT_SYSC_DEBUG_DEFINE) 
 
 
 # Verilator command script
@@ -678,7 +696,21 @@ vlt-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs prepare_vlt
 	done; \
 	echo "Test results: "$$TESTS_PASSED" out of "$$TESTS_PERFORMED" tests passed"; echo
 
+###############################################################################
+# Verilator profiled module make
+###############################################################################
+# To run this, first run a "make prepare_vlt VLT_DO_PROFILING=1" then do a 
+# "make clean" and then a "make prepare_vlt_profiled"
+# This new make target copies athe results of the profiling back to the right
+# paths before we create everything again
+###############################################################################
+prepare_vlt_profiled: vlt_restore_profileoutput prepare_rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
 
+vlt_restore_profileoutput:
+	@echo;echo "\tRestoring profiling outputs"; echo
+	@mkdir -p ../vlt
+	@cp /tmp/*.gc* $(SIM_VLT_DIR)
+	@cp /tmp/*.gc* $(BENCH_SYSC_SRC_DIR)
 
 ################################################################################
 # Architectural simulator test loop
@@ -722,7 +754,7 @@ sim-tests: prepare_sw_uart_printf
 # Cleaning rules
 ################################################################################
 
-clean: clean-sw clean-sim clean-sysc clean-rtl clean_vpi
+clean: clean-sw clean-sim clean-sysc clean-rtl clean-vpi
 
 clean-sw:
 	@for SWDIR in `ls $(SW_DIR)`; do \
@@ -731,6 +763,10 @@ clean-sw:
 	done
 
 clean-sim:
+#backup any profiling output files
+	@if [ -f $(SIM_VLT_DIR)/OrpsocMain.gcda ]; then echo "\tBacking up verilator profiling output"; \
+	cp $(SIM_VLT_DIR)/*.gc* /tmp; \
+	cp $(BENCH_SYSC_SRC_DIR)/*.gc* /tmp; fi
 	rm -rf $(SIM_RESULTS_DIR) $(SIM_RUN_DIR)/*.* $(SIM_VLT_DIR)
 
 clean-sysc:

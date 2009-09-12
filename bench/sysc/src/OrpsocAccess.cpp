@@ -90,9 +90,20 @@ OrpsocAccess::getExDslot ()
 
 }	// getExDslot ()
 
+//! Access for the id_pc register
+
+//! @return  The value of the or1200_except.id_pc register
+
+uint32_t
+OrpsocAccess::getIdPC ()
+{
+  return  (or1200_except->get_id_pc) ();
+
+}	// getIdPC ()
+
 //! Access for the wb_pc register
 
-//! @return  The value of the or1200_except.wb_insn register
+//! @return  The value of the or1200_except.wb_pc register
 
 uint32_t
 OrpsocAccess::getWbPC ()
@@ -112,6 +123,16 @@ OrpsocAccess::getWbInsn ()
 
 }	// getWbInsn ()
 
+//! Access for the id_insn register
+
+//! @return  The value of the or1200_ctrl.wb_insn register
+
+uint32_t
+OrpsocAccess::getIdInsn ()
+{
+  return  (or1200_ctrl->get_id_insn) ();
+
+}	// getIdInsn ()
 
 //! Access for the OR1200 GPRs
 

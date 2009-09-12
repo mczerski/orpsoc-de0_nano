@@ -331,7 +331,7 @@ assign  pcreg_boot = {(except_prefix ? `OR1200_EXCEPT_EPH1_P : `OR1200_EXCEPT_EP
 
 always @(pcreg_boot or pcreg_default or pcreg_select)
     if (pcreg_select)
-        pcreg = pcreg_boot[31:2];
+      pcreg = pcreg_boot[31:2];
     else
         pcreg = pcreg_default ;
 

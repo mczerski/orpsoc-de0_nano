@@ -5,7 +5,7 @@
 #include "spr_defs.h"
 #include "int.h"
 
-#ifdef OR1K
+
 
 /* Interrupt handlers table */
 struct ihnd int_handlers[MAX_INT_HANDLERS];
@@ -42,7 +42,7 @@ int int_disable(unsigned long vect)
 {
   if(vect >= MAX_INT_HANDLERS)
     return -1;
-
+  
   mtspr(SPR_PICMR, mfspr(SPR_PICMR) & ~(0x00000001L << vect));
   
   return 0;
@@ -76,4 +76,4 @@ void int_main()
   }
 }
   
-#endif
+

@@ -45,24 +45,95 @@ SC_HAS_PROCESS( Or1200MonitorSC );
 //! @param[in] accessor  Accessor class for this Verilated ORPSoC model
 
 Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
-				  OrpsocAccess             *_accessor) :
+				  OrpsocAccess             *_accessor,
+				  int argc, 
+				  char *argv[]) :
   sc_module (name),
   accessor (_accessor)
 {
+
+  // If not -log option, then don't log
+  
+  string logfileDefault("vlt-executed.log");
+  string logfileNameString;
+
+  exit_perf_summary_enabled = 1; // Simulation exit performance summary is 
+                                 // on by default. Turn off with "-q" on the cmd line
+
+  // Parse the command line options
+  int cmdline_name_found=0;
+  if (argc > 1)
+    {
+      // Search through the command line parameters for the "-log" option
+      for(int i=1; i < argc; i++)
+	{
+	  if ((strcmp(argv[i], "-l")==0) ||
+	      (strcmp(argv[i], "--log")==0))
+	    {
+	      logfileNameString = (argv[i+1]);
+	      cmdline_name_found=1;
+	      break;
+	    }
+	}
+      // Search through the command line parameters for the "-q","--no-perf-summary" option
+      for(int i=1; i < argc; i++)
+	{
+	  if ((strcmp(argv[i], "-q")==0) ||
+	      (strcmp(argv[i], "--quiet")==0))
+	    {
+	      exit_perf_summary_enabled = 0;
+	      break;
+	    }
+	}
+    }
+  
+  
+
+  if(cmdline_name_found==1) // No -log option specified so don't turn on logging
+    {      
+
+      logging_enabled = 0; // Default is logging disabled      
+      statusFile.open(logfileNameString.c_str(), ios::out ); // open file to write to it
+
+      if(statusFile.is_open())
+	{
+	  // If we could open the file then turn on logging
+	  logging_enabled = 1;
+	  cout << "* Processor execution logged to file: " << logfileNameString << endl;
+	}
+      
+    }  
+
+  
+  SC_METHOD (displayState);
+  sensitive << clk.pos();
+  dont_initialize();
+  start = clock();
+
+  
+  // checkInstruction monitors the bus for special NOP instructionsl
   SC_METHOD (checkInstruction);
   sensitive << clk.pos();
   dont_initialize();
-
-  SC_METHOD (displayState);
-  logging_enabled = 0; // Default is logging disabled
-  exit_perf_summary_enabled = 1; // Simulation exit performance summary is on by default. Turn off with "-q" on the cmd line
-  sensitive << clk.pos();
-  dont_initialize();
-
-  start = clock();
-    
+  
+  
+  
 }	// Or1200MonitorSC ()
 
+//! Print command line switches for the options of this module
+void 
+Or1200MonitorSC::printSwitches()
+{
+  printf(" [-l <file>] [-q]");
+}
+
+//! Print usage for the options of this module
+void 
+Or1200MonitorSC::printUsage()
+{
+  printf("  -l, --log\t\tLog processor execution to file\n");
+  printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
+}
 
 //! Method to handle special instrutions
 
@@ -73,7 +144,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 //! - l.nop 2  Report the value in R3
 //! - l.nop 3  Printf the string with the arguments in R3, etc
 //! - l.nop 4  Print a character
-
+extern int SIM_RUNNING;
 void
 Or1200MonitorSC::checkInstruction()
 {
@@ -91,8 +162,9 @@ Or1200MonitorSC::checkInstruction()
 	  ts = sc_time_stamp().to_seconds() * 1000000000.0;
 	  std::cout << std::fixed << std::setprecision (2) << ts;
 	  std::cout << " ns: Exiting (" << r3 << ")" << std::endl;
-	  if (exit_perf_summary_enabled) perfSummary();
+	  perfSummary();
 	  if (logging_enabled != 0) statusFile.close();
+	  SIM_RUNNING=0;
 	  sc_stop();
 	  break;
 
@@ -121,65 +193,12 @@ Or1200MonitorSC::checkInstruction()
 
 }	// checkInstruction()
 
-//! Method to setup the files for outputting the state of the processor
-
-//! This function will setup the output file, if enabled.
-
-void 
-Or1200MonitorSC::init_displayState(int argc, char *argv[])
-{
-
-  string logfileDefault("vlt-executed.log");
-  string logfileNameString;
-
-  // Parse the command line options
-  int cmdline_name_found=0;
-  if (argc > 1)
-  {
-    // Search through the command line parameters for the "-log" option
-    for(int i=1; i < argc; i++)
-    {
-      if (strcmp(argv[i], "-log")==0)
-        {
-          logfileNameString = (argv[i+1]);
-          cmdline_name_found=1;
-	  break;
-         }
-    }
-    // Search through the command line parameters for the "-q","--no-perf-summary" option
-    for(int i=1; i < argc; i++)
-    {
-      if ((strcmp(argv[i], "-q")==0)||(strcmp(argv[i], "--no-perf-summary")==0))
-        {
-          exit_perf_summary_enabled = 0;
-	  break;
-         }
-    }
-	
-
-  }
-
-  if(cmdline_name_found==0) // No -log option specified so don't turn on logging
-      return;
-
- statusFile.open(logfileNameString.c_str(), ios::out ); // open file to write to it
-
- if(statusFile.is_open())
- {
-	// If we could open the file then turn on logging
-	logging_enabled = 1;
-	cout << "Processor execution logged to file: " << logfileNameString << endl;
- }
-
- return;
-
-}
 
 //! Method to output the state of the processor
 
 //! This function will output to a file, if enabled, the status of the processor
 //! For now, it's just the PPC and instruction.
-
+#define PRINT_REGS 0
 void
 Or1200MonitorSC::displayState()
 {
@@ -198,10 +217,10 @@ Or1200MonitorSC::displayState()
     {
 	// Print PC, instruction
 	statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ": " << hex << accessor->getWbInsn() <<  endl;
-
+#if PRINT_REGS
 	// Print general purpose register contents
 	for (int i=0; i<32; i++)
-	{
+	  {
 		if ((i%4 == 0)&&(i>0)) statusFile << endl;
 		statusFile << std::setfill('0');
 		statusFile << "GPR" << dec << std::setw(2) << i << ": " <<  hex << std::setw(8) << (uint32_t) accessor->getGpr(i) << "  ";		
@@ -212,6 +231,7 @@ Or1200MonitorSC::displayState()
 	statusFile << "EPCR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEpcr() << "  ";
 	statusFile << "EEAR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEear() << "  ";	
 	statusFile << "ESR0 : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEsr() << endl;
+#endif
 
     }
 
@@ -223,18 +243,22 @@ Or1200MonitorSC::displayState()
 void 
 Or1200MonitorSC::perfSummary()
 {
-	double ts;
-	ts = sc_time_stamp().to_seconds() * 1000000000.0;
-	int cycles = ts / (BENCH_CLK_HALFPERIOD*2); // Number of clock cycles we had
-
-	clock_t finish = clock();
-	double elapsed_time = (double(finish)-double(start))/CLOCKS_PER_SEC;
-	// It took elapsed_time seconds to do insn_count instructions. Divide insn_count by the time to get instructions/second.
-	double ips = (insn_count/elapsed_time);
-	double mips = (insn_count/elapsed_time)/1000000;
-	std::cout << "Or1200Monitor: real time elapsed: " << elapsed_time << " seconds" << endl;
-	std::cout << "Or1200Monitor: simulated " << dec << cycles << " clock cycles, executed " << insn_count << " instructions" << endl; 
-	std::cout << "Or1200Monitor: simulated insn/sec = " << ips << ", simulator mips = " << mips << endl;
-	return;
-} 	// calculateMips()
+  if (exit_perf_summary_enabled) 
+    {
+      double ts;
+      ts = sc_time_stamp().to_seconds() * 1000000000.0;
+      int cycles = ts / (BENCH_CLK_HALFPERIOD*2); // Number of clock cycles we had
+      
+      clock_t finish = clock();
+      double elapsed_time = (double(finish)-double(start))/CLOCKS_PER_SEC;
+      // It took elapsed_time seconds to do insn_count instructions. Divide insn_count by the time to get instructions/second.
+      double ips = (insn_count/elapsed_time);
+      double mips = (insn_count/elapsed_time)/1000000;
+      int hertz = (int) ((cycles/elapsed_time)/1000);
+      std::cout << "* Or1200Monitor: simulated " << sc_time_stamp() << ",time elapsed: " << elapsed_time << " seconds" << endl;
+      std::cout << "* Or1200Monitor: simulated " << dec << cycles << " clock cycles, executed at approx " << hertz << "kHz" << endl;
+      std::cout << "* Or1200Monitor: simulated " << insn_count << " instructions, insn/sec. = " << ips << ", mips = " << mips << endl;
+    }
+  return;
+} 	// perfSummary
 

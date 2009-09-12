@@ -9,7 +9,7 @@ NUM_RUNS=($(NUM_RUNS))
 else
 NUM_RUNS="(10)"
 endif
-
+GCC_OPT += -g
 all: $(cases)
 
 dhry-nocache-O0: dhry-O0.o ../support/reset-nocache.o $(common)

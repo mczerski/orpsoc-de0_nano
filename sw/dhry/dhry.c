@@ -15,6 +15,7 @@
  ****************************************************************************
  */
 #include "support.h"
+#include "time.h"
 #include "dhry.h"
 #ifndef NUM_RUNS
 #define NUM_RUNS (1)
@@ -26,7 +27,7 @@
 void buserr_except(){}
 void dpf_except(){}
 void ipf_except(){}
-void lpint_except(){}
+void lpint_except(){timer_interrupt();}
 void align_except(){}
 void illegal_except(){}
 void hpint_except(){}
@@ -207,8 +208,8 @@ int main ()
   /***************/
  
 /*  printf("%d", my_test2(Number_Of_Runs));*/
-	start_timer(TIMER0);
-	Begin_Time = read_timer(TIMER0);
+  start_timer(TIMER0);
+  Begin_Time = read_timer(TIMER0);
 
   for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
   {

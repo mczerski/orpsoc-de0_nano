@@ -5,6 +5,7 @@
 #endif
 
 #include "spr_defs.h"
+#include "time.h"
 #include "support.h"
 #include "int.h"
 
@@ -14,9 +15,9 @@
 #include "uart.h"
 #endif
 
-#if OR32
+
 void excpt_dummy();
-void int_main();
+//void int_main();
 
 unsigned long excpt_buserr = (unsigned long) excpt_dummy;
 unsigned long excpt_dpfault = (unsigned long) excpt_dummy;
@@ -92,18 +93,6 @@ void printf(const char *fmt, ...)
                            l.nop %0": :"K" (NOP_PRINTF), "r" (fmt), "r"  (args));
 }
 
-/*
-void *memcpy (void *__restrict dstvoid,
-              __const void *__restrict srcvoid, size_t length)
-{
-  char *dst = dstvoid;
-  const char *src = (const char *) srcvoid;
-
-  while (length--)
-    *dst++ = *src++;
-  return dst;
-}
-*/
 #endif
 
 
@@ -125,18 +114,14 @@ void __main()
 /* start_TIMER                    */
 void start_timer(int x)
 {
+  init_timer();
 }
 
 /* read_TIMER                    */
 /*  Returns a value since started in uS */
 unsigned int read_timer(int x)
 {
-  unsigned long count = 0;
-
-  /* Read the Time Stamp Counter */
-/*        asm("simrdtsc %0" :"=r" (count)); */
-  /*asm("l.sys 201"); */
-  return count;
+  return read_time_us();
 }
 
 /* For writing into SPR. */
@@ -152,31 +137,6 @@ unsigned long mfspr(unsigned long spr)
   asm("l.mfspr\t\t%0,%1,0" : "=r" (value) : "r" (spr));
   return value;
 }
-
-#else
-void report(unsigned long value)
-{
-  printf("report(0x%x);\n", (unsigned) value);
-}
-
-/* start_TIMER                    */
-void start_timer(int tmrnum)
-{
-}
-
-/* read_TIMER                    */
-/*  Returns a value since started in uS */
-unsigned int read_timer(int tmrnum)
-{
-  struct timeval tv;
-  struct timezone tz;
-
-  gettimeofday(&tv, &tz);
-	
-  return(tv.tv_sec*1000000+tv.tv_usec);
-}
-
-#endif
 
 
 void excpt_dummy() {}

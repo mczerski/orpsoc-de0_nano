@@ -141,7 +141,7 @@ assign mbist_so_o = mbist_si_i;
 `ifdef OR1200_IC_1W_512B
    or1200_spram #
      (
-      .aw(9),
+      .aw(7),
       .dw(32)
       )
 `endif

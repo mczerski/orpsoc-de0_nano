@@ -103,13 +103,13 @@ int dbg_wb_read_block32(uint32_t adr, uint32_t *data, int len);
 int dbg_wb_write_block32(uint32_t adr, uint32_t *data, int len);
 
 /* read a register from cpu */
-int dbg_cpu0_read(uint32_t adr, uint32_t *data);
+int dbg_cpu0_read(uint32_t adr, uint32_t *data, uint32_t length);
 
 /* read a register from cpu module */
 int dbg_cpu0_read_ctrl(uint32_t adr, unsigned char *data);
 
 /* write a cpu register */
-int dbg_cpu0_write(uint32_t adr, uint32_t data);
+int dbg_cpu0_write(uint32_t adr, uint32_t *data, uint32_t length);
 
 /* write a cpu module register */
 int dbg_cpu0_write_ctrl(uint32_t adr, unsigned char data);

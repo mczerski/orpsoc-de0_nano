@@ -33,6 +33,7 @@
 
 #include "Vorpsoc_top.h"
 
+
 #if VM_TRACE
 #include <SpTraceVcdC.h>
 #endif
@@ -57,13 +58,19 @@ public:
     // Method to drive the trace
   void  driveTrace();
 
+  // VCD dump controling vars
+  int dump_start_delay, dump_stop_set;
+  int dumping_now;
+  sc_time dump_start,dump_stop;
+  
   /* The port */
-  sc_in<bool>   clk;
+  //sc_in<bool>   clk;
 
 private:
 
   //! The ORPSoC module we are tracing
   Vorpsoc_top *traceTarget;
+
 
 #if VM_TRACE
   //! The System Perl Trace file

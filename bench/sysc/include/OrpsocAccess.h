@@ -55,7 +55,9 @@ public:
   // Accessor functions
   bool      getWbFreeze ();
   uint32_t  getWbInsn ();
+  uint32_t  getIdInsn ();
   uint32_t  getWbPC ();
+  uint32_t  getIdPC ();
   bool  getExceptFlushpipe ();
   bool  getExDslot ();
   // Get a specific GPR from the register file

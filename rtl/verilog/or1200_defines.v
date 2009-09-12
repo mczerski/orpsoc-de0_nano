@@ -363,8 +363,8 @@
 // (consider available FPGA memory resources)
 //
 //`define OR1200_IC_1W_512B
-`define OR1200_IC_1W_4KB
-//`define OR1200_IC_1W_8KB
+//`define OR1200_IC_1W_4KB
+`define OR1200_IC_1W_8KB
 `define OR1200_DC_1W_4KB
 //`define OR1200_DC_1W_8KB
 
@@ -985,7 +985,7 @@
 // however already enough for use
 // with or32 gdb)
 //
-//`define OR1200_DU_HWBKPTS
+`define OR1200_DU_HWBKPTS
 
 // Number of DVR/DCR pairs if HW breakpoints enabled
 `define OR1200_DU_DVRDCR_PAIRS 8
@@ -1061,8 +1061,8 @@
 // DMR2 bits
 `define OR1200_DU_DMR2_WCE0	0
 `define OR1200_DU_DMR2_WCE1	1
-`define OR1200_DU_DMR2_AWTC	12:2
-`define OR1200_DU_DMR2_WGB	23:13
+`define OR1200_DU_DMR2_AWTC	11:2
+`define OR1200_DU_DMR2_WGB	23:12
 
 // DWCR bits
 `define OR1200_DU_DWCR_COUNT	15:0

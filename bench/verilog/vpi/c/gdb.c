@@ -144,6 +144,7 @@
     string. So at least NUMREGBYTES*2 + 1 (for the 'G' or the EOS) are needed
     for register packets */
 #define GDB_BUF_MAX  ((NUM_REGS) * 8 + 1)
+//#define GDB_BUF_MAX  1500
 
 /*! Size of the matchpoint hash table. Largest prime < 2^10 */
 #define MP_HASH_SIZE  1021
@@ -191,6 +192,23 @@
 #define SPR_DRR_FPE   0x00001000  //!< Floating point
 #define SPR_DRR_TE    0x00002000  //!< Trap
 
+/* Defines for Debug Mode Register 1 bits.  */
+#define SPR_DMR1_CW       0x00000003   /* Mask for CW bits */
+#define SPR_DMR1_CW_AND   0x00000001	/* Chain watchpoint 0 AND */
+#define SPR_DMR1_CW_OR    0x00000002	/* Chain watchpoint 0 OR */
+#define SPR_DMR1_CW_SZ             2   /* Number of bits for each WP */
+#define SPR_DMR1_ST       0x00400000	/* Single-step trace */
+#define SPR_DMR1_BT       0x00800000	/* Branch trace */
+
+/* Defines for Debug Mode Register 2 bits.  */
+#define SPR_DMR2_WCE0       0x00000001	/* Watchpoint counter enable 0 */
+#define SPR_DMR2_WCE1       0x00000002	/* Watchpoint counter enable 1 */
+#define SPR_DMR2_AWTC_MASK  0x00000ffc	/* Assign watchpoints to ctr mask */
+#define SPR_DMR2_WGB_MASK   0x003ff000	/* Watchpoints generaing brk mask */
+#define SPR_DMR2_WBS_MASK   0xffc00000 /* Watchpoint brkpt status mask */
+#define SPR_DMR2_AWTC_OFF    2		/* Assign watchpoints to ctr offset */
+#define SPR_DMR2_WGB_OFF    12		/* Watchpoints generating brk offset */
+#define SPR_DMR2_WBS_OFF    22		/* Watchpoint brkpt status offset */
 
 /*! Definition of GDB target signals. Data taken from the GDB 6.8
     source. Only those we use defined here. The exact meaning of 
@@ -230,6 +248,55 @@ enum stallStates {
 
 int      npcIsCached;		//!< Is the NPC cached - should be bool
 uint32_t  npcCachedValue;		//!< Cached value of the NPC
+
+/* Debug registers cache */
+#define OR1K_MAX_MATCHPOINTS 8
+
+   enum dcr_cc {
+      OR1K_CC_MASKED   = 0,
+      OR1K_CC_EQ       = 1,
+      OR1K_CC_LT       = 2,
+      OR1K_CC_LE       = 3,
+      OR1K_CC_GT       = 4,
+      OR1K_CC_GE       = 5,
+      OR1K_CC_NE       = 6,
+      OR1K_CC_RESERVED = 7
+    };				/* Compare operation */
+ 
+    enum dcr_ct {
+      OR1K_CT_DISABLED = 0,		/* Disabled */
+      OR1K_CT_FETCH    = 1,		/* Compare to fetch EA */
+      OR1K_CT_LEA      = 2,		/* Compare to load EA */
+      OR1K_CT_SEA      = 3,		/* Compare to store EA */
+      OR1K_CT_LDATA    = 4,		/* Compare to load data */
+      OR1K_CT_SDATA    = 5,		/* Compare to store data */
+      OR1K_CT_AEA      = 6,		/* Compare to load/store EA */
+      OR1K_CT_ADATA    = 7		/* Compare to load/store data */
+    };				/* Compare to what? */
+
+/*! Cached OR1K debug register values (ignores counters for now). */
+static struct {
+  uint32_t  dvr[OR1K_MAX_MATCHPOINTS];
+  struct {
+    uint32_t dp : 1;				/* DVR/DCP present - Read Only */
+    enum dcr_cc cc : 3;                         /* Compare condition */
+    uint32_t sc  : 1;                           /* Signed comparison? */
+    enum dcr_ct ct : 3;                         /* Compare to */
+    uint32_t dcr_reserved : 24;
+  }                  dcr[OR1K_MAX_MATCHPOINTS];
+  uint32_t dmr1;
+  uint32_t dmr2;
+  uint32_t dcrw0;
+  uint32_t dcrw1;
+  uint32_t dsr;
+  uint32_t drr;
+} or1k_dbg_group_regs_cache;
+
+// Value to indicate status of the registers
+// Init to -1, meaning we don't have a copy, 0 = clean copy, 1 = dirty copy
+static int dbg_regs_cache_dirty = -1; 
+
+static uint32_t gpr_regs[MAX_GPRS]; // Static array to block read the GPRs into
 
 static int err = 0;
 
@@ -331,6 +398,15 @@ static void mp_hash_init (void);
 static void	mp_hash_add (enum mp_type type, uint32_t  addr, uint32_t  instr);
 static struct mp_entry * mp_hash_lookup (enum mp_type type, uint32_t  addr);
 static struct mp_entry * mp_hash_delete (enum mp_type type,	uint32_t  addr);
+static void get_debug_registers(void);
+static void put_debug_registers(void);
+static int find_free_dcrdvr_pair(void);
+static int count_free_dcrdvr_pairs(void);
+static int find_matching_dcrdvr_pair(uint32_t addr, uint32_t cc);
+static void insert_hw_watchpoint(int wp_num, uint32_t address, uint32_t cc);
+static void remove_hw_watchpoint(int wp_num);
+static void enable_hw_breakpoint(int wp_num);
+static void disable_hw_breakpoint(int wp_num);
 static void rsp_remove_matchpoint (struct rsp_buf *p_buf);
 static void rsp_insert_matchpoint (struct rsp_buf *p_buf);
 static void rsp_command (struct rsp_buf *p_buf);
@@ -387,6 +463,9 @@ rsp_init (void)
   rsp.client_fd      = -1;		/* i.e. invalid */
   rsp.sigval         = 0;		/* No exception */
   rsp.start_addr     = EXCEPT_RESET;	/* Default restart point */
+
+  /* Clear the debug registers cache */
+  bzero((char*) &or1k_dbg_group_regs_cache, sizeof(or1k_dbg_group_regs_cache));
 
   /* Set up the matchpoint hash table */
   mp_hash_init ();
@@ -520,12 +599,15 @@ static void rsp_check_for_exception()
 
   gdb_set_chain(SC_RISC_DEBUG);
 
-  // Now read the DRR (Debug Reason Register)
-  gdb_read_reg(DRR_CPU_REG_ADD, &drr);
+  get_debug_registers();
+
+  // Now check the DRR (Debug Reason Register)
+  //gdb_read_reg(DRR_CPU_REG_ADD, &drr);
+  drr = or1k_dbg_group_regs_cache.drr;
 
   if (DEBUG_GDB) printf("DRR: 0x%08x\n", drr);
   
-  switch ((int)(drr&0xffffffff))
+  switch (drr)
     {
     case SPR_DRR_RSTE:  rsp.sigval = TARGET_SIGNAL_PWR;  break;
     case SPR_DRR_BUSEE: rsp.sigval = TARGET_SIGNAL_BUS;  break;
@@ -777,6 +859,7 @@ rsp_get_client (void)
   signal (SIGPIPE, SIG_IGN);		/* So we don't exit if client dies */
 
   printf ("Remote debugging from host %s\n", inet_ntoa (sock_addr.sin_addr));
+  
 }	/* rsp_get_client () */
 
 
@@ -1947,30 +2030,20 @@ rsp_continue_generic (uint32_t  addr,
   /* Set the address as the value of the next program counter */
   set_npc (addr);
   
-  /* Clear Debug Reason Register (DRR) 0x3015 */
-  // Arc sim --> cpu_state.sprs[SPR_DRR]   = 0;
-  if(gdb_write_reg(DRR_CPU_REG_ADD, 0)) printf("Error write to DRR register\n");  
-  
-  /* Clear watchpoint break generation in Debug Mode Register 2	(DMR2) 0x3011 */
-  // Arc sim --> cpu_state.sprs[SPR_DMR2] &= ~SPR_DMR2_WGB;
-  if(gdb_read_reg(DMR2_CPU_REG_ADD, &temp_uint32)) printf("Error read from DMR2 register\n");
-  temp_uint32 &= ~SPR_DMR2_WGB;
-  if(gdb_write_reg(DMR2_CPU_REG_ADD, temp_uint32)) printf("Error write to DMR2 register\n");  
-  
-  /* Clear the single step trigger in Debug Mode Register 1 (DMR1) Register 0x3010 */
-  // Arc sim --> cpu_state.sprs[SPR_DMR1] &= ~SPR_DMR1_ST;
-  if(gdb_read_reg(DMR1_CPU_REG_ADD, &temp_uint32)) printf("Error read from DMR1 register\n");
-  temp_uint32 &= ~SPR_DMR1_ST;
-  if(gdb_write_reg(DMR1_CPU_REG_ADD, temp_uint32)) printf("Error write to DMR1 register\n");  
-  
-  /* Set traps to be handled by the debug unit in the Debug Stop Register (DSR) Register 0x3014 */
-  // Arc sim --> cpu_state.sprs[SPR_DSR]  |= SPR_DSR_TE;
-  if(gdb_read_reg(DSR_CPU_REG_ADD, &temp_uint32)) printf("Error read from DSR register\n");
-  temp_uint32 |= SPR_DSR_TE;
-  if(gdb_write_reg(DSR_CPU_REG_ADD, temp_uint32)) printf("Error write to DSR register\n");  
+  or1k_dbg_group_regs_cache.drr = 0; // Clear DRR
+  or1k_dbg_group_regs_cache.dmr1 &= ~SPR_DMR1_ST; // Continuing, so disable step if it's enabled
+  or1k_dbg_group_regs_cache.dsr |= SPR_DSR_TE; // If breakpoints-cause-traps is not enabled
+  dbg_regs_cache_dirty = 1; // Always write the cache back
 
+  /* Commit all debug registers */
+  if (dbg_regs_cache_dirty == 1)
+    put_debug_registers();
+  
   /* Unstall the processor */
   set_stall_state (0);
+
+  /* Debug regs cache is now invalid */
+  dbg_regs_cache_dirty = -1;
 
   /* Note the GDB client is now waiting for a reply. */
   rsp.client_waiting = 1;
@@ -2002,15 +2075,18 @@ rsp_read_all_regs (void)
   
   
   // Read all GPRs
+  gdb_read_block(0x400, (uint32_t *) &gpr_regs, MAX_GPRS*4);
+  
   for (r = 0; r < MAX_GPRS; r++){
     
-    err = gdb_read_reg(0x400 + r, &temp_uint32);
+    /*err = gdb_read_reg(0x400 + r, &temp_uint32);
     if(err > 0){
       if (DEBUG_GDB) printf("Error %d in gdb_read_reg at reg. %d\n", err, r);
       put_str_packet ("E01");
       return;
     }
-    reg2hex (temp_uint32, &(buffer.data[r * 8]));
+    */
+    reg2hex (gpr_regs[r], &(buffer.data[r * 8]));
     
     if (DEBUG_GDB_DUMP_DATA){
       switch(r % 4)
@@ -2029,38 +2105,19 @@ rsp_read_all_regs (void)
 	  break;
 	}
     }
-    
   }
-  /* ---------- PPC ---------- */
-  err = gdb_read_reg(PPC_CPU_REG_ADD, &temp_uint32);
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in gdb_read_reg read --> PPC\n", err);
-  	put_str_packet ("E01");
-  	return;
-  }
-  reg2hex (temp_uint32, &(buffer.data[PPC_REGNUM * 8]));
-  if (DEBUG_GDB_DUMP_DATA)	printf("PPC     0x%08x\n", temp_uint32);
-  /* ---------- NPC ---------- */
-  temp_uint32 = get_npc();
-  /*
-  err = gdb_read_reg(NPC_CPU_REG_ADD, &temp_uint32);
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in gdb_read_reg read --> NPC\n", err);
-  	put_str_packet ("E01");
-  	return;
-  }
-  */
-  reg2hex (temp_uint32, &(buffer.data[NPC_REGNUM * 8]));
-  if (DEBUG_GDB_DUMP_DATA)	printf("NPC     0x%08x\n", temp_uint32);
-  /* ---------- SR ---------- */
-  err = gdb_read_reg(SR_CPU_REG_ADD, &temp_uint32);
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in gdb_read_reg read --> SP\n", err);
-  	put_str_packet ("E01");
-  	return;
-  }
-  reg2hex (temp_uint32, &(buffer.data[SR_REGNUM * 8]));
-	if (DEBUG_GDB_DUMP_DATA)	printf("SR      0x%08x\n", temp_uint32);
+  
+  /* Read NPC,PPC and SR regs, they are consecutive in CPU, at adr. 16, 17 and 18 */
+  uint32_t pcs_and_sr[3]; 
+  gdb_read_block(NPC_CPU_REG_ADD, (uint32_t *)pcs_and_sr, 3 * 4);
+  
+  reg2hex (pcs_and_sr[0], &(buffer.data[NPC_REGNUM * 8]));
+  reg2hex (pcs_and_sr[1], &(buffer.data[SR_REGNUM * 8]));
+  reg2hex (pcs_and_sr[2], &(buffer.data[PPC_REGNUM * 8]));
+  
+  if (DEBUG_GDB_DUMP_DATA)	printf("PPC     0x%08x\n", pcs_and_sr[2]);
+  if (DEBUG_GDB_DUMP_DATA)	printf("NPC     0x%08x\n", pcs_and_sr[0]);
+  if (DEBUG_GDB_DUMP_DATA)	printf("SR      0x%08x\n", pcs_and_sr[1]);
 
   /* Finalize the packet and send it */
   buffer.data[NUM_REGS * 8] = 0;
@@ -2090,16 +2147,6 @@ static void
 rsp_write_all_regs (struct rsp_buf *p_buf)
 {
   uint32_t  regnum;				/* Register index */
-  // char          valstr[9];		/* Allow for EOS on the string */
-
-  // /* Check for valid data */
-  // if (0 != (strcmp ("G", p_buf->data)) && (GDB_BUF_MAX != strlen(p_buf->data)))
-  // {
-  //   fprintf (stderr, "Warning: Failed to recognize RSP write register "
-  //      "command: %s\n", p_buf->data);
-  //   // put_str_packet ("E01");
-  //   return;
-  // }
   
   // Make sure the processor is stalled
   gdb_ensure_or1k_stalled();
@@ -2111,44 +2158,30 @@ rsp_write_all_regs (struct rsp_buf *p_buf)
     put_str_packet ("E01");
   	return;
 	}
-
+  
   /* ---------- GPRS ---------- */
   for (regnum = 0; regnum < MAX_GPRS; regnum++)
-  {
-    err = gdb_write_reg(0x400 + regnum, hex2reg (&p_buf->data[regnum * 8 + 1]));
-	  if(err > 0){
-	  	if (DEBUG_GDB) printf("Error %d in rsp_write_reg write --> GPRS\n", err);
-	    put_str_packet ("E01");
-	  	return;
-	  }
-  }																	 
+    gpr_regs[regnum] = hex2reg (&p_buf->data[regnum * 8 + 1]);  
+  
+  /* Do a block write */
+  gdb_write_block(0x400, (uint32_t *) gpr_regs, MAX_GPRS*32);
   
   /* ---------- PPC ---------- */
-  err = gdb_write_reg(PPC_CPU_REG_ADD, hex2reg (&p_buf->data[PPC_REGNUM * 8 + 1]));
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in rsp_write_reg write --> PPC\n", err);
-    put_str_packet ("E01");
-  	return;
-  }
   /* ---------- SR ---------- */
-  err = gdb_write_reg(SR_CPU_REG_ADD, hex2reg (&p_buf->data[SR_REGNUM * 8 + 1]));
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in rsp_write_reg write --> SR\n", err);
-    put_str_packet ("E01");
-  	return;
-  }
+  /* Write PPC and SR regs, they are consecutive in CPU, at adr. 17 and 18 */
+  /* We handle NPC specially */
+  uint32_t pcs_and_sr[2]; 
+  pcs_and_sr[0] = hex2reg (&p_buf->data[SR_REGNUM * 8 + 1]);
+  pcs_and_sr[1] = hex2reg (&p_buf->data[PPC_REGNUM * 8 + 1]);
+  
+  gdb_write_block(SR_CPU_REG_ADD, (uint32_t *)pcs_and_sr, 2 * 4);
+  
   /* ---------- NPC ---------- */
   set_npc(hex2reg (&p_buf->data[NPC_REGNUM * 8 + 1]));
-  /*
-  err = gdb_write_reg(NPC_CPU_REG_ADD, hex2reg (&p_buf->data[NPC_REGNUM * 8 + 1]));
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in rsp_write_reg write --> NPC\n", err);
-    put_str_packet ("E01");
-  	return;
-  }
-  */
+  
   /* Acknowledge. TODO: We always succeed at present, even if the data was
      defective. */
+  
   put_str_packet ("OK");
 }	/* rsp_write_all_regs () */
 
@@ -2763,9 +2796,19 @@ rsp_command (struct rsp_buf *p_buf)
     // First set the chain 
     gdb_set_chain(SC_RISC_DEBUG);	/* 1 RISC Debug Interface chain */
     
-    // special case for NPC
+    /* special case for NPC */
     if(regno == NPC_CPU_REG_ADD)
       temp_uint32 = get_npc();
+    /* Also special case for debug group (group 6) registers */
+    else if (((regno >> OR1K_SPG_SIZE_BITS) & 0xff) == OR1K_SPG_DEBUG)
+      {
+	if (dbg_regs_cache_dirty == -1) // Regs invalid, get them
+	  get_debug_registers();
+	
+	uint32_t * dbg_reg_array = (uint32_t *) &or1k_dbg_group_regs_cache;
+	temp_uint32 = dbg_reg_array[(regno & 0xff)];
+	dbg_regs_cache_dirty = 0;
+      }
     else
       {
 	err = gdb_read_reg(regno, &temp_uint32);
@@ -2817,6 +2860,16 @@ rsp_command (struct rsp_buf *p_buf)
       // special case for NPC
       if(regno == NPC_CPU_REG_ADD)
 	set_npc(val);
+      /* Also special case for debug group (group 6) registers */
+      else if (((regno >> OR1K_SPG_SIZE_BITS) & 0xff) == OR1K_SPG_DEBUG)
+	{
+	  if (dbg_regs_cache_dirty == -1) // Regs invalid, get them
+	    get_debug_registers();
+	  
+	  uint32_t * dbg_reg_array = (uint32_t *) &or1k_dbg_group_regs_cache;
+	  dbg_reg_array[(regno & 0xff)] = val;
+	  dbg_regs_cache_dirty = 1;
+	}
       else
 	{
 	  
@@ -2883,25 +2936,14 @@ rsp_restart (void)
   // First set the chain 
   err = gdb_set_chain(SC_RISC_DEBUG);	/* 1 RISC Debug Interface chain */
   if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in gdb_set_chain\n", err);
+    if (DEBUG_GDB) printf("Error %d in gdb_set_chain\n", err);
     put_str_packet ("E01");
-  	return;
-	}
-	// OR32 Arc sim equivalent --> set_npc (rsp.start_addr);
-  /* Set NPC to reset vector 0x100 */
-  set_npc(rsp.start_addr);
-  /*
-  err = gdb_write_reg(NPC_CPU_REG_ADD, rsp.start_addr);
-  if(err > 0){
-  	if (DEBUG_GDB) printf("Error %d in rsp_restart write Reg. %x = 0x%08x\n", err, NPC_CPU_REG_ADD, rsp.start_addr);
-    put_str_packet ("E01");
-  	return;
+    return;
   }
   
-  else{
-  if (DEBUG_GDB) printf("Error %d Command Reset. Set NPC to Start vector %x = 0x%08x\n", err, NPC_CPU_REG_ADD, rsp.start_addr);
-  }
-  */
+  /* Set NPC to reset vector 0x100 */
+  set_npc(rsp.start_addr);
+
 }	/* rsp_restart () */
 
 
@@ -2931,38 +2973,19 @@ rsp_step (struct rsp_buf *p_buf)
 
   if (0 == strcmp ("s", p_buf->data))
   {
-    // Arc Sim Code -->   addr = cpu_state.pc;	/* Default uses current NPC */
     /* ---------- Npc ---------- */
     addr = get_npc();
-    /*
-    err = gdb_read_reg(NPC_CPU_REG_ADD, &addr);
-    if(err > 0){
-      printf("Error %d to read NPC in the STEP command 's'\n", err);
-      rsp_client_close ();
-      return;
-    }
-    */
   }
   else if (1 != sscanf (p_buf->data, "s%x", &addr))
   {
     fprintf (stderr,
 	     "Warning: RSP step address %s not recognized: ignored\n",
 	     p_buf->data);
-
-    // Arc Sim Code -->   addr = cpu_state.pc;	/* Default uses current NPC */
+    
     /* ---------- NPC ---------- */
     addr = get_npc();
-    /*
-    err = gdb_read_reg(NPC_CPU_REG_ADD, &addr);
-    if(err > 0){
-      printf("Error %d to read NPC in the STEP command 's'\n", err);
-      rsp_client_close ();
-      return;
-    }
-    */
   }
 
-  //if (DEBUG_GDB) printf("rsp_step() --> Read NPC = 0x%08x\n", addr);
   rsp_step_generic (addr, EXCEPT_NONE);
 
 }	/* rsp_step () */
@@ -3005,30 +3028,21 @@ rsp_step_generic (uint32_t  addr,
   
   set_npc (addr);
   
-  /* Clear Debug Reason Register (DRR) 0x3015 */
-  // Arc sim --> cpu_state.sprs[SPR_DRR]   = 0;
-  if(gdb_write_reg(DRR_CPU_REG_ADD, 0)) printf("Error write to DRR register\n");  
-  
-  /* Clear watchpoint break generation in Debug Mode Register 2	(DMR2) 0x3011 */
-  // Arc sim --> cpu_state.sprs[SPR_DMR2] &= ~SPR_DMR2_WGB;
-  if(gdb_read_reg(DMR2_CPU_REG_ADD, &temp_uint32)) printf("Error read from DMR2 register\n");
-  temp_uint32 &= ~SPR_DMR2_WGB;
-  if(gdb_write_reg(DMR2_CPU_REG_ADD, temp_uint32)) printf("Error write to DMR2 register\n");  
-  
-  /* Set the single step trigger in Debug Mode Register 1 (DMR1) Register 0x3010 */
-  // Arc sim --> cpu_state.sprs[SPR_DMR1] |= SPR_DMR1_ST;
-  if(gdb_read_reg(DMR1_CPU_REG_ADD, &temp_uint32)) printf("Error read from DMR1 register\n");
-  temp_uint32 |= SPR_DMR1_ST;
-  if(gdb_write_reg(DMR1_CPU_REG_ADD, temp_uint32)) printf("Error write to DMR1 register\n");  
-  
-  /* Set traps to be handled by the debug unit in the Debug Stop Register (DSR) Register 0x3014 */
-  // Arc sim --> cpu_state.sprs[SPR_DSR]  |= SPR_DSR_TE;
-  if(gdb_read_reg(DSR_CPU_REG_ADD, &temp_uint32)) printf("Error read from DSR register\n");
-  temp_uint32 |= SPR_DSR_TE;
-  if(gdb_write_reg(DSR_CPU_REG_ADD, temp_uint32)) printf("Error write to DSR register\n");  
+  or1k_dbg_group_regs_cache.drr = 0; // Clear DRR
+  or1k_dbg_group_regs_cache.dmr1 |= SPR_DMR1_ST; // Stepping, so enable step in DMR1
+  or1k_dbg_group_regs_cache.dsr |= SPR_DSR_TE; // Enable trap handled by DU
+  or1k_dbg_group_regs_cache.dmr2 &= ~SPR_DMR2_WGB; // Stepping, so disable breakpoints from watchpoints
+  dbg_regs_cache_dirty = 1; // Always write the cache back
+
+  /* Commit all debug registers */
+  if (dbg_regs_cache_dirty == 1)
+    put_debug_registers();
 
   /* Unstall the processor */
   set_stall_state (0);
+  
+  /* Debug regs cache now in invalid state */
+  dbg_regs_cache_dirty = -1; 
 
   /* Note the GDB client is now waiting for a reply. */
   rsp.client_waiting = 1;
@@ -3264,6 +3278,248 @@ rsp_write_mem_bin (struct rsp_buf *p_buf)
   
 }	/* rsp_write_mem_bin () */
 
+/*---------------------------------------------------------------------------*/
+/*!Copy the debug group registers from the processor into our cache struct
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+get_debug_registers(void)
+{
+
+  if (dbg_regs_cache_dirty != -1) return; // Don't need to update them
+
+    if (DEBUG_GDB)
+      printf("gdb - get_debug_registers() - reading %d bytes for debug regs\n",sizeof(or1k_dbg_group_regs_cache));
+
+
+  err = gdb_set_chain(SC_RISC_DEBUG);	/* Register Chain */
+  /* Fill our debug group registers struct */
+  gdb_read_block((OR1K_SPG_DEBUG << OR1K_SPG_SIZE_BITS),
+		 (uint32_t *) &or1k_dbg_group_regs_cache, 
+		 (uint32_t) sizeof(or1k_dbg_group_regs_cache));
+  dbg_regs_cache_dirty = 0; // Just updated it so not dirty
+
+  if (DEBUG_GDB)
+    {
+      printf("gdb - get_debug_registers() - registers:\n\t");
+      uint32_t * regs_ptr = (uint32_t*) &or1k_dbg_group_regs_cache;
+      int i; 
+      for(i=0;i<(sizeof(or1k_dbg_group_regs_cache)/4);i++)     
+	{ if (i%4==0)printf("\n\t");
+	  if (i<8)
+	    printf("DVR%.2d %.8x ",i,regs_ptr[i]);
+	  else if (i<16)
+	    printf("DCR%.2d %.8x ",i-8,regs_ptr[i]);
+	  else if (i<17)
+	    printf("DMR1  %.8x ",regs_ptr[i]);
+	  else if (i<18)
+	    printf("DMR2  %.8x ",regs_ptr[i]);
+	  else if (i<19)
+	    printf("DCWR0 %.8x ",regs_ptr[i]);
+	  else if (i<20)
+	    printf("DCWR1 %.8x ",regs_ptr[i]);
+	  else if (i<21)
+	    printf("DSR   %.8x ",regs_ptr[i]);
+	  else if (i<22)
+	    printf("DRR   %.8x ",regs_ptr[i]);
+
+	}
+      printf("\n");
+    }
+  return;
+} /* get_debug_registers() */
+
+/*---------------------------------------------------------------------------*/
+/*!Copy the debug group registers from our cache to the processor
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+put_debug_registers(void)
+{
+  /* TODO: Block CPU registers write functionality */
+  if (DEBUG_GDB) printf("gdb - put_debug_registers()\n");
+  int i;
+  uint32_t *dbg_regs_ptr = (uint32_t *) &or1k_dbg_group_regs_cache;
+
+  if (DEBUG_GDB)
+    {
+      printf("gdb - put_debug_registers() - registers:\n\t");
+      uint32_t * regs_ptr = (uint32_t*) &or1k_dbg_group_regs_cache;
+      int i; 
+      for(i=0;i<(sizeof(or1k_dbg_group_regs_cache)/4);i++)     
+	{ if (i%4==0)printf("\n\t");
+	  if (i<8)
+	    printf("DVR%.2d %.8x ",i,regs_ptr[i]);
+	  else if (i<16)
+	    printf("DCR%.2d %.8x ",i-8,regs_ptr[i]);
+	  else if (i<17)
+	    printf("DMR1  %.8x ",regs_ptr[i]);
+	  else if (i<18)
+	    printf("DMR2  %.8x ",regs_ptr[i]);
+	  else if (i<19)
+	    printf("DCWR0 %.8x ",regs_ptr[i]);
+	  else if (i<20)
+	    printf("DCWR1 %.8x ",regs_ptr[i]);
+	  else if (i<21)
+	    printf("DSR   %.8x ",regs_ptr[i]);
+	  else if (i<22)
+	    printf("DRR   %.8x ",regs_ptr[i]);
+	  
+	}
+      printf("\n");
+    }
+  
+  err = gdb_set_chain(SC_RISC_DEBUG);	/* Register Chain */
+  
+  gdb_write_block((OR1K_SPG_DEBUG << OR1K_SPG_SIZE_BITS), 
+		  (uint32_t *) &or1k_dbg_group_regs_cache,
+		  sizeof(or1k_dbg_group_regs_cache));
+
+  return;
+
+} /* put_debug_registers() */
+
+/*---------------------------------------------------------------------------*/
+/*!Find the DVR/DCR pair corresponding to the address
+
+  @return the number, 0-7 of the DCR/DVR pair, if possible, -1 else.         */
+/*---------------------------------------------------------------------------*/
+static int
+find_matching_dcrdvr_pair(uint32_t addr, uint32_t cc)
+{
+  int i;
+  for (i=0;i<OR1K_MAX_MATCHPOINTS; i++)
+    {
+      // Find the one matching according to address, and in use
+      if ((or1k_dbg_group_regs_cache.dvr[i] == addr)  && 
+	  (or1k_dbg_group_regs_cache.dcr[i].cc == cc))
+	{
+	  /*
+	  if (DEBUG_GDB) printf("gdb - find_matching_dcrdvr_pair(%.8x, %d)\n",addr, cc);
+	  if (DEBUG_GDB) printf("gdb - find_matching_dcrdvr_pair match in %d: dvr[%d] = %.8x dcr[%d].cc=%d\n",
+				i,i,or1k_dbg_group_regs_cache.dvr[i],i,or1k_dbg_group_regs_cache.dcr[i].cc);
+	  */
+	  return i;
+	}
+    }
+  
+  // If the loop finished, no appropriate matchpoints
+  return -1;
+} /* find_matching_dcrdvr_pair() */
+ /*---------------------------------------------------------------------------*/
+/*!Count number of free DCR/DVR pairs
+
+  @return the number, 0-7         */
+/*---------------------------------------------------------------------------*/
+static int
+count_free_dcrdvr_pairs(void)
+{
+  int i, free=0;
+  for (i=0;i<OR1K_MAX_MATCHPOINTS; i++)
+    {
+      if ((or1k_dbg_group_regs_cache.dcr[i].cc == OR1K_CC_MASKED) // If compare condition is masked, it's not used
+	  && or1k_dbg_group_regs_cache.dcr[i].dp ) // and the debug point is present
+	free++;
+    }
+  
+  
+  return free;
+} /* count_free_dcrdvr_pairs() */
+
+/*---------------------------------------------------------------------------*/
+/*!Find a free hardware breakpoint register, DCR/DVR pair
+
+  @return the number, 0-7 of the DCR/DVR pair, if possible, -1 else.         */
+/*---------------------------------------------------------------------------*/
+static int
+find_free_dcrdvr_pair(void)
+{
+  int i;
+  for (i=0;i<OR1K_MAX_MATCHPOINTS; i++)
+    {
+      if ((or1k_dbg_group_regs_cache.dcr[i].cc == OR1K_CC_MASKED) // If compare condition is masked, it's not used
+	  && or1k_dbg_group_regs_cache.dcr[i].dp ) // and the debug point is present
+	return i;
+    }
+  
+  // If the loop finished, no free matchpoints
+  return -1;
+} /* find_free_dcrdvr_pair() */
+
+/*---------------------------------------------------------------------------*/
+/*!Setup a DCR/DVR pair for our watchpoint.
+ @param[in] wp_num  The watchpoint number
+ @param[in] address  The address for watchpoint
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+insert_hw_watchpoint(int wp_num, uint32_t address, uint32_t cc)
+{
+  if (DEBUG_GDB) printf("gdb - insert_hw_watchpoint(%d, 0x%.8x)\n",wp_num, address);
+  or1k_dbg_group_regs_cache.dvr[wp_num] = address;
+  
+  or1k_dbg_group_regs_cache.dcr[wp_num].cc = cc; 
+  or1k_dbg_group_regs_cache.dcr[wp_num].sc = 0;
+  or1k_dbg_group_regs_cache.dcr[wp_num].ct = OR1K_CT_FETCH; // Instruction fetch address
+  
+  // Mark the debug reg cache as dirty
+  dbg_regs_cache_dirty = 1;
+  return;
+  
+}  /* insert_hw_watchpoint() */
+
+/*---------------------------------------------------------------------------*/
+/*!Remove/free a DCR/DVR watchpoint pair
+ @param[in] wp_num  The watchpoint number
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+remove_hw_watchpoint(int wp_num)
+{
+  or1k_dbg_group_regs_cache.dvr[wp_num] = 0;
+  
+  or1k_dbg_group_regs_cache.dcr[wp_num].cc = OR1K_CC_MASKED; // We only do equals for now
+  or1k_dbg_group_regs_cache.dcr[wp_num].sc = 0;
+
+  /* Auto-disable it as generating a breakpoint, too, although maybe gets done after
+     this call anyway. Best to ensure. */
+  disable_hw_breakpoint(wp_num);
+  
+  // Mark the debug reg cache as dirty
+  dbg_regs_cache_dirty = 1;
+  return;
+  
+} /* remove_hw_watchpoint() */
+
+/*---------------------------------------------------------------------------*/
+/*!Enable a DCR/DVR watchpoint to generate a breakpoint
+ @param[in] wp_num  The watchpoint number
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+enable_hw_breakpoint(int wp_num)
+{
+  // Set the corresponding bit in DMR2 to enable matchpoint 'num' to trigger a breakpoint
+  or1k_dbg_group_regs_cache.dmr2 |= (uint32_t) (1 << (SPR_DMR2_WGB_OFF + wp_num));
+  // Mark the debug reg cache as dirty
+  dbg_regs_cache_dirty = 1;
+  return;
+} /* enable_hw_breakpoint() */
+
+/*---------------------------------------------------------------------------*/
+/*!Disable a DCR/DVR watchpoint from generating a breakpoint
+ @param[in] wp_num  The watchpoint number
+                                                                             */
+/*---------------------------------------------------------------------------*/
+static void
+disable_hw_breakpoint(int wp_num)
+{
+  // Set the corresponding bit in DMR2 to enable matchpoint 'num' to trigger a breakpoint
+  or1k_dbg_group_regs_cache.dmr2 &= (uint32_t) ~(1 << (SPR_DMR2_WGB_OFF + wp_num));
+  // Mark the debug reg cache as dirty
+  dbg_regs_cache_dirty = 1;
+  return;
+} /* disable_hw_breakpoint() */
       
 /*---------------------------------------------------------------------------*/
 /*!Handle a RSP remove breakpoint or matchpoint request
@@ -3283,6 +3539,7 @@ rsp_remove_matchpoint (struct rsp_buf *p_buf)
   uint32_t  addr;		/* Address specified */
   int                len;			/* Matchpoint length (not used) */
   struct mp_entry   *mpe;			/* Info about the replaced instr */
+  int wp_num;
 
   /* Break out the instruction */
   if (3 != sscanf (p_buf->data, "z%1d,%x,%1d", (int *)&type, &addr, &len))
@@ -3334,7 +3591,42 @@ rsp_remove_matchpoint (struct rsp_buf *p_buf)
       return;
      
     case BP_HARDWARE:
-      put_str_packet ("");		/* Not supported */
+      /* Adding support -- jb 090901 */
+      if (dbg_regs_cache_dirty == -1) // Regs invalid, get them
+	get_debug_registers();
+
+      if (DEBUG_GDB) printf("gdb - rsp_remove_matchpoint() - hardware mp remove at addr %.8x\n",addr);
+#ifdef HWBP_BTWN
+      // Find the first of the pair of dcr/dvr registers
+      wp_num = find_matching_dcrdvr_pair(addr-4,OR1K_CC_GE);
+#else
+      wp_num = find_matching_dcrdvr_pair(addr,OR1K_CC_EQ);
+      remove_hw_watchpoint(wp_num);
+#endif
+      if ( wp_num < 0 )
+	{
+	  printf("gdb - rsp_remove_matchpoint() failed to remove hardware breakpoint at addr %.8x\n",
+		 addr);	  
+	  put_str_packet ("E01"); /* Cannot remove */
+	  return;
+	}
+
+      if (DEBUG_GDB) printf("gdb - rsp_remove_matchpoint() - mp to remove in DCR/DVR pair %d \n",wp_num);
+      remove_hw_watchpoint(wp_num);
+
+#ifdef HWBP_BTWN
+      wp_num++;
+      /* Should probably check here that this is correct. Oh well. */
+      remove_hw_watchpoint(wp_num);
+      // Unchain these
+      or1k_dbg_group_regs_cache.dmr1 &= ~(SPR_DMR1_CW << (wp_num * SPR_DMR1_CW_SZ)); 
+#endif
+      
+      // Disable breakpoint generation
+      disable_hw_breakpoint(wp_num);
+
+      
+      put_str_packet ("OK");
       return;
 
     case WP_WRITE:
@@ -3358,7 +3650,6 @@ rsp_remove_matchpoint (struct rsp_buf *p_buf)
     }
 }	/* rsp_remove_matchpoint () */
 
-      
 /*---------------------------------------------------------------------------*/
 /*!Handle a RSP insert breakpoint or matchpoint request
 
@@ -3376,7 +3667,8 @@ rsp_insert_matchpoint (struct rsp_buf *p_buf)
   enum mp_type       type;		/* What sort of matchpoint */
   uint32_t  addr;		/* Address specified */
   int                len;		/* Matchpoint length (not used) */
-	uint32_t      instr;
+  uint32_t      instr;
+  int wp_num;
 
   /* Break out the instruction */
   if (3 != sscanf (p_buf->data, "Z%1d,%x,%1d", (int *)&type, &addr, &len))
@@ -3423,7 +3715,53 @@ rsp_insert_matchpoint (struct rsp_buf *p_buf)
       return;
      
     case BP_HARDWARE:	// hardware-breakpoint Z1  hbreak
-      put_str_packet ("");		/* Not supported */
+      /* Adding support -- jb 090901 */
+      get_debug_registers(); // First update our copy of the debug registers
+
+#ifdef HWBP_BTWN
+      if (count_free_dcrdvr_pairs() < 2) /* Need at least two spare watchpoints free */
+	put_str_packet (""); /* Cannot add */
+#endif
+
+      wp_num = find_free_dcrdvr_pair();
+      
+      if (wp_num == -1)
+	{
+	  put_str_packet (""); /* Could not find a place to put the breakpoint */
+	  
+	}
+
+#ifdef HWBP_BTWN      
+      if ((wp_num >= OR1K_MAX_MATCHPOINTS-1)
+	  || (wp_num %2 != 0)) /* Should have gotten either, 0,2,4,6 */
+	{
+	  /* Something is wrong - can't do it */
+	  put_str_packet ("");
+	  return;
+	}
+
+      // First watchpoint to watch for address greater than the address
+      insert_hw_watchpoint(wp_num, addr-4, OR1K_CC_GE);
+
+      wp_num++; // The watchpoints should be next to each other.
+     
+      // Second watchpoint to watch for address less than the address
+      insert_hw_watchpoint(wp_num, addr+4, OR1K_CC_LE);
+
+      // Chain these two together
+      // First clear the chain settings for this wp (2 bits per)
+      or1k_dbg_group_regs_cache.dmr1 &= ~(SPR_DMR1_CW << (wp_num * SPR_DMR1_CW_SZ)); 
+      // We will trigger a match when wp-1 {_-*{>AND<}*-_} wp go off.
+      or1k_dbg_group_regs_cache.dmr1 |= (SPR_DMR1_CW_AND << (wp_num * SPR_DMR1_CW_SZ)); 
+      // Now enable this send wp (the higher of the two) to trigger a matchpoint
+#else
+      /* Simply insert a watchpoint at the address */
+      insert_hw_watchpoint(wp_num, addr, OR1K_CC_EQ);
+
+#endif
+
+      enable_hw_breakpoint(wp_num);
+      put_str_packet ("OK");
       return;
 																														 
     case WP_WRITE:		// write-watchpoint    Z2  watch																			
@@ -3505,7 +3843,7 @@ static void gdb_ensure_or1k_stalled()
 int gdb_read_reg(uint32_t adr, uint32_t *data) {
   if (DEBUG_CMDS) printf("rreg %d\n", gdb_chain);
   switch (gdb_chain) {
-  case SC_RISC_DEBUG: return dbg_cpu0_read(adr, data) ? ERR_CRC : ERR_NONE;
+  case SC_RISC_DEBUG: return dbg_cpu0_read(adr, data, 4) ? ERR_CRC : ERR_NONE;
   case SC_REGISTER:   return dbg_cpu0_read_ctrl(adr, (unsigned char*)data) ? 
       ERR_CRC : ERR_NONE;
   case SC_WISHBONE:   return dbg_wb_read32(adr, data) ? ERR_CRC : ERR_NONE;
@@ -3536,7 +3874,7 @@ int gdb_write_reg(uint32_t adr, uint32_t data) {
   if (DEBUG_CMDS) printf("wreg %d\n", gdb_chain); fflush (stdout);
   switch (gdb_chain) { /* remap registers, to be compatible with jp1 */
   case SC_RISC_DEBUG: if (adr == JTAG_RISCOP) adr = 0x00;
-    return dbg_cpu0_write(adr, data) ? ERR_CRC : ERR_NONE;
+    return dbg_cpu0_write(adr, &data, 4) ? ERR_CRC : ERR_NONE;
   case SC_REGISTER:   return dbg_cpu0_write_ctrl(adr, data) ? ERR_CRC : ERR_NONE;
   case SC_WISHBONE:   return dbg_wb_write32(adr, data) ? ERR_CRC : ERR_NONE;
   case SC_TRACE:      return 0;
@@ -3545,10 +3883,10 @@ int gdb_write_reg(uint32_t adr, uint32_t data) {
 }
 
 int gdb_read_block(uint32_t adr, uint32_t *data, int len) {
-  if (DEBUG_CMDS) printf("rb %d\n", gdb_chain); fflush (stdout);
+  if (DEBUG_CMDS) printf("rb %d len %d\n", gdb_chain, len); fflush (stdout);
   switch (gdb_chain) {
-  case SC_WISHBONE:   return dbg_wb_read_block32(adr, data, len) ? 
-      ERR_CRC : ERR_NONE;
+  case SC_RISC_DEBUG: return dbg_cpu0_read(adr, data, len) ? ERR_CRC : ERR_NONE;
+  case SC_WISHBONE:   return dbg_wb_read_block32(adr, data, len) ? ERR_CRC : ERR_NONE;
   default:            return JTAG_PROXY_INVALID_CHAIN;
   }
 }
@@ -3556,6 +3894,7 @@ int gdb_read_block(uint32_t adr, uint32_t *data, int len) {
 int gdb_write_block(uint32_t adr, uint32_t *data, int len) {
   if (DEBUG_CMDS) printf("wb %d\n", gdb_chain); fflush (stdout);
   switch (gdb_chain) {
+  case SC_RISC_DEBUG: return dbg_cpu0_write(adr, data, len) ? ERR_CRC : ERR_NONE;
   case SC_WISHBONE:   return dbg_wb_write_block32(adr, data, len) ? 
       ERR_CRC : ERR_NONE;
   default:            return JTAG_PROXY_INVALID_CHAIN;

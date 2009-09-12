@@ -200,7 +200,7 @@ wire	[`OR1200_MACOP_WIDTH-1:0]		mac_op;
 wire					ex_macrc_op;
 `endif
 reg	[`OR1200_SHROTOP_WIDTH-1:0]		shrot_op;
-reg	[31:0]				id_insn;
+reg     [31:0] 				id_insn /* verilator public */;   
 reg	[31:0]				ex_insn;
 reg	[31:0]				wb_insn;
 reg	[`OR1200_REGFILE_ADDR_WIDTH-1:0]	rf_addrw;
@@ -279,7 +279,18 @@ assign rfe = (pre_branch_op == `OR1200_BRANCHOP_RFE) | (branch_op == `OR1200_BRA
    endfunction // get_wb_insn
 `endif
 
+`ifdef verilator
+   // Function to access id_insn (for Verilator). Have to hide this from
+   // simulator, since functions with no inputs are not allowed in IEEE
+   // 1364-2001.
+   function [31:0] get_id_insn;
+      // verilator public
+      get_id_insn = id_insn;
+   endfunction // get_id_insn
+`endif
 
+
+   
 //
 // Generation of sel_a
 //
