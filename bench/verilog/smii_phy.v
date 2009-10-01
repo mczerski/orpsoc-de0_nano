@@ -147,10 +147,10 @@ module smii_phy
 
    // Allow us to check if RX DV has been low for a while
    reg [3:0] rx_dv_long_low_sr;
-   wire      dv_long_low;   
+   wire      rx_dv_long_low;   
    always @(posedge ethphy_mii_rx_clk)
      rx_dv_long_low_sr[3:0] <= {rx_dv_long_low_sr[2:0], ethphy_mii_rx_dv};
-   assign rx_dv_long_low = ~(|rx_dv_long_low_sr);
+   assign rx_dv_long_low = ~(|rx_dv_long_low_sr[3:0]);
    reg      rx_dv;
    wire [8:0] rx_fifo_out;
    wire       rx_fifo_empty,rx_fifo_almost_empty;

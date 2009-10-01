@@ -10,7 +10,7 @@
 #define USEC_PER_TICK (USEC_PER_SEC/TICKS_PER_SEC)
 
 unsigned long tick_period = SYS_CLKS_PER_TICK;
-unsigned long usec, msec, sec; // simple usec counter
+unsigned long usec, msec, sec;
 
 /* Start the timer, enabling interrupt, self-restart and set the period */
 void 

@@ -25,7 +25,7 @@
 
 // ----------------------------------------------------------------------------
 
-// $Id: Or1200MonitorSC.h 288 2009-02-03 15:08:00Z jeremy $
+// $Id$
 
 #ifndef OR1200_MONITOR_SC__H
 #define OR1200_MONITOR_SC__H
@@ -36,7 +36,7 @@
 #include "systemc.h"
 
 #include "OrpsocAccess.h"
-
+#include "MemoryLoad.h"
 
 //! Monitor for special l.nop instructions
 
@@ -52,6 +52,7 @@ public:
   // Constructor
   Or1200MonitorSC (sc_core::sc_module_name  name,
 		   OrpsocAccess            *_accessor,
+		   MemoryLoad              *_memoryload,
 		   int argc, 
 		   char *argv[]);
 
@@ -61,19 +62,24 @@ public:
   // Methods to setup and output state of processor to a file
   void displayState();
 
-  // Function to calculate performance of the sim
+  // Methods to generate the call and return list during execution
+  void callLog();
+
+  // Method to calculate performance of the sim
   void perfSummary();
 
-  // Print out the command-line switches for this module's options  
+  // Method to print out the command-line switches for this module's options  
   void printSwitches();
 
-  // Print out the usage for each option
+  // Method to print out the usage for each option
   void printUsage();
 
   // The ports
   sc_in<bool>   clk;
 
 private:
+
+#define DEFAULT_PROF_FILE "sim.profile"
 
   // Special NOP instructions
   static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction
@@ -84,15 +90,20 @@ private:
 
   // Variables for processor status output
   ofstream statusFile;
+  ofstream profileFile;
   int logging_enabled;
   int exit_perf_summary_enabled;
   int insn_count;
+  long long cycle_count;
   
-  // Time measurement variables - for calculating performance of the sim
+  //! Time measurement variable - for calculating performance of the sim
   clock_t start;
 
   //! The accessor for the Orpsoc instance
   OrpsocAccess *accessor;
+
+  //! The memory loading object
+  MemoryLoad *memoryload;
 
 };	// Or1200MonitorSC ()
 

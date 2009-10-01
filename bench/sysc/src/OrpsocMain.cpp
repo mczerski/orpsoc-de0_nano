@@ -45,11 +45,9 @@
 
 #include "Vorpsoc_top.h"
 #include "OrpsocAccess.h"
+#include "MemoryLoad.h"
 
-//#if VM_TRACE
-//#include <systemc.h>
 #include <SpTraceVcdC.h>
-//#endif
 
 //#include "TraceSC.h"
 #include "ResetSC.h"
@@ -107,12 +105,17 @@ int sc_main (int   argc,
   int time_val;
   int cmdline_name_found=0;
 
+  // Executable app load variables
+  int do_program_file_load = 0; // Default: we don't require a file, we use the VMEM
+  char* program_file; // Old char* style for program name
+
   // Verilator accessor
   OrpsocAccess    *accessor;
 
   // Modules
   Vorpsoc_top *orpsoc;		// Verilated ORPSoC
-  //TraceSC          *trace;		// Drive VCD
+  
+  MemoryLoad *memoryload;       // Memory loader
   
   ResetSC          *reset;		// Generate a RESET signal
   Or1200MonitorSC  *monitor;		// Handle l.nop x instructions
@@ -120,24 +123,23 @@ int sc_main (int   argc,
 
   // Instantiate the Verilator model, VCD trace handler and accessor
   orpsoc     = new Vorpsoc_top ("orpsoc");
-  //trace      = new TraceSC ("trace", orpsoc, argc, argv);
+  
   accessor   = new OrpsocAccess (orpsoc);
+  
+  memoryload = new MemoryLoad (accessor);
   
   // Instantiate the SystemC modules
   reset         = new ResetSC ("reset", BENCH_RESET_TIME);
-  monitor       = new Or1200MonitorSC ("monitor", accessor, argc, argv);
+  monitor       = new Or1200MonitorSC ("monitor", accessor, memoryload, argc, argv);
   uart          = new UartSC("uart"); // TODO: Probalby some sort of param
-
 
   // Parse command line options
   // Default is for VCD generation OFF, only turned on if specified on command line
   dump_start_delay = 0;
   dump_stop_set = 0;
   dumping_now = 0;
-
   
-  // Search through the command line parameters for  options
-  
+  // Search through the command line parameters for options  
   if (argc > 1)
     {
       for(int i=1; i<argc; i++)
@@ -160,17 +162,20 @@ int sc_main (int   argc,
 	      time_val = atoi(argv[i+1]);	  
 	      sc_time opt_end_time(time_val,TIMESCALE_UNIT);
 	      finish_time = opt_end_time;
-	      //if (DEBUG_TRACESC) cout << "* Commmand line opt: Sim. will end at " << finish_time.to_string() << endl;
 	      finish_time_set = 1;
 	    }
-	  //#if VM_TRACE  
+	  else if ( (strcmp(argv[i], "-f")==0) ||
+		    (strcmp(argv[i], "--program")==0) )
+	    {
+	      do_program_file_load = 1; // Enable program loading - will be done after sim init
+	      program_file = argv[i+1]; // Old char* style for program name
+	    }
  	  else if ( (strcmp(argv[i], "-s")==0) ||
 		    (strcmp(argv[i], "--vcdstart")==0) )
 	    {
 	      time_val = atoi(argv[i+1]);	  
 	      sc_time dump_start_time(time_val,TIMESCALE_UNIT);
 	      dump_start = dump_start_time;
-	      //if (DEBUG_TRACESC) cout << "* Commmand line opt: Dump start time set at " << dump_start.to_string() << endl;
 	      dump_start_delay = 1;
 	      dumping_now = 0;
 	    }
@@ -180,25 +185,26 @@ int sc_main (int   argc,
 	      time_val = atoi(argv[i+1]);	  
 	      sc_time dump_stop_time(time_val,TIMESCALE_UNIT);
 	      dump_stop = dump_stop_time;
-	      //if (DEBUG_TRACESC) cout << "* Commmand line opt: Dump stop time set at " << dump_stop.to_string() << endl;
 	      dump_stop_set = 1;
 	    }
-	  /* Depth setting of VCD doesn't appear to work, I think it's set during verilator script compile time */
+	  /* Depth setting of VCD doesn't appear to work,
+	     I think it's set during verilator script 
+	     compile time */
 	  /*	  else if ( (strcmp(argv[i], "-p")==0) ||
-		    (strcmp(argv[i], "--vcddepth")==0) )
-	    {
-	      dump_depth = atoi(argv[i+1]);	  
-	      //if (DEBUG_TRACESC) cout << "* Commmand line opt: Dump depth set to " << dump_depth << endl;
-	      }*/
+		  (strcmp(argv[i], "--vcddepth")==0) )
+		  {
+		  dump_depth = atoi(argv[i+1]);	  
+		  }*/
 	  else if ( (strcmp(argv[i], "-h")==0) ||
 		    (strcmp(argv[i], "--help")==0) )
 	    {
 	      printf("\n  ORPSoC Cycle Accurate model usage:\n");
-	      printf("  %s [-vh] [-d <file>] [-e <time>] [-s <time>] [-t <time>]",argv[0]);
+	      printf("  %s [-vh] [-f <file] [-d <file>] [-e <time>] [-s <time>] [-t <time>]",argv[0]);
 	      monitor->printSwitches();
 	      printf("\n\n");
 	      printf("  -h, --help\t\tPrint this help message\n");
 	      printf("  -e, --endtime\t\tStop the sim at this time (ns)\n");
+	      printf("  -f, --program\t\tLoad program from an OR32 ELF\n");
 	      printf("  -v, --vcdon\t\tEnable VCD generation\n");
 	      printf("  -d, --vcdfile\t\tEnable and specify target VCD file name\n");
 
@@ -307,8 +313,21 @@ int sc_main (int   argc,
   // Init the UART function
   uart->initUart(25000000, 115200);
 
-  SIM_RUNNING = 1;
+  if (do_program_file_load) // Did the user specify a file to load?
+    {            
+      cout << "* Loading program from " << program_file << endl;
+      if (memoryload->loadcode(program_file,0,0) < 0)
+	{
+	  cout << "* Error: executable file " << program_file << " not loaded" << endl;
+	}
+    }
+  else // Load SRAM from VMEM file
+    {
+      accessor->do_ram_readmemh();
+    }
 
+  SIM_RUNNING = 1;	        
+  
   // First check how we should run the sim.
   if (VCD_enabled || finish_time_set)
     { // We'll run sim with step

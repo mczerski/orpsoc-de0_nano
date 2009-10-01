@@ -317,8 +317,11 @@
 `define ETH_REGISTERED_OUTPUTS
 
 // Settings for TX FIFO
-`define ETH_TX_FIFO_CNT_WIDTH  5
-`define ETH_TX_FIFO_DEPTH      16
+//`define ETH_TX_FIFO_CNT_WIDTH  5
+//`define ETH_TX_FIFO_DEPTH      16
+// Settings for TX FIFO buffer for a while ethernet packet (1500 bytes)
+`define ETH_TX_FIFO_CNT_WIDTH  9
+`define ETH_TX_FIFO_DEPTH      375
 `define ETH_TX_FIFO_DATA_WIDTH 32
 
 // Settings for RX FIFO

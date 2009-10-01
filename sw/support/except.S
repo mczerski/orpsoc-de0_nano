@@ -25,7 +25,8 @@
 	/* r31:	EA address of handler */			;\
 	LOAD_SYMBOL_2_GPR(r12,handler)				;\
 	l.mtspr r0,r12,SPR_EPCR_BASE				;\
-	l.rfe
+	l.rfe							;\
+	l.nop
 
 	
 #define HANDLER_ENTRY(handler)				\
@@ -162,7 +163,7 @@ _except_500:
 	l.lwz r31,0(r1)		      
 	l.lwz r30,4(r1)		      
 	l.addi r1, r1, 8	      
-	EXCEPTION_HANDLE(_timer_handler)
+	EXCEPTION_HANDLE(_timer_handler)	
 #endif	
 
 .org 0x400
@@ -245,10 +246,13 @@ _except_f00:
         l.jalr r8
 	l.nop
 	l.j    _ret_from_intr
+	l.nop
 	
 /* ---[ End of Timer exception ]----------------------------------------- */
 
 ENTRY(_ret_from_intr)
+	RESTORE_ALL
+/*	
 	// i386 version:	
 	// GET_CURRENT(%ebx)
 
@@ -258,9 +262,6 @@ ENTRY(_ret_from_exception)
         l.sfeqi	r3,0
         l.bnf	_restore_all
 	l.nop
-	/* 
-	 * return to usermode
-	 */
 
 ENTRY(_restore_all)
 	// we need to save KSP here too
@@ -268,4 +269,4 @@ ENTRY(_restore_all)
 	l.addi  r4,r1,INT_FRAME_SIZE
         l.sw    (TI_KSP)(r10),r4
 	RESTORE_ALL
-
+*/

@@ -39,6 +39,10 @@
 #include "Vorpsoc_top_or1200_sprs.h"
 #include "Vorpsoc_top_or1200_rf.h"
 #include "Vorpsoc_top_or1200_dpram.h"
+//#include "Vorpsoc_top_ram_wb.h"
+//#include "Vorpsoc_top_ram_wb_sc_sw.h"
+#include "Vorpsoc_top_ram_wb__D20_A18_M800000.h"
+#include "Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000.h"
 
 //! Constructor for the ORPSoC access class
 
@@ -53,9 +57,20 @@ OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
   or1200_except = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_except;
   or1200_sprs = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_sprs;
   rf_a        = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_rf->rf_a;
+  ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
 
 }	// OrpsocAccess ()
 
+//! Access for the ex_freeze signal
+
+//! @return  The value of the or1200_ctrl.ex_freeze signal
+
+bool
+OrpsocAccess::getExFreeze ()
+{
+  return  or1200_ctrl->ex_freeze;
+
+}	// getExFreeze ()
 
 //! Access for the wb_freeze signal
 
@@ -90,6 +105,18 @@ OrpsocAccess::getExDslot ()
 
 }	// getExDslot ()
 
+//! Access for the except_type value
+
+//! @return  The value of the or1200_except.except_type register
+
+uint32_t
+OrpsocAccess::getExceptType ()
+{
+  return  (or1200_except->get_except_type) ();
+
+}	// getExceptType ()
+
+
 //! Access for the id_pc register
 
 //! @return  The value of the or1200_except.id_pc register
@@ -100,6 +127,17 @@ OrpsocAccess::getIdPC ()
   return  (or1200_except->get_id_pc) ();
 
 }	// getIdPC ()
+
+//! Access for the ex_pc register
+
+//! @return  The value of the or1200_except.id_ex register
+
+uint32_t
+OrpsocAccess::getExPC ()
+{
+  return  (or1200_except->get_ex_pc) ();
+
+}	// getExPC ()
 
 //! Access for the wb_pc register
 
@@ -112,6 +150,29 @@ OrpsocAccess::getWbPC ()
 
 }	// getWbPC ()
 
+//! Access for the id_insn register
+
+//! @return  The value of the or1200_ctrl.wb_insn register
+
+uint32_t
+OrpsocAccess::getIdInsn ()
+{
+  return  (or1200_ctrl->get_id_insn) ();
+
+}	// getIdInsn ()
+
+//! Access for the ex_insn register
+
+//! @return  The value of the or1200_ctrl.ex_insn register
+
+uint32_t
+OrpsocAccess::getExInsn ()
+{
+  return  (or1200_ctrl->get_ex_insn) ();
+
+}	// getExInsn ()
+
+
 //! Access for the wb_insn register
 
 //! @return  The value of the or1200_ctrl.wb_insn register
@@ -123,16 +184,34 @@ OrpsocAccess::getWbInsn ()
 
 }	// getWbInsn ()
 
-//! Access for the id_insn register
+//! Access the Wishbone SRAM memory
 
-//! @return  The value of the or1200_ctrl.wb_insn register
+//! @return  The value of the memory word at addr
 
 uint32_t
-OrpsocAccess::getIdInsn ()
+OrpsocAccess::get_mem (uint32_t addr)
 {
-  return  (or1200_ctrl->get_id_insn) ();
+  return  (ram_wb_sc_sw->get_mem) (addr);
 
-}	// getIdInsn ()
+}	// get_mem ()
+
+//! Write value to the Wishbone SRAM memory
+
+void
+OrpsocAccess::set_mem (uint32_t addr, uint32_t data)
+{
+  (ram_wb_sc_sw->set_mem) (addr, data);
+
+}	// set_mem ()
+
+//! Trigger the $readmemh() system call
+
+void
+OrpsocAccess::do_ram_readmemh (void)
+{
+  (ram_wb_sc_sw->do_readmemh) ();
+
+}	// do_ram_readmemh ()
 
 //! Access for the OR1200 GPRs
 

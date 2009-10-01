@@ -46,16 +46,22 @@ SC_HAS_PROCESS( Or1200MonitorSC );
 
 Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 				  OrpsocAccess             *_accessor,
+				  MemoryLoad               *_memoryload,
 				  int argc, 
 				  char *argv[]) :
   sc_module (name),
-  accessor (_accessor)
+  accessor (_accessor),
+  memoryload(_memoryload)
 {
 
   // If not -log option, then don't log
   
   string logfileDefault("vlt-executed.log");
   string logfileNameString;
+  int profiling_enabled = 0; 
+  string profileFileName(DEFAULT_PROF_FILE); 
+  insn_count=0;
+  cycle_count=0;
 
   exit_perf_summary_enabled = 1; // Simulation exit performance summary is 
                                  // on by default. Turn off with "-q" on the cmd line
@@ -72,23 +78,44 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	    {
 	      logfileNameString = (argv[i+1]);
 	      cmdline_name_found=1;
-	      break;
 	    }
-	}
-      // Search through the command line parameters for the "-q","--no-perf-summary" option
-      for(int i=1; i < argc; i++)
-	{
-	  if ((strcmp(argv[i], "-q")==0) ||
-	      (strcmp(argv[i], "--quiet")==0))
+	  else if ((strcmp(argv[i], "-q")==0) ||
+		   (strcmp(argv[i], "--quiet")==0))
 	    {
 	      exit_perf_summary_enabled = 0;
-	      break;
+	    }
+	  else if ((strcmp(argv[i], "-p")==0) ||
+		   (strcmp(argv[i], "--profile")==0))
+	    {
+	      profiling_enabled = 1;
+	      // Check for !end of command line and it's not a command
+	      if ((i+1 < argc)){
+		if(argv[i+1][0] != '-')
+		  profileFileName = (argv[i+1]);
+	      }
 	    }
 	}
     }
   
   
+  if (profiling_enabled)
+    {
+      profileFile.open(profileFileName.c_str(), ios::out); // Open profiling log file
+      if(profileFile.is_open())
+	{
+	  // If the file was opened OK, then enabled logging and print a message.
+	  profiling_enabled = 1;
+	  cout << "* Execution profiling enabled. Logging to " << profileFileName << endl;
+	}
+      
+      // Setup profiling function
+      SC_METHOD (callLog);
+      sensitive << clk.pos();
+      dont_initialize();
+      start = clock();
+    }
 
+  
   if(cmdline_name_found==1) // No -log option specified so don't turn on logging
     {      
 
@@ -103,13 +130,15 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	}
       
     }  
+  if (logging_enabled)
+    {  
+      SC_METHOD (displayState);
+      sensitive << clk.pos();
+      dont_initialize();
+      start = clock();
+    }
 
   
-  SC_METHOD (displayState);
-  sensitive << clk.pos();
-  dont_initialize();
-  start = clock();
-
   
   // checkInstruction monitors the bus for special NOP instructionsl
   SC_METHOD (checkInstruction);
@@ -124,13 +153,14 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 void 
 Or1200MonitorSC::printSwitches()
 {
-  printf(" [-l <file>] [-q]");
+  printf(" [-l <file>] [-q] [-p [<file>]]");
 }
 
 //! Print usage for the options of this module
 void 
 Or1200MonitorSC::printUsage()
 {
+  printf("  -p, --profile\t\tEnable execution profiling output to file (default "DEFAULT_PROF_FILE")\n");
   printf("  -l, --log\t\tLog processor execution to file\n");
   printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
 }
@@ -150,7 +180,7 @@ Or1200MonitorSC::checkInstruction()
 {
   uint32_t  r3;
   double    ts;
-
+  
   // Check the instruction when the freeze signal is low.
   if (!accessor->getWbFreeze())
     {
@@ -194,11 +224,79 @@ Or1200MonitorSC::checkInstruction()
 }	// checkInstruction()
 
 
+//! Method to log execution in terms of calls and returns
+
+void
+Or1200MonitorSC::callLog()
+{
+  uint32_t  exinsn, delaypc; 
+  uint32_t o_a; // operand a
+  uint32_t o_b; // operand b
+  struct label_entry *tmp;
+  
+  cycle_count++;
+  // Instructions should be valid when freeze is low and there are no exceptions
+  //if (!accessor->getExFreeze())
+  if ((!accessor->getWbFreeze()) && (accessor->getExceptType() == 0))
+    {
+      // Increment instruction counter
+      insn_count++;
+
+      //exinsn = accessor->getExInsn();// & 0x3ffffff;
+      exinsn = accessor->getWbInsn();
+      // Check the instruction
+      switch((exinsn >> 26) & 0x3f) { // Check Opcode - top 6 bits
+      case 0x1:
+	/* Instruction: l.jal */
+	o_a = (exinsn >> 0) & 0x3ffffff;
+	if(o_a & 0x02000000) o_a |= 0xfe000000;
+	
+	//delaypc = accessor->getExPC() + (o_a * 4); // PC we're jumping to
+	delaypc = accessor->getWbPC() + (o_a * 4); // PC we're jumping to
+	// Now we have info about where we're jumping to. Output the info, with label if possible
+	// We print the PC we're jumping from + 8 which is the return address
+	if ( tmp = memoryload->get_label (delaypc) )
+	  profileFile << "+" << std::setfill('0') << hex << std::setw(8) << cycle_count << " " << hex << std::setw(8) << accessor->getWbPC() + 8 << " " << hex << std::setw(8) << delaypc << " " << tmp->name << endl;
+	else
+	  profileFile << "+" << std::setfill('0') << hex << std::setw(8) << cycle_count << " " << hex << std::setw(8) << accessor->getWbPC() + 8 << " " << hex << std::setw(8) << delaypc << " @" << hex << std::setw(8) << delaypc << endl;
+	
+	break;
+      case 0x11:
+	/* Instruction: l.jr */
+	// Bits 15-11 contain register number
+	o_b = (exinsn >> 11) & 0x1f;
+	if (o_b == 9) // l.jr r9 is typical return
+	  {
+	    // Now get the value in this register
+	    delaypc = accessor->getGpr(o_b);
+	    // Output this jump
+	    profileFile << "-" << std::setfill('0') << hex << std::setw(8) << cycle_count << " "  << hex << std::setw(8) << delaypc << endl;
+	  }
+	break;
+      case 0x12:
+	/* Instruction: l.jalr */
+	o_b = (exinsn >> 11) & 0x1f;
+	// Now get the value in this register
+	delaypc = accessor->getGpr(o_b);
+	// Now we have info about where we're jumping to. Output the info, with label if possible
+	// We print the PC we're jumping from + 8 which is the return address
+	if ( tmp = memoryload->get_label (delaypc) )
+	  profileFile << "+" << std::setfill('0') << hex << std::setw(8) << cycle_count << " " << hex << std::setw(8) << accessor->getWbPC() + 8 << " " << hex << std::setw(8) << delaypc << " " << tmp->name << endl;
+	else
+	  profileFile << "+" << std::setfill('0') << hex << std::setw(8) << cycle_count << " " << hex << std::setw(8) << accessor->getWbPC() + 8 << " " << hex << std::setw(8) << delaypc << " @" << hex << std::setw(8) << delaypc << endl;
+	
+	break;
+
+      }
+    }
+}	// checkInstruction()
+
+
 //! Method to output the state of the processor
 
 //! This function will output to a file, if enabled, the status of the processor
 //! For now, it's just the PPC and instruction.
-#define PRINT_REGS 0
+#define PRINT_REGS 1
 void
 Or1200MonitorSC::displayState()
 {
@@ -206,8 +304,6 @@ Or1200MonitorSC::displayState()
   
   // Calculate how many instructions we've actually calculated by ignoring cycles where we're frozen, delay slots and flushpipe cycles
   if ((!accessor->getWbFreeze()) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
-	// Increment instruction counter
-	insn_count++;
 
   if (logging_enabled == 0)
 	return;	// If we didn't inialise a file, then just return.
@@ -215,8 +311,8 @@ Or1200MonitorSC::displayState()
   // Output the state if we're not frozen and not flushing during a delay slot
   if ((!accessor->getWbFreeze()) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
     {
-	// Print PC, instruction
-	statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ": " << hex << accessor->getWbInsn() <<  endl;
+      // Print PC, instruction
+      statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ": " << hex << accessor->getWbInsn() <<  endl;
 #if PRINT_REGS
 	// Print general purpose register contents
 	for (int i=0; i<32; i++)

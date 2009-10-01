@@ -275,11 +275,13 @@ ifdef USE_SDRAM
 EVENT_SIM_FLAGS += "-D USE_SDRAM=$(USE_SDRAM)"
 endif
 
+
+
 # Enable ethernet if defined on the command line
 ifdef USE_ETHERNET
 EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET) -D USE_ETHERNET_IO=$(USE_ETHERNET)"
 # Extra tests we do if ethernet is enabled
-TESTS += eth-basic
+TESTS += eth-basic eth-int
 endif
 
 SIM_FLASH_MEM_FILE="flash.in"
@@ -293,10 +295,13 @@ TESTS_PERFORMED=0;
 # Event-driven simulator build rules (Icarus, NCSim)
 ################################################################################
 
-.PHONY: prepare_rtl
-prepare_rtl:
-	@cd $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl && perl fizzim.pl -encoding onehot -terse < wb_sdram_ctrl_fsm.fzm > wb_sdram_ctrl_fsm.v
+$(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v:
+	@cd $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl && perl fizzim.pl -encoding onehot -terse < wb_sdram_ctrl_fsm.fzm > wb_sdram_ctrl_fsm.v	
+$(RTL_VERILOG_DIR)/intercon.v:
 	@cd $(RTL_VERILOG_DIR) && sed '/defparam/!s/\([a-zA-Z0-9_]\)\.//g' intercon.vm > intercon.v
+
+.PHONY: prepare_rtl
+prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v $(RTL_VERILOG_DIR)/intercon.v
 
 
 ifdef UART_PRINTF
@@ -540,7 +545,7 @@ SYSC_LIB_ARCH_DIR=$(shell ls $$SYSTEMC | grep "lib-")
 
 # List of System C models - use this list to link the sources into the Verilator
 # build directory
-SYSC_MODELS=OrpsocAccess
+SYSC_MODELS=OrpsocAccess MemoryLoad
 
 ifdef VLT_DEBUG
 VLT_DEBUG_COMPILE_FLAGS = -g
@@ -555,7 +560,8 @@ ifdef VLT_ORPSOC_PROFILING
 VLT_CPPFLAGS=-g -pg
 VLT_DEBUG_OPTIONS +=-profile-cfuncs
 else
-VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+#VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+VLT_CPPFLAGS=-Wall
 endif
 
 ifdef VLT_DO_PROFILING
@@ -584,8 +590,8 @@ $(SIM_VLT_DIR)/Vorpsoc_top: $(SIM_VLT_DIR)/libVorpsoc_top.a $(SIM_VLT_DIR)/Orpso
 	@echo; echo "\tGenerating simulation executable"; echo
 	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -o Vorpsoc_top -L. -L$(BENCH_SYSC_SRC_DIR) -L$(SYSTEMC)/$(SYSC_LIB_ARCH_DIR) OrpsocMain.o -lVorpsoc_top -lmodules -lsystemc
 
-$(SIM_VLT_DIR)/OrpsocMain.o:
-# Now compile the top level systemC "testbench" module
+# Now compile the top level systemC "testbench" module from the systemC source path
+$(SIM_VLT_DIR)/OrpsocMain.o: $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp
 	@echo; echo "\tCompiling top level SystemC testbench"; echo
 	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) $(TRACE_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp 
 
@@ -615,7 +621,7 @@ vlt_modules_compile:
 	for SYSCMODEL in $(SYSC_MODELS_BUILD); do \
 		echo;echo "\t$$SYSCMODEL"; echo; \
 		export CXXFLAGS=$(VLT_DEBUG_COMPILE_FLAGS); \
-		export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+		export USER_CPPFLAGS="$(VLT_CPPFLAGS) -I$(BENCH_SYSC_INCLUDE_DIR)"; \
 		export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 		 $(MAKE) -f Vorpsoc_top.mk $$SYSCMODEL.o; \
 	done	
@@ -640,9 +646,11 @@ $(SIM_VLT_DIR)/libmodules.a:
 	$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make $(VLT_SYSC_DEBUG_DEFINE) 
 
 
+ALL_VLOG=$(shell find $(RTL_VERILOG_DIR) -name "*.v")
+
 # Verilator command script
-# Generate the compile script to give Verilator
-$(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated:
+# Generate the compile script to give Verilator - make it sensitive to the RTL
+$(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated: $(ALL_VLOG)
 	@echo; echo "\tGenerating verilator compile script"; echo
 	@sed < $(SIM_BIN_DIR)/$(VLT_COMMAND_FILE) > $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated \
 		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
@@ -764,7 +772,7 @@ clean-sw:
 
 clean-sim:
 #backup any profiling output files
-	@if [ -f $(SIM_VLT_DIR)/OrpsocMain.gcda ]; then echo "\tBacking up verilator profiling output"; \
+	@if [ -f $(SIM_VLT_DIR)/OrpsocMain.gcda ]; then echo;echo "\tBacking up verilator profiling output to /tmp"; echo; \
 	cp $(SIM_VLT_DIR)/*.gc* /tmp; \
 	cp $(BENCH_SYSC_SRC_DIR)/*.gc* /tmp; fi
 	rm -rf $(SIM_RESULTS_DIR) $(SIM_RUN_DIR)/*.* $(SIM_VLT_DIR)

@@ -38,6 +38,7 @@ class Vorpsoc_top_or1200_ctrl;
 class Vorpsoc_top_or1200_except;
 class Vorpsoc_top_or1200_sprs;
 class Vorpsoc_top_or1200_dpram;
+class Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000;
 
 
 //! Access functions to the Verilator model
@@ -53,13 +54,17 @@ public:
   OrpsocAccess (Vorpsoc_top *orpsoc_top);
 
   // Accessor functions
+  bool      getExFreeze ();
   bool      getWbFreeze ();
   uint32_t  getWbInsn ();
   uint32_t  getIdInsn ();
+  uint32_t  getExInsn ();
   uint32_t  getWbPC ();
   uint32_t  getIdPC ();
+  uint32_t  getExPC ();
   bool  getExceptFlushpipe ();
   bool  getExDslot ();
+  uint32_t getExceptType();
   // Get a specific GPR from the register file
   uint32_t  getGpr (uint32_t regNum);
   //SPR accessessors
@@ -68,6 +73,12 @@ public:
   uint32_t  getSprEear ();
   uint32_t  getSprEsr ();
 
+  // Wishbone SRAM accessor functions
+  uint32_t  get_mem (uint32_t addr);
+  void  set_mem (uint32_t addr, uint32_t data);
+  // Trigger a $readmemh for the RAM array
+  void  do_ram_readmemh (void);
+
 private:
 
   // Pointers to modules with accessor functions
@@ -75,6 +86,7 @@ private:
   Vorpsoc_top_or1200_except	*or1200_except;
   Vorpsoc_top_or1200_sprs	*or1200_sprs;
   Vorpsoc_top_or1200_dpram	*rf_a;
+  /*Vorpsoc_top_ram_wb_sc_sw*/Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000 *ram_wb_sc_sw; 
 
 };	// OrpsocAccess ()
 

@@ -145,11 +145,11 @@ module or1200_ctrl(
 input					clk;
 input					rst;
 input					id_freeze;
-input					ex_freeze;
+input					ex_freeze /* verilator public */;
 input					wb_freeze /* verilator public */;
 input					flushpipe;
 input	[31:0]				if_insn;
-output	[31:0]				ex_insn;
+output	[31:0]				ex_insn/* verilator public */;
 output	[`OR1200_BRANCHOP_WIDTH-1:0]		pre_branch_op;
 output	[`OR1200_BRANCHOP_WIDTH-1:0]		branch_op;
 input						branch_taken;
@@ -202,7 +202,7 @@ wire					ex_macrc_op;
 reg	[`OR1200_SHROTOP_WIDTH-1:0]		shrot_op;
 reg     [31:0] 				id_insn /* verilator public */;   
 reg	[31:0]				ex_insn;
-reg	[31:0]				wb_insn;
+reg	[31:0]				wb_insn /* verilator public */;
 reg	[`OR1200_REGFILE_ADDR_WIDTH-1:0]	rf_addrw;
 reg	[`OR1200_REGFILE_ADDR_WIDTH-1:0]	wb_rfaddrw;
 reg	[`OR1200_RFWBOP_WIDTH-1:0]		rfwb_op;
@@ -277,9 +277,7 @@ assign rfe = (pre_branch_op == `OR1200_BRANCHOP_RFE) | (branch_op == `OR1200_BRA
       // verilator public
       get_wb_insn = wb_insn;
    endfunction // get_wb_insn
-`endif
 
-`ifdef verilator
    // Function to access id_insn (for Verilator). Have to hide this from
    // simulator, since functions with no inputs are not allowed in IEEE
    // 1364-2001.
@@ -287,6 +285,15 @@ assign rfe = (pre_branch_op == `OR1200_BRANCHOP_RFE) | (branch_op == `OR1200_BRA
       // verilator public
       get_id_insn = id_insn;
    endfunction // get_id_insn
+
+   // Function to access ex_insn (for Verilator). Have to hide this from
+   // simulator, since functions with no inputs are not allowed in IEEE
+   // 1364-2001.
+   function [31:0] get_ex_insn;
+      // verilator public
+      get_ex_insn = ex_insn;
+   endfunction // get_ex_insn
+   
 `endif
 
 
