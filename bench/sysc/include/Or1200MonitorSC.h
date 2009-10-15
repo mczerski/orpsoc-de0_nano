@@ -73,6 +73,10 @@ public:
 
   // Method to print out the usage for each option
   void printUsage();
+  
+  // Method to dump simulation's RAM contents at finish
+  void memdump();
+
 
   // The ports
   sc_in<bool>   clk;
@@ -80,6 +84,7 @@ public:
 private:
 
 #define DEFAULT_PROF_FILE "sim.profile"
+#define DEFAULT_MEMDUMP_FILE "vorpsoc_ram.dump"
 
   // Special NOP instructions
   static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction
@@ -91,10 +96,14 @@ private:
   // Variables for processor status output
   ofstream statusFile;
   ofstream profileFile;
+  int profiling_enabled;
   int logging_enabled;
   int exit_perf_summary_enabled;
   int insn_count;
   long long cycle_count;
+  ofstream memdumpFile;
+  string memdumpFileName;
+  int do_memdump, memdump_start_addr, memdump_end_addr;
   
   //! Time measurement variable - for calculating performance of the sim
   clock_t start;

@@ -55,4 +55,8 @@
 //! CPU clock Half period in timescale units
 #define BENCH_CLK_HALFPERIOD  20
 
+//! System's internal RAM size in byes - found in rtl/verilog/orpsoc_top.v, param for ram_wb module
+//! Currently is 32MB (8M words)
+#define ORPSOC_SRAM_SIZE (8388608*4)
+
 #endif	// ORPSOC_MAIN__H

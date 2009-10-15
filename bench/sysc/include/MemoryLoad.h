@@ -47,7 +47,7 @@ typedef int32_t   orreg_t;	/*!< A signed register of openrisc */
 
 /* From abstract.h */
 #define DEFAULT_MEMORY_START         0
-#define DEFAULT_MEMORY_LEN    0x800000
+//#define DEFAULT_MEMORY_LEN    0x800000
 #define STACK_SIZE                  20
 #define LABELNAME_LEN               50
 #define INSNAME_LEN                 15

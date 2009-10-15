@@ -308,7 +308,7 @@ int sc_main (int   argc,
       //#endif
     }
   
-  printf("* Beginning test\n");
+  //printf("* Beginning test\n");
 
   // Init the UART function
   uart->initUart(25000000, 115200);
@@ -339,7 +339,9 @@ int sc_main (int   argc,
 	  SIM_RUNNING=0;
 	  sc_stop();
 	  // Print performance summary
-	  monitor->perfSummary();	  
+	  monitor->perfSummary();
+	  // Do memdump if enabled
+	  monitor->memdump();
 	}
       else
 	{
@@ -388,6 +390,8 @@ int sc_main (int   argc,
 			      sc_stop();
 			      // Print performance summary
 			      monitor->perfSummary();
+			      // Do memdump if enabled
+			      monitor->memdump();
 			    }
 			  break;
 			}
@@ -400,6 +404,8 @@ int sc_main (int   argc,
 			  sc_stop();
 			  // Close dump file
 			  spTraceFile->close();
+			  // Do memdump if enabled
+			  monitor->memdump();
 			  // Print performance summary
 			  monitor->perfSummary();
 			  break;
@@ -412,6 +418,7 @@ int sc_main (int   argc,
   else
     {
       // Simple run case
+      // Ideally a "l.nop 1" will terminate the simulation gracefully
       sc_start();
     }
   

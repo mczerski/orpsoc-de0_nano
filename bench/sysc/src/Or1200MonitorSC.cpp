@@ -30,7 +30,8 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-
+#include <sys/types.h>
+#include <netinet/in.h>
 using namespace std;
 
 #include "Or1200MonitorSC.h"
@@ -58,8 +59,12 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
   
   string logfileDefault("vlt-executed.log");
   string logfileNameString;
-  int profiling_enabled = 0; 
+  profiling_enabled = 0; 
   string profileFileName(DEFAULT_PROF_FILE); 
+  memdumpFileName = (DEFAULT_MEMDUMP_FILE);
+  int memdump_start = 0; int memdump_end = 0;
+  do_memdump = 0; // Default is not to do a dump of RAM at finish
+
   insn_count=0;
   cycle_count=0;
 
@@ -88,14 +93,53 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 		   (strcmp(argv[i], "--profile")==0))
 	    {
 	      profiling_enabled = 1;
-	      // Check for !end of command line and it's not a command
+	      // Check for !end of command line and that next thing is not a command
 	      if ((i+1 < argc)){
 		if(argv[i+1][0] != '-')
 		  profileFileName = (argv[i+1]);
 	      }
 	    }
+	  else if ((strcmp(argv[i], "-m")==0) ||
+		   (strcmp(argv[i], "--mdump")==0))
+	    {
+	      do_memdump = 1;
+	      // Check for !end of command line and that next thing is not a command
+	      // or a memory address
+	      if (i+1 < argc)
+		{
+		  if((argv[i+1][0] != '-') && (strncmp("0x", argv[i+1],2) != 0))
+		    {
+		      // Hopefully this is the filename we want to use.
+		      // All addresses should have preceeding hex identifier 0x
+		      memdumpFileName = argv[i+1];
+		      // We've used this next index, can safely increment i
+		      i++;
+		    }
+		}
+	      if (i+1 < argc)
+		{
+		  if((argv[i+1][0] != '-') && (strncmp("0x", argv[i+1],2) == 0))
+		    {
+		      // Hopefully this is is the start address
+		      // All addresses should have preceeding hex identifier 0x
+		      sscanf( argv[i+1], "0x%x", &memdump_start);		
+		      i++;
+		    }
+		}
+	      if (i+1 < argc) 
+		{
+		  if((argv[i+1][0] != '-') && (strncmp("0x", argv[i+1],2) == 0))
+		    {
+		      // Hopefully this is is the end address
+		      // All addresses should have preceeding hex identifier 0x
+		      sscanf( argv[i+1], "0x%x", &memdump_end);
+		      i++;
+		    }
+		}
+	    }
 	}
     }
+  
   
   
   if (profiling_enabled)
@@ -138,6 +182,43 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       start = clock();
     }
 
+  // Check sizes we were given from memory dump command line options first
+  if (do_memdump)
+    {
+      if ((memdump_start > ORPSOC_SRAM_SIZE) || (memdump_end > ORPSOC_SRAM_SIZE) || 
+	  ((memdump_start > memdump_end) && (memdump_end != 0)))
+	{
+	  do_memdump = 0;
+	  cout << "* Memory dump addresses range incorrect. Limit of memory is 0x" << hex <<  ORPSOC_SRAM_SIZE << ". Memory dumping disabled." << endl;
+	}
+    }
+  
+  if (do_memdump)
+    {
+      // Were we given dump addresses? If not, we dump all of the memory
+      // Size of memory isn't clearly defined in any one place. This could lead to
+      // big problems when changing size of the RAM in simulation.
+
+      if (memdump_start == 0 && memdump_end == 0)
+	memdump_end = ORPSOC_SRAM_SIZE;
+      
+      if (memdump_start != 0 && memdump_end == 0)
+	{
+	  // Probably just got the single memorydump param
+	  // Interpet as a length from 0
+	  memdump_end = memdump_start;
+	  memdump_start = 0;
+	}
+
+      if (memdump_start & 0x3) memdump_start &= ~0x3; // word-align the start address      
+      if (memdump_end & 0x3) memdump_end = (memdump_end+4) & ~0x3; // word-align the start address
+      
+      memdump_start_addr = memdump_start;
+      memdump_end_addr = memdump_end;      
+    }
+
+
+
   
   
   // checkInstruction monitors the bus for special NOP instructionsl
@@ -153,7 +234,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 void 
 Or1200MonitorSC::printSwitches()
 {
-  printf(" [-l <file>] [-q] [-p [<file>]]");
+  printf(" [-l <file>] [-q] [-p [<file>]] [-m [<file>] [<0xstardaddr> <0xendaddr>]]");
 }
 
 //! Print usage for the options of this module
@@ -163,6 +244,7 @@ Or1200MonitorSC::printUsage()
   printf("  -p, --profile\t\tEnable execution profiling output to file (default "DEFAULT_PROF_FILE")\n");
   printf("  -l, --log\t\tLog processor execution to file\n");
   printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
+  printf("  -m, --memdump\t\tDump data from the system's RAM to a file on finish\n\n");
 }
 
 //! Method to handle special instrutions
@@ -181,9 +263,15 @@ Or1200MonitorSC::checkInstruction()
   uint32_t  r3;
   double    ts;
   
+  cycle_count++;  
   // Check the instruction when the freeze signal is low.
-  if (!accessor->getWbFreeze())
+  //if (!accessor->getWbFreeze())
+  if ((!accessor->getWbFreeze()) && (accessor->getExceptType() == 0))
     {
+      
+      // Increment instruction counter
+      insn_count++;
+
       // Do something if we have l.nop
       switch (accessor->getWbInsn())
 	{
@@ -193,7 +281,9 @@ Or1200MonitorSC::checkInstruction()
 	  std::cout << std::fixed << std::setprecision (2) << ts;
 	  std::cout << " ns: Exiting (" << r3 << ")" << std::endl;
 	  perfSummary();
-	  if (logging_enabled != 0) statusFile.close();
+	  if (logging_enabled) statusFile.close();
+	  if (profiling_enabled) profileFile.close();
+	  memdump();
 	  SIM_RUNNING=0;
 	  sc_stop();
 	  break;
@@ -234,14 +324,10 @@ Or1200MonitorSC::callLog()
   uint32_t o_b; // operand b
   struct label_entry *tmp;
   
-  cycle_count++;
   // Instructions should be valid when freeze is low and there are no exceptions
   //if (!accessor->getExFreeze())
   if ((!accessor->getWbFreeze()) && (accessor->getExceptType() == 0))
     {
-      // Increment instruction counter
-      insn_count++;
-
       //exinsn = accessor->getExInsn();// & 0x3ffffff;
       exinsn = accessor->getWbInsn();
       // Check the instruction
@@ -358,3 +444,46 @@ Or1200MonitorSC::perfSummary()
   return;
 } 	// perfSummary
 
+
+//! Dump contents of simulation's RAM to file
+void 
+Or1200MonitorSC::memdump()
+{
+  if (!do_memdump) return;
+  uint32_t current_word;
+  int size_words = (memdump_end_addr/4) - (memdump_start_addr/4);
+  if (!(size_words > 0)) return;
+  
+  // First try opening the file
+  memdumpFile.open(memdumpFileName.c_str(), ios::binary); // Open memorydump file
+  if(memdumpFile.is_open())
+    {
+      // If we could open the file then turn on logging
+      cout << "* Dumping system RAM from  0x" << hex << memdump_start_addr << "-0x" << hex << memdump_end_addr << " to file " << memdumpFileName << endl;
+      
+      // Convert memdump_start_addr to word address
+      memdump_start_addr = memdump_start_addr / 4;
+      while (size_words)
+	{
+	  // Read the data from the simulation memory
+	  current_word = accessor->get_mem(memdump_start_addr);
+	  //cout << hex << current_word << " ";
+	  /*
+	  cout << hex << ((current_word >> 24 ) & 0xff) << " ";
+	  cout << hex << ((current_word >> 16) & 0xff) << " ";
+	  cout << hex << ((current_word >> 8 ) & 0xff) << " " ; 
+	  cout << hex << ((current_word >> 0 ) & 0xff) << " ";
+	  */
+	  // Change from whatever endian the host is (most
+	  // cases little) to big endian
+	  current_word = htonl(current_word);
+	  memdumpFile.write((char*) &current_word, 4);
+	  memdump_start_addr++; size_words--;
+	}
+      
+      // Ideally we've now finished piping out the data
+      // not 100% about the endianess of this.
+    }
+  memdumpFile.close();
+  
+}
