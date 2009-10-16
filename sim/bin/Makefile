@@ -560,8 +560,8 @@ ifdef VLT_ORPSOC_PROFILING
 VLT_CPPFLAGS=-g -pg
 VLT_DEBUG_OPTIONS +=-profile-cfuncs
 else
-#VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
-VLT_CPPFLAGS=-Wall
+VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+#VLT_CPPFLAGS=-Wall
 endif
 
 ifdef VLT_DO_PROFILING

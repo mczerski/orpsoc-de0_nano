@@ -100,7 +100,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	      }
 	    }
 	  else if ((strcmp(argv[i], "-m")==0) ||
-		   (strcmp(argv[i], "--mdump")==0))
+		   (strcmp(argv[i], "--memdump")==0))
 	    {
 	      do_memdump = 1;
 	      // Check for !end of command line and that next thing is not a command
