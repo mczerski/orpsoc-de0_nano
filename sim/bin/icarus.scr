@@ -12,6 +12,7 @@
 +incdir+$RTL_DIR/components/smii
 +incdir+$RTL_DIR/components/debug_if
 +incdir+$RTL_DIR/components/wb_sdram_ctrl
++incdir+$RTL_DIR/components/wb_conbus
 
 -y $BENCH_DIR
 -y $BENCH_DIR/vpi/verilog
@@ -27,6 +28,7 @@
 -y $RTL_DIR/components/debug_if
 -y $RTL_DIR/components/wb_sdram_ctrl
 -y $RTL_DIR/components/ram_wb
+-y $RTL_DIR/components/wb_conbus
 
 // RTL files (top)
 $BENCH_DIR/orpsoc_testbench.v

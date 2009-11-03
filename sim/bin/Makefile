@@ -301,7 +301,7 @@ $(RTL_VERILOG_DIR)/intercon.v:
 	@cd $(RTL_VERILOG_DIR) && sed '/defparam/!s/\([a-zA-Z0-9_]\)\.//g' intercon.vm > intercon.v
 
 .PHONY: prepare_rtl
-prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v $(RTL_VERILOG_DIR)/intercon.v
+prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v #$(RTL_VERILOG_DIR)/intercon.v
 
 
 ifdef UART_PRINTF
@@ -584,6 +584,10 @@ VLT_TRACEOBJ = SpTraceVcdC
 SYSC_MODELS_BUILD=$(SYSC_MODELS) $(VLT_TRACEOBJ)
 
 prepare_vlt: prepare_rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
+	@echo;echo "\tCycle-accurate model compiled successfully"
+	@echo;echo "\tRun the executable with the -h option for usage instructions:";echo
+	$(SIM_VLT_DIR)/Vorpsoc_top -h
+	@echo;echo
 
 $(SIM_VLT_DIR)/Vorpsoc_top: $(SIM_VLT_DIR)/libVorpsoc_top.a $(SIM_VLT_DIR)/OrpsocMain.o
 # Final linking of the simulation executable. Order of libraries here is important!
