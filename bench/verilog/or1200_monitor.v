@@ -93,7 +93,7 @@
 // Development version of RTL. Libraries are missing.
 //
 //
-
+`include "timescale.v"
 `include "or1200_defines.v"
 `include "orpsoc_testbench_defines.v"
 

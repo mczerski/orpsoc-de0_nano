@@ -48,9 +48,8 @@
 # 	make rtl-tests
 #
 #	Run the software tests in the RTL model of the ORPSoC being 
-#	simulated with an event-driven simulator like Icarus. Also 
-#	possible to use Cadence's Verilog simulators with the 
-#	"rtl-nc-tests" target.
+#	simulated with an event-driven simulator like Icarus. It's also 
+#	possible to use Modelsim's vsim and Cadence's Verilog simulators.
 #
 #	make vlt-tests
 #	
@@ -264,6 +263,7 @@ ICARUS_VVP=vvp
 ICARUS_COMMAND_FILE=icarus.scr
 VLT_COMMAND_FILE=verilator.scr
 SIM_SUCCESS_MESSAGE=deaddead
+MGC_COMMAND_FILE=modelsim.scr
 
 ARCH_SIM_EXE=or32-elf-sim
 ARCH_SIM_CFG_FILE=or1ksim-orpsocv2.cfg
@@ -275,7 +275,50 @@ ifdef USE_SDRAM
 EVENT_SIM_FLAGS += "-D USE_SDRAM=$(USE_SDRAM)"
 endif
 
+# Set SIMULATOR=vsim on command line to use Modelsim
+ifeq ($(SIMULATOR), vsim)
+# Modelsim
+SIM_COMMANDFILE=$(MGC_COMMAND_FILE)
+else
+# Icarus Verilog Simulator
+SIM_COMMANDFILE=$(ICARUS_COMMAND_FILE)
+endif
 
+GENERATED_COMMANDFILE=$(SIM_COMMANDFILE).generated
+
+# When Modelsim is selected as simulator, we compile
+# the ORPSoC system into one library called orpsoc and
+# then simply re-compile the testbench and or1200_monitor
+# whenever we run the simulation, so just that part is
+# recompiled for every test, instead of the whole thing.
+MGC_ORPSOC_LIB=orpsoc
+MGC_ORPSOC_LIB_DIR=$(SIM_RUN_DIR)/$(MGC_ORPSOC_LIB)
+
+# If VCD dump is desired, tell Modelsim not to optimise
+# away everything.
+ifeq ($(VCD), 1)
+VOPT_ARGS=-voptargs="+acc=rnp"
+endif
+
+# Simulation compile and run commands, depending on your 
+# simulator. Currently only Modelsim (vsim) and Icarus right
+# now.
+# TODO: Put the NC-sim commands in here too and have just the
+# single simulation test loop rule.
+ifeq ($(SIMULATOR), vsim)
+# Line to compile the orpsoc design into a modelsim library.
+SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work orpsoc -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); fi
+# Final modelsim compile, done each time, pulling in or1200 
+# monitor and the new test_defines.v file:
+VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_VERILOG_DIR)/orpsoc_testbench.v
+# Simulation run command:
+SIM_COMMANDRUN=$(VSIM_COMPILE_TB); vsim -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" orpsoc_testbench 
+else
+# Icarus Verilog Simulator compile command
+SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
+# Icarus Verilog run command
+SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
+endif
 
 # Enable ethernet if defined on the command line
 ifdef USE_ETHERNET
@@ -297,12 +340,23 @@ TESTS_PERFORMED=0;
 
 $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v:
 	@cd $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl && perl fizzim.pl -encoding onehot -terse < wb_sdram_ctrl_fsm.fzm > wb_sdram_ctrl_fsm.v	
-$(RTL_VERILOG_DIR)/intercon.v:
-	@cd $(RTL_VERILOG_DIR) && sed '/defparam/!s/\([a-zA-Z0-9_]\)\.//g' intercon.vm > intercon.v
 
 .PHONY: prepare_rtl
-prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v #$(RTL_VERILOG_DIR)/intercon.v
+prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v
 
+$(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE): $(SIM_BIN_DIR)/$(SIM_COMMANDFILE)
+	@sed < $(SIM_BIN_DIR)/$(SIM_COMMANDFILE) > $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) \
+		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
+		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
+		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
+		-e \\!^//.*\$$!d -e \\!^\$$!d ; \
+	echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+	if [ ! -z $$VCD ]; \
+		then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+	fi; \
+	if [ ! -z $$UART_PRINTF ]; \
+		then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+	fi
 
 ifdef UART_PRINTF
 TEST_SW_MAKE_OPTS="UART_PRINTF=1"
@@ -321,52 +375,50 @@ prepare_sw_uart_printf:
 prepare_dirs:
 	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 
-# Rough guide to how these tests work:
-# First, the couple of custom, required, software tools under sw/utils are 
-# compiled, and then the software library files.
-# Next the few verilog files that need preperation are taken care of.
-# The test begins by starting a loop in bash using on the strings defined in 
-# TESTS. Each one corresponds to a certain module of software for the OpenRISC 
-# that is included in this test suite. Under the sw/ path is a set of paths, 
-# and all except the support/ and utils/ paths contain code which is run to 
-# test the OR1k used in this test suite. For each of these software modules, 
-# it is possible that different tests are done using the same module. These 
-# tests can vary by either using different levels of optimisation during 
-# compilation, and/or by having the OR1k's caches enabled or disabled.
-# Each test has a unique name, and under the $(SIM_RESULTS_DIR), which is 
-# usually just ../results, log files, and optionally VCD files, are created for
-# inspection later and are named according to the test. Inspect the file 
-# bench/verilog/or1200_monitor.v to find out in detail what each log consists 
-# of.
-# For each test, a few things occur. First the software that will run inside 
-# the simulated OR1k system is compiled, converted to a format which can be 
-# read
-# into the flash memory model via $readmemh() and linked to the sim/run 
-# directory as $(SIM_FLASH_MEM_FILE), which currently is flash.in. Next a 
-# compilation script for icarus is generated, containing a list of all the
-# RTL files and include directories. Next, an include file for the verilog 
-# testbench is generated, containing a string of the name of the current 
-# test, path to the results directory (for VCD generation) and any other 
-# things which might vary from test to test. This is not done by +define 
-# lines in the icarus script because of string handling incosistencies 
-# between different simulators and shells.
-# Once all the files are generated, icarus is called to compile the rtl 
-# design, and then run it. Each of the tested software modules have code which
-# will trigger the simulation to be stopped by use of the l.nop instruction 
-# with an immediate value of 1. When the simulation finishes, the simulation 
-# executable exits and the log of the simulation is inspected for the expected
-# output. Currently, the string "deaddead" indicates that the software 
-# completed successfully. This is counted as the ORPSoC "passing" the test. In
-# fact, whether the system did the right thing or not requires more 
-# inspection, but roughly this is a good indicator that nothing major went 
-# wrong.
-# Once the current test is finished, the next begins with the compilation of its
-# software and linking of the resulting hex file to the run path, etc.
-# Main RAM setup - (RTL simulation with Icarus/NCSim only!):
-# Define USE_SDRAM to enable the external SDRAM, otherwise the simulation
-# defaults to an internal SRAM. Eg. $ make rtl-tests USE_SDRAM=1 VCD=1
-# Verilator defaults to internal memories
-rtl-tests: prepare_sw prepare_rtl prepare_dirs
+#
+# Rough guide to how event driven simulation test loop works:
+#
+# 1. Compile software support programs.
+# 2. Generate RTL compilation script file
+# 3. For each test listed in $(TESTS), loop and 
+#	a) Compile software
+#       b) Create appropriate image to be loaded into sim
+# 	c) Create a verilog file to be included by top level
+#	d) Compile the RTL design
+#       e) Run the RTL design in the chosen simulator
+#       f) Check the output (files in ../results)
+#
+# Default setup is: 
+#	* Event-driven simulation with Icarus Verilog
+#	* Internal SRAM memory, preloaded with application
+#	* Ethernet disabled
+#	* VCD generation disabled
+#	* printf() via UART disabled
+#	* Logging enabled
+#
+# Options:
+#	SIMULATOR=vsim
+#		Use Mentor Graphics Modelsim simulator
+#	USE_SDRAM=1	
+#		Enable use of SDRAM - changes boot sequence and takes
+#		a lot longer due to application being loaded out of
+#		external FLASH memory and into SDRAM before execution
+#		from the SDRAM.
+#	VCD=1
+#		Enable VCD generation. These files are output to
+#		../results
+#	USE_ETHERNET=1
+#		Turns on ethernet core inclusion. There are currently
+#		some tests, but not included by default. Check the sw
+#		directory
+#	UART_PRINTF=1
+#		Make the software use the UART core to print out 
+#		printf() calls.
+#	NO_SIM_LOGGING=1
+#		Turn off generation of logging files in the ../results
+#		directory.
+#
+rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare_sw prepare_rtl prepare_dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -381,20 +433,14 @@ rtl-tests: prepare_sw prepare_rtl prepare_dirs
 		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
 		ln -s $$CURRENT_TEST_SW_DIR/$$TEST$(FLASH_MEM_FILE_SUFFIX) $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
 		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.vmem $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		sed < $(SIM_BIN_DIR)/$(ICARUS_COMMAND_FILE) > $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated \
-			-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
-			-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
-			-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
-			-e \\!^//.*\$$!d -e \\!^\$$!d ; \
-		echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		if [ ! -z $$VCD ]; \
-			then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		fi; \
-		if [ ! -z $$UART_PRINTF ]; \
-			then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		fi; \
 		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
 		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
+		if [ ! -z $$VCD ]; \
+			then echo "\`define VCD" >> $(SIM_RUN_DIR)/test_define.v; \
+		fi; \
+		if [ ! -z $$UART_PRINTF ]; \
+			then echo "\`define UART_PRINTF" >> $(SIM_RUN_DIR)/test_define.v; \
+		fi; \
 		if echo $$TEST | grep -q -i ^eth; then \
 			echo "\`define ENABLE_ETH_STIM" >> $(SIM_RUN_DIR)/test_define.v; \
 			echo "\`define ETH_PHY_VERBOSE" >> $(SIM_RUN_DIR)/test_define.v; \
@@ -404,11 +450,10 @@ rtl-tests: prepare_sw prepare_rtl prepare_dirs
 		fi; \
 		echo ; \
 		echo "\t#### Compiling RTL ####"; \
-		rm -f $(SIM_RUN_DIR)/a.out; \
-		$(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS); \
+		$(SIM_COMMANDCOMPILE); \
 		echo; \
 		echo "\t#### Beginning simulation ####"; \
-		time -p $(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out ; \
+		time -p $(SIM_COMMANDRUN) ; \
 		if [ $$? -gt 0 ]; then exit $$?; fi; \
 		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
 		echo; echo "\t####"; \
@@ -779,7 +824,7 @@ clean-sim:
 	@if [ -f $(SIM_VLT_DIR)/OrpsocMain.gcda ]; then echo;echo "\tBacking up verilator profiling output to /tmp"; echo; \
 	cp $(SIM_VLT_DIR)/*.gc* /tmp; \
 	cp $(BENCH_SYSC_SRC_DIR)/*.gc* /tmp; fi
-	rm -rf $(SIM_RESULTS_DIR) $(SIM_RUN_DIR)/*.* $(SIM_VLT_DIR)
+	rm -rf $(SIM_RESULTS_DIR) $(SIM_RUN_DIR)/*.* $(SIM_VLT_DIR) $(MGC_ORPSOC_LIB_DIR) $(SIM_RUN_DIR)/work $(SIM_RUN_DIR)/transcript
 
 clean-sysc:
 # Clean away dependency files generated by verilator
@@ -787,6 +832,5 @@ clean-sysc:
 
 clean-rtl:
 # Clean away temporary verilog source files
-	rm -f $(RTL_VERILOG_DIR)/intercon.v
 	rm -f $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v
 

@@ -34,5 +34,7 @@
 $BENCH_DIR/orpsoc_testbench.v
 
 // Couple of library files
-$RTL_DIR/components/smii/generic_buffers.v
+$BACKEND_DIR/generic_pll.v
+$BACKEND_DIR/generic_buffers.v
+$BACKEND_DIR/generic_gbuf.v
 $BACKEND_DIR/sim_lib.v

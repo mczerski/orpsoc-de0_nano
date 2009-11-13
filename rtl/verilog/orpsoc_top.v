@@ -95,7 +95,7 @@ module orpsoc_top
    ) 
   ;
    wire 	   wb_rst;
-   wire 	   wb_clk, clk50, clk100, usbClk, dbg_tck;
+   wire 	   wb_clk, clk50, clk100, dbg_tck;
    wire 	   pll_lock;
    wire 	   mem_io_req, mem_io_gnt, mem_io_busy;
    wire [15:0] 	   mem_dat_pad_i, mem_dat_pad_o;
@@ -318,11 +318,11 @@ module orpsoc_top
       // Inputs
       .m4_dat_i				(0),
       .m4_adr_i				(0),
-      .m4_sel_i				(0),
-      .m4_we_i				(0),
-      .m4_cyc_i				(0),
-      .m4_stb_i				(0),
-      .m4_cab_i				(0),
+      .m4_sel_i				(4'h0),
+      .m4_we_i				(1'b0),
+      .m4_cyc_i				(1'b0),
+      .m4_stb_i				(1'b0),
+      .m4_cab_i				(1'b0),
       // Outputs
       //.m4_dat_o				(),
       //.m4_ack_o				(),
@@ -333,11 +333,11 @@ module orpsoc_top
       // Inputs
       .m5_dat_i				(0),
       .m5_adr_i				(0),
-      .m5_sel_i				(0),
-      .m5_we_i				(0),
-      .m5_cyc_i				(0),
-      .m5_stb_i				(0),
-      .m5_cab_i				(0),
+      .m5_sel_i				(4'h0),
+      .m5_we_i				(1'b0),
+      .m5_cyc_i				(1'b0),
+      .m5_stb_i				(1'b0),
+      .m5_cab_i				(1'b0),
       // Outputs
       //.m5_dat_o				(),
       //.m5_ack_o				(),
@@ -348,11 +348,11 @@ module orpsoc_top
       // Inputs
       .m6_dat_i				(0),
       .m6_adr_i				(0),
-      .m6_sel_i				(0),
-      .m6_we_i				(0),
-      .m6_cyc_i				(0),
-      .m6_stb_i				(0),
-      .m6_cab_i				(0),
+      .m6_sel_i				(4'h0),
+      .m6_we_i				(1'b0),
+      .m6_cyc_i				(1'b0),
+      .m6_stb_i				(1'b0),
+      .m6_cab_i				(1'b0),
       // Outputs
       //.m6_dat_o				(),
       //.m6_ack_o				(),
@@ -363,11 +363,11 @@ module orpsoc_top
       // Inputs
       .m7_dat_i				(0),
       .m7_adr_i				(0),
-      .m7_sel_i				(0),
-      .m7_we_i				(0),
-      .m7_cyc_i				(0),
-      .m7_stb_i				(0),
-      .m7_cab_i				(0),
+      .m7_sel_i				(4'h0),
+      .m7_we_i				(1'b0),
+      .m7_cyc_i				(1'b0),
+      .m7_stb_i				(1'b0),
+      .m7_cab_i				(1'b0),
       // Outputs
       //.m7_dat_o				(),
       //.m7_ack_o				(),
@@ -454,8 +454,8 @@ module orpsoc_top
       // Inputs
       .s5_dat_i				(wbs_ds1_dat_o),
       .s5_ack_i				(wbs_ds1_ack_o),
-      .s5_err_i				(0),
-      .s5_rty_i				(0),
+      .s5_err_i				(1'b0),
+      .s5_rty_i				(1'b0),
       // Outputs
       .s5_dat_o				(wbs_ds1_dat_i),
       .s5_adr_o				(wbs_ds1_adr_i),
@@ -469,8 +469,8 @@ module orpsoc_top
       // Inputs
       .s6_dat_i				(wbs_ds2_dat_o),
       .s6_ack_i				(wbs_ds2_ack_o),
-      .s6_err_i				(0),
-      .s6_rty_i				(0),
+      .s6_err_i				(1'b0),
+      .s6_rty_i				(1'b0),
       // Outputs
       .s6_dat_o				(wbs_ds2_dat_i),
       .s6_adr_o				(wbs_ds2_adr_i),
@@ -484,8 +484,8 @@ module orpsoc_top
       // Inputs
       .s7_dat_i				(wbs_ds3_dat_o),
       .s7_ack_i				(wbs_ds3_ack_o),
-      .s7_err_i				(0),
-      .s7_rty_i				(0),
+      .s7_err_i				(1'b0),
+      .s7_rty_i				(1'b0),
       // Outputs
       .s7_dat_o				(wbs_ds3_dat_i),
       .s7_adr_o				(wbs_ds3_adr_i),
@@ -909,35 +909,37 @@ module orpsoc_top
        .clk(wb_clk), 
        .rst(wb_rst) 
        );
-   
+   /*
    clk_gen iclk_gen 
      (
       .POWERDOWN (1'b1),
       .CLKA (clk_pad_i),
       .LOCK (pll_lock),
       .GLA(wb_clk),
-      .GLB(usbClk_pll),
+      .GLB(),
       .GLC()
       );
+   */
+   generic_pll iclk_gen
+     (
+      // Outputs
+      .clk1x(wb_clk), 
+      .clk2x(), 
+      .clkdiv(), 
+      .locked(pll_lock),
+      // Inputs
+      .clk_in(clk_pad_i), 
+      .rst_in(~rst_pad_i)
+      );
    
-   assign rst_pad_o = pll_lock;
-   
-   gbuf gbufi1
-     (
-      .CLK(~(pll_lock & rst_pad_i)),
-      .GL(wb_rst));
-   gbuf gbufi2
-     (
-      .CLK(dbg_tck_pad_i),
-      .GL(dbg_tck));
-   gbuf gbufi3
-     (
-      .CLK(usbClk_pll),
-      .GL(usbClk));
-   gbuf gbufi4
-     (
-      .CLK(eth_clk_pad_i),
-      .GL(eth_clk));
 
+   assign rst_pad_o = pll_lock;
+   assign wb_rst = ~(pll_lock & rst_pad_i);
+   assign dbg_tck = dbg_tck_pad_i;
+`ifdef USE_ETHERNET_IO   
+   assign eth_clk = eth_clk_pad_i;
+`else
+   assign eth_clk = 0;   
+`endif
    
 endmodule
