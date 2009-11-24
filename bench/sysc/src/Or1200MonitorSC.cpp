@@ -25,7 +25,7 @@
 
 // ----------------------------------------------------------------------------
 
-// $Id: Or1200MonitorSC.cpp 303 2009-02-16 11:20:17Z jeremy $
+// $Id$
 
 #include <iostream>
 #include <iomanip>
@@ -141,6 +141,12 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
     }
   
   
+    
+  // checkInstruction monitors the bus for special NOP instructionsl
+  SC_METHOD (checkInstruction);
+  sensitive << clk.pos();
+  dont_initialize();
+
   
   if (profiling_enabled)
     {
@@ -215,18 +221,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       
       memdump_start_addr = memdump_start;
       memdump_end_addr = memdump_end;      
-    }
-
-
-
-  
-  
-  // checkInstruction monitors the bus for special NOP instructionsl
-  SC_METHOD (checkInstruction);
-  sensitive << clk.pos();
-  dont_initialize();
-  
-  
+    }     
   
 }	// Or1200MonitorSC ()
 
@@ -256,6 +251,10 @@ Or1200MonitorSC::printUsage()
 //! - l.nop 2  Report the value in R3
 //! - l.nop 3  Printf the string with the arguments in R3, etc
 //! - l.nop 4  Print a character
+
+//#define OR1200_OR32_NOP_BITS_31_TO_26               6'b000101
+#define OR1200_OR32_NOP               0x14000000
+
 extern int SIM_RUNNING;
 void
 Or1200MonitorSC::checkInstruction()
@@ -264,14 +263,20 @@ Or1200MonitorSC::checkInstruction()
   double    ts;
   
   cycle_count++;  
+
+  /* Check if this counts as an "executed" instruction */
+  if (!accessor->getWbFreeze())
+    if ((((accessor->getWbInsn() & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(accessor->getWbInsn() & (1<<16))) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))	
+      insn_count++;
+    else
+      // Exception version
+      if (accessor->getExceptFlushpipe())
+	insn_count++;
+	  
   // Check the instruction when the freeze signal is low.
   //if (!accessor->getWbFreeze())
   if ((!accessor->getWbFreeze()) && (accessor->getExceptType() == 0))
     {
-      
-      // Increment instruction counter
-      insn_count++;
-
       // Do something if we have l.nop
       switch (accessor->getWbInsn())
 	{
@@ -375,50 +380,66 @@ Or1200MonitorSC::callLog()
 
       }
     }
-}	// checkInstruction()
+}	// callLog()
 
 
 //! Method to output the state of the processor
 
 //! This function will output to a file, if enabled, the status of the processor
-//! For now, it's just the PPC and instruction.
+//! This copies what the verilog testbench module, or1200_monitor does in it its
+//! process which calls the display_arch_state tasks. This is designed to be 
+//! identical to that process, so the output is identical
 #define PRINT_REGS 1
 void
 Or1200MonitorSC::displayState()
 {
-  uint32_t  wbinsn;
-  
-  // Calculate how many instructions we've actually calculated by ignoring cycles where we're frozen, delay slots and flushpipe cycles
-  if ((!accessor->getWbFreeze()) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
-
-  if (logging_enabled == 0)
-	return;	// If we didn't inialise a file, then just return.
-
+  bool printregs = false;
   // Output the state if we're not frozen and not flushing during a delay slot
-  if ((!accessor->getWbFreeze()) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
+  if (!accessor->getWbFreeze())
     {
-      // Print PC, instruction
-      statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ": " << hex << accessor->getWbInsn() <<  endl;
+      if ((((accessor->getWbInsn() & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(accessor->getWbInsn() & (1<<16))) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
+	{
+	  // Print PC, instruction
+	  statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ":  " << hex << std::setw(8) << accessor->getWbInsn() <<  endl;
 #if PRINT_REGS
-	// Print general purpose register contents
-	for (int i=0; i<32; i++)
-	  {
-		if ((i%4 == 0)&&(i>0)) statusFile << endl;
-		statusFile << std::setfill('0');
-		statusFile << "GPR" << dec << std::setw(2) << i << ": " <<  hex << std::setw(8) << (uint32_t) accessor->getGpr(i) << "  ";		
+	  printregs = true;
+#endif
 	}
-	statusFile << endl;
-
-	statusFile << "SR   : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprSr() << "  ";
-	statusFile << "EPCR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEpcr() << "  ";
-	statusFile << "EEAR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEear() << "  ";	
-	statusFile << "ESR0 : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEsr() << endl;
+      else
+	{
+	  // Exception version
+	  if (accessor->getExceptFlushpipe())
+	    {
+	      // Print PC, instruction, indicate it caused an exception
+	      statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getExPC() << ":  " << hex << std::setw(8) << accessor->getExInsn() << "  (exception)" << endl;
+#if PRINT_REGS
+	      printregs = true;
 #endif
 
+	    }
+	}
+      
+      if (printregs)
+	{
+	  // Print general purpose register contents
+	  for (int i=0; i<32; i++)
+	    {
+	      if ((i%4 == 0)&&(i>0)) statusFile << endl;
+	      statusFile << std::setfill('0');
+	      statusFile << "GPR" << dec << std::setw(2) << i << ": " <<  hex << std::setw(8) << (uint32_t) accessor->getGpr(i) << "  ";		
+	    }
+	  statusFile << endl;
+      
+	  statusFile << "SR   : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprSr() << "  ";
+	  statusFile << "EPCR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEpcr() << "  ";
+	  statusFile << "EEAR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEear() << "  ";	
+	  statusFile << "ESR0 : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEsr() << endl;
+	  
+	}
     }
-
+  
   return;
-
+  
 }	// displayState()
 
 //! Function to calculate the number of instructions performed and the time taken
@@ -437,7 +458,7 @@ Or1200MonitorSC::perfSummary()
       double ips = (insn_count/elapsed_time);
       double mips = (insn_count/elapsed_time)/1000000;
       int hertz = (int) ((cycles/elapsed_time)/1000);
-      std::cout << "* Or1200Monitor: simulated " << sc_time_stamp() << ",time elapsed: " << elapsed_time << " seconds" << endl;
+      std::cout << "* Or1200Monitor: simulated " << sc_time_stamp() << ", time elapsed: " << elapsed_time << " seconds" << endl;
       std::cout << "* Or1200Monitor: simulated " << dec << cycles << " clock cycles, executed at approx " << hertz << "kHz" << endl;
       std::cout << "* Or1200Monitor: simulated " << insn_count << " instructions, insn/sec. = " << ips << ", mips = " << mips << endl;
     }

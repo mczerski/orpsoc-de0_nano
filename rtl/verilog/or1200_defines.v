@@ -403,7 +403,7 @@
 // Disable bursts if they are not supported by the
 // memory subsystem (only affect cache line fill)
 //
-//`define OR1200_NO_BURSTS
+`define OR1200_NO_BURSTS
 //
 
 //

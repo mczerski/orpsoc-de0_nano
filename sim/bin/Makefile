@@ -268,6 +268,14 @@ MGC_COMMAND_FILE=modelsim.scr
 ARCH_SIM_EXE=or32-elf-sim
 ARCH_SIM_CFG_FILE=or1ksim-orpsocv2.cfg
 
+# Set V=1 when calling make to enable verbose output
+# mainly for debugging purposes.
+ifeq ($(V), 1)
+Q=
+else
+Q=@
+endif
+
 # If USE_SDRAM is defined we'll add it to the simulator's defines on the 
 # command line becuase it's used by many different modules and it's easier 
 # to do it this way than make them all include a file.
@@ -341,11 +349,11 @@ TESTS_PERFORMED=0;
 $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v:
 	@cd $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl && perl fizzim.pl -encoding onehot -terse < wb_sdram_ctrl_fsm.fzm > wb_sdram_ctrl_fsm.v	
 
-.PHONY: prepare_rtl
-prepare_rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v
+.PHONY: prepare-rtl
+prepare-rtl: $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v
 
 $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE): $(SIM_BIN_DIR)/$(SIM_COMMANDFILE)
-	@sed < $(SIM_BIN_DIR)/$(SIM_COMMANDFILE) > $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) \
+	$(Q)sed < $(SIM_BIN_DIR)/$(SIM_COMMANDFILE) > $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) \
 		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
 		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
 		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
@@ -362,18 +370,18 @@ ifdef UART_PRINTF
 TEST_SW_MAKE_OPTS="UART_PRINTF=1"
 endif
 
-.PHONY: prepare_sw
-prepare_sw:
-	@$(MAKE) -C $(SW_DIR)/support all $(TEST_SW_MAKE_OPTS)
-	@$(MAKE) -C $(SW_DIR)/utils all
+.PHONY: prepare-sw
+prepare-sw:
+	$(Q)$(MAKE) -C $(SW_DIR)/support all $(TEST_SW_MAKE_OPTS)
+	$(Q)$(MAKE) -C $(SW_DIR)/utils all
 
 # A rule with UART_PRINTF hard defined ... used by verilator make sw
-prepare_sw_uart_printf:
-	@$(MAKE) -C $(SW_DIR)/support all UART_PRINTF=1 $(TEST_SW_MAKE_OPTS)
-	@$(MAKE) -C $(SW_DIR)/utils all
+prepare-sw-uart-printf:
+	$(Q)$(MAKE) -C $(SW_DIR)/support all UART_PRINTF=1 $(TEST_SW_MAKE_OPTS)
+	$(Q)$(MAKE) -C $(SW_DIR)/utils all
 
-prepare_dirs:
-	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
+prepare-dirs:
+	$(Q)if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 
 #
 # Rough guide to how event driven simulation test loop works:
@@ -418,11 +426,11 @@ prepare_dirs:
 #		Turn off generation of logging files in the ../results
 #		directory.
 #
-rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare_sw prepare_rtl prepare_dirs
+rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepare-dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
-	@for TEST in $(TESTS); do \
+	$(Q)for TEST in $(TESTS); do \
 		echo "################################################################################"; \
 		echo; \
 		echo "\t#### Current test: $$TEST ####"; echo; \
@@ -469,11 +477,11 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare_sw prepare_rtl prepar
 
 
 # Use NCSIM instead of icarus
-rtl-nc-tests: prepare_sw prepare_rtl prepare_dirs
+rtl-nc-tests: prepare-sw prepare-rtl prepare-dirs
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
-	@for TEST in $(TESTS); do \
+	$(Q)for TEST in $(TESTS); do \
 		echo "################################################################################"; \
 		echo; \
 		echo "\t#### Current test: $$TEST ####"; echo; \
@@ -540,14 +548,14 @@ VPI_LIB_NAME=jp_vpi
 ICARUS_VPI_OPTS=-M$(VPI_C_DIR) -m$(VPI_LIB_NAME)
 VPI_TEST_SW ?= dhry-nocache-O2
 
-prepare_vpi:
+prepare-vpi:
 ## Build the VPI library
 	$(MAKE) -C $(VPI_C_DIR) $(VPI_LIB_NAME)
 
 clean-vpi:
 	$(MAKE) -C $(VPI_C_DIR) clean
 
-rtl-debug: prepare_sw_uart_printf prepare_rtl prepare_vpi prepare_dirs
+rtl-debug: prepare-sw-uart-printf prepare-rtl prepare-vpi prepare-dirs
 ## Prepare the software for the test
 	@echo "\t#### Compiling software ####"; echo; \
 	CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $(VPI_TEST_SW) | cut -d "-" -f 1`; \
@@ -557,28 +565,28 @@ rtl-debug: prepare_sw_uart_printf prepare_rtl prepare_vpi prepare_dirs
 	ln -s $$CURRENT_TEST_SW_DIR/$(VPI_TEST_SW)$(FLASH_MEM_FILE_SUFFIX) $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
 	ln -s $$CURRENT_TEST_SW_DIR/$(VPI_TEST_SW).vmem $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE)
 ## Generate the icarus script we'll compile with
-	@sed < $(SIM_BIN_DIR)/$(ICARUS_COMMAND_FILE) > $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated \
+	$(Q)sed < $(SIM_BIN_DIR)/$(ICARUS_COMMAND_FILE) > $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated \
 		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
 		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
 		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
 		-e \\!^//.*\$$!d -e \\!^\$$!d 
 ## Add a couple of extra defines to the icarus compile script
-	@echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
+	$(Q)echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
 ## The define that enables the VPI debug module
-	@echo "+define+VPI_DEBUG_ENABLE" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
-	@if [ ! -z $$VCD ];then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated;fi
+	$(Q)echo "+define+VPI_DEBUG_ENABLE" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated
+	$(Q)if [ ! -z $$VCD ];then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated;fi
 ## Unless NO_UART_PRINTF=1 we use printf via the UART
-	@if [ -z $$NO_UART_PRINTF ];then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; fi
-	@echo "\`define TEST_NAME_STRING \"$(VPI_TEST_SW)-vpi\"" > $(SIM_RUN_DIR)/test_define.v
-	@echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v
-	@if [ -z $$NO_SIM_LOGGING ]; then echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; fi
+	$(Q)if [ -z $$NO_UART_PRINTF ];then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; fi
+	$(Q)echo "\`define TEST_NAME_STRING \"$(VPI_TEST_SW)-vpi\"" > $(SIM_RUN_DIR)/test_define.v
+	$(Q)echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v
+	$(Q)if [ -z $$NO_SIM_LOGGING ]; then echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; fi
 	@echo
 	@echo "\t#### Compiling RTL ####"
-	@rm -f $(SIM_RUN_DIR)/a.out
-	@$(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
+	$(Q)rm -f $(SIM_RUN_DIR)/a.out
+	$(Q)$(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
 	@echo
 	@echo "\t#### Beginning simulation with VPI debug module enabled ####"; echo
-	@$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log a.out
+	$(Q)$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log a.out
 
 ################################################################################
 # Verilator model build rules
@@ -628,7 +636,7 @@ VLT_TRACEOBJ = SpTraceVcdC
 # Included is the SystemPerl trace model
 SYSC_MODELS_BUILD=$(SYSC_MODELS) $(VLT_TRACEOBJ)
 
-prepare_vlt: prepare_rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
+prepare-vlt: prepare-rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
 	@echo;echo "\tCycle-accurate model compiled successfully"
 	@echo;echo "\tRun the executable with the -h option for usage instructions:";echo
 	$(SIM_VLT_DIR)/Vorpsoc_top -h
@@ -644,10 +652,10 @@ $(SIM_VLT_DIR)/OrpsocMain.o: $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp
 	@echo; echo "\tCompiling top level SystemC testbench"; echo
 	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) $(TRACE_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp 
 
-$(SIM_VLT_DIR)/libVorpsoc_top.a: $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a vlt_modules_compile $(SIM_VLT_DIR)/verilated.o
+$(SIM_VLT_DIR)/libVorpsoc_top.a: $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a vlt-modules-compile $(SIM_VLT_DIR)/verilated.o
 # Now archive all of the libraries from verilator witht he other modules we might have
 	@echo; echo "\tArchiving libraries into libVorpsoc_top.a"; echo
-	@cd $(SIM_VLT_DIR) && \
+	$(Q)cd $(SIM_VLT_DIR) && \
 	cp Vorpsoc_top__ALL.a libVorpsoc_top.a && \
 	ar rcs libVorpsoc_top.a verilated.o; \
 	for SYSCMODEL in $(SYSC_MODELS_BUILD); do \
@@ -656,17 +664,17 @@ $(SIM_VLT_DIR)/libVorpsoc_top.a: $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a vlt_modules_c
 
 $(SIM_VLT_DIR)/verilated.o:
 	@echo; echo "\tCompiling verilated.o"; echo
-	@cd $(SIM_VLT_DIR) && \
+	$(Q)cd $(SIM_VLT_DIR) && \
 	export CXXFLAGS=$(VLT_DEBUG_COMPILE_FLAGS); \
 	export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
 	export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -f Vorpsoc_top.mk verilated.o
 
-.PHONY: vlt_modules_compile
-vlt_modules_compile:
+.PHONY: vlt-modules-compile
+vlt-modules-compile:
 # Compile the module files
 	@echo; echo "\tCompiling SystemC models"
-	@cd $(SIM_VLT_DIR) && \
+	$(Q)cd $(SIM_VLT_DIR) && \
 	for SYSCMODEL in $(SYSC_MODELS_BUILD); do \
 		echo;echo "\t$$SYSCMODEL"; echo; \
 		export CXXFLAGS=$(VLT_DEBUG_COMPILE_FLAGS); \
@@ -677,7 +685,7 @@ vlt_modules_compile:
 
 $(SIM_VLT_DIR)/Vorpsoc_top__ALL.a: $(SIM_VLT_DIR)/Vorpsoc_top.mk
 	@echo; echo "\tCompiling main design"; echo
-	@cd $(SIM_VLT_DIR) && \
+	$(Q)cd $(SIM_VLT_DIR) && \
 	export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
 	export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -f Vorpsoc_top.mk Vorpsoc_top__ALL.a
@@ -691,7 +699,7 @@ $(SIM_VLT_DIR)/Vorpsoc_top.mk: $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated $(SI
 # SystemC modules library
 $(SIM_VLT_DIR)/libmodules.a:
 	@echo; echo "\tCompiling SystemC modules"; echo
-	@export VLT_CPPFLAGS="$(VLT_CPPFLAGS)"; \
+	$(Q)export VLT_CPPFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make $(VLT_SYSC_DEBUG_DEFINE) 
 
 
@@ -701,7 +709,7 @@ ALL_VLOG=$(shell find $(RTL_VERILOG_DIR) -name "*.v")
 # Generate the compile script to give Verilator - make it sensitive to the RTL
 $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated: $(ALL_VLOG)
 	@echo; echo "\tGenerating verilator compile script"; echo
-	@sed < $(SIM_BIN_DIR)/$(VLT_COMMAND_FILE) > $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated \
+	$(Q)sed < $(SIM_BIN_DIR)/$(VLT_COMMAND_FILE) > $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated \
 		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
 		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
 		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
@@ -712,7 +720,7 @@ vlt_model_links:
 # Link all the required system C model files into the verilator work dir
 	@echo; echo "\tLinking SystemC model source to verilator build path"; echo
 	@if [ ! -d $(SIM_VLT_DIR) ]; then mkdir $(SIM_VLT_DIR); fi
-	@cd $(SIM_VLT_DIR) && \
+	$(Q)cd $(SIM_VLT_DIR) && \
 	for SYSCMODEL in $(SYSC_MODELS); do \
 		if [ ! -e $$SYSCMODEL.cpp ]; then \
 			ln -s $(BENCH_SYSC_SRC_DIR)/$$SYSCMODEL.cpp .; \
@@ -726,11 +734,11 @@ vlt_model_links:
 ################################################################################
 
 # Verilator defaults to internal memories
-vlt-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs prepare_vlt
+vlt-tests: prepare-sw-uart-printf prepare-rtl prepare-dirs prepare-vlt
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
-	@for TEST in $(TESTS); do \
+	$(Q)for TEST in $(TESTS); do \
 		echo "################################################################################"; \
 		echo; \
 		echo "\t#### Current test: $$TEST ####"; echo; \
@@ -756,30 +764,30 @@ vlt-tests: prepare_sw_uart_printf prepare_rtl prepare_dirs prepare_vlt
 ###############################################################################
 # Verilator profiled module make
 ###############################################################################
-# To run this, first run a "make prepare_vlt VLT_DO_PROFILING=1" then do a 
-# "make clean" and then a "make prepare_vlt_profiled"
+# To run this, first run a "make prepare-vlt VLT_DO_PROFILING=1" then do a 
+# "make clean" and then a "make prepare-vlt_profiled"
 # This new make target copies athe results of the profiling back to the right
 # paths before we create everything again
 ###############################################################################
-prepare_vlt_profiled: vlt_restore_profileoutput prepare_rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
+prepare-vlt-profiled: vlt_restore-profileoutput prepare-rtl vlt-model-links $(SIM_VLT_DIR)/Vorpsoc_top
 
-vlt_restore_profileoutput:
+vlt-restore-profileoutput:
 	@echo;echo "\tRestoring profiling outputs"; echo
-	@mkdir -p ../vlt
-	@cp /tmp/*.gc* $(SIM_VLT_DIR)
-	@cp /tmp/*.gc* $(BENCH_SYSC_SRC_DIR)
+	$(Q)mkdir -p ../vlt
+	$(Q)cp /tmp/*.gc* $(SIM_VLT_DIR)
+	$(Q)cp /tmp/*.gc* $(BENCH_SYSC_SRC_DIR)
 
 ################################################################################
 # Architectural simulator test loop
 ################################################################################
 
 # Verilator defaults to internal memories
-sim-tests: prepare_sw_uart_printf
+sim-tests: prepare-sw-uart-printf
 	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
-	@for TEST in $(TESTS); do \
+	$(Q)for TEST in $(TESTS); do \
 		echo "################################################################################"; \
 		echo; \
 		echo "\t#### Current test: $$TEST ####"; echo; \
