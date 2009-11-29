@@ -130,6 +130,11 @@ module or1200_sprs(
 
 		du_addr, du_dat_du, du_read,
 		du_write, du_dat_cpu
+`ifdef OR1200_FPU_IMPLEMENTED
+		// Floating point control register and SPR input
+		,fpcsr,fpcsr_we,spr_dat_fpu
+`endif   
+		   
 
 );
 
@@ -166,13 +171,19 @@ output				esr_we;		// ESR0 write enable
 output				pc_we;		// PC write enable
 output 				sr_we;		// Write enable SR
 output	[`OR1200_SR_WIDTH-1:0]	to_sr;		// Data to SR
-output	[`OR1200_SR_WIDTH-1:0]	sr /* verilator public */;		// SR
+output	[`OR1200_SR_WIDTH-1:0]	sr /* verilator public */;		// SR   
 input	[31:0]			spr_dat_cfgr;	// Data from CFGR
 input	[31:0]			spr_dat_rf;	// Data from RF
 input	[31:0]			spr_dat_npc;	// Data from NPC
 input	[31:0]			spr_dat_ppc;	// Data from PPC   
 input	[31:0]			spr_dat_mac;	// Data from MAC
 input					boot_adr_sel_i;
+`ifdef OR1200_FPU_IMPLEMENTED
+input 	[`OR1200_FPCSR_WIDTH-1:0]       fpcsr;	// FPCSR
+output 				fpcsr_we;	// Write enable FPCSR   
+input [31:0] 			spr_dat_fpu;    // Data from FPU
+`endif   
+   
 
 //
 // To/from other RISC units
@@ -218,6 +229,9 @@ wire 				sr_sel;		// Select for SR
 wire 				epcr_sel;	// Select for EPCR0
 wire 				eear_sel;	// Select for EEAR0
 wire 				esr_sel;	// Select for ESR0
+`ifdef OR1200_FPU_IMPLEMENTED   
+wire 				fpcsr_sel;	// Select for FPCSR
+`endif   
 wire	[31:0]			sys_data;	// Read data from system SPRs
 wire				du_access;	// Debug unit access
 wire	[`OR1200_ALUOP_WIDTH-1:0]	sprs_op;	// ALU operation
@@ -343,6 +357,10 @@ assign sr_sel = (spr_cs[`OR1200_SPR_GROUP_SYS] && (spr_addr[10:0] == `OR1200_SPR
 assign epcr_sel = (spr_cs[`OR1200_SPR_GROUP_SYS] && (spr_addr[10:0] == `OR1200_SPR_EPCR));
 assign eear_sel = (spr_cs[`OR1200_SPR_GROUP_SYS] && (spr_addr[10:0] == `OR1200_SPR_EEAR));
 assign esr_sel = (spr_cs[`OR1200_SPR_GROUP_SYS] && (spr_addr[10:0] == `OR1200_SPR_ESR));
+`ifdef OR1200_FPU_IMPLEMENTED
+assign fpcsr_sel = (spr_cs[`OR1200_SPR_GROUP_SYS] && (spr_addr[10:0] == `OR1200_SPR_FPCSR));
+`endif
+   
 
 //
 // Write enables for system SPRs
@@ -352,7 +370,10 @@ assign pc_we = (write_spr && (npc_sel | ppc_sel));
 assign epcr_we = (write_spr && epcr_sel);
 assign eear_we = (write_spr && eear_sel);
 assign esr_we = (write_spr && esr_sel);
-
+`ifdef OR1200_FPU_IMPLEMENTED   
+assign fpcsr_we = (write_spr && fpcsr_sel);
+`endif
+   
 //
 // Output from system SPRs
 //
@@ -362,7 +383,10 @@ assign sys_data = (spr_dat_cfgr & {32{read_spr & cfgr_sel}}) |
 		  (spr_dat_ppc & {32{read_spr & ppc_sel}}) |
 		  ({{32-`OR1200_SR_WIDTH{1'b0}},sr} & {32{read_spr & sr_sel}}) |
 		  (epcr & {32{read_spr & epcr_sel}}) |
-		  (eear & {32{read_spr & eear_sel}}) |
+		  (eear & {32{read_spr & eear_sel}}) |		  
+`ifdef OR1200_FPU_IMPLEMENTED
+		  ({{32-`OR1200_FPCSR_WIDTH{1'b0}},fpcsr} & {32{read_spr & fpcsr_sel}}) |
+`endif		  
 		  ({{32-`OR1200_SR_WIDTH{1'b0}},esr} & {32{read_spr & esr_sel}});
 
 //
@@ -435,6 +459,9 @@ always @(sr_reg or sr_reg_bit_eph_muxed)
 // MTSPR/MFSPR interface
 //
 always @(sprs_op or spr_addr or sys_data or spr_dat_mac or spr_dat_pic or spr_dat_pm or
+`ifdef OR1200_FPU_IMPLEMENTED
+	 spr_dat_fpu or
+`endif	 
 	spr_dat_dmmu or spr_dat_immu or spr_dat_du or spr_dat_tt) begin
 	case (sprs_op)	// synopsys parallel_case
 		`OR1200_ALUOP_MTSR : begin
@@ -456,6 +483,11 @@ always @(sprs_op or spr_addr or sys_data or spr_dat_mac or spr_dat_pic or spr_da
 					to_wbmux = spr_dat_immu;
 				`OR1200_SPR_GROUP_MAC:
 					to_wbmux = spr_dat_mac;
+`ifdef OR1200_FPU_IMPLEMENTED
+			        `OR1200_SPR_GROUP_FPU:
+			                to_wbmux = spr_dat_fpu;
+`endif	 
+			  
 				`OR1200_SPR_GROUP_DU:
 					to_wbmux = spr_dat_du;
 				`OR1200_SPR_GROUP_SYS:

@@ -103,7 +103,7 @@ _except_c00:
  
 _except_d00:
 	l.nop
-	l.j	_res1_except
+	l.j	_fpu_except
 	l.nop
 
 

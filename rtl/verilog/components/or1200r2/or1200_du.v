@@ -171,7 +171,7 @@ input	[dw-1:0]		du_dat_i;	// Debug Unit Data In
 output	[dw-1:0]		du_dat_o;	// Debug Unit Data Out
 output				du_read;	// Debug Unit Read Enable
 output				du_write;	// Debug Unit Write Enable
-input	[12:0]			du_except;	// Exception masked by DSR
+input	[13:0]			du_except;	// Exception masked by DSR
 output				du_hwbkpt;	// Cause trap exception (HW Breakpoints)
 input				spr_cs;		// SPR Chip Select
 input				spr_write;	// SPR Read/Write
@@ -599,40 +599,43 @@ assign dwcr1_sel = (spr_cs && (spr_addr[`OR1200_DUOFS_BITS] == `OR1200_DU_DWCR1)
 // Decode started exception
 //
 always @(du_except) begin
-	except_stop = 14'b0000_0000_0000;
+   except_stop = 0;   
 	casex (du_except)
-		13'b1_xxxx_xxxx_xxxx:
+		14'b1x_xxxx_xxxx_xxxx:
 			except_stop[`OR1200_DU_DRR_TTE] = 1'b1;
-		13'b0_1xxx_xxxx_xxxx: begin
+		14'b01_xxxx_xxxx_xxxx: begin
 			except_stop[`OR1200_DU_DRR_IE] = 1'b1;
 		end
-		13'b0_01xx_xxxx_xxxx: begin
+		14'b00_1xxx_xxxx_xxxx: begin
 			except_stop[`OR1200_DU_DRR_IME] = 1'b1;
 		end
-		13'b0_001x_xxxx_xxxx:
+		14'b00_01xx_xxxx_xxxx:
 			except_stop[`OR1200_DU_DRR_IPFE] = 1'b1;
-		13'b0_0001_xxxx_xxxx: begin
+		14'b00_001x_xxxx_xxxx: begin
 			except_stop[`OR1200_DU_DRR_BUSEE] = 1'b1;
 		end
-		13'b0_0000_1xxx_xxxx:
+		14'b00_0001_xxxx_xxxx:
 			except_stop[`OR1200_DU_DRR_IIE] = 1'b1;
-		13'b0_0000_01xx_xxxx: begin
+		14'b00_0000_1xxx_xxxx: begin
 			except_stop[`OR1200_DU_DRR_AE] = 1'b1;
 		end
-		13'b0_0000_001x_xxxx: begin
+		14'b00_0000_01xx_xxxx: begin
 			except_stop[`OR1200_DU_DRR_DME] = 1'b1;
 		end
-		13'b0_0000_0001_xxxx:
+		14'b00_0000_001x_xxxx:
 			except_stop[`OR1200_DU_DRR_DPFE] = 1'b1;
-		13'b0_0000_0000_1xxx:
+		14'b00_0000_0001_xxxx:
 			except_stop[`OR1200_DU_DRR_BUSEE] = 1'b1;
-		13'b0_0000_0000_01xx: begin
+		14'b00_0000_0000_1xxx: begin
 			except_stop[`OR1200_DU_DRR_RE] = 1'b1;
 		end
-		13'b0_0000_0000_001x: begin
+		14'b00_0000_0000_01xx: begin
 			except_stop[`OR1200_DU_DRR_TE] = 1'b1;
 		end
-		13'b0_0000_0000_0001:
+		14'b00_0000_0000_001x: begin
+		        except_stop[`OR1200_DU_DRR_FPE] = 1'b1;
+		end	  
+		14'b00_0000_0000_0001:
 			except_stop[`OR1200_DU_DRR_SCE] = 1'b1;
 		default:
 			except_stop = 14'b0000_0000_0000;

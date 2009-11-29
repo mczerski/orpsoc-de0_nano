@@ -1081,7 +1081,10 @@ int main (void)
 {
   int ret;
 
-  printf("except_test\n");
+  // Removed printf() because when using real printf() in
+  // uClibc library we do a syscall, and while doing these
+  // tests we don't have the standard syscall interrupt code.
+  //printf("except_test\n");
 
   /* Register bus error handler */
   excpt_buserr = (unsigned long)bus_err_handler;

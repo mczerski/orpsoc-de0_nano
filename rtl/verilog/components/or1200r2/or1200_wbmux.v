@@ -82,6 +82,9 @@ module or1200_wbmux(
 	// Internal i/f
 	wb_freeze, rfwb_op,
 	muxin_a, muxin_b, muxin_c, muxin_d,
+`ifdef OR1200_FPU_IMPLEMENTED   
+	muxin_e,
+`endif		    
 	muxout, muxreg, muxreg_valid
 );
 
@@ -106,6 +109,9 @@ input	[width-1:0]		muxin_a;
 input	[width-1:0]		muxin_b;
 input	[width-1:0]		muxin_c;
 input	[width-1:0]		muxin_d;
+`ifdef OR1200_FPU_IMPLEMENTED   
+input	[width-1:0]		muxin_e;
+`endif		    
 output	[width-1:0]		muxout;
 output	[width-1:0]		muxreg;
 output				muxreg_valid;
@@ -134,14 +140,18 @@ end
 //
 // Write-back multiplexer
 //
-always @(muxin_a or muxin_b or muxin_c or muxin_d or rfwb_op) begin
+always @(muxin_a or muxin_b or muxin_c or muxin_d or
+`ifdef OR1200_FPU_IMPLEMENTED
+	 muxin_e or
+`endif	 
+	 rfwb_op) begin
 `ifdef OR1200_ADDITIONAL_SYNOPSYS_DIRECTIVES
 	case(rfwb_op[`OR1200_RFWBOP_WIDTH-1:1]) // synopsys parallel_case infer_mux
 `else
 	case(rfwb_op[`OR1200_RFWBOP_WIDTH-1:1]) // synopsys parallel_case
 `endif
-		2'b00: muxout = muxin_a;
-		2'b01: begin
+		`OR1200_RFWBOP_ALU : muxout = muxin_a;
+		`OR1200_RFWBOP_LSU : begin
 			muxout = muxin_b;
 `ifdef OR1200_VERBOSE
 // synopsys translate_off
@@ -149,7 +159,7 @@ always @(muxin_a or muxin_b or muxin_c or muxin_d or rfwb_op) begin
 // synopsys translate_on
 `endif
 		end
-		2'b10: begin
+		`OR1200_RFWBOP_SPRS : begin
 			muxout = muxin_c;
 `ifdef OR1200_VERBOSE
 // synopsys translate_off
@@ -157,7 +167,7 @@ always @(muxin_a or muxin_b or muxin_c or muxin_d or rfwb_op) begin
 // synopsys translate_on
 `endif
 		end
-		2'b11: begin
+		`OR1200_RFWBOP_LR : begin
 			muxout = muxin_d + 32'h8;
 `ifdef OR1200_VERBOSE
 // synopsys translate_off
@@ -165,6 +175,16 @@ always @(muxin_a or muxin_b or muxin_c or muxin_d or rfwb_op) begin
 // synopsys translate_on
 `endif
 		end
+`ifdef OR1200_FPU_IMPLEMENTED
+	  `OR1200_RFWBOP_FPU : begin
+	     muxout = muxin_e;	     
+`ifdef OR1200_VERBOSE
+// synopsys translate_off
+			$display("  WBMUX: muxin_e %h", muxin_e);
+// synopsys translate_on
+`endif
+	       end		      
+`endif	  
 	endcase
 end
 

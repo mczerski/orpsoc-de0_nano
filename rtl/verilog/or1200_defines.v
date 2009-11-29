@@ -568,6 +568,12 @@
 //
 //`define OR1200_LOWPWR_MULT
 
+
+//
+// Implement HW Single Precision FPU
+//
+//`define OR1200_FPU_IMPLEMENTED
+
 //
 // Clock ratio RISC clock versus WB clock
 //
@@ -655,9 +661,9 @@
 `define OR1200_SHROTOP_ROR	2'd3
 
 // Execution cycles per instruction
-`define OR1200_MULTICYCLE_WIDTH	2
-`define OR1200_ONE_CYCLE		2'd0
-`define OR1200_TWO_CYCLES		2'd1
+`define OR1200_MULTICYCLE_WIDTH	3
+`define OR1200_ONE_CYCLE		3'd0
+`define OR1200_TWO_CYCLES		3'd1
 
 // Operand MUX selects
 `define OR1200_SEL_WIDTH		2
@@ -706,14 +712,26 @@
 //
 // Register File Write-Back OPs
 //
+`ifdef OR1200_FPU_IMPLEMENTED
+// Bit 0: register file write enable
+// Bits 3-1: write-back mux selects
+ `define OR1200_RFWBOP_WIDTH		4
+ `define OR1200_RFWBOP_NOP		4'b0000
+ `define OR1200_RFWBOP_ALU		3'b000
+ `define OR1200_RFWBOP_LSU		3'b001
+ `define OR1200_RFWBOP_SPRS		3'b010
+ `define OR1200_RFWBOP_LR		3'b011
+ `define OR1200_RFWBOP_FPU		3'b100
+`else
 // Bit 0: register file write enable
 // Bits 2-1: write-back mux selects
-`define OR1200_RFWBOP_WIDTH		3
-`define OR1200_RFWBOP_NOP		3'b000
-`define OR1200_RFWBOP_ALU		3'b001
-`define OR1200_RFWBOP_LSU		3'b011
-`define OR1200_RFWBOP_SPRS		3'b101
-`define OR1200_RFWBOP_LR		3'b111
+ `define OR1200_RFWBOP_WIDTH		3
+ `define OR1200_RFWBOP_NOP		3'b000
+ `define OR1200_RFWBOP_ALU		2'b00
+ `define OR1200_RFWBOP_LSU		2'b01
+ `define OR1200_RFWBOP_SPRS		2'b10
+ `define OR1200_RFWBOP_LR		2'b11
+`endif // !`ifdef OR1200_FPU_IMPLEMENTED
 
 // Compare instructions
 `define OR1200_COP_SFEQ       3'b000
@@ -725,6 +743,31 @@
 `define OR1200_COP_X          3'b111
 `define OR1200_SIGNED_COMPARE 'd3
 `define OR1200_COMPOP_WIDTH	4
+
+//
+// FPU OPs
+//
+// MSbit indicates FPU operation valid
+//
+`ifdef OR1200_FPU_IMPLEMENTED
+ `define OR1200_FPUOP_WIDTH	8
+ `define OR1200_FPUOP_CYCLES 3'd4
+ `define OR1200_FPUOP_ADD  8'b0000_0000
+ `define OR1200_FPUOP_SUB  8'b0000_0001
+ `define OR1200_FPUOP_MUL  8'b0000_0010
+ `define OR1200_FPUOP_DIV  8'b0000_0011
+ `define OR1200_FPUOP_ITOF 8'b0000_0100
+ `define OR1200_FPUOP_FTOI 8'b0000_0101
+ `define OR1200_FPUOP_REM  8'b0000_0110
+ `define OR1200_FPUOP_RESERVED  8'b0000_0111
+// FP Compare instructions
+ `define OR1200_FPCOP_SFEQ 8'b0000_1000
+ `define OR1200_FPCOP_SFNE 8'b0000_1001
+ `define OR1200_FPCOP_SFGT 8'b0000_1010
+ `define OR1200_FPCOP_SFGE 8'b0000_1011
+ `define OR1200_FPCOP_SFLT 8'b0000_1100
+ `define OR1200_FPCOP_SFLE 8'b0000_1101
+`endif
 
 //
 // TAGs for instruction bus
@@ -790,6 +833,9 @@
 /* */
 `define OR1200_OR32_MTSPR             6'b110000
 `define OR1200_OR32_MACMSB            6'b110001
+`ifdef OR1200_FPU_IMPLEMENTED
+ `define OR1200_OR32_FLOAT            6'b110010
+`endif
 /* */
 `define OR1200_OR32_SW                6'b110101
 `define OR1200_OR32_SB                6'b110110
@@ -797,7 +843,6 @@
 `define OR1200_OR32_ALU               6'b111000
 `define OR1200_OR32_SFXX              6'b111001
 //`define OR1200_OR32_CUST5             6'b111100
-
 
 /////////////////////////////////////////////////////
 //
@@ -843,7 +888,8 @@
 //
 `define OR1200_EXCEPT_UNUSED		`OR1200_EXCEPT_WIDTH'hf
 `define OR1200_EXCEPT_TRAP		`OR1200_EXCEPT_WIDTH'he
-`define OR1200_EXCEPT_BREAK		`OR1200_EXCEPT_WIDTH'hd
+//`define OR1200_EXCEPT_BREAK		`OR1200_EXCEPT_WIDTH'hd
+`define OR1200_EXCEPT_FLOAT		`OR1200_EXCEPT_WIDTH'hd
 `define OR1200_EXCEPT_SYSCALL		`OR1200_EXCEPT_WIDTH'hc
 `define OR1200_EXCEPT_RANGE		`OR1200_EXCEPT_WIDTH'hb
 `define OR1200_EXCEPT_ITLBMISS		`OR1200_EXCEPT_WIDTH'ha
@@ -884,7 +930,9 @@
 `define OR1200_SPR_GROUP_PM	5'd08
 `define OR1200_SPR_GROUP_PIC	5'd09
 `define OR1200_SPR_GROUP_TT	5'd10
-
+`ifdef OR1200_FPU_IMPLEMENTED
+ `define OR1200_SPR_GROUP_FPU    5'd11
+`endif
 
 /////////////////////////////////////////////////////
 //
@@ -899,6 +947,9 @@
 `define OR1200_SPR_NPC		11'd16
 `define OR1200_SPR_SR		11'd17
 `define OR1200_SPR_PPC		11'd18
+`ifdef OR1200_FPU_IMPLEMENTED
+ `define OR1200_SPR_FPCSR       11'd20
+`endif
 `define OR1200_SPR_EPCR		11'd32
 `define OR1200_SPR_EEAR		11'd48
 `define OR1200_SPR_ESR		11'd64
@@ -937,6 +988,24 @@
 // 1'b1 - OR1200_EXCEPT_EPH1_P (0xF000_0000)
 //
 `define OR1200_SR_EPH_DEF	1'b0
+
+//
+// FPCSR bits
+//
+`define OR1200_FPCSR_WIDTH 12
+`define OR1200_FPCSR_FPEE  0
+`define OR1200_FPCSR_RM    2:1
+`define OR1200_FPCSR_OVF   3
+`define OR1200_FPCSR_UNF   4
+`define OR1200_FPCSR_SNF   5
+`define OR1200_FPCSR_QNF   6
+`define OR1200_FPCSR_ZF    7
+`define OR1200_FPCSR_IXF   8
+`define OR1200_FPCSR_IVF   9
+`define OR1200_FPCSR_INF   10
+`define OR1200_FPCSR_DZF   11
+`define OR1200_FPCSR_RES   31:12
+
 
 /////////////////////////////////////////////////////
 //
@@ -1082,7 +1151,7 @@
 `define OR1200_DU_DSR_IME	9
 `define OR1200_DU_DSR_RE	10
 `define OR1200_DU_DSR_SCE	11
-`define OR1200_DU_DSR_BE	12
+`define OR1200_DU_DSR_FPE	12
 `define OR1200_DU_DSR_TE	13
 
 // DRR bits
@@ -1098,7 +1167,7 @@
 `define OR1200_DU_DRR_IME	9
 `define OR1200_DU_DRR_RE	10
 `define OR1200_DU_DRR_SCE	11
-`define OR1200_DU_DRR_BE	12
+`define OR1200_DU_DRR_FPE	12
 `define OR1200_DU_DRR_TE	13
 
 // Define if reading DU regs is allowed

@@ -117,7 +117,7 @@ module or1200_freeze(
 
 	// Internal i/f
 	multicycle, flushpipe, extend_flush, lsu_stall, if_stall,
-	lsu_unstall, du_stall, mac_stall, 
+	lsu_unstall, du_stall, mac_stall,
 	force_dslot_fetch, abort_ex,
 	genpc_freeze, if_freeze, id_freeze, ex_freeze, wb_freeze,
 	icpu_ack_i, icpu_err_i

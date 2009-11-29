@@ -212,14 +212,15 @@ _except_b00:
  
 _except_c00:
 	l.nop
-	l.j	_syscall_except
+/*	l.j	_syscall_except*/
+	EXCEPTION_HANDLE(_syscall_handler)	
 	l.nop
 
 .org 0xb00
  
 _except_d00:
 	l.nop
-	l.j	_res1_except
+	l.j	_fpu_except
 	l.nop
 
 .org 0xc00
@@ -236,7 +237,6 @@ _except_f00:
 	l.j	_res2_except
 	l.nop
 
-
 .section .text, "ax" 
 
 /* ---[ 0x500: Timer exception ]----------------------------------------- */
@@ -249,8 +249,33 @@ _except_f00:
 	l.nop
 	
 /* ---[ End of Timer exception ]----------------------------------------- */
+/* ---[ 0xC00: syscall exception ]--------------------------------------- */
+	HANDLER_ENTRY(_syscall_handler)
+	/* r4 holds the EEAR address of the fault, load the original r4 */
+	l.lwz	r4,GPR4(r1)
+	ENABLE_INTERRUPTS(r9)		// enable interrupts, r9 is temp
+
+	/*	LOAD_SYMBOL_2_GPR(r30,_syscall_interrupt)*/
+	/* For now we ONLY do write syscall, number 4 */
+	l.sfnei r11,4
+	l.bf _syscall_finish
+	l.nop
+
+	LOAD_SYMBOL_2_GPR(r30,_sys_write)	
+        l.jalr r30
+	l.addi  r8,r1,0                 // regs pointer
+_syscall_finish:	
+	l.sw    GPR11(r1),r11           // save return value
+        l.sw    RESULT(r1),r11          // save result
+
+	DISABLE_INTERRUPTS(r3,r4)
+	
+	l.j    _ret_from_intr
+	l.nop
+/* ---[ End of syscall exception ]--------------------------------------- */	
 
 ENTRY(_ret_from_intr)
+	l.addi  r4,r1,INT_FRAME_SIZE
 	RESTORE_ALL
 /*	
 	// i386 version:	

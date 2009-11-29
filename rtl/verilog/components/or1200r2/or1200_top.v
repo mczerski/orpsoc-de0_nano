@@ -462,7 +462,7 @@ wire	[dw-1:0]	du_addr;
 wire	[dw-1:0]	du_dat_du;
 wire			du_read;
 wire			du_write;
-wire	[12:0]		du_except;
+wire	[13:0]		du_except;
 wire	[`OR1200_DU_DSR_WIDTH-1:0]     du_dsr;
 wire	[dw-1:0]	du_dat_cpu;
 wire			du_hwbkpt;

@@ -51,33 +51,23 @@ void or32_exit (int i)
 
 #ifdef UART_PRINTF
 
-static int uart_init_done = 0;
+//static int uart_init_done = 0;
 
 #define PRINTFBUFFER_SIZE 512
 char PRINTFBUFFER[PRINTFBUFFER_SIZE]; // Declare a global printf buffer
 
 void printf(const char *fmt, ...)
 {
-  // init uart if not done already
-  if (!uart_init_done)
-    {
-      uart_init();
-      uart_init_done = 1;
-    }
 
   va_list args;
   va_start(args, fmt);
   
-  //int str_l = vsnprintf(PRINTFBUFFER, PRINTFBUFFER_SIZE, fmt, args);
   int str_l = vfnprintf(PRINTFBUFFER, PRINTFBUFFER_SIZE, fmt, args);
   
   if (!str_l) return; // no length string - just return
   
-  int c=0;
-  // now print each char via the UART
-  while (c < str_l)
-    uart_putc(PRINTFBUFFER[c++]);
-  
+  __libc_write(0, PRINTFBUFFER,str_l);
+
   va_end(args);
   
 }
@@ -94,10 +84,6 @@ void printf(const char *fmt, ...)
 }
 
 #endif
-
-
-
-
 
 /* print long */
 void report(unsigned long value)

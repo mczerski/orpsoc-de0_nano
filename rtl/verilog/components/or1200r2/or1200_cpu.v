@@ -232,7 +232,7 @@ input				du_read;
 input				du_write;
 input	[`OR1200_DU_DSR_WIDTH-1:0]	du_dsr;
 input				du_hwbkpt;
-output	[12:0]			du_except;
+output	[13:0]			du_except;
 output	[dw-1:0]		du_dat_cpu;
 output	[dw-1:0]		rf_dataw;
 
@@ -311,6 +311,9 @@ wire				wb_freeze;
 wire	[`OR1200_SEL_WIDTH-1:0]	sel_a;
 wire	[`OR1200_SEL_WIDTH-1:0]	sel_b;
 wire	[`OR1200_RFWBOP_WIDTH-1:0]	rfwb_op;
+`ifdef OR1200_FPU_IMPLEMENTED
+wire    [`OR1200_FPUOP_WIDTH-1:0]       fpu_op;
+`endif
 wire	[dw-1:0]		rf_dataw;
 wire	[dw-1:0]		rf_dataa;
 wire	[dw-1:0]		rf_datab;
@@ -322,6 +325,9 @@ wire	[dw-1:0]		operand_b;
 wire	[dw-1:0]		alu_dataout;
 wire	[dw-1:0]		lsu_dataout;
 wire	[dw-1:0]		sprs_dataout;
+`ifdef OR1200_FPU_IMPLEMENTED   
+wire	[dw-1:0]		fpu_dataout;
+`endif   
 wire	[31:0]			lsu_addrofs;
 wire	[`OR1200_MULTICYCLE_WIDTH-1:0]	multicycle;
 wire	[`OR1200_EXCEPT_WIDTH-1:0]	except_type;
@@ -332,7 +338,13 @@ wire				extend_flush;
 wire				branch_taken;
 wire				flag;
 wire				flagforw;
-wire				flag_we;
+wire				flag_we;  
+wire				flagforw_alu;
+wire				flag_we_alu;
+`ifdef OR1200_FPU_IMPLEMENTED
+wire				flagforw_fpu;
+wire				flag_we_fpu;
+`endif   
 wire				carry;
 wire				cyforw;
 wire				cy_we_alu;
@@ -345,21 +357,29 @@ wire				pc_we;
 wire	[31:0]			epcr;
 wire	[31:0]			eear;
 wire	[`OR1200_SR_WIDTH-1:0]	esr;
+wire 	[`OR1200_FPCSR_WIDTH-1:0]       fpcsr;
+wire 				fpcsr_we;
 wire				sr_we;
 wire	[`OR1200_SR_WIDTH-1:0]	to_sr;
 wire	[`OR1200_SR_WIDTH-1:0]	sr;
 wire				except_start;
 wire				except_started;
+wire    			fpu_except_started;   
 wire	[31:0]			wb_insn;
 wire	[15:0]			spr_addrimm;
 wire				sig_syscall;
 wire				sig_trap;
+wire				sig_fp;
 wire	[31:0]			spr_dat_cfgr;
 wire	[31:0]			spr_dat_rf;
 wire    [31:0]                  spr_dat_npc;
 wire	[31:0]			spr_dat_ppc;
 wire	[31:0]			spr_dat_mac;
+`ifdef OR1200_FPU_IMPLEMENTED
+wire	[31:0]			spr_dat_fpu;
+`endif   
 wire				force_dslot_fetch;
+   
 wire				no_more_dslot;
 wire				ex_void;
 wire				if_stall;
@@ -368,7 +388,7 @@ wire				ex_macrc_op;
 wire	[`OR1200_MACOP_WIDTH-1:0] mac_op;
 wire	[31:0]			mult_mac_result;
 wire				mac_stall;
-wire	[12:0]			except_stop;
+wire	[13:0]			except_stop;
 wire				genpc_refetch;
 wire				rfe;
 wire				lsu_unstall;
@@ -412,6 +432,17 @@ assign immu_en = sr[`OR1200_SR_IME];
 //
 assign supv = sr[`OR1200_SR_SM];
 
+//
+// Flag WE
+//
+`ifdef OR1200_FPU_IMPLEMENTED
+assign flagforw = (flag_we_alu & flagforw_alu) | (flagforw_fpu & flag_we_fpu);
+assign flag_we = flag_we_alu | flag_we_fpu;
+`else   
+assign flagforw = flagforw_alu;
+assign flag_we = flag_we_alu;   
+`endif
+   
 //
 // Instantiation of instruction fetch block
 //
@@ -494,6 +525,9 @@ or1200_ctrl or1200_ctrl(
 	.comp_op(comp_op),
 	.rf_addrw(rf_addrw),
 	.rfwb_op(rfwb_op),
+`ifdef OR1200_FPU_IMPLEMENTED
+	.fpu_op(fpu_op),
+`endif			
 	.wb_insn(wb_insn),
 	.simm(simm),
 	.branch_addrofs(branch_addrofs),
@@ -580,11 +614,11 @@ or1200_alu or1200_alu(
 	.cust5_op(cust5_op),
 	.cust5_limm(cust5_limm),
 	.result(alu_dataout),
-	.flagforw(flagforw),
-	.flag_we(flag_we),
+	.flagforw(flagforw_alu),
+	.flag_we(flag_we_alu),
 	.cyforw(cyforw),
 	.cy_we(cy_we_alu),
-  .flag(flag),
+	.flag(flag),
 	.carry(carry)
 );
 
@@ -609,6 +643,41 @@ or1200_mult_mac or1200_mult_mac(
 	.spr_dat_i(spr_dat_cpu),
 	.spr_dat_o(spr_dat_mac)
 );
+
+`ifdef OR1200_FPU_IMPLEMENTED
+
+//
+// FPU's exception is being dealt with
+//    
+assign fpu_except_started = except_started && (except_type == `OR1200_EXCEPT_FLOAT);
+   
+//
+// Instantiation of FPU
+//
+or1200_fpu or1200_fpu(
+	.clk(clk),
+	.rst(rst),
+	.ex_freeze(ex_freeze),
+	.a(operand_a),
+	.b(operand_b),
+	.fpu_op(fpu_op),
+	.result(fpu_dataout),
+	.flagforw(flagforw_fpu),
+	.flag_we(flag_we_fpu),
+        .sig_fp(sig_fp),
+	.except_started(fpu_except_started),		      
+	.fpcsr_we(fpcsr_we),
+	.fpcsr(fpcsr),
+	.spr_cs(spr_cs[`OR1200_SPR_GROUP_FPU]),
+	.spr_write(spr_we),
+	.spr_addr(spr_addr),
+	.spr_dat_i(spr_dat_cpu),
+	.spr_dat_o(spr_dat_fpu)
+);
+`else
+   assign sig_fp = 0;
+   assign fpcsr = 0;
+`endif		    
 
 //
 // Instantiation of CPU's SPRS block
@@ -660,6 +729,12 @@ or1200_sprs or1200_sprs(
 	.esr(esr),
 	.except_started(except_started),
 
+`ifdef OR1200_FPU_IMPLEMENTED   
+	.fpcsr(fpcsr),
+	.fpcsr_we(fpcsr_we),
+	.spr_dat_fpu(spr_dat_fpu),
+`endif   
+
 	.sr_we(sr_we),
 	.to_sr(to_sr),
 	.sr(sr),
@@ -708,6 +783,9 @@ or1200_wbmux or1200_wbmux(
 	.muxin_b(lsu_dataout),
 	.muxin_c(sprs_dataout),
 	.muxin_d({lr_sav, 2'b0}),
+`ifdef OR1200_FPU_IMPLEMENTED   
+        .muxin_e(fpu_dataout),
+`endif			  
 	.muxout(rf_dataw),
 	.muxreg(wb_forw),
 	.muxreg_valid(wbforw_valid)
@@ -757,6 +835,8 @@ or1200_except or1200_except(
 	.sig_itlbmiss(except_itlbmiss),
 	.sig_immufault(except_immufault),
 	.sig_tick(sig_tick),
+	.sig_fp(sig_fp),
+	.fpcsr_fpee(fpcsr[`OR1200_FPCSR_FPEE]),
 	.branch_taken(branch_taken),
 	.icpu_ack_i(icpu_ack_i),
 	.icpu_err_i(icpu_err_i),

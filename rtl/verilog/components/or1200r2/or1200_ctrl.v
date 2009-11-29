@@ -133,10 +133,14 @@ module or1200_ctrl(
 	// Internal i/f
 	id_freeze, ex_freeze, wb_freeze, flushpipe, if_insn, ex_insn, pre_branch_op, branch_op, branch_taken,
 	rf_addra, rf_addrb, rf_rda, rf_rdb, alu_op, mac_op, shrot_op, comp_op, rf_addrw, rfwb_op,
+`ifdef OR1200_FPU_IMPLEMENTED
+	fpu_op,
+`endif		   
 	wb_insn, simm, branch_addrofs, lsu_addrofs, sel_a, sel_b, lsu_op,
 	cust5_op, cust5_limm,
 	multicycle, spr_addrimm, wbforw_valid, du_hwbkpt, sig_syscall, sig_trap,
 	force_dslot_fetch, no_more_dslot, ex_void, id_macrc_op, ex_macrc_op, rfe, except_illegal
+		   
 );
 
 //
@@ -162,6 +166,9 @@ output	[`OR1200_ALUOP_WIDTH-1:0]		alu_op;
 output	[`OR1200_MACOP_WIDTH-1:0]		mac_op;
 output	[`OR1200_SHROTOP_WIDTH-1:0]		shrot_op;
 output	[`OR1200_RFWBOP_WIDTH-1:0]		rfwb_op;
+`ifdef OR1200_FPU_IMPLEMENTED
+   output [`OR1200_FPUOP_WIDTH-1:0] 		fpu_op;   
+`endif   
 output	[31:0]				wb_insn;
 output	[31:0]				simm;
 output	[31:2]				branch_addrofs;
@@ -402,6 +409,12 @@ always @(id_insn) begin
     
     `OR1200_OR32_MULI:
       multicycle = 2'h3;
+
+`ifdef OR1200_FPU_IMPLEMENTED
+    `OR1200_OR32_FLOAT:
+      multicycle = `OR1200_FPUOP_CYCLES;    
+`endif
+    
     
     // Single cycle instructions
     default: begin
@@ -608,7 +621,12 @@ always @(posedge clk or posedge rst) begin
 	    `OR1200_OR32_CUST5:
 	      sel_imm <= #1 1'b0;
 `endif
-	    
+`ifdef OR1200_FPU_IMPLEMENTED
+	    // FPU instructions
+	    `OR1200_OR32_FLOAT:
+	      sel_imm <= #1 1'b0;
+`endif
+
 	    // l.nop
 	    `OR1200_OR32_NOP:
 	      sel_imm <= #1 1'b0;
@@ -666,6 +684,9 @@ always @(posedge clk or posedge rst) begin
 `ifdef OR1200_MAC_IMPLEMENTED
 	    `OR1200_OR32_MACMSB,
 `endif
+`ifdef OR1200_FPU_IMPLEMENTED
+	    `OR1200_OR32_FLOAT,
+`endif	      
 	    `OR1200_OR32_SW,
 	    `OR1200_OR32_SB,
 	    `OR1200_OR32_SH,
@@ -842,80 +863,84 @@ always @(posedge clk or posedge rst) begin
 
 		  // j.jal
 		  `OR1200_OR32_JAL:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LR;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LR,1'b1};
 		  
 		  // j.jalr
 		  `OR1200_OR32_JALR:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LR;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LR,1'b1};
 		  
 		  // l.movhi
 		  `OR1200_OR32_MOVHI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.mfspr
 		  `OR1200_OR32_MFSPR:
-		    rfwb_op <= #1 `OR1200_RFWBOP_SPRS;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_SPRS,1'b1};
 		  
 		  // l.lwz
 		  `OR1200_OR32_LWZ:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LSU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LSU,1'b1};
 		  
 		  // l.lbz
 		  `OR1200_OR32_LBZ:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LSU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LSU,1'b1};
 		  
 		  // l.lbs
 		  `OR1200_OR32_LBS:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LSU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LSU,1'b1};
 		  
 		  // l.lhz
 		  `OR1200_OR32_LHZ:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LSU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LSU,1'b1};
 		  
 		  // l.lhs
 		  `OR1200_OR32_LHS:
-		    rfwb_op <= #1 `OR1200_RFWBOP_LSU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_LSU,1'b1};
 		  
 		  // l.addi
 		  `OR1200_OR32_ADDI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.addic
 		  `OR1200_OR32_ADDIC:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.andi
 		  `OR1200_OR32_ANDI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.ori
 		  `OR1200_OR32_ORI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.xori
 		  `OR1200_OR32_XORI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // l.muli
 `ifdef OR1200_MULT_IMPLEMENTED
 		  `OR1200_OR32_MULI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 `endif
 		  
 		  // Shift and rotate insns with immediate
 		  `OR1200_OR32_SH_ROTI:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 		  
 		  // ALU instructions except the one with immediate
 		  `OR1200_OR32_ALU:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 
 `ifdef OR1200_OR32_CUST5
 		  // l.cust5 instructions
 		  `OR1200_OR32_CUST5:
-		    rfwb_op <= #1 `OR1200_RFWBOP_ALU;
+		    rfwb_op <= #1 {`OR1200_RFWBOP_ALU,1'b1};
 `endif
-
+`ifdef OR1200_FPU_IMPLEMENTED
+		  // FPU instructions, lf.XXX.s, except sfxx
+		  `OR1200_OR32_FLOAT:
+		    rfwb_op <= #1 {`OR1200_RFWBOP_FPU,!id_insn[3]};
+`endif
 		  // Instructions w/o register-file write-back
 		  default: begin
 		    rfwb_op <= #1 `OR1200_RFWBOP_NOP;
@@ -1046,6 +1071,13 @@ always @(posedge clk or posedge rst) begin
 		comp_op <= #1 id_insn[24:21];
 end
 
+`ifdef OR1200_FPU_IMPLEMENTED
+//
+// Decode of FPU ops
+//
+   assign fpu_op = {(id_insn[31:26] == `OR1200_OR32_FLOAT), id_insn[`OR1200_FPUOP_WIDTH-2:0]};
+`endif
+   
 //
 // Decode of l.sys
 //

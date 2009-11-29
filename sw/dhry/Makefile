@@ -2,13 +2,9 @@ include ../support/Makefile.inc
 #ADDED BY ME
 cases = dhry-nocache-O0 dhry-nocache-O2 dhry-icdc-O2
 #common = ../support/libsupport.a
-common = ../support/libsupport.a ../support/except.o
+common =  ../support/except.o ../support/libsupport.a
 
-ifdef NUM_RUNS
-NUM_RUNS=($(NUM_RUNS))
-else
-NUM_RUNS="(10)"
-endif
+NUM_RUNS ?= 10
 GCC_OPT += -g
 all: $(cases)
 

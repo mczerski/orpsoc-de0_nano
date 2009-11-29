@@ -260,6 +260,9 @@ SW_DIR=$(PROJECT_ROOT)/sw
 
 ICARUS=iverilog
 ICARUS_VVP=vvp
+VSIM_COMP=vlog
+VSIM=vsim
+NCVERILOG=ncverilog
 ICARUS_COMMAND_FILE=icarus.scr
 VLT_COMMAND_FILE=verilator.scr
 SIM_SUCCESS_MESSAGE=deaddead
@@ -283,12 +286,31 @@ ifdef USE_SDRAM
 EVENT_SIM_FLAGS += "-D USE_SDRAM=$(USE_SDRAM)"
 endif
 
-# Set SIMULATOR=vsim on command line to use Modelsim
-ifeq ($(SIMULATOR), vsim)
-# Modelsim
-SIM_COMMANDFILE=$(MGC_COMMAND_FILE)
-else
+# Enable ethernet if defined on the command line
+ifdef USE_ETHERNET
+EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET) -D USE_ETHERNET_IO=$(USE_ETHERNET)"
+# Extra tests we do if ethernet is enabled
+TESTS += eth-basic eth-int
+endif
+
+#Default simulator is Icarus Verilog
+# Set SIMULATOR=vsim to use Modelsim
+# Set SIMULATOR=ncverilog to use Cadence's NC-Verilog
+SIMULATOR ?= $(ICARUS)
+
+# Set the command file to use, simulator dependent
+ifeq ($(SIMULATOR), $(ICARUS))
 # Icarus Verilog Simulator
+SIM_COMMANDFILE=$(ICARUS_COMMAND_FILE)
+endif
+
+ifeq ($(SIMULATOR), $(VSIM))
+# Modelsim has own command file (it's a little more stupid than Icarus & NC)
+SIM_COMMANDFILE=$(MGC_COMMAND_FILE)
+endif
+
+ifeq ($(SIMULATOR), $(NCVERILOG))
+# NCVerilog uses same command file as Icarus
 SIM_COMMANDFILE=$(ICARUS_COMMAND_FILE)
 endif
 
@@ -309,32 +331,34 @@ VOPT_ARGS=-voptargs="+acc=rnp"
 endif
 
 # Simulation compile and run commands, depending on your 
-# simulator. Currently only Modelsim (vsim) and Icarus right
-# now.
-# TODO: Put the NC-sim commands in here too and have just the
-# single simulation test loop rule.
-ifeq ($(SIMULATOR), vsim)
+# simulator. 
+
+# Icarus Verilog
+ifeq ($(SIMULATOR), $(ICARUS))
+# Icarus Verilog Simulator compile and run commands
+SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
+# Icarus Verilog run command
+SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
+endif
+
+# Modelsim
+ifeq ($(SIMULATOR), $(VSIM))
 # Line to compile the orpsoc design into a modelsim library.
 SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work orpsoc -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); fi
 # Final modelsim compile, done each time, pulling in or1200 
 # monitor and the new test_defines.v file:
 VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_VERILOG_DIR)/orpsoc_testbench.v
 # Simulation run command:
-SIM_COMMANDRUN=$(VSIM_COMPILE_TB); vsim -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" orpsoc_testbench 
-else
-# Icarus Verilog Simulator compile command
-SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
-# Icarus Verilog run command
-SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
+SIM_COMMANDRUN=$(VSIM_COMPILE_TB); $(VSIM) -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" orpsoc_testbench 
 endif
 
-# Enable ethernet if defined on the command line
-ifdef USE_ETHERNET
-EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET) -D USE_ETHERNET_IO=$(USE_ETHERNET)"
-# Extra tests we do if ethernet is enabled
-TESTS += eth-basic eth-int
+# NCVerilog
+ifeq ($(SIMULATOR), $(NCVERILOG))
+SIM_COMMANDCOMPILE=echo
+SIM_COMMANDRUN=$(NCVERILOG) -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -Q -l $(SIM_RESULTS_DIR)/$$TEST-$(NCVERILOG)-out.log $(EVENT_SIM_FLAGS)
 endif
 
+# Names of memory files used in simulation
 SIM_FLASH_MEM_FILE="flash.in"
 FLASH_MEM_FILE_SUFFIX="-twobyte-sizefirst.hex"
 SIM_SRAM_MEM_FILE="sram.vmem"
@@ -343,7 +367,7 @@ TESTS_PASSED=0
 TESTS_PERFORMED=0;
 
 ################################################################################
-# Event-driven simulator build rules (Icarus, NCSim)
+# Event-driven simulator build rules
 ################################################################################
 
 $(RTL_VERILOG_DIR)/components/wb_sdram_ctrl/wb_sdram_ctrl_fsm.v:
@@ -361,9 +385,16 @@ $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE): $(SIM_BIN_DIR)/$(SIM_COMMANDFILE)
 	echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
 	if [ ! -z $$VCD ]; \
 		then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+		if [ $(SIMULATOR) = $(NCVERILOG) ]; \
+			then echo "+access+r" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+		fi; \
 	fi; \
 	if [ ! -z $$UART_PRINTF ]; \
 		then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+	fi; \
+	if [ $(SIMULATOR) = $(NCVERILOG) ]; \
+		then echo "+nocopyright" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+		echo "+nowarn+MACRDF" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
 	fi
 
 ifdef UART_PRINTF
@@ -407,6 +438,8 @@ prepare-dirs:
 # Options:
 #	SIMULATOR=vsim
 #		Use Mentor Graphics Modelsim simulator
+#	SIMULATOR=ncverilog
+#		Use Cadence's NC-Verilog
 #	USE_SDRAM=1	
 #		Enable use of SDRAM - changes boot sequence and takes
 #		a lot longer due to application being loaded out of
@@ -462,66 +495,6 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepar
 		echo; \
 		echo "\t#### Beginning simulation ####"; \
 		time -p $(SIM_COMMANDRUN) ; \
-		if [ $$? -gt 0 ]; then exit $$?; fi; \
-		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
-		echo; echo "\t####"; \
-		if [ $$TEST_RESULT -gt 0 ]; then \
-			echo "\t#### Test $$TEST PASSED ####";TESTS_PASSED=`expr $$TESTS_PASSED + 1`;\
-		else    echo "\t#### Test $$TEST FAILED ####";\
-		fi; \
-		echo "\t####"; echo; \
-		TESTS_PERFORMED=`expr $$TESTS_PERFORMED + 1`;\
-	done; \
-	echo "Test results: "$$TESTS_PASSED" out of "$$TESTS_PERFORMED" tests passed"; echo
-
-
-
-# Use NCSIM instead of icarus
-rtl-nc-tests: prepare-sw prepare-rtl prepare-dirs
-	@echo
-	@echo "Beginning loop that will complete the following tests: $(TESTS)"
-	@echo
-	$(Q)for TEST in $(TESTS); do \
-		echo "################################################################################"; \
-		echo; \
-		echo "\t#### Current test: $$TEST ####"; echo; \
-		echo "\t#### Compiling software ####"; echo; \
-		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST; \
-		rm -f $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
-		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		ln -s $$CURRENT_TEST_SW_DIR/$$TEST_twobyte_sizefirst.hex $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
-		ln -s $$CURRENT_TEST_SW_DIR/$$TEST_fourbyte.hex $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		sed < $(SIM_BIN_DIR)/$(ICARUS_COMMAND_FILE) > $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated \
-			-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
-			-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
-			-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
-			-e \\!^//.*\$$!d -e \\!^\$$!d ; \
-		echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		if [ ! -z $$VCD ]; \
-			then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-			echo "+access+r" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		fi; \
-		if [ ! -z $$UART_PRINTF ]; \
-			then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		fi; \
-		if [ ! -z $$USE_SDRAM ]; then \
-			echo "\`define USE_SDRAM" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		if echo $$TEST | grep -q -i ^eth; then \
-			echo "\`define ENABLE_ETH_STIM" >> $(SIM_RUN_DIR)/test_define.v; \
-			echo "\`define ETH_PHY_VERBOSE" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		echo "+nocopyright" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		echo "+nowarn+MACRDF" >> $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated; \
-		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
-		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
-		if [ -z $$NO_SIM_LOGGING ]; then \
-			echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		echo ; \
-		echo "\t#### Beginning simulation ####"; \
-		time -p ncverilog -f $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated -Q -l $(SIM_RESULTS_DIR)/$$TEST-ius-out.log $(EVENT_SIM_FLAGS); \
 		if [ $$? -gt 0 ]; then exit $$?; fi; \
 		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
 		echo; echo "\t####"; \

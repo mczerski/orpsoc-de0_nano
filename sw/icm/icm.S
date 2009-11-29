@@ -13,7 +13,7 @@
 .global _itlbmiss_except
 .global _range_except
 .global _syscall_except
-.global _res1_except
+.global _fpu_except
 .global _trap_except
 .global _res2_except
 .global _icm_test
@@ -31,7 +31,7 @@ _dtlbmiss_except:
 _itlbmiss_except:
 _range_except:
 _syscall_except:
-_res1_except:
+_fpu_except:
 _trap_except:
 _res2_except:
 

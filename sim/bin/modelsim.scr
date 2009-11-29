@@ -5,6 +5,7 @@
 +incdir+$RTL_DIR
 +incdir+$RTL_DIR/components/uart16550
 +incdir+$RTL_DIR/components/ethernet
++incdir+$RTL_DIR/components/fpu
 +incdir+$RTL_DIR/components/or1k_startup
 +incdir+$RTL_DIR/components/or1k_top
 +incdir+$RTL_DIR/components/or1200r2
@@ -20,6 +21,7 @@
 -y $RTL_DIR
 -y $RTL_DIR/components/uart16550
 -y $RTL_DIR/components/ethernet
+-y $RTL_DIR/components/fpu
 -y $RTL_DIR/components/or1k_startup
 -y $RTL_DIR/components/or1k_top
 -y $RTL_DIR/components/or1200r2
@@ -97,6 +99,7 @@ $RTL_DIR/components/or1200r2/or1200_spram_64x22.v
 $RTL_DIR/components/or1200r2/or1200_except.v
 $RTL_DIR/components/or1200r2/or1200_immu_tlb.v
 $RTL_DIR/components/or1200r2/or1200_cpu.v
+$RTL_DIR/components/or1200r2/or1200_fpu.v
 $RTL_DIR/components/or1200r2/or1200_genpc.v
 $RTL_DIR/components/or1200r2/or1200_pic.v
 $RTL_DIR/components/or1200r2/or1200_dpram_32x32.v
@@ -138,6 +141,15 @@ $RTL_DIR/components/or1200r2/or1200_cfgr.v
 $RTL_DIR/components/or1200r2/or1200_wbmux.v
 $RTL_DIR/components/or1200r2/or1200_sb.v
 $RTL_DIR/components/or1k_top/or1k_top.v
+$RTL_DIR/components/fpu/fpu.v
+$RTL_DIR/components/fpu/fcmp.v
+$RTL_DIR/components/fpu/mul_r2.v
+$RTL_DIR/components/fpu/add_sub27.v
+$RTL_DIR/components/fpu/div_r2.v
+$RTL_DIR/components/fpu/post_norm.v
+$RTL_DIR/components/fpu/except.v
+$RTL_DIR/components/fpu/pre_norm.v
+$RTL_DIR/components/fpu/pre_norm_fmul.v
 $RTL_DIR/components/smii/smii_txrx.v
 $RTL_DIR/components/tap/tap_top.v
 $RTL_DIR/components/or1k_startup/OR1K_startup.v

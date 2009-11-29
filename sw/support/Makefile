@@ -2,8 +2,8 @@ include Makefile.inc
 
 all: libsupport.a reset-nocache.o reset-ic.o reset-dc.o reset-icdc.o
 
-libsupport.a: support.o int.o except.o uart.o vfnprintf.o time.o
-	$(OR32_TOOL_PREFIX)-ar cru libsupport.a $?
+libsupport.a: support.o int.o except.o uart.o vfnprintf.o time.o syscall.o fp.o
+	$(OR32_TOOL_PREFIX)-ar cru libsupport.a $^
 	$(OR32_TOOL_PREFIX)-ranlib libsupport.a
 
 # A generic rule for c

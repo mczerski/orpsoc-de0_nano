@@ -2,7 +2,7 @@ include ../support/Makefile.inc
 
 cases = mul-nocache-O0 mul-nocache-O2 mul-ic-O0 mul-ic-O2 mul-dc-O0 mul-dc-O2 mul-icdc-O2 mul-icdc-O0
 
-common = ../support/libsupport.a ../support/except.o
+common =  ../support/except.o ../support/libsupport.a
 
 all: $(cases)
 
