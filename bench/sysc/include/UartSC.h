@@ -26,6 +26,7 @@
 #define UART_SC__H
 
 #include "systemc.h"
+#include <stdint.h>
 
 //! Handle UART I/O
 

@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 ////                                                              ////
 ////  ORPSoC SystemC Testbench                                    ////
 ////                                                              ////
@@ -6,7 +6,6 @@
 ////  ORPSoC Testbench file                                       ////
 ////                                                              ////
 ////  To Do:                                                      ////
-////        Somehow allow tracing to begin later in the sim       ////
 ////                                                              ////
 ////                                                              ////
 ////  Author(s):                                                  ////
@@ -43,15 +42,17 @@
 
 #include "OrpsocMain.h"
 
+#include "jtagsc.h"
+
 #include "Vorpsoc_top.h"
 #include "OrpsocAccess.h"
 #include "MemoryLoad.h"
 
 #include <SpTraceVcdC.h>
 
-//#include "TraceSC.h"
 #include "ResetSC.h"
 #include "Or1200MonitorSC.h"
+#include "GdbServerSC.h"
 #include "UartSC.h"
 
 int SIM_RUNNING;
@@ -61,8 +62,11 @@ int sc_main (int   argc,
   sc_set_time_resolution( 1, TIMESCALE_UNIT);
   // CPU clock (also used as JTAG TCK) and reset (both active high and low)
   sc_time  clkPeriod (BENCH_CLK_HALFPERIOD * 2.0, TIMESCALE_UNIT);
+  sc_time   jtagPeriod (JTAG_CLK_HALFPERIOD * 2.0, TIMESCALE_UNIT);
 
   sc_clock             clk ("clk", clkPeriod);
+  sc_clock  jtag_tck ("jtag-clk", jtagPeriod, 0.5, SC_ZERO_TIME, false);
+  
   sc_signal<bool>      rst;
   sc_signal<bool>      rstn;
   sc_signal<bool>      rst_o;
@@ -90,20 +94,23 @@ int sc_main (int   argc,
   SIM_RUNNING = 0;
 
   // Setup the name of the VCD dump file
-  int VCD_enabled = 0;
+  bool VCD_enabled = false;
   string dumpNameDefault("vlt-dump.vcd");
   string testNameString;
   string vcdDumpFile;
   // VCD dump controling vars
-  int dump_start_delay, dump_stop_set;
-  int dumping_now;
+  bool dump_start_delay_set = false, dump_stop_set = false;
+  bool dumping_now = false;
   int dump_depth = 99; // Default dump depth
   sc_time dump_start,dump_stop, finish_time;
-  int finish_time_set = 0; // By default we will let the simulation finish naturally
+  bool finish_time_set = false; // By default we will let the simulation finish naturally
   SpTraceVcdCFile *spTraceFile;
   
-  int time_val;
-  int cmdline_name_found=0;
+  /*int*/double time_val;
+  bool vcd_file_name_given = false;
+
+  bool rsp_server_enabled = false;
+  int rsp_server_port = DEFAULT_RSP_PORT;
 
   // Executable app load variables
   int do_program_file_load = 0; // Default: we don't require a file, we use the VMEM
@@ -119,6 +126,8 @@ int sc_main (int   argc,
   
   ResetSC          *reset;		// Generate a RESET signal
   Or1200MonitorSC  *monitor;		// Handle l.nop x instructions
+  JtagSC           *jtag;		// Generate JTAG signals
+  GdbServerSC      *gdbServer;		// Map RSP requests to debug unit
   UartSC          *uart;		// Handle UART signals
 
   // Instantiate the Verilator model, VCD trace handler and accessor
@@ -128,41 +137,31 @@ int sc_main (int   argc,
   
   memoryload = new MemoryLoad (accessor);
   
+  monitor    = new Or1200MonitorSC ("monitor", accessor, memoryload, 
+				    argc, argv);
+  
   // Instantiate the SystemC modules
   reset         = new ResetSC ("reset", BENCH_RESET_TIME);
-  monitor       = new Or1200MonitorSC ("monitor", accessor, memoryload, argc, argv);
+  
+  jtag          = new JtagSC ("jtag");
+
   uart          = new UartSC("uart"); // TODO: Probalby some sort of param
 
   // Parse command line options
   // Default is for VCD generation OFF, only turned on if specified on command line
-  dump_start_delay = 0;
-  dump_stop_set = 0;
-  dumping_now = 0;
   
   // Search through the command line parameters for options  
   if (argc > 1)
     {
       for(int i=1; i<argc; i++)
 	{
-	  if ((strcmp(argv[i], "-d")==0) ||
-	      (strcmp(argv[i], "--vcdfile")==0))
+	  if ( (strcmp(argv[i], "-e")==0) ||
+	       (strcmp(argv[i], "--endtime")==0) )
 	    {
-	      testNameString = (argv[i+1]);
-	      vcdDumpFile = testNameString;
-	      cmdline_name_found=1;
-	    }
-	  else if ((strcmp(argv[i], "-v")==0) ||
-		   (strcmp(argv[i], "--vcdon")==0))
-	    {
-	      dumping_now = 1;
-	    }
-	  else if ( (strcmp(argv[i], "-e")==0) ||
-		    (strcmp(argv[i], "--endtime")==0) )
-	    {
-	      time_val = atoi(argv[i+1]);	  
+	      time_val = strtod(argv[i+1], NULL);	  
 	      sc_time opt_end_time(time_val,TIMESCALE_UNIT);
 	      finish_time = opt_end_time;
-	      finish_time_set = 1;
+	      finish_time_set = true;
 	    }
 	  else if ( (strcmp(argv[i], "-f")==0) ||
 		    (strcmp(argv[i], "--program")==0) )
@@ -170,26 +169,56 @@ int sc_main (int   argc,
 	      do_program_file_load = 1; // Enable program loading - will be done after sim init
 	      program_file = argv[i+1]; // Old char* style for program name
 	    }
- 	  else if ( (strcmp(argv[i], "-s")==0) ||
+	  else if ((strcmp(argv[i], "-d")==0) ||
+		   (strcmp(argv[i], "--vcdfile")==0) ||
+		   (strcmp(argv[i], "-v")==0) ||
+		   (strcmp(argv[i], "--vcdon")==0)
+		   )
+	    {
+	      VCD_enabled = true;
+	      dumping_now = true;
+	      vcdDumpFile = dumpNameDefault;
+	      if (i+1 < argc)
+		if(argv[i+1][0] != '-')
+		  {
+		    testNameString = argv[i+1];
+		    vcdDumpFile = testNameString;
+		    i++;
+		  }
+	    }
+	  else if ( (strcmp(argv[i], "-s")==0) ||
 		    (strcmp(argv[i], "--vcdstart")==0) )
 	    {
-	      time_val = atoi(argv[i+1]);	  
+	      VCD_enabled = true;
+	      time_val = strtod(argv[i+1], NULL);	  
 	      sc_time dump_start_time(time_val,TIMESCALE_UNIT);
 	      dump_start = dump_start_time;
-	      dump_start_delay = 1;
-	      dumping_now = 0;
+	      dump_start_delay_set = true;
+	      dumping_now = false;
 	    }
 	  else if ( (strcmp(argv[i], "-t")==0) ||
 		    (strcmp(argv[i], "--vcdstop")==0) )
 	    {
-	      time_val = atoi(argv[i+1]);	  
+	      VCD_enabled = true;
+	      time_val = strtod(argv[i+1],NULL);	  
 	      sc_time dump_stop_time(time_val,TIMESCALE_UNIT);
 	      dump_stop = dump_stop_time;
-	      dump_stop_set = 1;
+	      dump_stop_set = true;
 	    }
-	  /* Depth setting of VCD doesn't appear to work,
-	     I think it's set during verilator script 
-	     compile time */
+	  else if ( (strcmp(argv[i], "-r")==0) ||
+		    (strcmp(argv[i], "--rsp")==0) )
+	    {
+	      rsp_server_enabled = true;
+	      if (i+1 < argc) if(argv[i+1][0] != '-')
+				{
+				  rsp_server_port = atoi(argv[i+1]);
+				  i++;
+				}
+	    }
+	  /* 
+	     Depth setting of VCD doesn't appear to work, I think it's only
+	     configurable during at compile time .
+	  */
 	  /*	  else if ( (strcmp(argv[i], "-p")==0) ||
 		  (strcmp(argv[i], "--vcddepth")==0) )
 		  {
@@ -198,18 +227,23 @@ int sc_main (int   argc,
 	  else if ( (strcmp(argv[i], "-h")==0) ||
 		    (strcmp(argv[i], "--help")==0) )
 	    {
-	      printf("\n  ORPSoC Cycle Accurate model usage:\n");
-	      printf("  %s [-vh] [-f <file] [-d <file>] [-e <time>] [-s <time>] [-t <time>]",argv[0]);
-	      monitor->printSwitches();
-	      printf("\n\n");
+	      printf("Usage: %s [options]\n",argv[0]);
+	      printf("\n  ORPSoCv2 cycle accurate model\n");
+	      printf("  For details visit http://opencores.org/openrisc,orpsocv2\n");
+	      printf("\n");
+	      printf("Options:\n");
 	      printf("  -h, --help\t\tPrint this help message\n");
-	      printf("  -e, --endtime\t\tStop the sim at this time (ns)\n");
-	      printf("  -f, --program\t\tLoad program from an OR32 ELF\n");
+	      printf("\nSimulation control:\n");
+      	      printf("  -f, --program <file> \tLoad program from OR32 ELF <file>\n");
+	      printf("  -e, --endtime <val> \tStop the sim at <val> ns\n");
+	      printf("\nVCD generation:\n");
 	      printf("  -v, --vcdon\t\tEnable VCD generation\n");
-	      printf("  -d, --vcdfile\t\tEnable and specify target VCD file name\n");
+	      printf("  -d, --vcdfile <file>\tEnable and save VCD to <file>\n");
 
-	      printf("  -s, --vcdstart\tEnable and delay VCD generation until this time (ns)\n");
-	      printf("  -t, --vcdstop\t\tEnable and terminate VCD generation at this time (ns)\n");
+	      printf("  -s, --vcdstart <val>\tEnable and delay VCD generation until <val> ns\n");
+	      printf("  -t, --vcdstop <val> \tEnable and terminate VCD generation at <val> ns\n");
+	      printf("\nRemote debugging:\n");
+	      printf("  -r, --rsp [<port>]\tEnable RSP debugging server, opt. specify <port>\n");	     
 	      monitor->printUsage();
 	      printf("\n");
 	      return 0;
@@ -217,32 +251,33 @@ int sc_main (int   argc,
 	  
 	}
     }
-
-  if(cmdline_name_found==0) // otherwise use our default VCD dump file name
-    vcdDumpFile = dumpNameDefault;
-    
+  
   // Determine if we're going to setup a VCD dump:
-  // Pretty much setting any option will enable VCD dumping.
-  if ((cmdline_name_found) || (dumping_now) || (dump_start_delay) || (dump_stop_set))
+  // Pretty much setting any related option will enable VCD dumping.
+  if (VCD_enabled)
     {
-      VCD_enabled = 1;
       
       cout << "* Enabling VCD trace";
   
-      if (dump_start_delay)
+      if (dump_start_delay_set)
 	cout << ", on at time " << dump_start.to_string();
       if (dump_stop_set)
-    cout << ", off at time " << dump_stop.to_string();
+	cout << ", off at time " << dump_stop.to_string();
       cout << endl;
     }
-
-
+  
+  if (rsp_server_enabled)
+    gdbServer     = new GdbServerSC ("gdb-server", FLASH_START, FLASH_END,
+				       rsp_server_port, jtag->tapActionQueue);
+  else
+      gdbServer = NULL;
+    
   // Connect up ORPSoC
   orpsoc->clk_pad_i (clk);
   orpsoc->rst_pad_i (rstn);
   orpsoc->rst_pad_o (rst_o);
 
-  orpsoc->dbg_tck_pad_i  (clk);		// JTAG interface
+  orpsoc->dbg_tck_pad_i  (jtag_tck);		// JTAG interface
   orpsoc->dbg_tdi_pad_i  (jtag_tdi);
   orpsoc->dbg_tms_pad_i  (jtag_tms);
   orpsoc->dbg_tdo_pad_o  (jtag_tdo);
@@ -264,9 +299,6 @@ int sc_main (int   argc,
   orpsoc->gpio_a_pad_io (gpio_a); // GPIO bus - output only in 
                                   // verilator sims
 
-  // Connect up the VCD trace handler
-  //trace->clk (clk);			// Trace
-  
   // Connect up the SystemC  modules
   reset->clk (clk);			// Reset
   reset->rst (rst);
@@ -274,19 +306,26 @@ int sc_main (int   argc,
 
   monitor->clk (clk);			// Monitor
 
+  jtag->sysReset (rst);			// JTAG
+  jtag->tck (jtag_tck);
+  jtag->tdi (jtag_tdi);
+  jtag->tdo (jtag_tdo);
+  jtag->tms (jtag_tms);
+  jtag->trst (jtag_trst);
+
   uart->clk (clk); // Uart
   uart->uartrx (uart_rx); // orpsoc's receive line
   uart->uarttx (uart_tx); // orpsoc's transmit line
 
-   // Tie off signals
-   jtag_tdi      = 1;			// Tie off the JTAG inputs
-   jtag_tms      = 1;
-
-   spi_sd_miso = 0; // Tie off master-in/slave-out of SD SPI bus
+  // Tie off signals
+  jtag_tdi      = 1;			// Tie off the JTAG inputs
+  jtag_tms      = 1;
+  
+  spi_sd_miso = 0; // Tie off master-in/slave-out of SD SPI bus
 
   spi1_miso = 0;
 
-  //#if VM_TRACE  
+
   if (VCD_enabled)
     {
       Verilated::traceEverOn (true);
@@ -305,7 +344,6 @@ int sc_main (int   argc,
 	{
 	  spTraceFile->open (vcdDumpFile.c_str());
 	}
-      //#endif
     }
   
   //printf("* Beginning test\n");
@@ -345,7 +383,7 @@ int sc_main (int   argc,
 	}
       else
 	{
-	  if (dump_start_delay)
+	  if (dump_start_delay_set)
 	    {
 	      // Run the sim until we want to dump
 	      sc_start((double)(dump_start.to_double()),TIMESCALE_UNIT);
@@ -424,6 +462,9 @@ int sc_main (int   argc,
   
   
   // Free memory
+  if (rsp_server_enabled)
+    delete gdbServer;
+  delete jtag;
   delete monitor;
   delete reset;
 

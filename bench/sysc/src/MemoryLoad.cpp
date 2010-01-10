@@ -702,13 +702,15 @@ MemoryLoad::readfile_elf (char *filename)
 
 
 	  if (ELF_LONG_H (elf_spnt->sh_name) && s_str)
-	    PRINTF ("Section: %s,", &s_str[ELF_LONG_H (elf_spnt->sh_name)]);
+	    //PRINTF ("Section: %s,", &s_str[ELF_LONG_H (elf_spnt->sh_name)]);
+	    printf("* Section: %s,", &s_str[ELF_LONG_H (elf_spnt->sh_name)]);
 	  else
-	    PRINTF ("Section: noname,");
-	  PRINTF (" vaddr: 0x%.8lx,", ELF_LONG_H (elf_spnt->sh_addr));
-	  PRINTF (" paddr: 0x%" PRIx32, padd);
-	  PRINTF (" offset: 0x%.8lx,", ELF_LONG_H (elf_spnt->sh_offset));
-	  PRINTF (" size: 0x%.8lx\n", ELF_LONG_H (elf_spnt->sh_size));
+	    //PRINTF ("Section: noname,");
+	    printf ("* Section: noname,");
+	  printf ("* vaddr: 0x%.8lx,", ELF_LONG_H (elf_spnt->sh_addr));
+	  printf ("* paddr: 0x%" PRIx32, padd);
+	  printf ("* offset: 0x%.8lx,", ELF_LONG_H (elf_spnt->sh_offset));
+	  printf ("* size: 0x%.8lx\n", ELF_LONG_H (elf_spnt->sh_size));
 
 	  freemem = padd;
 	  sectsize = ELF_LONG_H (elf_spnt->sh_size);

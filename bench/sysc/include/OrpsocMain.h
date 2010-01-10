@@ -59,4 +59,27 @@
 //! Currently is 32MB (8M words)
 #define ORPSOC_SRAM_SIZE (8388608*4)
 
+//! Ratio of JTAG clock period to CPU clock period
+#define CLOCK_RATIO  10
+
+//! JTAG clock half period in timescale units
+#define JTAG_CLK_HALFPERIOD (CLOCK_RATIO * BENCH_CLK_HALFPERIOD)
+
+//! Start of 2MB Flash memory
+#define FLASH_START 0xf0000000
+
+//! End of 2MB Flash memory
+#define FLASH_END   0xf01fffff
+
+//! Default port for RSP to listen on
+#define DEFAULT_RSP_PORT  51000
+
+//! FIFO size for talking to the RSP connection
+#define RSP_FIFO_SIZE  8
+
+//! Maximum size of a RSP packet is used to return the value of all the
+//! registers, each of which takes 8 chars. There are a total of 32 GPRs plus
+//! PPC, SR and NPC. Plus one byte for end of string marker.
+#define RSP_MAX_PKT_SIZE ((32 + 3) * 8 + 1)
+
 #endif	// ORPSOC_MAIN__H

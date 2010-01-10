@@ -41,8 +41,9 @@
 #include "Vorpsoc_top_or1200_dpram.h"
 //#include "Vorpsoc_top_ram_wb.h"
 //#include "Vorpsoc_top_ram_wb_sc_sw.h"
-#include "Vorpsoc_top_ram_wb__D20_A18_M800000.h"
-#include "Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000.h"
+#include "Vorpsoc_top_ram_wb__D20_A19_M800000.h"
+#include "Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000.h"
+#include "Vorpsoc_top_wb_conbus_top__pi1.h"
 
 //! Constructor for the ORPSoC access class
 
@@ -53,11 +54,15 @@
 
 OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
 {
+  // Assign processor accessor objects
   or1200_ctrl = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_ctrl;
   or1200_except = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_except;
   or1200_sprs = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_sprs;
   rf_a        = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_rf->rf_a;
+  // Assign main memory accessor objects
   ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
+  // Assign arbiter accessor object
+  wb_arbiter = orpsoc_top->v->wb_conbus;
 
 }	// OrpsocAccess ()
 
@@ -272,4 +277,130 @@ OrpsocAccess::getSprEsr ()
   return  (or1200_sprs->get_esr) ();
 
 }	// getSprEsr ()
+
+
+//! Access for the arbiter's grant signal
+
+//! @return  The value of the wb_conmax_top.arb signal
+
+uint8_t
+OrpsocAccess::getWbArbGrant ()
+{
+  return  (wb_arbiter->get_gnt) ();
+
+}	// getWbArbGrant ()
+
+
+//! Arbiter master[mast_num] access functions
+
+//! Access for the arbiter's master[mast_num] data in signal
+
+//! @return  The value of the wb_conmax_top.m_dat_i[mast_num]
+
+uint32_t
+OrpsocAccess::getWbArbMastDatI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_dat_i) (mast_num);
+
+}	// getWbArbMastDatI ()
+
+//! Access for the arbiter's master[mast_num] data out signal
+
+//! @return  The value of the wb_conmax_top.m_dat_o[mast_num]
+
+uint32_t
+OrpsocAccess::getWbArbMastDatO (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_dat_o) (mast_num);
+
+}	// getWbArbMastDatO ()
+
+//! Access for the arbiter's master[mast_num] data out
+
+//! @return  The value of the wb_conmax_top.m_adr_i[mast_num]
+
+uint32_t
+OrpsocAccess::getWbArbMastAdrI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_adr_i) (mast_num);
+
+}	// getWbArbMastAdrI ()
+
+
+//! Access for the arbiter's master[mast_num] select signal
+
+//! @return  The value of the wb_conmax_top.m_sel_i[mast_num]
+
+uint8_t
+OrpsocAccess::getWbArbMastSelI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_sel_i) (mast_num);
+
+}	// getWbArbMastSelI ()
+
+//! Access for the arbiter's master[mast_num] decoded slave select signal
+
+//! @return  The value of the wb_conmax_top.m_ssel_dec[mast_num]
+
+uint8_t
+OrpsocAccess::getWbArbMastSlaveSelDecoded (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_ssel_dec) (mast_num);
+
+}	// getWbArbMastSlaveSelDecoded ()
+
+//! Access for the arbiter's master[mast_num] write enable signal
+
+//! @return  The value of the wb_conmax_top.m_we_i[mast_num]
+
+bool
+OrpsocAccess::getWbArbMastWeI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_we_i) (mast_num);
+
+}	// getWbArbMastWeI ()
+
+//! Access for the arbiter's master[mast_num] cycle input signal
+
+//! @return  The value of the wb_conmax_top.m_cyc_i[mast_num]
+
+bool
+OrpsocAccess::getWbArbMastCycI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_cyc_i) (mast_num);
+
+}	// getWbArbMastCycI ()
+
+//! Access for the arbiter's master[mast_num] strobe input signal
+
+//! @return  The value of the wb_conmax_top.m_stb_i[mast_num]
+
+bool
+OrpsocAccess::getWbArbMastStbI (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_stb_i) (mast_num);
+
+}	// getWbArbMastStbI ()
+
+//! Access for the arbiter's master[mast_num] ACK output signal
+
+//! @return  The value of the wb_conmax_top.m_ack_o[mast_num]
+
+bool
+OrpsocAccess::getWbArbMastAckO (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_ack_o) (mast_num);
+
+}	// getWbArbMastAckO ()
+
+//! Access for the arbiter's master[mast_num] error input signal
+
+//! @return  The value of the wb_conmax_top.m_err_o[mast_num]
+
+bool
+OrpsocAccess::getWbArbMastErrO (uint32_t mast_num)
+{
+  return  (wb_arbiter->get_m_err_o) (mast_num);
+
+}	// getWbArbMastErrO ()
 

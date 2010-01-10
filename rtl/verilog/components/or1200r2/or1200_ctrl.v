@@ -684,9 +684,6 @@ always @(posedge clk or posedge rst) begin
 `ifdef OR1200_MAC_IMPLEMENTED
 	    `OR1200_OR32_MACMSB,
 `endif
-`ifdef OR1200_FPU_IMPLEMENTED
-	    `OR1200_OR32_FLOAT,
-`endif	      
 	    `OR1200_OR32_SW,
 	    `OR1200_OR32_SB,
 	    `OR1200_OR32_SH,
@@ -697,6 +694,12 @@ always @(posedge clk or posedge rst) begin
 `endif
 	    `OR1200_OR32_NOP:
 		except_illegal <= #1 1'b0;
+`ifdef OR1200_FPU_IMPLEMENTED
+	    `OR1200_OR32_FLOAT:
+	      /* Check it's not a double instruction */
+	      except_illegal <= #1 id_insn[`OR1200_FPUOP_DOUBLE_BIT];	    
+`endif	      
+
 
 	    // Illegal and OR1200 unsupported instructions
 	    default:
@@ -1115,6 +1118,9 @@ always @(posedge clk or posedge rst) begin
 		sig_trap <= #1 (id_insn[31:23] == {`OR1200_OR32_XSYNC, 3'b010})
 			| du_hwbkpt;
 	end
+	else if (!sig_trap)
+	  sig_trap <= #1 du_hwbkpt; // Added jb 091220 - because hw data load/store EA bkpts weren't getting triggered
+   
 end
 
 endmodule

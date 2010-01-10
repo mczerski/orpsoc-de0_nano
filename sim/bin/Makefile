@@ -583,15 +583,24 @@ endif
 
 # If set on the command line we build the cycle accurate model which will generate verilator-specific profiling information. This is useful for checking the efficiency of the model - not really useful for checking code or the function of the model.
 ifdef VLT_ORPSOC_PROFILING
-VLT_CPPFLAGS=-g -pg
+VLT_CPPFLAGS +=-pg
 VLT_DEBUG_OPTIONS +=-profile-cfuncs
 else
-VLT_CPPFLAGS=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+#VLT_CPPFLAGS +=-fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
+VLT_CPPFLAGS +=-fprofile-use -Wcoverage-mismatch
 #VLT_CPPFLAGS=-Wall
 endif
 
+# Set VLT_IN_GDB=1 when making if going to run the cycle accurate model executable in GDB to check suspect behavior. This also removes optimisation.
+ifdef VLT_IN_GDB
+VLT_CPPFLAGS +=-g -O0 
+else
+# The default optimisation flag applied to all of the cycle accurate model files
+VLT_CPPFLAGS +=-O3
+endif
+
 ifdef VLT_DO_PROFILING
-VLT_CPPFLAGS=-O3 -ftest-coverage -fprofile-generate
+VLT_CPPFLAGS +=-ftest-coverage -fprofile-arcs -fprofile-generate 
 endif
 
 # VCD Enabled by default when building, enable it at runtime
@@ -609,7 +618,7 @@ VLT_TRACEOBJ = SpTraceVcdC
 # Included is the SystemPerl trace model
 SYSC_MODELS_BUILD=$(SYSC_MODELS) $(VLT_TRACEOBJ)
 
-prepare-vlt: prepare-rtl vlt_model_links $(SIM_VLT_DIR)/Vorpsoc_top
+prepare-vlt: prepare-rtl vlt-model-links $(SIM_VLT_DIR)/Vorpsoc_top
 	@echo;echo "\tCycle-accurate model compiled successfully"
 	@echo;echo "\tRun the executable with the -h option for usage instructions:";echo
 	$(SIM_VLT_DIR)/Vorpsoc_top -h
@@ -688,8 +697,8 @@ $(SIM_VLT_DIR)/$(VLT_COMMAND_FILE).generated: $(ALL_VLOG)
 		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
 		-e \\!^//.*\$$!d -e \\!^\$$!d;
 
-.PHONY: vlt_model_links
-vlt_model_links:
+.PHONY: vlt-model-links
+vlt-model-links:
 # Link all the required system C model files into the verilator work dir
 	@echo; echo "\tLinking SystemC model source to verilator build path"; echo
 	@if [ ! -d $(SIM_VLT_DIR) ]; then mkdir $(SIM_VLT_DIR); fi
@@ -742,8 +751,18 @@ vlt-tests: prepare-sw-uart-printf prepare-rtl prepare-dirs prepare-vlt
 # This new make target copies athe results of the profiling back to the right
 # paths before we create everything again
 ###############################################################################
-prepare-vlt-profiled: vlt_restore-profileoutput prepare-rtl vlt-model-links $(SIM_VLT_DIR)/Vorpsoc_top
+.PHONY: prepare-vlt-profiled
+prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda clean vlt-restore-profileoutput prepare-rtl vlt-model-links $(SIM_VLT_DIR)/Vorpsoc_top
 
+$(SIM_VLT_DIR)/OrpsocMain.gcda: $(SIM_VLT_DIR)/Vorpsoc_top-for-profiling prepare-sw-uart-printf
+	$(MAKE) -C $(SW_DIR)/dhry dhry-nocache-O2 NUM_RUNS=200
+	$(SIM_VLT_DIR)/Vorpsoc_top -f $(SW_DIR)/dhry/dhry-nocache-O2.or32 -v -l sim.log --crash-monitor
+
+.PHONY: $(SIM_VLT_DIR)/Vorpsoc_top-for-profiling
+$(SIM_VLT_DIR)/Vorpsoc_top-for-profiling:
+	$(MAKE) prepare-vlt VLT_DO_PROFILING=1
+
+.PHONY: vlt-restore-profileoutput
 vlt-restore-profileoutput:
 	@echo;echo "\tRestoring profiling outputs"; echo
 	$(Q)mkdir -p ../vlt

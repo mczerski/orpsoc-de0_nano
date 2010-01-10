@@ -31,6 +31,8 @@ ifdef VLT_CPPFLAGS
 CXXFLAGS += $(VLT_CPPFLAGS)
 endif
 
+CPPFLAGS += -DTARGET_BIG_ENDIAN
+
 CXX ?= g++
 #PROF_OPTS ?= -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer -O3
 OPT_ALL ?= $(OPT_SLOW) $(OPT_FAST) $(OPT)
@@ -40,8 +42,22 @@ SYSC_INC_DIR = ../include
 INCDIRS   = -I$(SYSTEMC)/include -I$(SYSC_INC_DIR)
 
 # Local objects
-OBJS = Or1200MonitorSC.o \
-       ResetSC.o \
+OBJS = DebugUnitSC.o \
+	GdbServerSC.o \
+	JtagSC.o          \
+	TapAction.o       \
+	TapActionDRScan.o \
+	TapActionIRScan.o \
+	TapActionReset.o  \
+	TapStateMachine.o \
+	MemCache.o \
+	MpHash.o \
+	Or1200MonitorSC.o \
+	ResetSC.o \
+	RspConnection.o \
+	RspPacket.o \
+	SprCache.o \
+	Utils.o \
 	UartSC.o
 LIB  = libmodules.a
 

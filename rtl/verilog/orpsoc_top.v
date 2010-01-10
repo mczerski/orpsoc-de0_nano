@@ -679,7 +679,7 @@ module orpsoc_top
 `else // !`ifdef USE_SDRAM
    
    parameter ram_wb_dat_width = 32;
-   parameter ram_wb_adr_width = 24;
+   parameter ram_wb_adr_width = 25;
    //parameter ram_wb_mem_size  = 2097152; // 8MB
    parameter ram_wb_mem_size  = 8388608; // 32MB -- for linux test
 

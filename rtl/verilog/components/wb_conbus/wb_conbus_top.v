@@ -369,7 +369,7 @@ module wb_conbus_top(
    //
 
    wire [`mselectw -1:0] i_gnt_arb;
-   wire [2:0] 		 gnt;
+   wire [2:0] 		 gnt/* verilator public */;
    reg [`sselectw -1:0]  i_ssel_dec;
 `ifdef	WB_USE_TRISTATE
    wire [`mbusw -1:0] 	 i_bus_m;
@@ -639,7 +639,7 @@ module wb_conbus_top(
    //////////////////////////////////
    // 		address decode logic
    //
-   wire [7:0] m0_ssel_dec, m1_ssel_dec, m2_ssel_dec, m3_ssel_dec, m4_ssel_dec, m5_ssel_dec, m6_ssel_dec, m7_ssel_dec;
+   wire [7:0] m0_ssel_dec, m1_ssel_dec, m2_ssel_dec, m3_ssel_dec, m4_ssel_dec, m5_ssel_dec, m6_ssel_dec, m7_ssel_dec ;
    always @(gnt, m0_ssel_dec, m1_ssel_dec, m2_ssel_dec, m3_ssel_dec, m4_ssel_dec, m5_ssel_dec, m6_ssel_dec, m7_ssel_dec)
      case(gnt)
        3'h0: i_ssel_dec = m0_ssel_dec;
@@ -762,4 +762,170 @@ module wb_conbus_top(
    //assign i_ssel_dec[7] = (i_bus_m[`mbusw -1 : `mbusw - s27_addr_w ] == s7_addr);
 
 
+`ifdef verilator
+   // Access functions for verilator,  hardcoded to dw=32, aw=32
+
+   // Master Signal Access functions
+   
+   wire [`dw-1:0] 		m_dat_i[0:`mselectw-1] /* verilator public */;
+   assign m_dat_i[0] = m0_dat_i;
+   assign m_dat_i[1] = m1_dat_i;
+   assign m_dat_i[2] = m2_dat_i;
+   assign m_dat_i[3] = m3_dat_i;
+   assign m_dat_i[4] = m4_dat_i;
+   assign m_dat_i[5] = m5_dat_i;
+   assign m_dat_i[6] = m6_dat_i;
+   assign m_dat_i[7] = m7_dat_i;
+   
+   wire [`dw-1:0] 		m_dat_o[0:`mselectw-1]/* verilator public */;
+   assign m_dat_o[0] = m0_dat_o;
+   assign m_dat_o[1] = m1_dat_o;
+   assign m_dat_o[2] = m2_dat_o;
+   assign m_dat_o[3] = m3_dat_o;
+   assign m_dat_o[4] = m4_dat_o;
+   assign m_dat_o[5] = m5_dat_o;
+   assign m_dat_o[6] = m6_dat_o;
+   assign m_dat_o[7] = m7_dat_o;
+   
+   
+   wire [`aw-1:0] 	m_adr_i[0:`mselectw-1]/* verilator public */;
+   assign m_adr_i[0] = m0_adr_i;
+   assign m_adr_i[1] = m1_adr_i;
+   assign m_adr_i[2] = m2_adr_i;
+   assign m_adr_i[3] = m3_adr_i;
+   assign m_adr_i[4] = m4_adr_i;
+   assign m_adr_i[5] = m5_adr_i;
+   assign m_adr_i[6] = m6_adr_i;
+   assign m_adr_i[7] = m7_adr_i;
+   
+   wire [`sw-1:0] 	m_sel_i[0:`mselectw-1]/* verilator public */;
+   assign m_sel_i[0] = m0_sel_i;
+   assign m_sel_i[1] = m1_sel_i;
+   assign m_sel_i[2] = m2_sel_i;
+   assign m_sel_i[3] = m3_sel_i;
+   assign m_sel_i[4] = m4_sel_i;
+   assign m_sel_i[5] = m5_sel_i;
+   assign m_sel_i[6] = m6_sel_i;
+   assign m_sel_i[7] = m7_sel_i;
+   
+   wire [`mselectw-1:0] 		m_we_i/* verilator public */;
+   assign m_we_i[0] = m0_we_i;
+   assign m_we_i[1] = m1_we_i;
+   assign m_we_i[2] = m2_we_i;
+   assign m_we_i[3] = m3_we_i;
+   assign m_we_i[4] = m4_we_i;
+   assign m_we_i[5] = m5_we_i;
+   assign m_we_i[6] = m6_we_i;
+   assign m_we_i[7] = m7_we_i;
+   
+   wire [`mselectw-1:0]	m_cyc_i/* verilator public */;
+   assign m_cyc_i[0] = m0_cyc_i;
+   assign m_cyc_i[1] = m1_cyc_i;
+   assign m_cyc_i[2] = m2_cyc_i;
+   assign m_cyc_i[3] = m3_cyc_i;
+   assign m_cyc_i[4] = m4_cyc_i;
+   assign m_cyc_i[5] = m5_cyc_i;
+   assign m_cyc_i[6] = m6_cyc_i;
+   assign m_cyc_i[7] = m7_cyc_i;
+   
+   wire [`mselectw-1:0] 	m_stb_i/* verilator public */;
+   assign m_stb_i[0] = m0_stb_i;
+   assign m_stb_i[1] = m1_stb_i;
+   assign m_stb_i[2] = m2_stb_i;
+   assign m_stb_i[3] = m3_stb_i;
+   assign m_stb_i[4] = m4_stb_i;
+   assign m_stb_i[5] = m5_stb_i;
+   assign m_stb_i[6] = m6_stb_i;
+   assign m_stb_i[7] = m7_stb_i;
+   
+   wire [`mselectw-1:0] 	m_ack_o/* verilator public */;
+   assign m_ack_o[0] = m0_ack_o;
+   assign m_ack_o[1] = m1_ack_o;
+   assign m_ack_o[2] = m2_ack_o;
+   assign m_ack_o[3] = m3_ack_o;
+   assign m_ack_o[4] = m4_ack_o;
+   assign m_ack_o[5] = m5_ack_o;
+   assign m_ack_o[6] = m6_ack_o;
+   assign m_ack_o[7] = m7_ack_o;
+   
+   wire [`mselectw-1:0] m_err_o/* verilator public */;
+   assign m_err_o[0] = m0_err_o;
+   assign m_err_o[1] = m1_err_o;
+   assign m_err_o[2] = m2_err_o;
+   assign m_err_o[3] = m3_err_o;
+   assign m_err_o[4] = m4_err_o;
+   assign m_err_o[5] = m5_err_o;
+   assign m_err_o[6] = m6_err_o;
+   assign m_err_o[7] = m7_err_o;
+
+   wire [7:0] 	       m_ssel_dec [0:7]/* verilator public*/;
+   assign m_ssel_dec[0] = m0_ssel_dec;
+   assign m_ssel_dec[1] = m1_ssel_dec;
+   assign m_ssel_dec[2] = m2_ssel_dec;
+   assign m_ssel_dec[3] = m3_ssel_dec;
+   assign m_ssel_dec[4] = m4_ssel_dec;
+   assign m_ssel_dec[5] = m5_ssel_dec;
+   assign m_ssel_dec[6] = m6_ssel_dec;
+   assign m_ssel_dec[7] = m7_ssel_dec;
+
+   // Arbiter's grant signal
+   function [2:0] get_gnt;
+      // verilator public
+      get_gnt = gnt;
+   endfunction
+
+   function [31:0] get_m_dat_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_dat_i = m_dat_i[mast_no];
+   endfunction // get_m_dat_i   
+   function [31:0] get_m_dat_o;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_dat_o = m_dat_o[mast_no];
+   endfunction // get_m_dat_o   
+   function [31:0] get_m_adr_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_adr_i = m_adr_i[mast_no];
+   endfunction // get_m_adr_i   
+   function [3:0] get_m_sel_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_sel_i = m_sel_i[mast_no];
+   endfunction // get_m_sel_i
+   function get_m_we_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_we_i = m_we_i[mast_no];
+   endfunction // get_m_we_i
+   function get_m_cyc_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_cyc_i = m_cyc_i[mast_no];
+   endfunction // get_m_cyc_i
+   function get_m_stb_i;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_stb_i = m_stb_i[mast_no];
+   endfunction // get_m_stb_i
+   function get_m_ack_o;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_ack_o = m_ack_o[mast_no];
+   endfunction // get_m_ack_o
+   function get_m_err_o;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_err_o = m_err_o[mast_no];
+   endfunction // get_m_err_o
+   
+   // Decoded slave for each master's access
+   function [7:0] get_m_ssel_dec;
+      // verilator public
+      input [2:0] 		mast_no;
+      get_m_ssel_dec = m_ssel_dec[mast_no];
+   endfunction
+   
+   `endif   
 endmodule

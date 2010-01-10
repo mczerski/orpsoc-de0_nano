@@ -38,7 +38,10 @@ class Vorpsoc_top_or1200_ctrl;
 class Vorpsoc_top_or1200_except;
 class Vorpsoc_top_or1200_sprs;
 class Vorpsoc_top_or1200_dpram;
-class Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000;
+// Main memory access class - will change if main memory size or other parameters change
+class Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000;
+// SoC Arbiter class - will also change if any modifications to bus architecture
+class Vorpsoc_top_wb_conbus_top__pi1;
 
 
 //! Access functions to the Verilator model
@@ -79,6 +82,22 @@ public:
   // Trigger a $readmemh for the RAM array
   void  do_ram_readmemh (void);
 
+  // Arbiter access functions
+  uint8_t getWbArbGrant ();
+  // Master Signal Access functions
+  uint32_t  getWbArbMastDatI (uint32_t mast_num);
+  uint32_t  getWbArbMastDatO (uint32_t mast_num);
+  uint32_t  getWbArbMastAdrI (uint32_t mast_num);
+  uint8_t  getWbArbMastSelI (uint32_t mast_num);
+  uint8_t getWbArbMastSlaveSelDecoded (uint32_t mast_num);
+  bool  getWbArbMastWeI (uint32_t mast_num);
+  bool  getWbArbMastCycI (uint32_t mast_num);
+  bool  getWbArbMastStbI (uint32_t mast_num);
+  bool  getWbArbMastAckO (uint32_t mast_num);
+  bool  getWbArbMastErrO (uint32_t mast_num);
+  
+
+
 private:
 
   // Pointers to modules with accessor functions
@@ -86,7 +105,9 @@ private:
   Vorpsoc_top_or1200_except	*or1200_except;
   Vorpsoc_top_or1200_sprs	*or1200_sprs;
   Vorpsoc_top_or1200_dpram	*rf_a;
-  /*Vorpsoc_top_ram_wb_sc_sw*/Vorpsoc_top_ram_wb_sc_sw__D20_A18_M800000 *ram_wb_sc_sw; 
+  /*Vorpsoc_top_ram_wb_sc_sw*/Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000 *ram_wb_sc_sw;
+  // Arbiter
+  Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
 
 };	// OrpsocAccess ()
 

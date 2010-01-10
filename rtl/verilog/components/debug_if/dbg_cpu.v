@@ -280,7 +280,7 @@ begin
                           dr[31:0] <= #1 input_data[31:0];
                           latch_data <= #1 1'b1;
                         end
-                      else
+                      else if (enable)
                         begin
                           dr[31:0] <= #1 {dr[30:0], 1'b0};
                           latch_data <= #1 1'b0;

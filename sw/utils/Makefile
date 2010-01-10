@@ -42,15 +42,21 @@
 ## Makefile for the ORPSoC software utilities
 ##
 
-PROGRAMS = bin2c bin2srec bin2flimg bin2hex bin2vmem
+PROGRAMS = bin2c bin2srec bin2flimg bin2hex bin2vmem binlog2readable
 # NB: 'loader' not in that list
 
 CC     = gcc
+CPP    = g++
 CFLAGS = -O2 -Wall
+#CFLAGS = -O0 -Wall -g
 
 % : %.c
 	@/bin/rm -f $@
 	$(CC) -o $@ $(CFLAGS) $<
+
+% : %.cpp
+	@/bin/rm -f $@
+	$(CPP) -o $@ $(CFLAGS) $<
 
 all: $(PROGRAMS) or32-idecode
 

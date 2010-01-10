@@ -37,6 +37,8 @@ using namespace std;
 #include "Or1200MonitorSC.h"
 #include "OrpsocMain.h"
 
+#include <errno.h>
+int monitor_to_gdb_pipe[2][2]; // [0][] - monitor to gdb, [1][] - gdb to monitor, [][0] - read, [][1] - write
 
 SC_HAS_PROCESS( Or1200MonitorSC );
 
@@ -54,25 +56,34 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
   accessor (_accessor),
   memoryload(_memoryload)
 {
-
-  // If not -log option, then don't log
-  
-  string logfileDefault("vlt-executed.log");
+  string logfileDefault(DEFAULT_EXEC_LOG_FILE);
   string logfileNameString;
-  profiling_enabled = 0; 
+  logging_enabled = false;
+  logfile_name_provided = false;
+  profiling_enabled = false; 
   string profileFileName(DEFAULT_PROF_FILE); 
   memdumpFileName = (DEFAULT_MEMDUMP_FILE);
   int memdump_start = 0; int memdump_end = 0;
-  do_memdump = 0; // Default is not to do a dump of RAM at finish
+  do_memdump = false; // Default is not to do a dump of RAM at finish
+  logging_regs = true; // Execution log includes register values by default
+  bool rsp_server_enabled = false;
+  wait_for_stall_cmd_response = false; // Default
+  insn_count = insn_count_rst = 0;
+  cycle_count = cycle_count_rst = 0;
 
-  insn_count=0;
-  cycle_count=0;
+  exit_perf_summary_enabled = true; // Simulation exit performance summary is 
+                                    // on by default. Turn off with "-q" on the 
+                                    // cmd line
+  monitor_for_crash = false;
+  lookslikewevecrashed_count = crash_monitor_buffer_head = 0;
 
-  exit_perf_summary_enabled = 1; // Simulation exit performance summary is 
-                                 // on by default. Turn off with "-q" on the cmd line
+  bus_trans_log_enabled = bus_trans_log_name_provided = 
+    bus_trans_log_start_delay_enable = false; // Default
+  string bus_trans_default_log_name(DEFAULT_BUS_LOG_FILE);
+  string bus_trans_log_file;
 
   // Parse the command line options
-  int cmdline_name_found=0;
+  bool cmdline_name_found = false;
   if (argc > 1)
     {
       // Search through the command line parameters for the "-log" option
@@ -81,30 +92,70 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	  if ((strcmp(argv[i], "-l")==0) ||
 	      (strcmp(argv[i], "--log")==0))
 	    {
-	      logfileNameString = (argv[i+1]);
-	      cmdline_name_found=1;
+	      logging_enabled = true;
+	      binary_log_format = false;
+	      if (i+1 < argc)
+		if(argv[i+1][0] != '-')
+		  {
+		    logfileNameString = (argv[i+1]);
+		    logfile_name_provided = true;
+		  }
+	      if (!logfile_name_provided)
+		logfileNameString = logfileDefault;
+	    }
+	  else if ((strcmp(argv[i], "--log-noregs")==0))
+	    {
+	      logging_regs = false;
+	    }
+	  else if ((strcmp(argv[i], "-b")==0) ||
+		   (strcmp(argv[i], "--binlog")==0))
+	    {
+	      logging_enabled = true;
+	      binary_log_format = true;
+	      if (i+1 < argc)
+		if(argv[i+1][0] != '-')
+		  {
+		    logfileNameString = (argv[i+1]);
+		    logfile_name_provided = true;
+		  }
+	      if (!logfile_name_provided)
+		logfileNameString = logfileDefault;
+
+	    }
+	  else if ((strcmp(argv[i], "-c")==0) ||
+		   (strcmp(argv[i], "--crash-monitor")==0))
+	    {
+	      monitor_for_crash = true;
 	    }
 	  else if ((strcmp(argv[i], "-q")==0) ||
 		   (strcmp(argv[i], "--quiet")==0))
 	    {
-	      exit_perf_summary_enabled = 0;
+	      exit_perf_summary_enabled = false;
 	    }
 	  else if ((strcmp(argv[i], "-p")==0) ||
 		   (strcmp(argv[i], "--profile")==0))
 	    {
-	      profiling_enabled = 1;
-	      // Check for !end of command line and that next thing is not a command
+	      profiling_enabled = true;
+	      // Check for !end of command line and that next thing is not a 
+	      // command
 	      if ((i+1 < argc)){
 		if(argv[i+1][0] != '-')
 		  profileFileName = (argv[i+1]);
 	      }
 	    }
+	  else if ( (strcmp(argv[i], "-r")==0) ||
+		    (strcmp(argv[i], "--rsp")==0) )
+	    {
+	      // We need to detect this here too
+	      rsp_server_enabled = true;
+	    }
+				
 	  else if ((strcmp(argv[i], "-m")==0) ||
 		   (strcmp(argv[i], "--memdump")==0))
 	    {
-	      do_memdump = 1;
-	      // Check for !end of command line and that next thing is not a command
-	      // or a memory address
+	      do_memdump = true;
+	      // Check for !end of command line and that next thing is not a 
+	      // command or a memory address
 	      if (i+1 < argc)
 		{
 		  if((argv[i+1][0] != '-') && (strncmp("0x", argv[i+1],2) != 0))
@@ -137,10 +188,41 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 		    }
 		}
 	    }
+	  else if ((strcmp(argv[i], "-u")==0) ||
+		   (strcmp(argv[i], "--bus-log")==0))
+	    {
+	      bus_trans_log_enabled = true;
+	      if (i+1 < argc)
+		if(argv[i+1][0] != '-')
+		  {
+		    bus_trans_log_file = (argv[i+1]);
+		    bus_trans_log_name_provided = true;
+		  }
+	      
+	      if (!bus_trans_log_name_provided)
+		bus_trans_log_file = bus_trans_default_log_name;
+	      
+	      // check for a log start delay
+	      if (i+2 < argc)
+		if(argv[i+2][0] != '-')
+		  {
+		    // We have a bus transaction log start delay
+		    bus_trans_log_start_delay_enable = true;
+		    int time_val = atoi(argv[i+2]);
+		    sc_time log_start_time(time_val,SC_NS);
+		    bus_trans_log_start_delay = log_start_time;
+		  }
+	    }
 	}
     }
+
   
-  
+  if (!rsp_server_enabled)
+    {
+      monitor_to_gdb_pipe[0][0] = monitor_to_gdb_pipe[0][1] = NULL;
+      monitor_to_gdb_pipe[1][0] = monitor_to_gdb_pipe[1][1] = NULL;
+    }
+
     
   // checkInstruction monitors the bus for special NOP instructionsl
   SC_METHOD (checkInstruction);
@@ -150,11 +232,12 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
   
   if (profiling_enabled)
     {
+      
       profileFile.open(profileFileName.c_str(), ios::out); // Open profiling log file
       if(profileFile.is_open())
 	{
 	  // If the file was opened OK, then enabled logging and print a message.
-	  profiling_enabled = 1;
+	  profiling_enabled = true;
 	  cout << "* Execution profiling enabled. Logging to " << profileFileName << endl;
 	}
       
@@ -165,27 +248,50 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       start = clock();
     }
 
-  
-  if(cmdline_name_found==1) // No -log option specified so don't turn on logging
+  if(logging_enabled)
     {      
-
-      logging_enabled = 0; // Default is logging disabled      
-      statusFile.open(logfileNameString.c_str(), ios::out ); // open file to write to it
-
-      if(statusFile.is_open())
+      
+      /* Now open the file */
+      if (binary_log_format)
+	statusFile.open(logfileNameString.c_str(), ios::out | ios::binary);
+      else
+	statusFile.open(logfileNameString.c_str(), ios::out );
+      
+      /* Check the open() */
+      if(statusFile.is_open() && binary_log_format)
 	{
-	  // If we could open the file then turn on logging
-	  logging_enabled = 1;
-	  cout << "* Processor execution logged to file: " << logfileNameString << endl;
+	  cout << "* Processor execution logged in binary format to file: " << logfileNameString << endl;
+	  /* Write out a byte indicating whether there's register values too */
+	  statusFile.write((char*)&logging_regs, 1);
+	  
 	}
+      else if (statusFile.is_open() && !binary_log_format)
+	cout << "* Processor execution logged to file: " << logfileNameString << endl;
+      else
+	/* Couldn't open */
+	logging_enabled = false;
       
     }  
+  
   if (logging_enabled)
-    {  
-      SC_METHOD (displayState);
+    { 
+      if (binary_log_format)
+	{
+	  SC_METHOD (displayStateBinary);
+	}
+      else
+	{
+	  SC_METHOD (displayState);
+	}
       sensitive << clk.pos();
       dont_initialize();
       start = clock();
+      
+    }
+
+  if (monitor_for_crash)
+    {
+      cout << "* Crash monitor enabled" << endl;
     }
 
   // Check sizes we were given from memory dump command line options first
@@ -194,7 +300,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       if ((memdump_start > ORPSOC_SRAM_SIZE) || (memdump_end > ORPSOC_SRAM_SIZE) || 
 	  ((memdump_start > memdump_end) && (memdump_end != 0)))
 	{
-	  do_memdump = 0;
+	  do_memdump = false;
 	  cout << "* Memory dump addresses range incorrect. Limit of memory is 0x" << hex <<  ORPSOC_SRAM_SIZE << ". Memory dumping disabled." << endl;
 	}
     }
@@ -221,25 +327,53 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       
       memdump_start_addr = memdump_start;
       memdump_end_addr = memdump_end;      
-    }     
+    }
+
+  if (bus_trans_log_enabled)
+    {
+      // Setup log file and register the bus monitoring function
+      busTransLog.open(bus_trans_log_file.c_str(), ios::out );
+
+      if (busTransLog.is_open())
+	{
+	  cout << "* System bus transactions logged to file: " << 
+	    bus_trans_log_file;
+	  
+	  if (bus_trans_log_start_delay_enable)
+	    cout << ", on at " << bus_trans_log_start_delay.to_string();
+	  cout << endl;
+	}
+      else
+	/* Couldn't open */
+	bus_trans_log_enabled = false;
+    }
+
+  if (bus_trans_log_enabled)
+    {
+      // Setup profiling function
+      SC_METHOD (busMonitor);
+      sensitive << clk.pos();
+      dont_initialize();
+    }
   
 }	// Or1200MonitorSC ()
-
-//! Print command line switches for the options of this module
-void 
-Or1200MonitorSC::printSwitches()
-{
-  printf(" [-l <file>] [-q] [-p [<file>]] [-m [<file>] [<0xstardaddr> <0xendaddr>]]");
-}
 
 //! Print usage for the options of this module
 void 
 Or1200MonitorSC::printUsage()
 {
-  printf("  -p, --profile\t\tEnable execution profiling output to file (default "DEFAULT_PROF_FILE")\n");
-  printf("  -l, --log\t\tLog processor execution to file\n");
+  printf("\nLogging and diagnostic options:\n");
+  printf("  -p, --profile [<file>]Enable execution profiling output to <file> (default is\n\t\t\t"DEFAULT_PROF_FILE")\n");
+  printf("  -l, --log <file>\tLog processor execution to <file>\n");
+  printf("      --log-noregs\tLog excludes register contents\n");
+
+  printf("  -b, --binlog <file>\tGenerate binary format execution log (faster, smaller)\n");
+
   printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
-  printf("  -m, --memdump\t\tDump data from the system's RAM to a file on finish\n\n");
+  printf("  -m, --memdump <file> <0xstartaddr> <0xendaddr>\n\t\t\tDump data between <0xstartaddr> and <0xendaddr> from\n\t\t\tthe system's RAM to <file> in binary format on exit\n");
+  printf("  -c, --crash-monitor\tDetect when the processor has crashed and exit\n");
+  printf("  -u, --bus-log <file> <val>\n\t\t\tLog the wishbone bus transactions to <file>, opt. start\n\t\t\tafter <val> ns\n\n");
+
 }
 
 //! Method to handle special instrutions
@@ -261,24 +395,29 @@ Or1200MonitorSC::checkInstruction()
 {
   uint32_t  r3;
   double    ts;
+  uint32_t current_WbInsn, current_WbPC;
   
   cycle_count++;  
 
   /* Check if this counts as an "executed" instruction */
   if (!accessor->getWbFreeze())
-    if ((((accessor->getWbInsn() & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(accessor->getWbInsn() & (1<<16))) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))	
-      insn_count++;
-    else
-      // Exception version
-      if (accessor->getExceptFlushpipe())
+    {
+      // Cache writeback stage instruction
+      current_WbInsn = accessor->getWbInsn();
+      
+      if ((((current_WbInsn & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(current_WbInsn & (1<<16))) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))	
 	insn_count++;
-	  
+      else
+	// Exception version
+	if (accessor->getExceptFlushpipe())
+	  insn_count++;
+    }
+  
   // Check the instruction when the freeze signal is low.
-  //if (!accessor->getWbFreeze())
   if ((!accessor->getWbFreeze()) && (accessor->getExceptType() == 0))
     {
       // Do something if we have l.nop
-      switch (accessor->getWbInsn())
+      switch (current_WbInsn)
 	{
 	case NOP_EXIT:
 	  r3 = accessor->getGpr (3);
@@ -288,6 +427,7 @@ Or1200MonitorSC::checkInstruction()
 	  perfSummary();
 	  if (logging_enabled) statusFile.close();
 	  if (profiling_enabled) profileFile.close();
+	  if (bus_trans_log_enabled) busTransLog.close();
 	  memdump();
 	  SIM_RUNNING=0;
 	  sc_stop();
@@ -310,12 +450,125 @@ Or1200MonitorSC::checkInstruction()
 	  r3 = accessor->getGpr (3);
 	  std::cout << (char)r3 << std::flush;
 	  break;
-
+	case NOP_CNT_RESET:
+	  std::cout << "****************** counters reset ******************" << endl;
+	  std::cout << "since last reset: cycles " << cycle_count - cycle_count_rst << ", insn #" << insn_count - insn_count_rst << endl;
+	  std::cout << "****************** counters reset ******************" << endl;
+	  cycle_count_rst = cycle_count;
+	  insn_count_rst = insn_count;
 	default:
 	  break;
 	}
-    }
+      
+      if (monitor_for_crash)
+	{
+	  current_WbPC = accessor->getWbPC();
+	  // Look at current instruction
+	  if (current_WbInsn == 0x00000000)
+	    {	  
+	      // Looks like we've jumped somewhere incorrectly
+	      lookslikewevecrashed_count++;
+	    }
+#define CRASH_MONITOR_LOG_BAD_INSNS 1
+#if CRASH_MONITOR_LOG_BAD_INSNS
+	  
+	  /* Log so-called "bad" instructions, or at least instructions we
+	  executed, no matter if they caused us to increment 
+	  lookslikewevecrashed_count, this way we get them in our list too */
+	  if (((current_WbInsn & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(current_WbInsn & (1<<16)))
+	    {
+	      crash_monitor_buffer[crash_monitor_buffer_head][0] = current_WbPC;
+	      crash_monitor_buffer[crash_monitor_buffer_head][1] = current_WbInsn;
+	      /* Circular buffer */
+	      if(crash_monitor_buffer_head < CRASH_MONITOR_BUFFER_SIZE-1)
+		crash_monitor_buffer_head++;
+	      else
+		crash_monitor_buffer_head = 0;
+	  
+	    }
 
+#else
+	  else if (((current_WbInsn & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(current_WbInsn & (1<<16)))
+	  {
+
+	      crash_monitor_buffer[crash_monitor_buffer_head][0] = current_WbPC;
+	      crash_monitor_buffer[crash_monitor_buffer_head][1] = current_WbInsn;
+	      /* Circular buffer */
+	      if(crash_monitor_buffer_head < CRASH_MONITOR_BUFFER_SIZE-1)
+		crash_monitor_buffer_head++;
+	      else
+		crash_monitor_buffer_head = 0;
+	      
+	      /* Reset this */
+	      lookslikewevecrashed_count  = 0;
+	    }
+#endif	  
+	  if (wait_for_stall_cmd_response)
+	    {
+	      // We've already crashed, and we're issued a command to stall the
+	      // processor to the system C debug unit interface, and we're
+	      // waiting for this debug unit to send back the message that we've
+	      // stalled.
+	      char readChar;
+	      int n = read(monitor_to_gdb_pipe[1][0], &readChar, sizeof(char));
+	      if (!( ((n < 0) && (errno == EAGAIN)) || (n==0) ))
+		wait_for_stall_cmd_response = false; // We got response
+	      lookslikewevecrashed_count = 0;
+	      
+	    }
+	  else if (lookslikewevecrashed_count > 0)
+	    {
+	      
+	      if (lookslikewevecrashed_count >= CRASH_MONITOR_BUFFER_SIZE/4)
+		{
+		  /* Probably crashed. Bail out, print out buffer */
+		  std::cout << "********************************************************************************"<< endl;
+		  std::cout << "* Looks like processor crashed. Printing last " << CRASH_MONITOR_BUFFER_SIZE << " instructions executed:" << endl;
+		  
+		  int crash_monitor_buffer_head_end = (crash_monitor_buffer_head > 0) ? crash_monitor_buffer_head - 1 : CRASH_MONITOR_BUFFER_SIZE-1;
+		  while (crash_monitor_buffer_head != crash_monitor_buffer_head_end)
+		    {
+		      std::cout << "* PC: " << std::setfill('0') << hex << std::setw(8) << crash_monitor_buffer[crash_monitor_buffer_head][0] << "  INSN: " << std::setfill('0') << hex << std::setw(8) << crash_monitor_buffer[crash_monitor_buffer_head][1] << endl;
+		      
+		      if(crash_monitor_buffer_head < CRASH_MONITOR_BUFFER_SIZE-1)
+			crash_monitor_buffer_head++;
+		      else
+			crash_monitor_buffer_head = 0;
+		    }
+		  std::cout << "********************************************************************************"<< endl;
+		  
+		  if ( (monitor_to_gdb_pipe[0][0] != NULL))
+		    {
+		      // If GDB server is running, we'll pass control back to
+		      // the debugger instead of just quitting.
+		      char interrupt = 0x3; // Arbitrary
+		      write(monitor_to_gdb_pipe[0][1],&interrupt,sizeof(char));
+		      wait_for_stall_cmd_response = true;
+		      lookslikewevecrashed_count = 0;
+		      std::cout << "* Stalling processor and returning control to GDB"<< endl;
+		      // Problem: the debug unit interface's stalling the processor over the simulated JTAG bus takes a while, in the meantime this monitor will continue running and keep triggering the crash detection code. We must somehow wait until the processor is stalled, or circumvent this crash detection output until we detect that the processor is stalled.
+		      // Solution: Added another pipe, when we want to wait for preocssor to stall, we set wait_for_stall_cmd_response=true, then each time we get back to this monitor function we simply poll the pipe until we're stalled. (A blocking read didn't work - this function never yielded and the RSP server handling function never got called).
+		      wait_for_stall_cmd_response = true;
+		      
+		    }
+		  else
+		    {
+		      // Close down sim end exit
+		      ts = sc_time_stamp().to_seconds() * 1000000000.0;
+		      std::cout << std::fixed << std::setprecision (2) << ts;
+		      std::cout << " ns: Exiting (" << r3 << ")" << std::endl;
+		      perfSummary();
+		      if (logging_enabled) statusFile.close();
+		      if (profiling_enabled) profileFile.close();
+		      if (bus_trans_log_enabled) busTransLog.close();
+		      memdump();
+		      SIM_RUNNING=0;
+		      sc_stop();
+		    }
+		}
+	    }
+	}      
+    }
 }	// checkInstruction()
 
 
@@ -389,11 +642,10 @@ Or1200MonitorSC::callLog()
 //! This copies what the verilog testbench module, or1200_monitor does in it its
 //! process which calls the display_arch_state tasks. This is designed to be 
 //! identical to that process, so the output is identical
-#define PRINT_REGS 1
+
 void
 Or1200MonitorSC::displayState()
 {
-  bool printregs = false;
   // Output the state if we're not frozen and not flushing during a delay slot
   if (!accessor->getWbFreeze())
     {
@@ -401,46 +653,114 @@ Or1200MonitorSC::displayState()
 	{
 	  // Print PC, instruction
 	  statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getWbPC() << ":  " << hex << std::setw(8) << accessor->getWbInsn() <<  endl;
-#if PRINT_REGS
-	  printregs = true;
-#endif
+	}
+      // Exception version
+      else if (accessor->getExceptFlushpipe())
+	{
+	  // Print PC, instruction, indicate it caused an exception
+	  statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getExPC() << ":  " << hex << std::setw(8) << accessor->getExInsn() << "  (exception)" << endl;
 	}
       else
+	return;
+    }
+  else
+    return;
+  
+  if (logging_regs)
+    {
+      // Print general purpose register contents
+      for (int i=0; i<32; i++)
 	{
-	  // Exception version
-	  if (accessor->getExceptFlushpipe())
-	    {
-	      // Print PC, instruction, indicate it caused an exception
-	      statusFile << "\nEXECUTED("<< std::setfill(' ') << std::setw(11) << dec << insn_count << "): " << std::setfill('0') << hex << std::setw(8) << accessor->getExPC() << ":  " << hex << std::setw(8) << accessor->getExInsn() << "  (exception)" << endl;
-#if PRINT_REGS
-	      printregs = true;
-#endif
-
-	    }
+	  if ((i%4 == 0)&&(i>0)) statusFile << endl;
+	  statusFile << std::setfill('0');
+	  statusFile << "GPR" << dec << std::setw(2) << i << ": " <<  hex << std::setw(8) << (uint32_t) accessor->getGpr(i) << "  ";		
 	}
+      statusFile << endl;
       
-      if (printregs)
-	{
-	  // Print general purpose register contents
-	  for (int i=0; i<32; i++)
-	    {
-	      if ((i%4 == 0)&&(i>0)) statusFile << endl;
-	      statusFile << std::setfill('0');
-	      statusFile << "GPR" << dec << std::setw(2) << i << ": " <<  hex << std::setw(8) << (uint32_t) accessor->getGpr(i) << "  ";		
-	    }
-	  statusFile << endl;
+      statusFile << "SR   : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprSr() << "  ";
+      statusFile << "EPCR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEpcr() << "  ";
+      statusFile << "EEAR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEear() << "  ";	
+      statusFile << "ESR0 : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEsr() << endl;
       
-	  statusFile << "SR   : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprSr() << "  ";
-	  statusFile << "EPCR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEpcr() << "  ";
-	  statusFile << "EEAR0: " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEear() << "  ";	
-	  statusFile << "ESR0 : " <<  hex << std::setw(8) << (uint32_t) accessor->getSprEsr() << endl;
-	  
-	}
     }
   
   return;
   
 }	// displayState()
+
+//! Method to output the state of the processor in binary format
+//! File format is simply first byte indicating whether register
+//! data is included, and then structs of the following type
+struct s_binary_output_buffer{
+  long long insn_count;
+  uint32_t pc;
+  uint32_t insn;
+  char exception;
+  uint32_t regs[32];
+  uint32_t sr;
+  uint32_t epcr0; 
+  uint32_t eear0; 
+  uint32_t eser0;
+} __attribute__((__packed__));
+
+struct s_binary_output_buffer_sans_regs{
+  long long insn_count;
+  uint32_t pc;
+  uint32_t insn;
+  char exception;
+} __attribute__((__packed__));
+  
+void
+Or1200MonitorSC::displayStateBinary()
+{
+  struct s_binary_output_buffer outbuf;
+  
+  // Output the state if we're not frozen and not flushing during a delay slot
+  if (!accessor->getWbFreeze())
+    {
+      if ((((accessor->getWbInsn() & 0xfc000000) != (uint32_t) OR1200_OR32_NOP) || !(accessor->getWbInsn() & (1<<16))) && !(accessor->getExceptFlushpipe() && accessor->getExDslot()))
+	{
+	  outbuf.insn_count = insn_count;
+	  outbuf.pc = (uint32_t) accessor->getWbPC();
+	  outbuf.insn = (uint32_t) accessor->getWbInsn();
+	  outbuf.exception = 0;
+	}
+      // Exception version
+      else if (accessor->getExceptFlushpipe())
+	{
+	  outbuf.insn_count = insn_count;
+	  outbuf.pc = (uint32_t) accessor->getExPC();
+	  outbuf.insn = (uint32_t) accessor->getExInsn();
+	  outbuf.exception = 1;
+	}
+      else
+	return;
+    }
+  else
+    return;
+  
+  if (logging_regs)
+    {
+      // Print general purpose register contents
+      for (int i=0; i<32; i++)
+	  outbuf.regs[i] = (uint32_t) accessor->getGpr(i);
+
+      outbuf.sr = (uint32_t) accessor->getSprSr();
+      outbuf.epcr0 = (uint32_t) accessor->getSprEpcr();
+      outbuf.eear0 = (uint32_t) accessor->getSprEear();
+      outbuf.eser0 = (uint32_t) accessor->getSprEsr();
+      
+      statusFile.write((char*)&outbuf, sizeof(struct s_binary_output_buffer));
+      
+    }
+  else
+    statusFile.write((char*)&outbuf, sizeof(struct s_binary_output_buffer_sans_regs));
+  
+  
+  
+  return;
+  
+}	// displayStateBinary()
 
 //! Function to calculate the number of instructions performed and the time taken
 void 
@@ -460,7 +780,7 @@ Or1200MonitorSC::perfSummary()
       int hertz = (int) ((cycles/elapsed_time)/1000);
       std::cout << "* Or1200Monitor: simulated " << sc_time_stamp() << ", time elapsed: " << elapsed_time << " seconds" << endl;
       std::cout << "* Or1200Monitor: simulated " << dec << cycles << " clock cycles, executed at approx " << hertz << "kHz" << endl;
-      std::cout << "* Or1200Monitor: simulated " << insn_count << " instructions, insn/sec. = " << ips << ", mips = " << mips << endl;
+      std::cout << "* Or1200Monitor: simulated " << insn_count << " instructions, insn/sec. = " << ips /*<< ", mips = " << mips*/ << endl;
     }
   return;
 } 	// perfSummary
@@ -508,3 +828,79 @@ Or1200MonitorSC::memdump()
   memdumpFile.close();
   
 }
+
+
+void
+Or1200MonitorSC::busMonitor()
+{
+
+  // This is for the wb_conmax module. Presumably other Wishbone bus arbiters 
+  // will need this section of the code to be re-written appropriately, along 
+  // with the relevent functions in the OrpsocAccess module.
+  
+  static busLogStates busLogState = BUS_LOG_IDLE;
+  static int currentMaster = -1;
+  static uint32_t currentAddr = 0, currentDataIn = 0;
+  static uint32_t currentSel = 0, currentSlave = 0;
+  static bool currentWe = false;
+  static int cyclesWaited = 0;
+
+  if (bus_trans_log_start_delay_enable)
+    {      
+      if (sc_time_stamp() >= bus_trans_log_start_delay)
+	{
+	  // No longer waiting
+	  bus_trans_log_start_delay_enable = false;
+	  cout << "* System log now enabled (time =  " << bus_trans_log_start_delay.to_string() << ")" << endl;	  
+	}
+      
+      if (bus_trans_log_start_delay_enable)
+	return;
+    }
+  
+  switch ( busLogState )
+    {
+    case BUS_LOG_IDLE:
+      {
+	// Check the current granted master's cyc and stb inputs
+	uint32_t gnt = accessor->getWbArbGrant();
+	if (accessor->getWbArbMastCycI(gnt) && accessor->getWbArbMastStbI(gnt) && 
+	    !accessor->getWbArbMastAckO(gnt))
+	  {
+	    currentAddr = accessor->getWbArbMastAdrI(gnt);	      
+	    currentDataIn = accessor->getWbArbMastDatI(gnt);
+	    currentSel = (uint32_t) accessor->getWbArbMastSelI(gnt);
+	    currentSlave = (uint32_t)accessor->getWbArbMastSlaveSelDecoded(gnt)-1;
+	    currentWe = accessor->getWbArbMastWeI(gnt);
+	    currentMaster = gnt;
+	    busLogState = BUS_LOG_WAIT_FOR_ACK;
+	    cyclesWaited = 0;
+	  }
+      }
+      
+      break;
+      
+    case BUS_LOG_WAIT_FOR_ACK:
+      
+      cyclesWaited++;
+      
+      // Check for ACK
+      if (accessor->getWbArbMastAckO(currentMaster))
+	{
+	  // Transaction completed
+	  busTransLog << sc_time_stamp() << " M" << currentMaster << " ";
+	  if (currentWe)
+	    busTransLog << " W " << hex << currentSel << " " << hex << std::setfill('0') << std::setw(8) << currentAddr << " S" << dec <<  currentSlave << " " << hex << std::setw(8) << currentDataIn << " " << dec << cyclesWaited << endl;
+	  else
+	    busTransLog << " R " << hex << currentSel << " " << hex << std::setfill('0') << std::setw(8) << currentAddr << " S" << dec << currentSlave << " "  << hex << std::setw(8) << accessor->getWbArbMastDatO(currentMaster) << " " << dec << cyclesWaited << endl;
+	  
+	  busLogState = BUS_LOG_IDLE;
+	}
+      
+      break;
+      
+    }
+
+  return;
+  
+}	// busMonitor ()

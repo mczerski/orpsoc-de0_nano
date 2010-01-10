@@ -61,6 +61,7 @@ public:
 
   // Methods to setup and output state of processor to a file
   void displayState();
+  void displayStateBinary();
 
   // Methods to generate the call and return list during execution
   void callLog();
@@ -77,14 +78,19 @@ public:
   // Method to dump simulation's RAM contents at finish
   void memdump();
 
+  // Method used for monitoring and logging transactions on the system bus
+  void busMonitor();
+
 
   // The ports
   sc_in<bool>   clk;
 
 private:
 
+#define DEFAULT_EXEC_LOG_FILE "or1200_exec.log"
 #define DEFAULT_PROF_FILE "sim.profile"
 #define DEFAULT_MEMDUMP_FILE "vorpsoc_ram.dump"
+#define DEFAULT_BUS_LOG_FILE "bus_trans.log"
 
   // Special NOP instructions
   static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction
@@ -92,19 +98,35 @@ private:
   static const uint32_t NOP_REPORT = 0x15000002;  //!< Simple report
   static const uint32_t NOP_PRINTF = 0x15000003;  //!< Simprintf instruction
   static const uint32_t NOP_PUTC   = 0x15000004;  //!< Putc instruction
+  static const uint32_t NOP_CNT_RESET = 0x15000005; //!< Reset statistics counters
+  static const uint32_t NOP_MEM_STATS_RESET  = 0x15000010; //!< Reset memory statistics counters
+  static const uint32_t NOP_CNT_RESET_DIFFERENCE = 0x15000006; //!< Reset stats counters, print 
 
   // Variables for processor status output
   ofstream statusFile;
   ofstream profileFile;
-  int profiling_enabled;
-  int logging_enabled;
-  int exit_perf_summary_enabled;
-  int insn_count;
-  long long cycle_count;
+  bool profiling_enabled;
+  bool logging_enabled;
+  bool logfile_name_provided;
+  bool logging_regs;
+  bool binary_log_format;
+  bool exit_perf_summary_enabled;
+  bool monitor_for_crash;
+  int lookslikewevecrashed_count, crash_monitor_buffer_head;
+#define CRASH_MONITOR_BUFFER_SIZE 32
+  uint32_t crash_monitor_buffer[CRASH_MONITOR_BUFFER_SIZE][2]; //PC, Insn
+  bool wait_for_stall_cmd_response;
+  unsigned long long insn_count, insn_count_rst;
+  unsigned long long cycle_count, cycle_count_rst;
   ofstream memdumpFile;
   string memdumpFileName;
-  int do_memdump, memdump_start_addr, memdump_end_addr;
-  
+  bool do_memdump;
+  int memdump_start_addr, memdump_end_addr;
+  bool bus_trans_log_enabled, bus_trans_log_name_provided, bus_trans_log_start_delay_enable;
+  sc_time bus_trans_log_start_delay;
+  enum busLogStates { BUS_LOG_IDLE, BUS_LOG_WAIT_FOR_ACK };
+  ofstream busTransLog;
+
   //! Time measurement variable - for calculating performance of the sim
   clock_t start;
 
@@ -112,7 +134,7 @@ private:
   OrpsocAccess *accessor;
 
   //! The memory loading object
-  MemoryLoad *memoryload;
+  MemoryLoad *memoryload;  
 
 };	// Or1200MonitorSC ()
 

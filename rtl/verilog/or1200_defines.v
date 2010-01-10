@@ -514,7 +514,7 @@
 //
 // To implement divide, multiplier needs to be implemented.
 //
-//`define OR1200_IMPL_DIV
+`define OR1200_IMPL_DIV
 
 //
 // Implement rotate in the ALU
@@ -572,7 +572,7 @@
 //
 // Implement HW Single Precision FPU
 //
-//`define OR1200_FPU_IMPLEMENTED
+`define OR1200_FPU_IMPLEMENTED
 
 //
 // Clock ratio RISC clock versus WB clock
@@ -751,7 +751,11 @@
 //
 `ifdef OR1200_FPU_IMPLEMENTED
  `define OR1200_FPUOP_WIDTH	8
+/* FPU unit from Usselman takes 5 cycles from decode, so 4 ex. cycles */
  `define OR1200_FPUOP_CYCLES 3'd4
+/* FP instruction is double precision if bit 4 is set. We're a 32-bit 
+ implementation thus do not support double precision FP */
+ `define OR1200_FPUOP_DOUBLE_BIT 4
  `define OR1200_FPUOP_ADD  8'b0000_0000
  `define OR1200_FPUOP_SUB  8'b0000_0001
  `define OR1200_FPUOP_MUL  8'b0000_0010
