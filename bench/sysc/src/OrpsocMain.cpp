@@ -42,7 +42,7 @@
 
 #include "OrpsocMain.h"
 
-#include "jtagsc.h"
+#include "JtagSC_includes.h"
 
 #include "Vorpsoc_top.h"
 #include "OrpsocAccess.h"
@@ -457,7 +457,10 @@ int sc_main (int   argc,
     {
       // Simple run case
       // Ideally a "l.nop 1" will terminate the simulation gracefully
-      sc_start();
+      // Need to step at clock period / 4, otherwise model appears to skip the monitor and logging functions sometimes (?!?)
+      while (SIM_RUNNING)
+	sc_start(BENCH_CLK_HALFPERIOD / 2, TIMESCALE_UNIT);
+      //sc_start();
     }
   
   

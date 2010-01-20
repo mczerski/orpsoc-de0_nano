@@ -33,7 +33,7 @@
 
 #include "systemc"
 
-#include "jtagsc.h"
+#include "JtagSC_includes.h"
 
 #include "OrpsocAccess.h"
 #include "RspConnection.h"

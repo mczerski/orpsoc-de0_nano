@@ -103,4 +103,4 @@ prof-clean:
 
 # -----------------------------------------------------------------------------
 # Include the dependency files
-include $(OBJS:.o=.d)
+# Comment out for now. include $(OBJS:.o=.d)

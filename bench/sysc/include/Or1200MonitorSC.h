@@ -99,6 +99,9 @@ private:
   static const uint32_t NOP_PRINTF = 0x15000003;  //!< Simprintf instruction
   static const uint32_t NOP_PUTC   = 0x15000004;  //!< Putc instruction
   static const uint32_t NOP_CNT_RESET = 0x15000005; //!< Reset statistics counters
+  static const uint32_t NOP_CNT_RESET1 = 0x15000007;	    /* Reset statistics counter 1 */
+  static const uint32_t NOP_CNT_RESET2 = 0x15000008;	    /* Reset statistics counter 2 */
+  static const uint32_t NOP_CNT_RESET3 = 0x15000009;	    /* Reset statistics counter 3 */
   static const uint32_t NOP_MEM_STATS_RESET  = 0x15000010; //!< Reset memory statistics counters
   static const uint32_t NOP_CNT_RESET_DIFFERENCE = 0x15000006; //!< Reset stats counters, print 
 
@@ -118,6 +121,7 @@ private:
   bool wait_for_stall_cmd_response;
   unsigned long long insn_count, insn_count_rst;
   unsigned long long cycle_count, cycle_count_rst;
+  unsigned long long cycles_1, cycles_2, cycles_3; // Cycle counters for l.nop insns
   ofstream memdumpFile;
   string memdumpFileName;
   bool do_memdump;

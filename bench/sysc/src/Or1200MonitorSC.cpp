@@ -456,6 +456,19 @@ Or1200MonitorSC::checkInstruction()
 	  std::cout << "****************** counters reset ******************" << endl;
 	  cycle_count_rst = cycle_count;
 	  insn_count_rst = insn_count;
+	  /* 3 separate counters we'll use for various things */
+	case NOP_CNT_RESET1: 
+	  std::cout << "**** counter1 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_1 << " resetting ********" << endl;
+	  cycles_1 = cycle_count;
+	  break;
+	case NOP_CNT_RESET2: 
+	  std::cout << "**** counter2 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_2 << " resetting ********" << endl;
+	  cycles_2 = cycle_count;
+	  break;
+	case NOP_CNT_RESET3: 
+	  std::cout << "**** counter3 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_3 << " resetting ********" << endl;
+	  cycles_3 = cycle_count;
+	  break;
 	default:
 	  break;
 	}

@@ -24,7 +24,7 @@
 
 // ----------------------------------------------------------------------------
 
-// $Id: DebugUnitSC.h 331 2009-03-12 17:01:48Z jeremy $
+// $Id$
 
 #ifndef DEBUG_UNIT_SC__H
 #define DEBUG_UNIT_SC__H
@@ -37,7 +37,7 @@
 
 #include "systemc"
 
-#include "jtagsc.h"
+#include "JtagSC_includes.h"
 #include "OrpsocAccess.h"
 #include "SprCache.h"
 #include "MemCache.h"

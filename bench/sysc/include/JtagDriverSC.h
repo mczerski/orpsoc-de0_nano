@@ -33,7 +33,7 @@
 
 #include "systemc"
 
-#include "jtagsc.h"
+#include "JtagSC_includes.h"
 
 
 //! Module providing TAP requests to JTAG
