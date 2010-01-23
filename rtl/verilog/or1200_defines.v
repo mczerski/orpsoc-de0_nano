@@ -1060,8 +1060,8 @@
 //
 `define OR1200_DU_HWBKPTS
 
-// Number of DVR/DCR pairs if HW breakpoints enabled
-`define OR1200_DU_DVRDCR_PAIRS 8
+// Number of DVR/DCR pairs, minus one, if HW breakpoints enabled
+`define OR1200_DU_DVRDCR_PAIRS 7
 
 // Define if you want trace buffer
 //`define OR1200_DU_TB_IMPLEMENTED

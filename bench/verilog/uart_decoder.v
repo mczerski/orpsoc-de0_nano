@@ -75,8 +75,11 @@ initial
       reg [7:0] tx_byte;
       begin
 	 
+	 while (`UART_TX_LINE !== 1'b1)
+	   @(`UART_TX_LINE); 
 	 // Wait for start bit
-	 while (`UART_TX_LINE == 1'b1)
+	 //while (`UART_TX_LINE == 1'b1)
+	 while (`UART_TX_LINE !== 1'b0)
            @(`UART_TX_LINE);
 	 #(UART_TX_WAIT+(UART_TX_WAIT/2));
 	 tx_byte[0] = `UART_TX_LINE;
@@ -96,11 +99,13 @@ initial
 	 tx_byte[7] = `UART_TX_LINE;
 	 #UART_TX_WAIT;
 	 //Check for stop bit
-	 if (`UART_TX_LINE == 1'b0)
+	 //if (`UART_TX_LINE == 1'b0)
+	 if (`UART_TX_LINE !== 1'b1)
 	   begin
               //$display("* WARNING: user stop bit not received when expected at time %d__", $time);
 	      // Wait for return to idle
-	      while (`UART_TX_LINE == 1'b0)
+	      //while (`UART_TX_LINE == 1'b0)
+	      while (`UART_TX_LINE !== 1'b1)
 		@(`UART_TX_LINE);
 	      //$display("* USER UART returned to idle at time %d",$time);
 	   end
