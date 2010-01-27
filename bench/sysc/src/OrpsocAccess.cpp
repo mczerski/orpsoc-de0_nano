@@ -191,23 +191,69 @@ OrpsocAccess::getWbInsn ()
 
 //! Access the Wishbone SRAM memory
 
-//! @return  The value of the memory word at addr
+//! @return  The value of the 32-bit memory word at addr
 
 uint32_t
-OrpsocAccess::get_mem (uint32_t addr)
+OrpsocAccess::get_mem32 (uint32_t addr)
 {
-  return  (ram_wb_sc_sw->get_mem) (addr);
+  return  (ram_wb_sc_sw->get_mem) (addr/4);
 
-}	// get_mem ()
+}	// get_mem32 ()
+
+
+//! Access a byte from the Wishbone SRAM memory
+
+//! @return  The value of the memory byte at addr
+
+uint8_t
+OrpsocAccess::get_mem8 (uint32_t addr)
+{
+
+  uint32_t word;
+  static uint32_t cached_word;
+  static uint32_t cached_word_addr = 0xffffffff;
+  int sel = addr & 0x3; // Remember which byte we want
+  addr = addr / 4;
+  if (addr != cached_word_addr)
+    {
+      cached_word_addr = addr;
+      // Convert address to word number here
+      word = (ram_wb_sc_sw->get_mem) (addr);
+      cached_word = word;
+    }
+  else
+    word = cached_word;
+
+  switch(sel)
+    {
+      /* Big endian word expected */
+    case 0:
+      return ((word >> 24) & 0xff);
+      break;
+    case 1:
+      return ((word >> 16) & 0xff);
+      break;
+    case 2:
+      return ((word >> 8) & 0xff);
+      break;
+    case 3:
+      return ((word >> 0) & 0xff);
+      break;
+    default:
+      return 0;
+    }
+
+}	// get_mem8 ()
+
 
 //! Write value to the Wishbone SRAM memory
 
 void
-OrpsocAccess::set_mem (uint32_t addr, uint32_t data)
+OrpsocAccess::set_mem32 (uint32_t addr, uint32_t data)
 {
-  (ram_wb_sc_sw->set_mem) (addr, data);
+  (ram_wb_sc_sw->set_mem) (addr/4, data);
 
-}	// set_mem ()
+}	// set_mem32 ()
 
 //! Trigger the $readmemh() system call
 

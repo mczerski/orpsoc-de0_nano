@@ -715,7 +715,7 @@ vlt-model-links:
 ################################################################################
 
 # Verilator defaults to internal memories
-vlt-tests: prepare-sw-uart-printf prepare-rtl prepare-dirs prepare-vlt
+vlt-tests: prepare-sw prepare-rtl prepare-dirs prepare-vlt
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"
 	@echo
@@ -773,7 +773,7 @@ vlt-restore-profileoutput:
 ################################################################################
 
 # Verilator defaults to internal memories
-sim-tests: prepare-sw-uart-printf
+sim-tests: prepare-sw
 	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 	@echo
 	@echo "Beginning loop that will complete the following tests: $(TESTS)"

@@ -443,7 +443,8 @@ Or1200MonitorSC::checkInstruction()
 	case NOP_PRINTF:
 	  ts = sc_time_stamp().to_seconds() * 1000000000.0;
 	  std::cout << std::fixed << std::setprecision (2) << ts;
-	  std::cout << " ns: printf" << std::endl;
+	  std::cout << " ns: printf: ";
+	  simPrintf(accessor->getGpr (4), accessor->getGpr (3));
 	  break;
 
 	case NOP_PUTC:
@@ -815,24 +816,15 @@ Or1200MonitorSC::memdump()
       // If we could open the file then turn on logging
       cout << "* Dumping system RAM from  0x" << hex << memdump_start_addr << "-0x" << hex << memdump_end_addr << " to file " << memdumpFileName << endl;
       
-      // Convert memdump_start_addr to word address
-      memdump_start_addr = memdump_start_addr / 4;
       while (size_words)
 	{
 	  // Read the data from the simulation memory
-	  current_word = accessor->get_mem(memdump_start_addr);
-	  //cout << hex << current_word << " ";
-	  /*
-	  cout << hex << ((current_word >> 24 ) & 0xff) << " ";
-	  cout << hex << ((current_word >> 16) & 0xff) << " ";
-	  cout << hex << ((current_word >> 8 ) & 0xff) << " " ; 
-	  cout << hex << ((current_word >> 0 ) & 0xff) << " ";
-	  */
+	  current_word = accessor->get_mem32(memdump_start_addr);
 	  // Change from whatever endian the host is (most
 	  // cases little) to big endian
 	  current_word = htonl(current_word);
 	  memdumpFile.write((char*) &current_word, 4);
-	  memdump_start_addr++; size_words--;
+	  memdump_start_addr+=4; size_words--;
 	}
       
       // Ideally we've now finished piping out the data
@@ -917,3 +909,134 @@ Or1200MonitorSC::busMonitor()
   return;
   
 }	// busMonitor ()
+
+void
+Or1200MonitorSC::simPrintf(uint32_t stackaddr, uint32_t regparam)
+{
+
+  //cerr << hex << stackaddr << " " << regparam << endl;
+#define FMTLEN 2000
+  char fmtstr[FMTLEN];
+  uint32_t arg;
+  oraddr_t argaddr;
+  char *fmtstrend;
+  char *fmtstrpart = fmtstr;
+  int tee_exe_log;
+
+  /*simgetstr (stackaddr, regparam);*/
+  /* Get the format string*/
+  uint32_t fmtaddr;
+  int i;
+  fmtaddr = regparam;
+
+  i = 0;  
+  while (accessor->get_mem8(fmtaddr) != '\0')
+    {
+      fmtstr[i++] = accessor->get_mem8(fmtaddr);
+      fmtaddr++;
+      if (i == FMTLEN - 1)
+	break;
+    }
+  fmtstr[i] = '\0';
+  
+
+  argaddr = stackaddr;
+  int index, last_index;
+  index = last_index = 0;
+  char tmp_char;
+  while (1)
+    {      
+      /* Look for the next format argument, or end of string */
+      while (!(fmtstrpart[index] == '\0' || fmtstrpart[index] == '%'))
+	index++;
+      
+      if (fmtstrpart[index] == '\0' && index == last_index)
+	/* We had something like "%d\0", so we're done*/
+	return;
+	
+      if (fmtstrpart[index] == '\0')
+	{
+	  /* Final printf */
+	  printf("%s", (char*) fmtstrpart + last_index);
+	  return;
+	}
+      else
+	{
+	  /* We have a section between last_index and index that we should print out*/
+	  fmtstrpart[index] = '\0'; /* Replace % with \0 for now */
+	  printf ("%s",fmtstrpart + last_index);
+	  fmtstrpart[index] = '%'; /* Replace the % */
+	}
+
+      last_index = index; /* last_index now pointing at the % */
+      
+      /* Now extract the part that requires formatting */
+      /* Look for the end of the format argument*/
+      while (!(fmtstrpart[index] == 'd' || fmtstrpart[index] == 'i'
+	       || fmtstrpart[index] == 'o' || fmtstrpart[index] == 'u'
+	       || fmtstrpart[index] == 'x' || fmtstrpart[index] == 'X'
+	       || fmtstrpart[index] == 'f' || fmtstrpart[index] == 'e'
+	       || fmtstrpart[index] == 'E' || fmtstrpart[index] == 'g'
+	       || fmtstrpart[index] == 'G' || fmtstrpart[index] == 'c'
+	       || fmtstrpart[index] == 's' || fmtstrpart[index] == '\0'
+	       || fmtstrpart[index+1] == '%'))
+	index++;
+      
+      if (fmtstrpart[index] == '\0')
+	{
+	  // Error
+	  return;
+	}
+      else if (fmtstrpart[index] == '%' && fmtstrpart[index+1] == '%')
+	{
+	  /* Deal with the %% case to print a single % */
+	  index++;
+	  printf("%%");
+	}
+      else
+	{
+	  /* We now will print the part that requires the next argument */
+	  /* Same trick, but this time remember what the char was */
+	  tmp_char = fmtstrpart[index+1];
+	  fmtstrpart[index+1] = '\0'; /* Replace % with \0 for now */
+	  /* Check what we're printing*/
+	  if (fmtstrpart[index] == 's')
+	    {
+	      /* It's a string, so pull it out of memory into a local char*
+		 and pass it to printf() */
+	      int tmp_string_len, z;
+	      /* Assume stackaddr already pointing at appropriate value*/
+	      oraddr_t ormem_str_ptr = accessor->get_mem32(argaddr);
+	      
+	      while (accessor->get_mem8(ormem_str_ptr++) != '\0')
+		tmp_string_len++;
+	      tmp_string_len++; /* One for terminating char */
+	      
+	      char* str = (char *) malloc (tmp_string_len);
+	      if (str == NULL) return; /* Malloc failed, bigger issues than printf'ing out of sim */
+	      ormem_str_ptr = accessor->get_mem32(argaddr); /* Reset start pointer value*/
+	      for (z=0;z<tmp_string_len;z++)
+		str[z] = accessor->get_mem8(ormem_str_ptr+z);
+	      
+	      printf (fmtstrpart + last_index, str);
+	      free (str);
+	    }
+	  else
+	    {
+	      /* 
+		 Some other kind of variable, pull it off the stack and print 
+		 it out. Assume stackaddr already pointing at appropriate 
+		 value
+	      */
+	      arg = accessor->get_mem32(argaddr);
+	      printf (fmtstrpart + last_index, arg);
+	    }
+	  argaddr+= 4; /* Increment argument pointer in stack */
+	  fmtstrpart[index+1] = tmp_char; /* Replace the char we took out */
+	}
+      index++;
+      last_index = index;
+    }
+
+  return;
+}	// simPrintf ()

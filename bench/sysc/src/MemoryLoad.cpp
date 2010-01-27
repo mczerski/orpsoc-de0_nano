@@ -272,32 +272,10 @@ MemoryLoad::addprogram (oraddr_t  address,
 	    int      *breakpoint)
 {
   
-  // Memory is word addressed, not byte, so /4 the address we get
-  int vaddr = (int) address/4;  /*(!runtime.sim.filename) ? translate (address, breakpoint) :
-				  translate (freemem, breakpoint);
-				  -- jb
-				*/
-  /* We can't have set_program32 functions since it is not gauranteed that the
-     section we're loading is aligned on a 4-byte boundry */
-  /*
-  set_program8 (vaddr, (insn >> 24) & 0xff);
-  set_program8 (vaddr + 1, (insn >> 16) & 0xff);
-  set_program8 (vaddr + 2, (insn >> 8) & 0xff);
-  set_program8 (vaddr + 3, insn & 0xff);
-  */
+  int vaddr = (int) address;
   /* Use the whole-word write */
-  accessor->set_mem(vaddr, insn);
-  PRINTF("*  addprogram: addr 0x%.8x insn: 0x%.8x (conf: 0x%.8x)\n", vaddr, insn, accessor->get_mem(vaddr));
-
-  
-#if IMM_STATS
-  check_insn (insn);
-#endif
-  
-  //if (runtime.sim.filename)
-  //{
-  //freemem += insn_len (insn_decode (insn));
-  //}
+  accessor->set_mem32(vaddr, insn);
+  PRINTF("*  addprogram: addr 0x%.8x insn: 0x%.8x (conf: 0x%.8x)\n", vaddr, insn, accessor->get_mem32(vaddr));
   freemem += 4;
     
 }	/* addprogram () */

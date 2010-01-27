@@ -256,6 +256,7 @@ GdbServerSC::rspClientRequest ()
       rsp->rspClose ();			// Comms failure
       return;
     }
+  //Uncomment the next line for the RSP client to print out every packet it gets from GDB
   //cerr << "rspClientRequest: " << pkt->data/*[0]*/ << endl;
   switch (pkt->data[0])
     {

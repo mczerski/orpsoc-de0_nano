@@ -77,8 +77,10 @@ public:
   uint32_t  getSprEsr ();
 
   // Wishbone SRAM accessor functions
-  uint32_t  get_mem (uint32_t addr);
-  void  set_mem (uint32_t addr, uint32_t data);
+  uint32_t  get_mem32 (uint32_t addr);
+  uint8_t   get_mem8 (uint32_t addr);
+
+  void  set_mem32 (uint32_t addr, uint32_t data);
   // Trigger a $readmemh for the RAM array
   void  do_ram_readmemh (void);
 

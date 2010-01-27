@@ -76,11 +76,26 @@ void printf(const char *fmt, ...)
 /* activate printf support in simulator */
 void printf(const char *fmt, ...)
 {
+  /* The following only works with the newlib compiler */
+  /*
+  __asm__ __volatile("	l.addi r1,r1,0xfffffff8\n \
+	l.sw 0(r1), r3\n \
+	l.sw 4(r1), r4\n \
+	l.addi r4, r1, 0xc\n \
+	l.lwz r3, -4(r4)\n \
+	l.nop %0\n \
+	l.lwz r3, 0(r1)\n \
+	l.lwz r4, 4(r1)\n \
+	l.jr r9\n \
+	l.addi r1,r1,0x8": :"K" (NOP_PRINTF));
+  */
+  /* The following should work with the uClibc compiler */
   va_list args;
   va_start(args, fmt);
   __asm__ __volatile__ ("  l.addi\tr3,%1,0\n \
-                           l.addi\tr4,%2,0\n \
+                           l.lwz\tr4,-4(r2)\n \
                            l.nop %0": :"K" (NOP_PRINTF), "r" (fmt), "r"  (args));
+
 }
 
 #endif

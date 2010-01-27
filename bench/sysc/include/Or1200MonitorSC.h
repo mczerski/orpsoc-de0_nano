@@ -80,6 +80,10 @@ public:
 
   // Method used for monitoring and logging transactions on the system bus
   void busMonitor();
+  
+  // Method to do simulator assisted printf'ing
+  void simPrintf(uint32_t stackaddr, uint32_t regparam);
+
 
 
   // The ports
