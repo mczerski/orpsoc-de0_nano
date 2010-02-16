@@ -43,10 +43,3 @@ $BACKEND_DIR/generic_buffers.v
 +libext+.v
 
 $RTL_DIR/orpsoc_top.v
-
-// Testbench support source
-//$BENCH_DIR/or1200_monitor.v
-
-// Testbench (top) source
-//$BENCH_DIR/orpsoc_testbench.v
-

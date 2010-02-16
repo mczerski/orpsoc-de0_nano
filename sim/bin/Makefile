@@ -284,15 +284,18 @@ endif
 # command line becuase it's used by many different modules and it's easier 
 # to do it this way than make them all include a file.
 ifdef USE_SDRAM
-EVENT_SIM_FLAGS += "-D USE_SDRAM=$(USE_SDRAM)"
+EVENT_SIM_FLAGS +=USE_SDRAM=$(USE_SDRAM)
 endif
 
 # Enable ethernet if defined on the command line
 ifdef USE_ETHERNET
-EVENT_SIM_FLAGS += "-D USE_ETHERNET=$(USE_ETHERNET) -D USE_ETHERNET_IO=$(USE_ETHERNET)"
+EVENT_SIM_FLAGS +=USE_ETHERNET=$(USE_ETHERNET) USE_ETHERNET_IO=$(USE_ETHERNET)
 # Extra tests we do if ethernet is enabled
 TESTS += eth-basic eth-int
 endif
+
+DASH_D_EVENT_SIM_FLAGS=$(shell for flag in $(EVENT_SIM_FLAGS); do echo "-D "$$flag; done)
+PLUS_DEFINE_EVENT_SIM_FLAGS=$(shell for flag in $(EVENT_SIM_FLAGS); do echo "+define+"$$flag; done)
 
 #Default simulator is Icarus Verilog
 # Set SIMULATOR=vsim to use Modelsim
@@ -340,7 +343,7 @@ RTL_TESTBENCH_TOP ?= orpsoc_testbench
 # Icarus Verilog
 ifeq ($(SIMULATOR), $(ICARUS))
 # Icarus Verilog Simulator compile and run commands
-SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
+SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(DASH_D_EVENT_SIM_FLAGS)
 # Icarus Verilog run command
 SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
 endif
@@ -348,10 +351,10 @@ endif
 # Modelsim
 ifeq ($(SIMULATOR), $(VSIM))
 # Line to compile the orpsoc design into a modelsim library.
-SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work $(MGC_ORPSOC_LIB) -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); fi
+SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work $(MGC_ORPSOC_LIB) -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(PLUS_DEFINE_EVENT_SIM_FLAGS); fi
 # Final modelsim compile, done each time, pulling in or1200 
 # monitor and the new test_defines.v file:
-VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) +incdir+$(BENCH_TOP_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_TOP_VERILOG_DIR)/$(RTL_TESTBENCH_TOP).v
+VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) -y $(BENCH_VERILOG_DIR) +libext+.v +incdir+$(BENCH_TOP_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(PLUS_DEFINE_EVENT_SIM_FLAGS) $(BENCH_TOP_VERILOG_DIR)/$(RTL_TESTBENCH_TOP).v
 # Simulation run command:
 SIM_COMMANDRUN=$(VSIM_COMPILE_TB); $(VSIM) -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" $(RTL_TESTBENCH_TOP) 
 endif
