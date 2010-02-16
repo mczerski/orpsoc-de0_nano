@@ -366,19 +366,19 @@ assign r_sign = sign;
 assign round2a = !exp_out_fe | !fract_out_7fffff | (exp_out_fe & fract_out_7fffff);
 assign round2_fasu = ((r | s) & !r_sign) & (!exp_out[7] | (exp_out[7] & round2a));
 
-assign round2_fmul = !r_sign & 
-		(
-			(exp_ovf[1] & !fract_in_00 &
-				( ((!exp_out1_co | op_dn) & (r | s | (!rem_00 & op_div) )) | fract_out_00 | (!op_dn & !op_div))
-			 ) |
+   assign round2_fmul = !r_sign & 
 			(
-				(r | s | (!rem_00 & op_div)) & (
-						(!exp_ovf[1] & (exp_in_80 | !exp_ovf[0])) | op_div |
-						( exp_ovf[1] & !exp_ovf[0] & exp_out1_co)
-					)
-			)
-		);
-
+			 (exp_ovf[1] & !fract_in_00 &
+			  ( ((!exp_out1_co | op_dn) & (r | s | (!rem_00 & op_div) )) | fract_out_00 | (!op_dn & !op_div))
+			  ) |
+			 (
+			  (r | s | (!rem_00 & op_div)) & (
+							  (!exp_ovf[1] & (exp_in_80 | !exp_ovf[0])) | op_div |
+							  ( exp_ovf[1] & !exp_ovf[0] & exp_out1_co)
+							  )
+			  )
+			 );
+   
 assign round2_f2i = rmode_10 & (( |fract_in[23:0] & !opas & (exp_in<8'h80 )) | (|fract_trunc));
 assign round2 = (op_mul | op_div) ? round2_fmul : op_f2i ? round2_f2i : round2_fasu;
 
@@ -409,41 +409,41 @@ always @(rmode or fract_out_rnd0 or fract_out_rnd1 or fract_out_rnd2)
 // Fix Output for denormalized and special numbers
 wire	max_num, inf_out;
 
-assign	max_num =  ( !rmode_00 & (op_mul | op_div ) & (
-							  ( exp_ovf[1] &  exp_ovf[0]) |
-							  (!exp_ovf[1] & !exp_ovf[0] & exp_in_ff & (fi_ldz_2<24) & (exp_out!=8'hfe) )
-							  )
-		   ) |
-
-		   ( op_div & (
-				   ( rmode_01 & ( div_inf |
-							 (exp_out_ff & !exp_ovf[1] ) |
-							 (exp_ovf[1] &  exp_ovf[0] )
-						)
-				   ) |
-		
-				   ( rmode[1] & !exp_ovf[1] & (
+   assign	max_num =  ( !rmode_00 & (op_mul | op_div ) & (
+							       ( exp_ovf[1] &  exp_ovf[0]) |
+							       (!exp_ovf[1] & !exp_ovf[0] & exp_in_ff & (fi_ldz_2<24) & (exp_out!=8'hfe) )
+							       )
+			     ) |
+			   
+			   ( op_div & (
+				       ( rmode_01 & ( div_inf |
+						      (exp_out_ff & !exp_ovf[1] ) |
+						      (exp_ovf[1] &  exp_ovf[0] )
+						      )
+					 ) |
+				       
+				       ( rmode[1] & !exp_ovf[1] & (
 								   ( exp_ovf[0] & exp_in_ff & r_sign & fract_in[47]
-								   ) |
-						
+								     ) |
+								   
 								   (  r_sign & (
 										(fract_in[47] & div_inf) |
 										(exp_in[7] & !exp_out_rnd[7] & !exp_in_80 & exp_out!=8'h7f ) |
 										(exp_in[7] &  exp_out_rnd[7] & r_sign & exp_out_ff & op_dn &
-											 div_exp1>9'h0fe )
+										 div_exp1>9'h0fe )
 										)
-								   ) |
-
+								      ) |
+								   
 								   ( exp_in_00 & r_sign & (
-												div_inf |
-												(r_sign & exp_out_ff & fi_ldz_2<24)
-											  )
+											   div_inf |
+											   (r_sign & exp_out_ff & fi_ldz_2<24)
+											   )
+								     )
 								   )
-							       )
-				  )
-			    )
-		   );
-
+					 )
+				       )
+			     );
+   
 
 assign inf_out = (rmode[1] & (op_mul | op_div) & !r_sign & (	(exp_in_ff & !op_div) |
 								(exp_ovf[1] & exp_ovf[0] & (exp_in_00 | exp_in[7]) ) 
@@ -534,96 +534,10 @@ assign ine =	op_f2i ? f2i_ine :
 		op_i2f ? (|fract_trunc) :
 		((r & !dn) | (s & !dn) | max_num | (op_div & !rem_00));
 
-// ---------------------------------------------------------------------
-// Debugging Stuff
 
-// synopsys translate_off
-/*
-wire	[26:0]	fracta_del, fractb_del;
-wire	[2:0]	grs_del;
-wire		dn_del;
-wire	[7:0]	exp_in_del;
-wire	[7:0]	exp_out_del;
-wire	[22:0]	fract_out_del;
-wire	[47:0]	fract_in_del;
-wire		overflow_del;
-wire	[1:0]	exp_ovf_del;
-wire	[22:0]	fract_out_x_del, fract_out_rnd2a_del;
-wire	[24:0]	trunc_xx_del;
-wire		exp_rnd_adj2a_del;
-wire	[22:0]	fract_dn_del;
-wire	[4:0]	div_opa_ldz_del;
-wire	[23:0]	fracta_div_del;
-wire	[23:0]	fractb_div_del;
-wire		div_inf_del;
-wire	[7:0]	fi_ldz_2_del;
-wire		inf_out_del, max_out_del;
-wire	[5:0]	fi_ldz_del;
-wire		rx_del;
-wire		ez_del;
-wire		lr;
-wire	[7:0]	shr, shl, exp_div_del;
-
-delay2 #26 ud000(clk, test.u0.fracta, fracta_del);
-delay2 #26 ud001(clk, test.u0.fractb, fractb_del);
-delay1  #2 ud002(clk, {g,r,s}, grs_del);
-delay1  #0 ud004(clk, dn, dn_del);
-delay1  #7 ud005(clk, exp_in, exp_in_del);
-delay1  #7 ud007(clk, exp_out_rnd, exp_out_del);
-delay1 #47 ud009(clk, fract_in, fract_in_del);
-delay1  #0 ud010(clk, overflow, overflow_del);
-delay1  #1 ud011(clk, exp_ovf, exp_ovf_del);
-delay1 #22 ud014(clk, fract_out, fract_out_x_del);
-delay1 #24 ud015(clk, fract_trunc, trunc_xx_del);
-delay1 	#0 ud017(clk, exp_rnd_adj2a, exp_rnd_adj2a_del);
-delay1  #4 ud019(clk, div_opa_ldz, div_opa_ldz_del);
-delay3 #23 ud020(clk, test.u0.fdiv_opa[49:26],	fracta_div_del);
-delay3 #23 ud021(clk, test.u0.fractb_mul,	fractb_div_del);
-delay1 	#0 ud023(clk, div_inf, div_inf_del);
-delay1  #7 ud024(clk, fi_ldz_2, fi_ldz_2_del);
-delay1 	#0 ud025(clk, inf_out, inf_out_del);
-delay1 	#0 ud026(clk, max_num, max_num_del);
-delay1 	#5 ud027(clk, fi_ldz, fi_ldz_del);
-delay1  #0 ud028(clk, rem_00, rx_del);
-
-delay1  #0 ud029(clk, left_right, lr);
-delay1  #7 ud030(clk, shift_right, shr);
-delay1  #7 ud031(clk, shift_left, shl);
-delay1 #22 ud032(clk, fract_out_rnd2a, fract_out_rnd2a_del);
-
-delay1  #7 ud033(clk, exp_div, exp_div_del);
-
-always @(test.error_event)
-   begin
-
-	$display("\n----------------------------------------------");
-
-	$display("ERROR: GRS: %b exp_ovf: %b dn: %h exp_in: %h exp_out: %h, exp_rnd_adj2a: %b",
-			grs_del, exp_ovf_del, dn_del, exp_in_del, exp_out_del, exp_rnd_adj2a_del);
-
-	$display("      div_opa: %b, div_opb: %b, rem_00: %b, exp_div: %h",
-			fracta_div_del, fractb_div_del, rx_del, exp_div_del);
-
-	$display("      lr: %b, shl: %h, shr: %h",
-			lr, shl, shr);
-
-
-	$display("       overflow: %b, fract_in=%b  fa:%h fb:%h",
-			overflow_del, fract_in_del, fracta_del, fractb_del);
-
-	$display("       div_opa_ldz: %h, div_inf: %b, inf_out: %b, max_num: %b, fi_ldz: %h, fi_ldz_2: %h",
-			div_opa_ldz_del, div_inf_del, inf_out_del, max_num_del, fi_ldz_del, fi_ldz_2_del);
-
-	$display("       fract_out_x: %b, fract_out_rnd2a_del: %h, fract_trunc: %b\n",
-			fract_out_x_del, fract_out_rnd2a_del, trunc_xx_del);
-   end
-
-
-// synopsys translate_on
-*/
 endmodule
 
-// synopsys translate_off
+
 
 module delay1(clk, in, out);
 parameter	N = 1;
@@ -674,4 +588,3 @@ always @(posedge clk)
 
 endmodule
 
-// synopsys translate_on

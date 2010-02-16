@@ -1,7 +1,6 @@
 /* Support file for c based tests */
 #include "spr_defs.h"
 #include "board.h"
-#include "mc.h"
 
         .section .stack
         .space 0x10000
@@ -44,12 +43,6 @@ _reset_vector:
         l.addi  r30,r0,0x0
         l.addi  r31,r0,0x0
 
-/*		
-	l.movhi r3,hi(MC_BASE_ADDR) 
-        l.ori   r3,r3,MC_BA_MASK
-        l.addi  r5,r0,0x00
-        l.sw    0(r3),r5
-	*/		
         l.movhi r3,hi(_start)
         l.ori   r3,r3,lo(_start)
         l.jr    r3

@@ -46,18 +46,8 @@
 //     Max speed >60M , and 374 SLICE if using Multiplexor bus
 //		or 150 SLICE if using tri-state bus.
 //
-`define			dw	 32		// Data bus Width
-`define			aw	 32		// Address bus Width
-`define			sw   `dw / 8	// Number of Select Lines
-`define			mbusw  `aw + `sw + `dw +4 	//address width + byte select width + dat width + cyc + we + stb +cab , input from master interface
-`define			sbusw	 3	//  ack + err + rty, input from slave interface
-`define			mselectw  8	// number of masters
-`define			sselectw  8	// number of slavers
 
 //`define 		WB_USE_TRISTATE
-
-// Define the following to enable logic to generate the first few instructions at reset
-`define OR1200_BOOT_LOGIC   
 
 module wb_conbus_top(
 		     clk_i, rst_i,
@@ -128,12 +118,13 @@ module wb_conbus_top(
 
 		     );
 
+
+`include "wb_conbus_defines.v"
+
    ////////////////////////////////////////////////////////////////////
-  //
+   //
    // Module Parameters
    //
-
-
    parameter		s0_addr_w = 4 ;			// slave 0 address decode width
    parameter		s0_addr = 4'h0;			// slave 0 address
    parameter		s1_addr_w = 4 ;			// slave 1 address decode width
@@ -146,7 +137,7 @@ module wb_conbus_top(
    parameter		s6_addr = 8'h96;		// slave 6 address
    parameter		s7_addr = 8'h97;		// slave 7 address
 
-
+   
    ////////////////////////////////////////////////////////////////////
    //
    // Module IOs

@@ -2,6 +2,7 @@
 void uart_init(void);
 void uart_putc(char);
 char uart_getc(void);
+int uart_check_for_char(void);
 
 #define UART_RX		0	/* In:  Receive buffer (DLAB=0) */
 #define UART_TX		0	/* Out: Transmit buffer (DLAB=0) */

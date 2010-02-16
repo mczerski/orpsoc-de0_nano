@@ -93,15 +93,19 @@
 // Development version of RTL. Libraries are missing.
 //
 //
+
 `include "timescale.v"
 `include "or1200_defines.v"
-`include "orpsoc_testbench_defines.v"
 
 //
 // Top of OR1200 inside test bench
 //
-`define OR1200_TOP orpsoc_testbench.dut.i_or1k.i_or1200_top
-
+`ifndef OR1200_TOP
+ `define OR1200_TOP orpsoc_testbench.dut.i_or1k.i_or1200_top
+ `include "orpsoc_testbench_defines.v"
+`else
+ `include `TESTBENCH_DEFINES
+`endif
 //
 // Enable display_arch_state task
 //
@@ -177,20 +181,30 @@ gpr[28] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_4.mem[gp
 gpr[29] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_5.mem[gpr_no];
 gpr[30] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_6.mem[gpr_no];
 gpr[31] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_7.mem[gpr_no];
-`else
- `ifdef OR1200_XILINX_RAMB4
+ `else
+  `ifdef OR1200_XILINX_RAMB4
 	 for(j = 0; j < 16; j = j + 1) begin
 	    gpr[j] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb4_s16_0.mem[gpr_no*16+j];
 	 end
-for(j = 0; j < 16; j = j + 1) begin
-   gpr[j+16] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb4_s16_1.mem[gpr_no*16+j];
-end
- `else
-  `ifdef OR1200_ARTISAN_SDP
+	 for(j = 0; j < 16; j = j + 1) begin
+	    gpr[j+16] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb4_s16_1.mem[gpr_no*16+j];
+	 end
   `else
-gpr = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.mem[gpr_no];
+   `ifdef OR1200_ARTISAN_SDP
+   `else
+    `ifdef OR1200_XILINX_RAMB16
+     `ifdef legacy_model
+	 for(j = 0; j < 32; j = j + 1) begin
+	    gpr[j] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb16_s36_s36.mem[gpr_no*32+j];
+	 end
+     `else
+	 gpr = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb16_s36_s36.mem[gpr_no];
+     `endif
+    `else
+	 gpr = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.mem[gpr_no];
+    `endif
+   `endif
   `endif
- `endif
 `endif
 `endif
 	 end

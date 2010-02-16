@@ -1107,7 +1107,7 @@ always @(dcr0 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 0)
 //
-always @(dcr0 or dcpu_cycstb_i)
+always @(dcr0 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr0[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond0_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond0_stb = 1'b1;		// insn fetch EA
@@ -1185,7 +1185,7 @@ always @(dcr1 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 1)
 //
-always @(dcr1 or dcpu_cycstb_i)
+always @(dcr1 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr1[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond1_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond1_stb = 1'b1;		// insn fetch EA
@@ -1256,7 +1256,7 @@ always @(dcr2 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 2)
 //
-always @(dcr2 or dcpu_cycstb_i)
+always @(dcr2 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr2[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond2_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond2_stb = 1'b1;		// insn fetch EA
@@ -1329,7 +1329,7 @@ always @(dcr3 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 3)
 //
-always @(dcr3 or dcpu_cycstb_i)
+always @(dcr3 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr3[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond3_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond3_stb = 1'b1;		// insn fetch EA
@@ -1402,7 +1402,7 @@ always @(dcr4 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 4)
 //
-always @(dcr4 or dcpu_cycstb_i)
+always @(dcr4 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr4[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond4_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond4_stb = 1'b1;		// insn fetch EA
@@ -1476,7 +1476,7 @@ always @(dcr5 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 5)
 //
-always @(dcr5 or dcpu_cycstb_i)
+always @(dcr5 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr5[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond5_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond5_stb = 1'b1;		// insn fetch EA
@@ -1549,7 +1549,7 @@ always @(dcr6 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 6)
 //
-always @(dcr6 or dcpu_cycstb_i)
+always @(dcr6 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr6[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond6_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond6_stb = 1'b1;		// insn fetch EA
@@ -1623,7 +1623,7 @@ always @(dcr7 or id_pc or dcpu_adr_i or dcpu_dat_dc
 //
 // When To Compare (Match Condition 7)
 //
-always @(dcr7 or dcpu_cycstb_i)
+always @(dcr7 or dcpu_cycstb_i or dcpu_we_i)
 	case (dcr7[`OR1200_DU_DCR_CT]) 		// synopsys parallel_case
 		3'b000:	match_cond7_stb = 1'b0;		//comparison disabled
 		3'b001:	match_cond7_stb = 1'b1;		// insn fetch EA

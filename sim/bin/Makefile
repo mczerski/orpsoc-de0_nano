@@ -237,21 +237,22 @@
 CUR_DIR=$(shell pwd)
 
 # The root path of the whole project
-PROJECT_ROOT=$(CUR_DIR)/../..
+PROJECT_ROOT ?=$(CUR_DIR)/../..
 
 # Tests is only defined if it wasn't already defined when make was called
 # This is the default list of every test that is currently possible
 TESTS ?= basic-nocache cbasic-nocache-O2 dhry-nocache-O2 except-nocache mmu-nocache mul-nocache-O2 syscall-nocache tick-nocache uart-nocache basic-icdc cbasic-icdc-O2 dhry-icdc-O2 except-icdc mmu-icdc mul-icdc-O2 syscall-icdc tick-icdc uart-icdc
 
 # Paths to other important parts of this test suite
-SIM_DIR=$(PROJECT_ROOT)/sim
+SIM_DIR ?=$(PROJECT_ROOT)/sim
 SIM_RUN_DIR=$(SIM_DIR)/run
 SIM_BIN_DIR=$(SIM_DIR)/bin
 SIM_RESULTS_DIR=$(SIM_DIR)/results
 SIM_VLT_DIR=$(SIM_DIR)/vlt
 BENCH_DIR=$(PROJECT_ROOT)/bench
-BACKEND_DIR=$(PROJECT_ROOT)/backend
+BACKEND_DIR ?=$(PROJECT_ROOT)/backend
 BENCH_VERILOG_DIR=$(BENCH_DIR)/verilog
+BENCH_TOP_VERILOG_DIR ?= $(BENCH_DIR)/verilog
 BENCH_SYSC_DIR=$(BENCH_DIR)/sysc
 BENCH_SYSC_SRC_DIR=$(BENCH_SYSC_DIR)/src
 BENCH_SYSC_INCLUDE_DIR=$(BENCH_SYSC_DIR)/include
@@ -330,13 +331,16 @@ ifeq ($(VCD), 1)
 VOPT_ARGS=-voptargs="+acc=rnp"
 endif
 
+# RTL testbench toplevel name
+RTL_TESTBENCH_TOP ?= orpsoc_testbench
+
 # Simulation compile and run commands, depending on your 
 # simulator. 
 
 # Icarus Verilog
 ifeq ($(SIMULATOR), $(ICARUS))
 # Icarus Verilog Simulator compile and run commands
-SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
+SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(EVENT_SIM_FLAGS)
 # Icarus Verilog run command
 SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
 endif
@@ -344,12 +348,12 @@ endif
 # Modelsim
 ifeq ($(SIMULATOR), $(VSIM))
 # Line to compile the orpsoc design into a modelsim library.
-SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work orpsoc -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); fi
+SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work $(MGC_ORPSOC_LIB) -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); fi
 # Final modelsim compile, done each time, pulling in or1200 
 # monitor and the new test_defines.v file:
-VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_VERILOG_DIR)/orpsoc_testbench.v
+VSIM_COMPILE_TB=vlog +incdir+. +incdir+$(BENCH_VERILOG_DIR) +incdir+$(BENCH_TOP_VERILOG_DIR) +incdir+$(RTL_VERILOG_DIR) +define+TEST_DEFINE_FILE $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_TOP_VERILOG_DIR)/$(RTL_TESTBENCH_TOP).v
 # Simulation run command:
-SIM_COMMANDRUN=$(VSIM_COMPILE_TB); $(VSIM) -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" orpsoc_testbench 
+SIM_COMMANDRUN=$(VSIM_COMPILE_TB); $(VSIM) -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB) $(VOPT_ARGS) -do "run -all; exit" $(RTL_TESTBENCH_TOP) 
 endif
 
 # NCVerilog
@@ -556,7 +560,7 @@ rtl-debug: prepare-sw-uart-printf prepare-rtl prepare-vpi prepare-dirs
 	@echo
 	@echo "\t#### Compiling RTL ####"
 	$(Q)rm -f $(SIM_RUN_DIR)/a.out
-	$(Q)$(ICARUS) -sorpsoc_testbench -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
+	$(Q)$(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
 	@echo
 	@echo "\t#### Beginning simulation with VPI debug module enabled ####"; echo
 	$(Q)$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log a.out

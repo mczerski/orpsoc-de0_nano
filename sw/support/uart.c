@@ -74,3 +74,9 @@ char uart_getc()
         c = REG8(UART_BASE + UART_RX);
         return c;
 }
+
+int uart_check_for_char()
+{
+  return CHECK_FOR_CHAR;
+}
+    
