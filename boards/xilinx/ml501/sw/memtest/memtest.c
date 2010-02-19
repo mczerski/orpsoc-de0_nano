@@ -13,10 +13,13 @@
 #define MEM_TEST_BASE 0x2000
 #endif
 
-#ifdef SYNTHESIS
-#define MEM_TEST_LENGTH ((1024*1024*255)/4)
-#else
-#define MEM_TEST_LENGTH 64
+
+#ifndef MEM_TEST_LENGTH
+ #ifdef SYNTHESIS
+  #define MEM_TEST_LENGTH (((1024*1024*255)/4) - (MEM_TEST_BASE/4))
+ #else
+  #define MEM_TEST_LENGTH 64
+ #endif
 #endif
 
 

@@ -20,7 +20,7 @@
 //
 // Main memory options (select only of the following):  
 //  
-//                        On-Chip Xilinx RAMBs (~64KByte, resource used depending)
+//                        On-Chip Xilinx RAMBs (~64KByte, resource use depending)
 //                        ZBT SSRAM (1MByte, 200Mhz)
 //                        DDR2 SDRAM (256MByte, 266Mhz)
 // It is recommended the startup memory is used with only the ZBT SSRAM or DDR2
@@ -32,8 +32,16 @@
 // Use on-chip memory as a boot-ROM
 `define ML501_MEMORY_STARTUP
 `ifdef ML501_MEMORY_STARTUP
-// Define the size of the onchip memory
- `define ML501_MEMORY_STARTUP_ADDR_SPAN 12'h800
+// Define the size of the onchip low/startup memory
+// 4KByte
+//`define ML501_MEMORY_STARTUP_ADDR_SPAN 16'h1000
+//`define ML501_MEMORY_STARTUP_ADDR_WIDTH 12
+// 8KByte
+//`define ML501_MEMORY_STARTUP_ADDR_SPAN 16'h2000
+//`define ML501_MEMORY_STARTUP_ADDR_WIDTH 13
+// 32KByte
+ `define ML501_MEMORY_STARTUP_ADDR_SPAN 16'h8000
+ `define ML501_MEMORY_STARTUP_ADDR_WIDTH 15
 `endif
 
 // Main memory configuration

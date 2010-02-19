@@ -1,5 +1,7 @@
 PROJECT_ROOT=../../../../..
 
+BOARD=ml501
+
 MAIN_SW_DIR=$(PROJECT_ROOT)/sw
 
 SUPPORT_SOURCES=uart.c uart.h spr_defs.h support.h
@@ -8,8 +10,14 @@ SUPPORT_C_SOURCES=$(shell for src in $(SUPPORT_SOURCES); do echo $$src | grep \.
 # Some extra options, if we're going to compile the software for it to be pulled in by the synthesis tool
 ifeq ($(SYNTHESIS), 1)
 SW_SYNTHESIS_OPTS=-DSYNTHESIS
-# Expecting the bootmem to be 0x800 big - if not, change this or it won't get pulled in by synthesis properly!
-VMEM_SYNTHESIS_OPTS=-synfmt --pad-to-addr 0x800
+# Parse the board defines file in the RTL path for the startup memory span
+STARTUP_RAM_SIZE_HEX=$(shell grep -v // ../../rtl/$(BOARD)_defines.v | grep MEMORY_STARTUP_ADDR_SPAN | cut -d 'h' -f 2)
+ifeq ($(STARTUP_RAM_SIZE_HEX),)
+RAM_PAD_COMMAND=
+else
+RAM_PAD_COMMAND=--pad-to-addr 0x$(STARTUP_RAM_SIZE_HEX)
+endif
+VMEM_SYNTHESIS_OPTS=-synfmt $(RAM_PAD_COMMAND)
 endif
 
 

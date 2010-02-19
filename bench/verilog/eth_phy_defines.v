@@ -49,7 +49,7 @@
 //
 
 // Address of PHY device (LXT971A)
-`define ETH_PHY_ADDR                 5'h00 //Changed to 0 -jb
+`define ETH_PHY_ADDR                 5'h07
 
 // LED/Configuration pins on PHY device - see the specification, page 26, table 8
 // Initial set of bits 13, 12 and 8 of Control Register

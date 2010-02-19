@@ -38,24 +38,31 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-/* Memory containing memory addresses 0-0x200 */
+/* Memory containing memory addresses 0x0 up to mem_span */
 module ml501_startup
-  (
-    input [11:2]       wb_adr_i,
-    input 	       wb_stb_i,
-    input 	       wb_cyc_i,
-    input 	       wb_we_i,
-    input [3:0]        wb_sel_i,
-    input [31:0]       wb_dat_i,
-    output [31:0]      wb_dat_o,
-    output 	       wb_ack_o,
-    input 	       wb_clk,
-    input 	       wb_rst
-   );
+  (   wb_adr_i, wb_stb_i, wb_cyc_i, wb_we_i, wb_sel_i, wb_dat_i, 
+      wb_dat_o, wb_ack_o, 
+      wb_clk, wb_rst 
+      );
 
    /* Make this memory span up to this value */
    parameter mem_span = 12'h800;
-   parameter mem_span_word_address_width =  9;// log2((mem_span/bytes_per_word)
+   parameter adr_width = 11; // log2(mem_span)
+   parameter mem_span_word_address_width =  (adr_width-2);
+     
+   input [adr_width-1:0]        wb_adr_i;
+   input 	       wb_stb_i;
+   input 	       wb_cyc_i;
+   input 	       wb_we_i;
+   input [3:0] 	       wb_sel_i;
+   input [31:0]        wb_dat_i;
+   output [31:0]       wb_dat_o;
+   output 	       wb_ack_o;
+   input 	       wb_clk;
+   input 	       wb_rst;
+   
+
+
    // synthesis attribute ram_style of mem is block
    reg [31:0] 	       mem [0:(mem_span/4)-1] /* synthesis ram_style = no_rw_check */;
    reg [mem_span_word_address_width-1:0] adr;

@@ -113,8 +113,11 @@ module ml501
     output 	   dbg_tdo_pad_o,
    
    // Uart
-    input 	   uart0_srx_pad_i,  
-    output 	   uart0_stx_pad_o,
+    input 	   uart0_RX,
+    output 	   uart0_TX,
+   // Duplicates of the UART signals, this time to the USB debug cable
+    input 	   uart0_RX_expheader,  
+    output 	   uart0_TX_expheader,
 
    // GPIO
     inout [25:0]  gpio
@@ -744,6 +747,13 @@ module ml501
 
    assign wbs_mc_m_err_o = 1'b0;
 
+   // Wires for duplication
+   wire 	   uart_rx, uart_tx;
+   assign uart_rx = uart0_RX & uart0_RX_expheader;
+   
+   assign uart0_TX = uart_tx;
+   assign uart0_TX_expheader = uart_tx;
+   
    uart_top 
      #( 32, 5) 
    i_uart_0_top
@@ -759,8 +769,8 @@ module ml501
       .wb_clk_i   (wb_clk),
       .wb_rst_i   (wb_rst),
       .int_o      (uart0_irq),
-      .srx_pad_i  (uart0_srx_pad_i),
-      .stx_pad_o  (uart0_stx_pad_o),
+      .srx_pad_i  (uart_rx),
+      .stx_pad_o  (uart_tx),
       .cts_pad_i  (1'b0),
       .rts_pad_o  ( ),
       .dtr_pad_o  ( ),
@@ -768,6 +778,8 @@ module ml501
       .dsr_pad_i  (1'b0),
       .ri_pad_i   (1'b0)
       );
+
+   
 
 `ifdef USE_ETHERNET   
 

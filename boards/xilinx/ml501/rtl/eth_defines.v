@@ -335,3 +335,6 @@
 
 // WISHBONE interface is Revision B3 compliant (uncomment when needed)
 `define ETH_WISHBONE_B3
+
+// TXBuffer Polling enable
+`define POLL_TXBDS

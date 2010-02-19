@@ -817,10 +817,13 @@ sim-tests: prepare-sw
 # Cleaning rules
 ################################################################################
 
+dist-clean: clean
+	$(MAKE) -C $(SW_DIR)/utils clean
+
 clean: clean-sw clean-sim clean-sysc clean-rtl clean-vpi
 
 clean-sw:
-	@for SWDIR in `ls $(SW_DIR)`; do \
+	@for SWDIR in `ls $(SW_DIR) | grep -v utils`; do \
 		echo $$SWDIR; \
 		$(MAKE) -C $(SW_DIR)/$$SWDIR clean; \
 	done

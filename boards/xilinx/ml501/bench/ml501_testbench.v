@@ -210,8 +210,11 @@ module ml501_testbench();
       
 
       // UART
-      .uart0_stx_pad_o			(uart0_stx_o),
-      .uart0_srx_pad_i			(uart0_srx_i),
+      .uart0_RX(uart0_srx_i),
+      .uart0_TX(uart0_stx_o),
+      // Duplicates of the UART signals, this time to the USB debug cable
+      .uart0_RX_expheader(uart0_srx_i),  
+      .uart0_TX_expheader(uart0_stx_o),
       
       // JTAG
       .dbg_tdo_pad_o			(dbg_tdo_o),
@@ -485,9 +488,15 @@ initial
 `ifdef VCD
 
  `ifdef ML501_MEMORY_DDR2
-//     #81263000; // DDR2 calibration completed
+     //#87_572_000; // DDR2 calibration completed
  `endif
-     
+ `ifdef USE_ETHERNET
+     #206_847_000 // TX Frame start in simple eth TX test
+ `endif
+
+     //#157_173_500 // Or1200 IC enabled, program begins
+
+       
      $display("VCD in %s\n", {`TEST_RESULTS_DIR,`TEST_NAME_STRING,".vcd"});
      $dumpfile({`TEST_RESULTS_DIR,`TEST_NAME_STRING,".vcd"});
 
@@ -513,7 +522,12 @@ initial
  `define UART_BAUDRATE 115200
  `include "uart_decoder.v"
 `endif
+
    
+   wire ic_en = dut.i_or1k.i_or1200_top.or1200_ic_top.ic_en;
+   always @(posedge ic_en)
+     $display("Or1200 IC enabled at %t", $time);
+
 endmodule // orpsoc_testbench
 
 // Local Variables:

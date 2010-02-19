@@ -23,8 +23,8 @@
 
 //#define SPI_BASE        0xa0000000
 
-//#define ETH_BASE        0xD0000000
-//#define IRQ_ETH_0             (4)       /* interrupt source for Ethernet dvice 0 */
+#define ETH_0_BASE    0x92000000
+#define IRQ_ETH_0             (4)       /* interrupt source for Ethernet dvice 0 */
 
 #define ETH_DATA_BASE  0xa8000000 /*  Address for ETH_DATA */
 #define BOARD_DEF_IP	  0x0a010185

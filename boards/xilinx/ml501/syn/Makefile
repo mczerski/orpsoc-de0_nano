@@ -14,7 +14,7 @@ PART=xc5vlx50-ff676-1
 MODULES=or1200r2 or1k_startup or1k_top tap debug_if wb_conbus uart16550 ram_wb ethernet
 
 # A list of parts of names of files to be excluded from the automatic file list generation
-EXCLUDE=or1200_dpram or1200_fpu
+EXCLUDE=or1200_dpram or1200_fpu eth_defines
 
 # When cleaning - files not to delete
 FILES_TO_KEEP=$(BOARD).xcf  $(BOARD)_xst.tpl  ml501_ddr2_wb_if_cache.ngc timescale.v Makefile 

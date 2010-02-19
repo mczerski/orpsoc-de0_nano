@@ -146,7 +146,7 @@ module ml501_mc
    /* On-chip startup RAM */
    ml501_startup ml501_startup0
    (
-    .wb_adr_i(wbs_strtup_adr_i[11:2]),
+    .wb_adr_i(wbs_strtup_adr_i),
     .wb_stb_i(wbs_strtup_stb_i),
     .wb_cyc_i(wbs_strtup_cyc_i),
     .wb_we_i(wbs_strtup_we_i),
@@ -158,6 +158,7 @@ module ml501_mc
     .wb_rst(wb_rst)
     );
    defparam  ml501_startup0.mem_span = startup_size;
+   defparam ml501_startup0.adr_width = `ML501_MEMORY_STARTUP_ADDR_WIDTH;   
 `else // !`ifdef ML501_MEMORY_STARTUP
    assign wbs_strtup_dat_o = 0;
    assign wb_strtup_ack_o = 0;

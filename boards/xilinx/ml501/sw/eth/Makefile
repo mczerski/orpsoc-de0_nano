@@ -1,39 +1,32 @@
 PROJECT_ROOT=../../../../..
-BOARD=ml501
+
 MAIN_SW_DIR=$(PROJECT_ROOT)/sw
 
-SUPPORT_SOURCES=uart.c uart.h spr_defs.h support.h
+
+
+
+SUPPORT_SOURCES=uart.c uart.h spr_defs.h support.h int.h time.h support.c syscall.c int.c vfnprintf.c time.c vfnprintf.h
 SUPPORT_C_SOURCES=$(shell for src in $(SUPPORT_SOURCES); do echo $$src | grep \.c; done)
 
 # Some extra options, if we're going to compile the software for it to be pulled in by the synthesis tool
 ifeq ($(SYNTHESIS), 1)
-SW_SYNTHESIS_OPTS=-DSYNTHESIS
+SW_SYNTHESIS_OPTS=-DUART_PRINTF
 VMEM_SYNTHESIS_OPTS=-synfmt
+else
+SW_SYNTHESIS_OPTS=-DRTLSIM
 endif
 
-# Setup some user definable paramters such as test start/length
-
-# Check the board defines file for the size of the boot/low memory
-# test will start after it...
-STARTUP_RAM_SIZE_HEX=$(shell grep -v // ../../rtl/$(BOARD)_defines.v | grep MEMORY_STARTUP_ADDR_SPAN | cut -d 'h' -f 2)
-ifneq ($(STARTUP_RAM_SIZE_HEX),)
-SW_OPTS += -DMEM_TEST_BASE=0x$(STARTUP_RAM_SIZE_HEX)
-endif
-
-ifneq ($(MEM_TEST_LENGTH),)
-SW_OPTS += -DMEM_TEST_LENGTH=$(MEM_TEST_LENGTH)
-endif
 
 CROSS_PREFIX=or32-elf-
 CROSS_CC=$(CROSS_PREFIX)gcc
 CROSS_OBJCOPY=$(CROSS_PREFIX)objcopy
 
-APP=memtest
+APP=eth
 
 all: clean
 
 .PHONY: $(APP)
-$(APP): clean prepare-sw prepare-links $(APP).vmem
+$(APP): prepare-sw prepare-links $(APP).vmem
 
 
 $(APP).vmem: $(APP).bin
@@ -42,8 +35,8 @@ $(APP).vmem: $(APP).bin
 $(APP).bin: $(APP).or32
 	$(CROSS_OBJCOPY) -O binary $? $@
 
-$(APP).or32: $(APP)_reset.o $(APP).[cS] $(SUPPORT_C_SOURCES)
-	$(CROSS_CC) $? -nostdlib -mhard-mul -g -I../. -O2 $(SW_OPTS) $(SW_SYNTHESIS_OPTS) -T$(APP).ld -o $@
+$(APP).or32: $(APP)_reset.o $(APP).[cS] $(SUPPORT_C_SOURCES) except.o 
+	$(CROSS_CC) $? -mhard-mul -g -I../. -O2 $(SW_SYNTHESIS_OPTS) -T$(APP).ld -o $@
 
 $(APP)_reset.o: $(APP)_reset.S
 	$(CROSS_CC) -c -o $@ $? -I../.
@@ -57,5 +50,12 @@ unprepare-links:
 prepare-sw:
 	@$(MAKE) -C $(MAIN_SW_DIR)/utils all
 
+%.o: %.S
+	$(CROSS_CC) -I../. $(SW_SYNTHESIS_OPTS) -O2 -g -c -Wall $< -o $@
+
+$(MAIN_SW_DIR)/support/libsupport.a:
+	$(MAKE) -C $(MAIN_SW_DIR)/support all
+
 clean: unprepare-links
 	@rm -vf *.o *.bin *.or32 *.vmem
+

@@ -8,6 +8,8 @@
 ////  To Do:                                                      ////
 ////   Increase usage of cache BRAM to maximum (currently only    ////
 ////   256 bytes out of about 8192)                               ////
+////   Make this a Wishbone B3 registered feedback burst friendly ////
+////   server.                                                    ////
 ////                                                              ////
 ////  Author(s):                                                  ////
 ////      - Julius Baxter, julius.baxter@orsoc.se                 ////
@@ -211,11 +213,6 @@ module ml501_ddr2_wb_if (
    always @(posedge wb_clk)
      wb_req_new_r <= wb_req_new;
    
-   // Register request address, actually, don't bother, it's useless.
-   always @(posedge wb_clk)
-     if (wb_req_new)
-       wb_req_cache_word_addr <= wb_adr_i[4:2];
-   
    // Register whether it's a hit or not
    // As more lines are added, add them to this check.
    always @(posedge wb_clk)
@@ -265,7 +262,8 @@ module ml501_ddr2_wb_if (
    // 1. Enable on first access, if it's not a write
    // 2. Enable if we've just refreshed the cache
    // 3. Enable on ACK'ing for a write
-   assign wb_cache_en = (wb_req_new & !wb_we_i) | do_readfrom_finished |
+   assign wb_cache_en = (wb_req_new & !wb_we_i) | do_readfrom_finished | 
+			(wb_req_addr_hit & wb_stb_i & !wb_we_i & !wb_ack_o) |
 			(wb_ack_o & wb_we_i);
    
    // Writeback detect logic

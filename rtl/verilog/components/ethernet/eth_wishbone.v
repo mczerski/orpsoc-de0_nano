@@ -334,7 +334,13 @@ output          m_wb_cyc_o;     //
 output          m_wb_stb_o;     // 
 input   [31:0]  m_wb_dat_i;     // 
 input           m_wb_ack_i;     // 
-input           m_wb_err_i;     // 
+input           m_wb_err_i;     //
+
+`ifdef POLL_TXBDS
+   reg [31:0] 	TxBDReadySamples; // -- jb
+   wire 	TxBDNotReady; // -- jb
+`endif
+     
 
 `ifdef ETH_WISHBONE_B3
 output   [2:0]  m_wb_cti_o;     // Cycle Type Identifier
@@ -717,6 +723,28 @@ begin
     TxBDReady <=#Tp 1'b0;
 end
 
+`ifdef POLL_TXBDS
+   // Register TxBDReady 4 times, when all are low we know this one is not good to transmit
+   always @(posedge WB_CLK_I or posedge Reset) // -- jb
+     begin 
+	if (Reset) TxBDReadySamples <= 32'hffffffff;
+	else begin 
+	   if (r_TxEn) 
+	     begin
+		if (TxBDNotReady)
+		   TxBDReadySamples <= 32'hffffffff;
+		else
+		  TxBDReadySamples[31:0] <= {TxBDReadySamples[30:0],TxBDReady};
+	     end
+		else
+		  TxBDReadySamples <= 32'hffffffff;
+	end // else: !if(Reset)
+     end // always @ (posedge WB_CLK_I or posedge Reset)
+   
+	
+
+   assign TxBDNotReady = ~(|TxBDReadySamples); // When all low, this goes high // -- jb
+`endif //  `ifdef POLL_TXBDS
 
 // Reading the Tx buffer descriptor
 assign StartTxBDRead = (TxRetryPacket_NotCleared | TxStatusWrite) & ~BlockingTxBDRead & ~TxBDReady;
@@ -1359,8 +1387,12 @@ assign RxIRQEn         = RxStatus[14];
 assign WrapRxStatusBit = RxStatus[13];
 
 
-// Temporary Tx and Rx buffer descriptor address 
-assign TempTxBDAddress[7:1] = {7{ TxStatusWrite     & ~WrapTxStatusBit}}   & (TxBDAddress + 1'b1) ; // Tx BD increment or wrap (last BD)
+// Temporary Tx and Rx buffer descriptor address
+`ifdef POLL_TXBDS   
+assign TempTxBDAddress[7:1] = {7{ (TxStatusWrite|TxBDNotReady) & ~WrapTxStatusBit}}   & (TxBDAddress + 1'b1) ; // Tx BD increment or wrap (last BD)
+`else
+assign TempTxBDAddress[7:1] = {7{ TxStatusWrite     & ~WrapTxStatusBit}}   & (TxBDAddress + 1'b1) ; // Tx BD increment or wrap (last BD)   
+`endif
 assign TempRxBDAddress[7:1] = {7{ WrapRxStatusBit}} & (r_TxBDNum[6:0])     | // Using first Rx BD
                               {7{~WrapRxStatusBit}} & (RxBDAddress + 1'b1) ; // Using next Rx BD (incremenrement address)
 
@@ -1372,7 +1404,11 @@ begin
     TxBDAddress <=#Tp 7'h0;
   else if (r_TxEn & (~r_TxEn_q))
     TxBDAddress <=#Tp 7'h0;
+`ifdef POLL_TXBDS
+  else if (TxStatusWrite | TxBDNotReady)
+`else
   else if (TxStatusWrite)
+`endif
     TxBDAddress <=#Tp TempTxBDAddress;
 end
 
