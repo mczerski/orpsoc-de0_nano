@@ -617,7 +617,7 @@ TRACE_FLAGS=-DVM_TRACE=1 -I${SYSTEMPERL}/src
 
 # Only need the trace target if we are tracing
 #ifneq (,$(findstring -trace, $(VLT_FLAGS)))
-VLT_TRACEOBJ = SpTraceVcdC
+VLT_TRACEOBJ = verilated_vcd_c
 #endif
 
 # This is the list of extra models we'll issue make commands for

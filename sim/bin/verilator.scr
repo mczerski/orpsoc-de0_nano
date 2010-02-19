@@ -42,5 +42,4 @@ $RTL_DIR/orpsoc_top.v
 -v $BACKEND_DIR/sim_lib.v
 
 +define+DISABLE_IOS_FOR_VERILATOR
-+define+VERILATOR
 

@@ -48,7 +48,7 @@
 #include "OrpsocAccess.h"
 #include "MemoryLoad.h"
 
-#include <SpTraceVcdC.h>
+#include <verilated_vcd_c.h>
 
 #include "ResetSC.h"
 #include "Or1200MonitorSC.h"
@@ -104,7 +104,7 @@ int sc_main (int   argc,
   int dump_depth = 99; // Default dump depth
   sc_time dump_start,dump_stop, finish_time;
   bool finish_time_set = false; // By default we will let the simulation finish naturally
-  SpTraceVcdCFile *spTraceFile;
+  VerilatedVcdC *verilatorVCDFile;
   
   /*int*/double time_val;
   bool vcd_file_name_given = false;
@@ -334,15 +334,15 @@ int sc_main (int   argc,
       
       // Establish a new trace with its correct time resolution, and trace to
       // great depth.
-      spTraceFile = new SpTraceVcdCFile ();
-      //spTraceFile->spTrace()->set_time_resolution (sc_get_time_resolution());
+      verilatorVCDFile = new VerilatedVcdC ();
+      //verilatorVCDFile->verilated()->set_time_resolution (sc_get_time_resolution());
       //setSpTimeResolution (sc_get_time_resolution ());
-      //traceTarget->trace (spTraceFile, 99);
-      orpsoc->trace (spTraceFile, dump_depth);
+      //traceTarget->trace (verilatorVCDFile, 99);
+      orpsoc->trace (verilatorVCDFile, dump_depth);
       
       if (dumping_now)    
 	{
-	  spTraceFile->open (vcdDumpFile.c_str());
+	  verilatorVCDFile->open (vcdDumpFile.c_str());
 	}
     }
   
@@ -388,7 +388,7 @@ int sc_main (int   argc,
 	      // Run the sim until we want to dump
 	      sc_start((double)(dump_start.to_double()),TIMESCALE_UNIT);
 	      // Open the trace file
-	      spTraceFile->open (vcdDumpFile.c_str());
+	      verilatorVCDFile->open (vcdDumpFile.c_str());
 	      dumping_now = 1;
 	    }
 
@@ -402,18 +402,18 @@ int sc_main (int   argc,
 		    sc_start (1,TIMESCALE_UNIT); // Step the sim
 		  else
 		    {
-		      spTraceFile->close();
+		      verilatorVCDFile->close();
 		      break;
 		    }
 		  
-		  spTraceFile->dump (sc_time_stamp().to_double());
+		  verilatorVCDFile->dump (sc_time_stamp().to_double());
 		  
 		  if (dump_stop_set)
 		    {
 		      if (sc_time_stamp() >=  dump_stop)
 			{
 			  // Close dump file
-			  spTraceFile->close();
+			  verilatorVCDFile->close();
 			  // Now continue on again until the end
 			  if (!finish_time_set)
 			    sc_start();
@@ -441,7 +441,7 @@ int sc_main (int   argc,
 			  // Officially stop the sim
 			  sc_stop();
 			  // Close dump file
-			  spTraceFile->close();
+			  verilatorVCDFile->close();
 			  // Do memdump if enabled
 			  monitor->memdump();
 			  // Print performance summary
