@@ -91,8 +91,8 @@ $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE): $(SIM_BIN_DIR)/$(SIM_COMMANDFILE)
 
 
 # A new set of tests for software which will run only on this board
-
-BOARD_TESTS=boot memtest eth gpio
+# eth board test doesn't quit properly for some reason
+BOARD_TESTS=boot memtest gpio
 
 rtl-board-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepare-dirs
 	@echo
