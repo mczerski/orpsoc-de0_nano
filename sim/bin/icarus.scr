@@ -1,4 +1,5 @@
 // This file should be processed by the Makefile before being used
++incdir+.
 +incdir+$BENCH_DIR
 +incdir+$BENCH_DIR/vpi/verilog
 +incdir+$BACKEND_DIR
@@ -33,6 +34,8 @@
 -y $RTL_DIR/components/wb_sdram_ctrl
 -y $RTL_DIR/components/ram_wb
 -y $RTL_DIR/components/wb_conbus
+
++libext+.v
 
 // RTL files (top)
 $BENCH_DIR/orpsoc_testbench.v
