@@ -264,6 +264,7 @@ ICARUS_VVP=vvp
 VSIM_COMP=vlog
 VSIM=vsim
 NCVERILOG=ncverilog
+SILOS=silos
 ICARUS_COMMAND_FILE=icarus.scr
 VLT_COMMAND_FILE=verilator.scr
 SIM_SUCCESS_MESSAGE=deaddead
@@ -318,6 +319,12 @@ ifeq ($(SIMULATOR), $(NCVERILOG))
 SIM_COMMANDFILE=$(ICARUS_COMMAND_FILE)
 endif
 
+ifeq ($(SIMULATOR), $(SILOS))
+# SILOS uses same command file as Icarus (this should be default)
+SIM_COMMANDFILE=$(ICARUS_COMMAND_FILE)
+endif
+
+
 GENERATED_COMMANDFILE=$(SIM_COMMANDFILE).generated
 
 # When Modelsim is selected as simulator, we compile
@@ -364,6 +371,13 @@ ifeq ($(SIMULATOR), $(NCVERILOG))
 SIM_COMMANDCOMPILE=echo
 SIM_COMMANDRUN=$(NCVERILOG) -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -Q -l $(SIM_RESULTS_DIR)/$$TEST-$(NCVERILOG)-out.log $(EVENT_SIM_FLAGS)
 endif
+
+# Silos
+ifeq ($(SIMULATOR), $(SILOS))
+SIM_COMMANDCOMPILE=echo
+SIM_COMMANDRUN=$(SILOS) -b -w -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -l $(SIM_RESULTS_DIR)/$$TEST-$(SILOS)-out.log $(EVENT_SIM_FLAGS)
+endif
+
 
 # Names of memory files used in simulation
 SIM_FLASH_MEM_FILE="flash.in"
@@ -502,7 +516,7 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepar
 		echo; \
 		echo "\t#### Beginning simulation ####"; \
 		time -p $(SIM_COMMANDRUN) ; \
-		if [ $$? -gt 0 ]; then exit $$?; fi; \
+		if [ $$? -gt 0 && $$SIMULATOR -ne $$SILOS]; then exit $$?; fi; \
 		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
 		echo; echo "\t####"; \
 		if [ $$TEST_RESULT -gt 0 ]; then \
