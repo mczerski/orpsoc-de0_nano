@@ -375,7 +375,7 @@ endif
 # Silos
 ifeq ($(SIMULATOR), $(SILOS))
 SIM_COMMANDCOMPILE=echo
-SIM_COMMANDRUN=$(SILOS) -b -w -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -l $(SIM_RESULTS_DIR)/$$TEST-$(SILOS)-out.log $(EVENT_SIM_FLAGS)
+SIM_COMMANDRUN=$(SILOS) -b -w +width_mistmatches -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -l $(SIM_RESULTS_DIR)/$$TEST-$(SILOS)-out.log $(EVENT_SIM_FLAGS)
 endif
 
 
@@ -516,7 +516,7 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepar
 		echo; \
 		echo "\t#### Beginning simulation ####"; \
 		time -p $(SIM_COMMANDRUN) ; \
-		if [ $$? -gt 0 && $$SIMULATOR -ne $$SILOS]; then exit $$?; fi; \
+		if [ "$$SIMULATOR" != "$$SILOS" ]; then if [ $$? -gt 0 ]; then exit $$?; fi; fi; \
 		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
 		echo; echo "\t####"; \
 		if [ $$TEST_RESULT -gt 0 ]; then \
