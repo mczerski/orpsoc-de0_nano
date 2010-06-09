@@ -49,7 +49,7 @@ module generic_pll(/*AUTOARG*/
    // Inputs
    clk_in, rst_in
    );
-`ifndef VERILATOR
+`ifndef verilator
    input clk_in;
    input rst_in;   
    output reg clk1x;
@@ -147,7 +147,7 @@ module generic_pll(/*AUTOARG*/
 	   #(DIVIDER*period/2);	   
 	end
      end	  
-`else // !`ifndef VERILATOR
+`else // !`ifndef verilator
    input clk_in;
    input rst_in;   
    output clk1x;
@@ -161,6 +161,6 @@ module generic_pll(/*AUTOARG*/
    assign clk1x = clk_in;
    assign clk2x = 0;
    assign clkdiv= 0;
-`endif // !`ifndef VERILATOR   
+`endif // !`ifndef verilator   
    
 endmodule // generic_pll
