@@ -3,10 +3,10 @@
 ////  OR1200's definitions                                        ////
 ////                                                              ////
 ////  This file is part of the OpenRISC 1200 project              ////
-////  http://www.opencores.org/cores/or1k/                        ////
+////  http://opencores.org/project,or1k                           ////
 ////                                                              ////
 ////  Description                                                 ////
-////  Parameters of the OR1200 core                               ////
+////  Defines for the OR1200 core                                 ////
 ////                                                              ////
 ////  To Do:                                                      ////
 ////   - add parameters that are missing                          ////
@@ -41,214 +41,10 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 //
-// CVS Revision History
-//
 // $Log: or1200_defines.v,v $
-// Revision 1.45  2006/04/09 01:32:29  lampret
-// See OR1200_MAC_SHIFTBY in or1200_defines.v for explanation of the change. Since now no more 28 bits shift for l.macrc insns however for backward compatbility it is possible to set arbitry number of shifts.
-//
-// Revision 1.44  2005/10/19 11:37:56  jcastillo
-// Added support for RAMB16 Xilinx4/Spartan3 primitives
-//
-// Revision 1.43  2005/01/07 09:23:39  andreje
-// l.ff1 and l.cmov instructions added
-//
-// Revision 1.42  2004/06/08 18:17:36  lampret
-// Non-functional changes. Coding style fixes.
-//
-// Revision 1.41  2004/05/09 20:03:20  lampret
-// By default l.cust5 insns are disabled
-//
-// Revision 1.40  2004/05/09 19:49:04  lampret
-// Added some l.cust5 custom instructions as example
-//
-// Revision 1.39  2004/04/08 11:00:46  simont
-// Add support for 512B instruction cache.
-//
-// Revision 1.38  2004/04/05 08:29:57  lampret
-// Merged branch_qmem into main tree.
-//
-// Revision 1.35.4.6  2004/02/11 01:40:11  lampret
-// preliminary HW breakpoints support in debug unit (by default disabled). To enable define OR1200_DU_HWBKPTS.
-//
-// Revision 1.35.4.5  2004/01/15 06:46:38  markom
-// interface to debug changed; no more opselect; stb-ack protocol
-//
-// Revision 1.35.4.4  2004/01/11 22:45:46  andreje
-// Separate instruction and data QMEM decoders, QMEM acknowledge and byte-select added
-//
-// Revision 1.35.4.3  2003/12/17 13:43:38  simons
-// Exception prefix configuration changed.
-//
-// Revision 1.35.4.2  2003/12/05 00:05:03  lampret
-// Static exception prefix.
-//
-// Revision 1.35.4.1  2003/07/08 15:36:37  lampret
-// Added embedded memory QMEM.
-//
-// Revision 1.35  2003/04/24 00:16:07  lampret
-// No functional changes. Added defines to disable implementation of multiplier/MAC
-//
-// Revision 1.34  2003/04/20 22:23:57  lampret
-// No functional change. Only added customization for exception vectors.
-//
-// Revision 1.33  2003/04/07 20:56:07  lampret
-// Fixed OR1200_CLKDIV_x_SUPPORTED defines. Better description.
-//
-// Revision 1.32  2003/04/07 01:26:57  lampret
-// RFRAM defines comments updated. Altera LPM option added.
-//
-// Revision 1.31  2002/12/08 08:57:56  lampret
-// Added optional support for WB B3 specification (xwb_cti_o, xwb_bte_o). Made xwb_cab_o optional.
-//
-// Revision 1.30  2002/10/28 15:09:22  mohor
-// Previous check-in was done by mistake.
-//
-// Revision 1.29  2002/10/28 15:03:50  mohor
-// Signal scanb_sen renamed to scanb_en.
-//
-// Revision 1.28  2002/10/17 20:04:40  lampret
-// Added BIST scan. Special VS RAMs need to be used to implement BIST.
-//
-// Revision 1.27  2002/09/16 03:13:23  lampret
-// Removed obsolete comment.
-//
-// Revision 1.26  2002/09/08 05:52:16  lampret
-// Added optional l.div/l.divu insns. By default they are disabled.
-//
-// Revision 1.25  2002/09/07 19:16:10  lampret
-// If SR[CY] implemented with OR1200_IMPL_ADDC enabled, l.add/l.addi also set SR[CY].
-//
-// Revision 1.24  2002/09/07 05:42:02  lampret
-// Added optional SR[CY]. Added define to enable additional (compare) flag modifiers. Defines are OR1200_IMPL_ADDC and OR1200_ADDITIONAL_FLAG_MODIFIERS.
-//
-// Revision 1.23  2002/09/04 00:50:34  lampret
-// Now most of the configuration registers are updatded automatically based on defines in or1200_defines.v.
-//
-// Revision 1.22  2002/09/03 22:28:21  lampret
-// As per Taylor Su suggestion all case blocks are full case by default and optionally (OR1200_CASE_DEFAULT) can be disabled to increase clock frequncy.
-//
-// Revision 1.21  2002/08/22 02:18:55  lampret
-// Store buffer has been tested and it works. BY default it is still disabled until uClinux confirms correct operation on FPGA board.
-//
-// Revision 1.20  2002/08/18 21:59:45  lampret
-// Disable SB until it is tested
-//
-// Revision 1.19  2002/08/18 19:53:08  lampret
-// Added store buffer.
-//
-// Revision 1.18  2002/08/15 06:04:11  lampret
-// Fixed Xilinx trace buffer address. REported by Taylor Su.
-//
-// Revision 1.17  2002/08/12 05:31:44  lampret
-// Added OR1200_WB_RETRY. Moved WB registered outsputs / samples inputs into lower section.
-//
-// Revision 1.16  2002/07/14 22:17:17  lampret
-// Added simple trace buffer [only for Xilinx Virtex target]. Fixed instruction fetch abort when new exception is recognized.
-//
-// Revision 1.15  2002/06/08 16:20:21  lampret
-// Added defines for enabling generic FF based memory macro for register file.
-//
-// Revision 1.14  2002/03/29 16:24:06  lampret
-// Changed comment about synopsys to _synopsys_ because synthesis was complaining about unknown directives
-//
-// Revision 1.13  2002/03/29 15:16:55  lampret
-// Some of the warnings fixed.
-//
-// Revision 1.12  2002/03/28 19:25:42  lampret
-// Added second type of Virtual Silicon two-port SRAM (for register file). Changed defines for VS STP RAMs.
-//
-// Revision 1.11  2002/03/28 19:13:17  lampret
-// Updated defines.
-//
-// Revision 1.10  2002/03/14 00:30:24  lampret
-// Added alternative for critical path in DU.
-//
-// Revision 1.9  2002/03/11 01:26:26  lampret
-// Fixed async loop. Changed multiplier type for ASIC.
-//
-// Revision 1.8  2002/02/11 04:33:17  lampret
-// Speed optimizations (removed duplicate _cyc_ and _stb_). Fixed D/IMMU cache-inhibit attr.
-//
-// Revision 1.7  2002/02/01 19:56:54  lampret
-// Fixed combinational loops.
-//
-// Revision 1.6  2002/01/19 14:10:22  lampret
-// Fixed OR1200_XILINX_RAM32X1D.
-//
-// Revision 1.5  2002/01/18 07:56:00  lampret
-// No more low/high priority interrupts (PICPR removed). Added tick timer exception. Added exception prefix (SR[EPH]). Fixed single-step bug whenreading NPC.
-//
-// Revision 1.4  2002/01/14 09:44:12  lampret
-// Default ASIC configuration does not sample WB inputs.
-//
-// Revision 1.3  2002/01/08 00:51:08  lampret
-// Fixed typo. OR1200_REGISTERED_OUTPUTS was not defined. Should be.
-//
-// Revision 1.2  2002/01/03 21:23:03  lampret
-// Uncommented OR1200_REGISTERED_OUTPUTS for FPGA target.
-//
-// Revision 1.1  2002/01/03 08:16:15  lampret
-// New prefixes for RTL files, prefixed module names. Updated cache controllers and MMUs.
-//
-// Revision 1.20  2001/12/04 05:02:36  lampret
-// Added OR1200_GENERIC_MULTP2_32X32 and OR1200_ASIC_MULTP2_32X32
-//
-// Revision 1.19  2001/11/27 19:46:57  lampret
-// Now FPGA and ASIC target are separate.
-//
-// Revision 1.18  2001/11/23 21:42:31  simons
-// Program counter divided to PPC and NPC.
-//
-// Revision 1.17  2001/11/23 08:38:51  lampret
-// Changed DSR/DRR behavior and exception detection.
-//
-// Revision 1.16  2001/11/20 21:30:38  lampret
-// Added OR1200_REGISTERED_INPUTS.
-//
-// Revision 1.15  2001/11/19 14:29:48  simons
-// Cashes disabled.
-//
-// Revision 1.14  2001/11/13 10:02:21  lampret
-// Added 'setpc'. Renamed some signals (except_flushpipe into flushpipe etc)
-//
-// Revision 1.13  2001/11/12 01:45:40  lampret
-// Moved flag bit into SR. Changed RF enable from constant enable to dynamic enable for read ports.
-//
-// Revision 1.12  2001/11/10 03:43:57  lampret
-// Fixed exceptions.
-//
-// Revision 1.11  2001/11/02 18:57:14  lampret
-// Modified virtual silicon instantiations.
-//
-// Revision 1.10  2001/10/21 17:57:16  lampret
-// Removed params from generic_XX.v. Added translate_off/on in sprs.v and id.v. Removed spr_addr from dc.v and ic.v. Fixed CR+LF.
-//
-// Revision 1.9  2001/10/19 23:28:46  lampret
-// Fixed some synthesis warnings. Configured with caches and MMUs.
-//
-// Revision 1.8  2001/10/14 13:12:09  lampret
-// MP3 version.
-//
-// Revision 1.1.1.1  2001/10/06 10:18:36  igorm
-// no message
-//
-// Revision 1.3  2001/08/17 08:01:19  lampret
-// IC enable/disable.
-//
-// Revision 1.2  2001/08/13 03:36:20  lampret
-// Added cfg regs. Moved all defines into one defines.v file. More cleanup.
-//
-// Revision 1.1  2001/08/09 13:39:33  lampret
-// Major clean-up.
-//
-// Revision 1.2  2001/07/22 03:31:54  lampret
-// Fixed RAM's oen bug. Cache bypass under development.
-//
-// Revision 1.1  2001/07/20 00:46:03  lampret
-// Development version of RTL. Libraries are missing.
-//
-//
+// Revision 2.0  2010/06/30 11:00:00  ORSoC
+// Minor update: 
+// Defines added, bugs fixed. 
 
 //
 // Dump VCD
@@ -328,12 +124,14 @@
 //`define OR1200_XILINX_RAMB4
 //`define OR1200_XILINX_RAM32X1D
 //`define OR1200_USE_RAM16X1D_FOR_RAM32X1D
-`define OR1200_ACTEL
+// Generic models should infer RAM blocks at synthesis time (not only effects 
+// single port ram.)
+`define OR1200_GENERIC
 
 //
 // Do not implement Data cache
 //
-`define OR1200_NO_DC
+//`define OR1200_NO_DC
 
 //
 // Do not implement Insn cache
@@ -365,8 +163,8 @@
 //`define OR1200_IC_1W_512B
 //`define OR1200_IC_1W_4KB
 `define OR1200_IC_1W_8KB
-`define OR1200_DC_1W_4KB
-//`define OR1200_DC_1W_8KB
+//`define OR1200_DC_1W_4KB
+`define OR1200_DC_1W_8KB
 
 `endif
 
@@ -403,7 +201,7 @@
 // Disable bursts if they are not supported by the
 // memory subsystem (only affect cache line fill)
 //
-`define OR1200_NO_BURSTS
+//`define OR1200_NO_BURSTS
 //
 
 //
@@ -492,29 +290,29 @@
 // If you don't use them, then disable implementation
 // to save area.
 //
-`define OR1200_IMPL_ADDC
+//`define OR1200_IMPL_ADDC
+
+//
+// Implement l.sub instruction
+//
+// By default implementation of l.sub instructions
+// is enabled to be compliant with the simulator.
+// If you don't use carry bit, then disable
+// implementation to save area.
+//
+`define OR1200_IMPL_SUB
 
 //
 // Implement carry bit SR[CY]
 //
+//
 // By default implementation of SR[CY] is enabled
-// to be compliant with the simulator. However
-// SR[CY] is explicitly only used by l.addc/l.addic
-// instructions and if these two insns are not
+// to be compliant with the simulator. However SR[CY]
+// is explicitly only used by l.addc/l.addic/l.sub
+// instructions and if these three insns are not
 // implemented there is not much point having SR[CY].
 //
-`define OR1200_IMPL_CY
-
-//
-// Implement optional l.div/l.divu instructions
-//
-// By default divide instructions are not implemented
-// to save area and increase clock frequency. or32 C/C++
-// compiler can use soft library for division.
-//
-// To implement divide, multiplier needs to be implemented.
-//
-`define OR1200_IMPL_DIV
+//`define OR1200_IMPL_CY
 
 //
 // Implement rotate in the ALU
@@ -558,6 +356,17 @@
 `define OR1200_MAC_IMPLEMENTED
 
 //
+// Implement optional l.div/l.divu instructions
+//
+// By default divide instructions are not implemented
+// to save area and increase clock frequency. or32 C/C++
+// compiler can use soft library for division.
+//
+// To implement divide, both multiplier and MAC needs to be implemented.
+//
+`define OR1200_DIV_IMPLEMENTED
+
+//
 // Low power, slower multiplier
 //
 // Select between low-power (larger) multiplier
@@ -568,11 +377,11 @@
 //
 //`define OR1200_LOWPWR_MULT
 
-
 //
 // Implement HW Single Precision FPU
 //
-`define OR1200_FPU_IMPLEMENTED
+//`define OR1200_FPU_IMPLEMENTED
+//
 
 //
 // Clock ratio RISC clock versus WB clock
@@ -586,7 +395,7 @@
 // For WB:RISC 1:4, 1:2 or 1:1, enable both defines and use
 // clmode to set ratio
 //
-`define OR1200_CLKDIV_2_SUPPORTED
+//`define OR1200_CLKDIV_2_SUPPORTED
 //`define OR1200_CLKDIV_4_SUPPORTED
 
 //
@@ -595,7 +404,7 @@
 // Memory macro w/ two ports (see or1200_tpram_32x32.v)
 //`define OR1200_RFRAM_TWOPORT
 //
-// Memory macro dual port (see or1200_dpram_32x32.v)
+// Memory macro dual port (see or1200_dpram.v)
 `define OR1200_RFRAM_DUALPORT
 
 //
@@ -640,15 +449,15 @@
 `define OR1200_ALUOP_COMP	4'd13
 `define OR1200_ALUOP_MTSR	4'd14
 `define OR1200_ALUOP_MFSR	4'd15
-`define OR1200_ALUOP_CMOV   4'd14
-`define OR1200_ALUOP_FF1    4'd15
+`define OR1200_ALUOP_CMOV	4'd14
+`define OR1200_ALUOP_FF1	4'd15
 //
 // MACOPs
 //
-`define OR1200_MACOP_WIDTH	2
-`define OR1200_MACOP_NOP	2'b00
-`define OR1200_MACOP_MAC	2'b01
-`define OR1200_MACOP_MSB	2'b10
+`define OR1200_MACOP_WIDTH	3
+`define OR1200_MACOP_NOP	3'b000
+`define OR1200_MACOP_MAC	3'b001
+`define OR1200_MACOP_MSB	3'b010
 
 //
 // Shift/rotate ops
@@ -664,6 +473,11 @@
 `define OR1200_MULTICYCLE_WIDTH	3
 `define OR1200_ONE_CYCLE		3'd0
 `define OR1200_TWO_CYCLES		3'd1
+
+// Execution control which will "wait on" a module to finish
+`define OR1200_WAIT_ON_WIDTH 2
+`define OR1200_WAIT_ON_FPU `OR1200_WAIT_ON_WIDTH'd1
+`define OR1200_WAIT_ON_MTSPR `OR1200_WAIT_ON_WIDTH'd2
 
 // Operand MUX selects
 `define OR1200_SEL_WIDTH		2
@@ -698,11 +512,17 @@
 `define OR1200_LSUOP_LHS		4'b0101
 `define OR1200_LSUOP_LWZ		4'b0110
 `define OR1200_LSUOP_LWS		4'b0111
-`define OR1200_LSUOP_LD		4'b0001
-`define OR1200_LSUOP_SD		4'b1000
-`define OR1200_LSUOP_SB		4'b1010
-`define OR1200_LSUOP_SH		4'b1100
-`define OR1200_LSUOP_SW		4'b1110
+`define OR1200_LSUOP_LD			4'b0001
+`define OR1200_LSUOP_SD			4'b1000
+`define OR1200_LSUOP_SB			4'b1010
+`define OR1200_LSUOP_SH			4'b1100
+`define OR1200_LSUOP_SW			4'b1110
+
+// Number of bits of load/store EA precalculated in ID stage
+// for balancing ID and EX stages.
+//
+// Valid range: 2,3,...,30,31
+`define OR1200_LSUEA_PRECALC		2
 
 // FETCHOPs
 `define OR1200_FETCHOP_WIDTH		1
@@ -712,9 +532,9 @@
 //
 // Register File Write-Back OPs
 //
-`ifdef OR1200_FPU_IMPLEMENTED
 // Bit 0: register file write enable
 // Bits 3-1: write-back mux selects
+//
  `define OR1200_RFWBOP_WIDTH		4
  `define OR1200_RFWBOP_NOP		4'b0000
  `define OR1200_RFWBOP_ALU		3'b000
@@ -722,16 +542,6 @@
  `define OR1200_RFWBOP_SPRS		3'b010
  `define OR1200_RFWBOP_LR		3'b011
  `define OR1200_RFWBOP_FPU		3'b100
-`else
-// Bit 0: register file write enable
-// Bits 2-1: write-back mux selects
- `define OR1200_RFWBOP_WIDTH		3
- `define OR1200_RFWBOP_NOP		3'b000
- `define OR1200_RFWBOP_ALU		2'b00
- `define OR1200_RFWBOP_LSU		2'b01
- `define OR1200_RFWBOP_SPRS		2'b10
- `define OR1200_RFWBOP_LR		2'b11
-`endif // !`ifdef OR1200_FPU_IMPLEMENTED
 
 // Compare instructions
 `define OR1200_COP_SFEQ       3'b000
@@ -745,33 +555,31 @@
 `define OR1200_COMPOP_WIDTH	4
 
 //
-// FPU OPs
+// FP OPs
 //
 // MSbit indicates FPU operation valid
 //
-`ifdef OR1200_FPU_IMPLEMENTED
- `define OR1200_FPUOP_WIDTH	8
-/* FPU unit from Usselman takes 5 cycles from decode, so 4 ex. cycles */
- `define OR1200_FPUOP_CYCLES 3'd4
-/* FP instruction is double precision if bit 4 is set. We're a 32-bit 
- implementation thus do not support double precision FP */
- `define OR1200_FPUOP_DOUBLE_BIT 4
- `define OR1200_FPUOP_ADD  8'b0000_0000
- `define OR1200_FPUOP_SUB  8'b0000_0001
- `define OR1200_FPUOP_MUL  8'b0000_0010
- `define OR1200_FPUOP_DIV  8'b0000_0011
- `define OR1200_FPUOP_ITOF 8'b0000_0100
- `define OR1200_FPUOP_FTOI 8'b0000_0101
- `define OR1200_FPUOP_REM  8'b0000_0110
- `define OR1200_FPUOP_RESERVED  8'b0000_0111
+`define OR1200_FPUOP_WIDTH	8
+// FPU unit from Usselman takes 5 cycles from decode, so 4 ex. cycles
+`define OR1200_FPUOP_CYCLES 3'd4
+// FP instruction is double precision if bit 4 is set. We're a 32-bit 
+// implementation thus do not support double precision FP 
+`define OR1200_FPUOP_DOUBLE_BIT 4
+`define OR1200_FPUOP_ADD  8'b0000_0000
+`define OR1200_FPUOP_SUB  8'b0000_0001
+`define OR1200_FPUOP_MUL  8'b0000_0010
+`define OR1200_FPUOP_DIV  8'b0000_0011
+`define OR1200_FPUOP_ITOF 8'b0000_0100
+`define OR1200_FPUOP_FTOI 8'b0000_0101
+`define OR1200_FPUOP_REM  8'b0000_0110
+`define OR1200_FPUOP_RESERVED  8'b0000_0111
 // FP Compare instructions
- `define OR1200_FPCOP_SFEQ 8'b0000_1000
- `define OR1200_FPCOP_SFNE 8'b0000_1001
- `define OR1200_FPCOP_SFGT 8'b0000_1010
- `define OR1200_FPCOP_SFGE 8'b0000_1011
- `define OR1200_FPCOP_SFLT 8'b0000_1100
- `define OR1200_FPCOP_SFLE 8'b0000_1101
-`endif
+`define OR1200_FPCOP_SFEQ 8'b0000_1000
+`define OR1200_FPCOP_SFNE 8'b0000_1001
+`define OR1200_FPCOP_SFGT 8'b0000_1010
+`define OR1200_FPCOP_SFGE 8'b0000_1011
+`define OR1200_FPCOP_SFLT 8'b0000_1100
+`define OR1200_FPCOP_SFLE 8'b0000_1101
 
 //
 // TAGs for instruction bus
@@ -837,9 +645,7 @@
 /* */
 `define OR1200_OR32_MTSPR             6'b110000
 `define OR1200_OR32_MACMSB            6'b110001
-`ifdef OR1200_FPU_IMPLEMENTED
- `define OR1200_OR32_FLOAT            6'b110010
-`endif
+`define OR1200_OR32_FLOAT             6'b110010
 /* */
 `define OR1200_OR32_SW                6'b110101
 `define OR1200_OR32_SB                6'b110110
@@ -847,6 +653,7 @@
 `define OR1200_OR32_ALU               6'b111000
 `define OR1200_OR32_SFXX              6'b111001
 //`define OR1200_OR32_CUST5             6'b111100
+
 
 /////////////////////////////////////////////////////
 //
@@ -892,7 +699,6 @@
 //
 `define OR1200_EXCEPT_UNUSED		`OR1200_EXCEPT_WIDTH'hf
 `define OR1200_EXCEPT_TRAP		`OR1200_EXCEPT_WIDTH'he
-//`define OR1200_EXCEPT_BREAK		`OR1200_EXCEPT_WIDTH'hd
 `define OR1200_EXCEPT_FLOAT		`OR1200_EXCEPT_WIDTH'hd
 `define OR1200_EXCEPT_SYSCALL		`OR1200_EXCEPT_WIDTH'hc
 `define OR1200_EXCEPT_RANGE		`OR1200_EXCEPT_WIDTH'hb
@@ -934,9 +740,7 @@
 `define OR1200_SPR_GROUP_PM	5'd08
 `define OR1200_SPR_GROUP_PIC	5'd09
 `define OR1200_SPR_GROUP_TT	5'd10
-`ifdef OR1200_FPU_IMPLEMENTED
- `define OR1200_SPR_GROUP_FPU    5'd11
-`endif
+`define OR1200_SPR_GROUP_FPU    5'd11
 
 /////////////////////////////////////////////////////
 //
@@ -951,9 +755,7 @@
 `define OR1200_SPR_NPC		11'd16
 `define OR1200_SPR_SR		11'd17
 `define OR1200_SPR_PPC		11'd18
-`ifdef OR1200_FPU_IMPLEMENTED
- `define OR1200_SPR_FPCSR       11'd20
-`endif
+`define OR1200_SPR_FPCSR        11'd20
 `define OR1200_SPR_EPCR		11'd32
 `define OR1200_SPR_EEAR		11'd48
 `define OR1200_SPR_ESR		11'd64
@@ -961,7 +763,7 @@
 //
 // SR bits
 //
-`define OR1200_SR_WIDTH 16
+`define OR1200_SR_WIDTH 17
 `define OR1200_SR_SM   0
 `define OR1200_SR_TEE  1
 `define OR1200_SR_IEE  2
@@ -978,6 +780,7 @@
 `define OR1200_SR_DSX  13	// Unused
 `define OR1200_SR_EPH  14
 `define OR1200_SR_FO   15
+`define OR1200_SR_TED  16
 `define OR1200_SR_CID  31:28	// Unimplemented
 
 //
@@ -992,6 +795,7 @@
 // 1'b1 - OR1200_EXCEPT_EPH1_P (0xF000_0000)
 //
 `define OR1200_SR_EPH_DEF	1'b0
+
 
 //
 // FPCSR bits
@@ -1009,7 +813,6 @@
 `define OR1200_FPCSR_INF   10
 `define OR1200_FPCSR_DZF   11
 `define OR1200_FPCSR_RES   31:12
-
 
 /////////////////////////////////////////////////////
 //
@@ -1058,13 +861,17 @@
 // however already enough for use
 // with or32 gdb)
 //
-`define OR1200_DU_HWBKPTS
+//`define OR1200_DU_HWBKPTS
 
-// Number of DVR/DCR pairs, minus one, if HW breakpoints enabled
-`define OR1200_DU_DVRDCR_PAIRS 7
+// Number of DVR/DCR pairs if HW breakpoints enabled
+//	Comment / uncomment DU_DVRn / DU_DCRn pairs bellow according to this number ! 
+//	DU_DVR0..DU_DVR7 should be uncommented for 8 DU_DVRDCR_PAIRS 
+`define OR1200_DU_DVRDCR_PAIRS 8
 
 // Define if you want trace buffer
+//	(for now only available for Xilinx Virtex FPGAs)
 //`define OR1200_DU_TB_IMPLEMENTED
+
 
 //
 // Address offsets of DU registers inside DU group
@@ -1134,8 +941,8 @@
 // DMR2 bits
 `define OR1200_DU_DMR2_WCE0	0
 `define OR1200_DU_DMR2_WCE1	1
-`define OR1200_DU_DMR2_AWTC	11:2
-`define OR1200_DU_DMR2_WGB	23:12
+`define OR1200_DU_DMR2_AWTC	12:2
+`define OR1200_DU_DMR2_WGB	23:13
 
 // DWCR bits
 `define OR1200_DU_DWCR_COUNT	15:0
@@ -1318,7 +1125,7 @@
 // cache inhibited 2GB-4GB (default)	dcpu_adr_i[31]
 // cached 0GB-4GB			1'b0
 //
-`define OR1200_DMMU_CI			dcpu_cycstb_i && dcpu_adr_i[31]
+`define OR1200_DMMU_CI			dcpu_adr_i[31]
 
 
 //////////////////////////////////////////////
@@ -1426,8 +1233,24 @@
 // 3 for 8 bytes, 4 for 16 bytes etc
 `define OR1200_DCLS		4
 
-// Define to perform store refill (potential performance penalty)
-// `define OR1200_DC_STORE_REFILL
+// Define to enable default behavior of cache as write through
+// Turning this off enabled write back statergy
+//
+`define OR1200_DC_WRITETHROUGH
+
+// Define to enable stores from the stack not doing writethrough.
+// EXPERIMENTAL
+//`define OR1200_DC_NOSTACKWRITETHROUGH
+
+// Data cache SPR definitions
+`define OR1200_SPRGRP_DC_ADR_WIDTH 3
+// Data cache group SPR addresses
+`define OR1200_SPRGRP_DC_DCCR		3'd0 // Not implemented
+`define OR1200_SPRGRP_DC_DCBPR		3'd1 // Not implemented
+`define OR1200_SPRGRP_DC_DCBFR		3'd2
+`define OR1200_SPRGRP_DC_DCBIR		3'd3
+`define OR1200_SPRGRP_DC_DCBWR		3'd4 // Not implemented
+`define OR1200_SPRGRP_DC_DCBLR		3'd5 // Not implemented
 
 //
 // DC configurations
@@ -1448,6 +1271,7 @@
 `define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 9
 `define	OR1200_DCTAG_W			20
 `endif
+
 
 /////////////////////////////////////////////////
 //
@@ -1536,9 +1360,9 @@
 // at higher addresses in reserved space.
 //
 `define OR1200_QMEM_IADDR	32'h0080_0000
-`define OR1200_QMEM_IMASK	32'hfff0_0000	// Max QMEM size 1MB
-`define OR1200_QMEM_DADDR  32'h0080_0000
-`define OR1200_QMEM_DMASK  32'hfff0_0000 // Max QMEM size 1MB
+`define OR1200_QMEM_IMASK	32'hfff0_0000 // Max QMEM size 1MB
+`define OR1200_QMEM_DADDR	32'h0080_0000
+`define OR1200_QMEM_DMASK	32'hfff0_0000 // Max QMEM size 1MB
 
 //
 // QMEM interface byte-select capability
@@ -1593,7 +1417,7 @@
 `define OR1200_VR_VER_BITS		31:24
 
 // VR values
-`define OR1200_VR_REV			6'h01
+`define OR1200_VR_REV			6'h08
 `define OR1200_VR_RES1			10'h000
 `define OR1200_VR_CFG			8'h00
 `define OR1200_VR_VER			8'h12
@@ -1610,7 +1434,8 @@
 `define OR1200_UPR_PMP_BITS		8
 `define OR1200_UPR_PICP_BITS		9
 `define OR1200_UPR_TTP_BITS		10
-`define OR1200_UPR_RES1_BITS		23:11
+`define OR1200_UPR_FPP_BITS		11
+`define OR1200_UPR_RES1_BITS		23:12
 `define OR1200_UPR_CUP_BITS		31:24
 
 // UPR values
@@ -1635,29 +1460,38 @@
 `else
 `define OR1200_UPR_IMP			1'b1
 `endif
-`define OR1200_UPR_MP			1'b1	// MAC always present
+`ifdef OR1200_MAC_IMPLEMENTED
+`define OR1200_UPR_MP			1'b1
+`else
+`define OR1200_UPR_MP			1'b0
+`endif
 `ifdef OR1200_DU_IMPLEMENTED
 `define OR1200_UPR_DUP			1'b1
 `else
 `define OR1200_UPR_DUP			1'b0
 `endif
 `define OR1200_UPR_PCUP			1'b0	// Performance counters not present
-`ifdef OR1200_DU_IMPLEMENTED
+`ifdef OR1200_PM_IMPLEMENTED
 `define OR1200_UPR_PMP			1'b1
 `else
 `define OR1200_UPR_PMP			1'b0
 `endif
-`ifdef OR1200_DU_IMPLEMENTED
+`ifdef OR1200_PIC_IMPLEMENTED
 `define OR1200_UPR_PICP			1'b1
 `else
 `define OR1200_UPR_PICP			1'b0
 `endif
-`ifdef OR1200_DU_IMPLEMENTED
+`ifdef OR1200_TT_IMPLEMENTED
 `define OR1200_UPR_TTP			1'b1
 `else
 `define OR1200_UPR_TTP			1'b0
 `endif
-`define OR1200_UPR_RES1			13'h0000
+`ifdef OR1200_FPU_IMPLEMENTED
+`define OR1200_UPR_FPP			1'b1
+`else
+`define OR1200_UPR_FPP			1'b0
+`endif
+`define OR1200_UPR_RES1			12'h000
 `define OR1200_UPR_CUP			8'h00
 
 // CPUCFGR fields
@@ -1679,7 +1513,12 @@
 `endif
 `define OR1200_CPUCFGR_OB32S		1'b1
 `define OR1200_CPUCFGR_OB64S		1'b0
-`define OR1200_CPUCFGR_OF32S		1'b0
+`ifdef OR1200_FPU_IMPLEMENTED
+ `define OR1200_CPUCFGR_OF32S		1'b1
+`else
+ `define OR1200_CPUCFGR_OF32S		1'b0
+`endif
+
 `define OR1200_CPUCFGR_OF64S		1'b0
 `define OR1200_CPUCFGR_OV64S		1'b0
 `define OR1200_CPUCFGR_RES1		22'h000000
@@ -1765,24 +1604,32 @@
 `define OR1200_DCCFGR_NCS		4'h0	// Irrelevant
 `define OR1200_DCCFGR_CBS		1'b0	// Irrelevant
 `define OR1200_DCCFGR_CWS		1'b0	// Irrelevant
-`define OR1200_DCCFGR_CCRI		1'b1	// Irrelevant
-`define OR1200_DCCFGR_CBIRI		1'b1	// Irrelevant
+`define OR1200_DCCFGR_CCRI		1'b0	// Irrelevant
+`define OR1200_DCCFGR_CBIRI		1'b0	// Irrelevant
 `define OR1200_DCCFGR_CBPRI		1'b0	// Irrelevant
 `define OR1200_DCCFGR_CBLRI		1'b0	// Irrelevant
-`define OR1200_DCCFGR_CBFRI		1'b1	// Irrelevant
+`define OR1200_DCCFGR_CBFRI		1'b0	// Irrelevant
 `define OR1200_DCCFGR_CBWBRI		1'b0	// Irrelevant
 `define OR1200_DCCFGR_RES1		17'h00000
 `else
 `define OR1200_DCCFGR_NCW		3'h0	// 1 cache way
 `define OR1200_DCCFGR_NCS (`OR1200_DCTAG)	// Num cache sets
 `define OR1200_DCCFGR_CBS (`OR1200_DCLS-4)	// 16 byte cache block
-`define OR1200_DCCFGR_CWS		1'b0	// Write-through strategy
+`ifdef OR1200_DC_WRITETHROUGH
+ `define OR1200_DCCFGR_CWS		1'b0	// Write-through strategy
+`else
+ `define OR1200_DCCFGR_CWS		1'b1	// Write-back strategy
+`endif
 `define OR1200_DCCFGR_CCRI		1'b1	// Cache control reg impl.
 `define OR1200_DCCFGR_CBIRI		1'b1	// Cache block inv reg impl.
 `define OR1200_DCCFGR_CBPRI		1'b0	// Cache block prefetch reg not impl.
 `define OR1200_DCCFGR_CBLRI		1'b0	// Cache block lock reg not impl.
 `define OR1200_DCCFGR_CBFRI		1'b1	// Cache block flush reg impl.
-`define OR1200_DCCFGR_CBWBRI		1'b0	// Cache block WB reg not impl.
+`ifdef OR1200_DC_WRITETHROUGH
+ `define OR1200_DCCFGR_CBWBRI		1'b0	// Cache block WB reg not impl.
+`else
+ `define OR1200_DCCFGR_CBWBRI		1'b1	// Cache block WB reg impl.
+`endif
 `define OR1200_DCCFGR_RES1		17'h00000
 `endif
 
@@ -1827,21 +1674,32 @@
 `endif
 
 // DCFGR fields
-`define OR1200_DCFGR_NDP_BITS		2:0
-`define OR1200_DCFGR_WPCI_BITS		3
-`define OR1200_DCFGR_RES1_BITS		31:4
+`define OR1200_DCFGR_NDP_BITS		3:0
+`define OR1200_DCFGR_WPCI_BITS		4
+`define OR1200_DCFGR_RES1_BITS		31:5
 
 // DCFGR values
 `ifdef OR1200_DU_HWBKPTS
-`define OR1200_DCFGR_NDP	3'h`OR1200_DU_DVRDCR_PAIRS // # of DVR/DCR pairs
+`define OR1200_DCFGR_NDP		4'h`OR1200_DU_DVRDCR_PAIRS // # of DVR/DCR pairs
 `ifdef OR1200_DU_DWCR0
 `define OR1200_DCFGR_WPCI		1'b1
 `else
 `define OR1200_DCFGR_WPCI		1'b0	// WP counters not impl.
 `endif
 `else
-`define OR1200_DCFGR_NDP		3'h0	// Zero DVR/DCR pairs
+`define OR1200_DCFGR_NDP		4'h0	// Zero DVR/DCR pairs
 `define OR1200_DCFGR_WPCI		1'b0	// WP counters not impl.
 `endif
 `define OR1200_DCFGR_RES1		28'h0000000
- 
+
+///////////////////////////////////////////////////////////////////////////////
+// Boot Address Selection                                                    //
+// This only changes where the initial reset occurs. EPH setting is still    //
+// used to determine where vectors are located.                              //
+///////////////////////////////////////////////////////////////////////////////
+ // Boot from 0xf0000100
+//`define OR1200_BOOT_PCREG_DEFAULT 30'h3c00003f
+//`define OR1200_BOOT_ADR 32'hf0000100
+// Boot from 0x100
+ `define OR1200_BOOT_PCREG_DEFAULT 30'h0000003f
+ `define OR1200_BOOT_ADR 32'h00000100

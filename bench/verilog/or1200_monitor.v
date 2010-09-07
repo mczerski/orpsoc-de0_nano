@@ -1,22 +1,9 @@
+//
+// Or1200 Monitor
+//
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  OR1200's simulation monitor                                 ////
-////                                                              ////
-////  This file is part of the OpenRISC 1200 project              ////
-////  http://www.opencores.org/cores/or1k/                        ////
-////                                                              ////
-////  Description                                                 ////
-////  Simulation monitor                                          ////
-////                                                              ////
-////  To Do:                                                      ////
-////   - move it to bench                                         ////
-////                                                              ////
-////  Author(s):                                                  ////
-////      - Damjan Lampret, lampret@opencores.org                 ////
-////                                                              ////
-//////////////////////////////////////////////////////////////////////
-////                                                              ////
-//// Copyright (C) 2000 Authors and OPENCORES.ORG                 ////
+//// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -40,59 +27,6 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: or1200_monitor.v,v $
-// Revision 1.4  2004/04/05 08:46:06  lampret
-// Merged branch_qmem into main tree.
-//
-// Revision 1.3  2003/04/07 01:32:53  lampret
-// Added get_gpr support for OR1200_RFRAM_GENERIC
-//
-// Revision 1.2  2002/08/12 05:38:11  lampret
-// Added more WISHBONE protocol checks. Removed nop.log. Added general.log and lookup.log.
-//
-// Revision 1.1  2002/03/28 19:59:55  lampret
-// Added bench directory
-//
-// Revision 1.9  2002/02/01 19:56:54  lampret
-// Fixed combinational loops.
-//
-// Revision 1.8  2002/01/28 01:25:22  lampret
-// Fixed display of new 'void' nop insns.
-//
-// Revision 1.7  2002/01/19 14:10:39  lampret
-// Fixed OR1200_XILINX_RAM32X1D.
-//
-// Revision 1.6  2002/01/18 07:57:56  lampret
-// Added support for reading XILINX_RAM32X1D register file.
-//
-// Revision 1.5  2002/01/14 06:19:35  lampret
-// Added debug model for testing du. Updated or1200_monitor.
-//
-// Revision 1.4  2002/01/03 08:40:15  lampret
-// Added second clock as RISC main clock. Updated or120_monitor.
-//
-// Revision 1.3  2001/11/23 08:50:35  lampret
-// Typos.
-//
-// Revision 1.2  2001/11/10 04:22:55  lampret
-// Modified monitor tu support exceptions.
-//
-// Revision 1.1.1.1  2001/11/04 18:51:07  lampret
-// First import.
-//
-// Revision 1.1  2001/08/20 18:17:52  damjan
-// Initial revision
-//
-// Revision 1.1  2001/08/13 03:37:07  lampret
-// Added monitor.v and timescale.v
-//
-// Revision 1.1  2001/07/20 00:46:03  lampret
-// Development version of RTL. Libraries are missing.
-//
-//
 
 `include "timescale.v"
 `include "or1200_defines.v"
@@ -111,6 +45,16 @@
 //
 //`define OR1200_DISPLAY_ARCH_STATE
 
+//
+// Top of OR1200 inside test bench
+//
+`define CPU or1200
+`define CPU_cpu or1200_cpu
+`define CPU_rf or1200_rf
+`define CPU_except or1200_except
+`define CPU_ctrl or1200_ctrl
+`define CPU_sprs or1200_sprs
+
 module or1200_monitor;
 
    integer fexe;
@@ -120,6 +64,7 @@ module or1200_monitor;
    integer    flookup;
    integer    r3;
    integer    insns;
+
 
    //
    // Initialization
@@ -143,72 +88,21 @@ module or1200_monitor;
       output [31:0] 	gpr;
       integer 		j;
       begin
-`ifdef OR1200_RFRAM_GENERIC
+
+ `ifdef OR1200_RFRAM_GENERIC
 	 for(j = 0; j < 32; j = j + 1) begin
-	    gpr[j] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.mem[gpr_no*32+j];
+	    gpr[j] = `OR1200_TOP.`CPU_cpu.`CPU_rf.rf_a.mem[gpr_no*32+j];
 	 end
-`else
- `ifdef OR1200_XILINX_RAM32X1D
-	 gpr[0] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_0.mem[gpr_no];
-	 gpr[1] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_1.mem[gpr_no];
-	 gpr[2] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_2.mem[gpr_no];
-	 gpr[3] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_3.mem[gpr_no];
-	 gpr[4] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_4.mem[gpr_no];
-	 gpr[5] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_5.mem[gpr_no];
-	 gpr[6] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_6.mem[gpr_no];
-	 gpr[7] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_0.ram32x1d_7.mem[gpr_no];
-	 gpr[8] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_0.mem[gpr_no];
-gpr[9] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_1.mem[gpr_no];
-	 gpr[10] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_2.mem[gpr_no];
-gpr[11] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_3.mem[gpr_no];
-	 gpr[12] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_4.mem[gpr_no];
-gpr[13] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_5.mem[gpr_no];
-	 gpr[14] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_6.mem[gpr_no];
-gpr[15] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_1.ram32x1d_7.mem[gpr_no];
-	 gpr[16] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_0.mem[gpr_no];
-gpr[17] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_1.mem[gpr_no];
-gpr[18] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_2.mem[gpr_no];
-gpr[19] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_3.mem[gpr_no];
-gpr[20] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_4.mem[gpr_no];
-gpr[21] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_5.mem[gpr_no];
-gpr[22] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_6.mem[gpr_no];
-gpr[23] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_2.ram32x1d_7.mem[gpr_no];
-gpr[24] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_0.mem[gpr_no];
-gpr[25] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_1.mem[gpr_no];
-gpr[26] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_2.mem[gpr_no];
-gpr[27] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_3.mem[gpr_no];
-gpr[28] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_4.mem[gpr_no];
-gpr[29] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_5.mem[gpr_no];
-gpr[30] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_6.mem[gpr_no];
-gpr[31] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_7.mem[gpr_no];
+	 
  `else
-  `ifdef OR1200_XILINX_RAMB4
-	 for(j = 0; j < 16; j = j + 1) begin
-	    gpr[j] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb4_s16_0.mem[gpr_no*16+j];
-	 end
-	 for(j = 0; j < 16; j = j + 1) begin
-	    gpr[j+16] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb4_s16_1.mem[gpr_no*16+j];
-	 end
-  `else
-   `ifdef OR1200_ARTISAN_SDP
-   `else
-    `ifdef OR1200_XILINX_RAMB16
-     `ifdef legacy_model
-	 for(j = 0; j < 32; j = j + 1) begin
-	    gpr[j] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb16_s36_s36.mem[gpr_no*32+j];
-	 end
-     `else
-	 gpr = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.ramb16_s36_s36.mem[gpr_no];
-     `endif
-    `else
-	 gpr = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.mem[gpr_no];
-    `endif
-   `endif
-  `endif
-`endif
-`endif
-	 end
- endtask
+	 //gpr = `OR1200_TOP.`CPU_cpu.`CPU_rf.rf_a.mem[gpr_no];
+	 gpr = `OR1200_TOP.`CPU_cpu.`CPU_rf.rf_a.get_gpr(gpr_no);
+	 
+ `endif
+
+
+      end
+   endtask
 
    //
    // Write state of the OR1200 registers into a file
@@ -224,7 +118,7 @@ gpr[31] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_7.mem[gp
 `ifdef OR1200_DISPLAY_ARCH_STATE
 	 ref = ref + 1;
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
-	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, `OR1200_TOP.or1200_cpu.or1200_except.wb_pc, `OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn);
+	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
 	 for(i = 0; i < 32; i = i + 1) begin
 	    if (i % 4 == 0)
 	      $fdisplay(fexe);
@@ -232,51 +126,24 @@ gpr[31] = `OR1200_TOP.or1200_cpu.or1200_rf.rf_a.xcv_ram32x8d_3.ram32x1d_7.mem[gp
 	    $fwrite(fexe, "GPR%d: %h  ", i, r);
 	 end
 	 $fdisplay(fexe);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.sr;
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.sr;
 	 $fwrite(fexe, "SR   : %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.epcr;
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.epcr;
 	 $fwrite(fexe, "EPCR0: %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.eear;
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.eear;
 	 $fwrite(fexe, "EEAR0: %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.esr;
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.esr;
 	 $fdisplay(fexe, "ESR0 : %h", r);
-         insns = insns + 1;
+`endif //  `ifdef OR1200_DISPLAY_ARCH_STATE
+`ifdef OR1200_DISPLAY_EXECUTED
+	 ref = ref + 1;
+	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
 `endif
+	 insns = insns + 1;
 end
    endtask // display_arch_state
 
-   //
-   // Write state of the OR1200 registers into a file; version for exception
-   //
-   task display_arch_state_except;
-      reg [5:0] i;
-      reg [31:0] r;
-      integer 	 j;
-      begin
-`ifdef OR1200_DISPLAY_ARCH_STATE
-	 ref = ref + 1;
-	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
-	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h  (exception)", insns, `OR1200_TOP.or1200_cpu.or1200_except.ex_pc, `OR1200_TOP.or1200_cpu.or1200_ctrl.ex_insn);
-	 for(i = 0; i < 32; i = i + 1) begin
-	    if (i % 4 == 0)
-	      $fdisplay(fexe);
-	    get_gpr(i, r);
-	    $fwrite(fexe, "GPR%d: %h  ", i, r);
-	 end
-	 $fdisplay(fexe);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.sr;
-	 $fwrite(fexe, "SR   : %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.epcr;
-	 $fwrite(fexe, "EPCR0: %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.eear;
-	 $fwrite(fexe, "EEAR0: %h  ", r);
-	 r = `OR1200_TOP.or1200_cpu.or1200_sprs.esr;
-	 $fdisplay(fexe, "ESR0 : %h", r);
-         insns = insns + 1;
-`endif
-      end      
-   endtask // display_arch_state_except
-   
    /* Keep a trace buffer of the last lot of instructions and addresses 
     * "executed",as read from the writeback stage, and cause a $finish if we hit
     * an instruction that is invalid, such as all zeros.
@@ -289,19 +156,25 @@ end
    initial num_nul_inst = 0;
       
    task monitor_for_crash;
-      `define OR1200_MONITOR_CRASH_TRACE_SIZE 32
-      reg [31:0] insn_trace [0:`OR1200_MONITOR_CRASH_TRACE_SIZE-1]; //Trace buffer of 32 instructions
-      reg [31:0] addr_trace [0:`OR1200_MONITOR_CRASH_TRACE_SIZE-1]; //Trace buffer of the addresses of those instructions
+`define OR1200_MONITOR_CRASH_TRACE_SIZE 32
+      //Trace buffer of 32 instructions
+      reg [31:0] insn_trace [0:`OR1200_MONITOR_CRASH_TRACE_SIZE-1];
+      //Trace buffer of the addresses of those instructions
+      reg [31:0] addr_trace [0:`OR1200_MONITOR_CRASH_TRACE_SIZE-1]; 
       integer i;
       
      begin
-	if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h00000000)
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h00000000)
 	  num_nul_inst = num_nul_inst + 1;
+	else
+	  num_nul_inst = 0; // Reset it
 
 	if (num_nul_inst == 1000) // Sat a loop a bit too long...
 	  begin
-	     $fdisplay(fgeneral, "ERROR - no instruction at PC %h", `OR1200_TOP.or1200_cpu.or1200_except.wb_pc);
-	     $fdisplay(fgeneral, "Crash trace: Last %d instructions: ",`OR1200_MONITOR_CRASH_TRACE_SIZE);
+	     $fdisplay(fgeneral, "ERROR - no instruction at PC %h", 
+		       `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc);
+	     $fdisplay(fgeneral, "Crash trace: Last %d instructions: ",
+		       `OR1200_MONITOR_CRASH_TRACE_SIZE);
 
 	     $fdisplay(fgeneral, "PC\t\tINSTR");
 	     for(i=`OR1200_MONITOR_CRASH_TRACE_SIZE-1;i>=0;i=i-1) begin
@@ -315,12 +188,54 @@ end
 		insn_trace[i] = insn_trace[i-1];
 		addr_trace[i] = addr_trace[i-1];
 	     end
-	     insn_trace[0] = `OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn;
-	     addr_trace[0] = `OR1200_TOP.or1200_cpu.or1200_except.wb_pc;
+	     insn_trace[0] = `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn;
+	     addr_trace[0] = `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc;
 	  end
 	
      end
    endtask // monitor_for_crash
+   
+
+   //
+   // Write state of the OR1200 registers into a file; version for exception
+   //
+   task display_arch_state_except;
+      reg [5:0] i;
+      reg [31:0] r;
+      integer 	 j;
+      begin
+`ifdef OR1200_DISPLAY_ARCH_STATE
+	 ref = ref + 1;
+	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h  (exception)", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.ex_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.ex_insn);
+	 for(i = 0; i < 32; i = i + 1) begin
+	    if (i % 4 == 0)
+	      $fdisplay(fexe);
+	    get_gpr(i, r);
+	    $fwrite(fexe, "GPR%d: %h  ", i, r);
+	 end
+	 $fdisplay(fexe);
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.sr;
+	 $fwrite(fexe, "SR   : %h  ", r);
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.epcr;
+	 $fwrite(fexe, "EPCR0: %h  ", r);
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.eear;
+	 $fwrite(fexe, "EEAR0: %h  ", r);
+	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.esr;
+	 $fdisplay(fexe, "ESR0 : %h", r);
+         insns = insns + 1;
+`endif //  `ifdef OR1200_DISPLAY_ARCH_STATE
+`ifdef OR1200_DISPLAY_EXECUTED
+	 ref = ref + 1;
+	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h  (exception)", insns, 
+		 `OR1200_TOP.`CPU_cpu.`CPU_except.ex_pc, 
+		 `OR1200_TOP.`CPU_cpu.`CPU_ctrl.ex_insn);
+	 insns = insns + 1;
+`endif
+	 
+end
+   endtask
 
    integer iwb_progress;
    reg [31:0] iwb_progress_addr;
@@ -365,7 +280,7 @@ end
 	  end
 	if ((iwb_progress == 2) && !`OR1200_TOP.iwb_stb_o) begin
 	   $fdisplay(fgeneral, "WISHBONE protocol violation: `OR1200_TOP.iwb_stb_o lowered without `OR1200_TOP.iwb_err_i/`OR1200_TOP.iwb_ack_i, at %t\n", $time);
-	   /*			#100 $finish;*/
+	   #100 $finish;
 	end
      end
 
@@ -418,43 +333,257 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 // - end of simulation
 // - access to SPRs
 //
-   always @(posedge `OR1200_TOP.or1200_cpu.or1200_ctrl.clk)
-     if (!`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_freeze) begin
-	#2;
-	if (((`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn[31:26] != `OR1200_OR32_NOP) || !`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn[16])
-	    && !(`OR1200_TOP.or1200_cpu.or1200_except.except_flushpipe && `OR1200_TOP.or1200_cpu.or1200_except.ex_dslot))
+   always @(posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
+     if (!`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_freeze) begin
+//	#2;
+	if (((`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn[31:26] != `OR1200_OR32_NOP)
+	     | !`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn[16])
+	    & !(`OR1200_TOP.`CPU_cpu.`CPU_except.except_flushpipe & 
+		`OR1200_TOP.`CPU_cpu.`CPU_except.ex_dslot))
 	  begin
 	     display_arch_state;
 	     monitor_for_crash;
 	  end
 	else
-	  if (`OR1200_TOP.or1200_cpu.or1200_except.except_flushpipe)
+	  if (`OR1200_TOP.`CPU_cpu.`CPU_except.except_flushpipe)
 	    display_arch_state_except;
-	if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h1500_0001) begin // small hack to stop simulation (l.nop 1)
+	// small hack to stop simulation (l.nop 1):
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0001) begin
 	   get_gpr(3, r3);
 	   $fdisplay(fgeneral, "%t: l.nop exit (%h)", $time, r3);
 	   $finish;
 	end
-	if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h1500_000a) begin // debug if test (l.nop 10)
+	// debug if test (l.nop 10)
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_000a) begin
 	   $fdisplay(fgeneral, "%t: l.nop dbg_if_test", $time);
 `ifdef DBG_IF_MODEL
 	   xess_top.i_xess_fpga.dbg_if_model.dbg_if_test_go = 1;
 `endif
 	end
-if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h1500_0002) begin // simulation reports (l.nop 2)
-   get_gpr(3, r3);
-   $fdisplay(fgeneral, "%t: l.nop report (%h)", $time, r3);
-end
-	if (`OR1200_TOP.or1200_cpu.or1200_ctrl.wb_insn == 32'h1500_0003) begin // simulation printfs (l.nop 3)
+	// simulation reports (l.nop 2)
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0002) begin 
+	   get_gpr(3, r3);
+	   $fdisplay(fgeneral, "%t: l.nop report (%h)", $time, r3);
+	end
+	// simulation printfs (l.nop 3)
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0003) begin 
 	   get_gpr(3, r3);
 	   $fdisplay(fgeneral, "%t: l.nop printf (%h)", $time, r3);
 	end
-	if (`OR1200_TOP.or1200_cpu.or1200_sprs.sprs_op == `OR1200_ALUOP_MTSR)  // l.mtspr
+	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0004) begin 
+	   // simulation putc (l.nop 4)
+	   get_gpr(3, r3);
+	   $write("%c", r3);
+	   $fdisplay(fgeneral, "%t: l.nop putc (%c)", $time, r3);
+	end
+	if (`OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.sprs_op*/ == 
+	    `OR1200_ALUOP_MTSR)  // l.mtspr
 	  $fdisplay(fspr, "%t: Write to SPR : [%h] <- %h", $time,
-		    `OR1200_TOP.or1200_cpu.or1200_sprs.spr_addr, `OR1200_TOP.or1200_cpu.or1200_sprs.spr_dat_o);
-	if (`OR1200_TOP.or1200_cpu.or1200_sprs.sprs_op == `OR1200_ALUOP_MFSR)  // l.mfspr
+		    `OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.spr_addr*/, 
+		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_dat_o);
+	if (`OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.sprs_op*/ == 
+	    `OR1200_ALUOP_MFSR)  // l.mfspr
 	  $fdisplay(fspr, "%t: Read from SPR: [%h] -> %h", $time,
-		    `OR1200_TOP.or1200_cpu.or1200_sprs.spr_addr, `OR1200_TOP.or1200_cpu.or1200_sprs.to_wbmux);
+		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_addr, 
+		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.to_wbmux);
      end
 
+
+`ifdef VERSATILE_SDRAM
+ `define SDRAM_TOP design_testbench.sdram0
+   // Bit selects to define the bank
+   // 32 MB part with 4 banks
+ `define SDRAM_BANK_SEL_BITS 24:23
+ `define SDRAM_WORD_SEL_TOP_BIT 22
+   // Gets instruction word from correct bank
+   task get_insn_from_sdram;
+      input [31:0] addr;
+      output [31:0] insn;
+      reg [`SDRAM_WORD_SEL_TOP_BIT-1:0] word_addr;
+ 
+      begin
+	 word_addr = addr[`SDRAM_WORD_SEL_TOP_BIT:2];	 
+	 if (addr[`SDRAM_BANK_SEL_BITS] == 2'b00)
+	   begin
+	      
+	      //$display("%t: get_insn_from_sdram bank0, word 0x%h, (%h and %h in SDRAM)", $time, word_addr, `SDRAM_TOP.Bank0[{word_addr,1'b0}], `SDRAM_TOP.Bank0[{word_addr,1'b1}]);	      
+	      insn[15:0] = `SDRAM_TOP.Bank0[{word_addr,1'b1}];
+	      insn[31:16] = `SDRAM_TOP.Bank0[{word_addr,1'b0}];
+	   end
+      end
+      
+   endtask // get_insn_from_sdram
+`endif //  `ifdef VERSATILE_SDRAM
+
+`ifdef XILINX_DDR2
+ `define DDR2_TOP design_testbench.gen_cs[0]
+   // Gets instruction word from correct bank
+   task get_insn_from_xilinx_ddr2;
+      input [31:0] addr;
+      output [31:0] insn;
+      reg [16*8-1:0] ddr2_array_line0,ddr2_array_line1,ddr2_array_line2,ddr2_array_line3;
+      integer 	     word_in_line_num;      
+      begin
+	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 16 words total
+	 `DDR2_TOP.gen[0].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line0);
+	 `DDR2_TOP.gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line1);
+	 `DDR2_TOP.gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line2);
+	 `DDR2_TOP.gen[3].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line3);
+	 case (addr[5:2])
+	   4'h0:
+	     begin
+		insn[15:0] = ddr2_array_line0[15:0];
+		insn[31:16] = ddr2_array_line1[15:0];
+	     end
+	   4'h1:
+	     begin
+		insn[15:0] = ddr2_array_line2[15:0];
+		insn[31:16] = ddr2_array_line3[15:0];
+	     end
+	   4'h2:
+	     begin
+		insn[15:0] = ddr2_array_line0[31:16];
+		insn[31:16] = ddr2_array_line1[31:16];
+	     end
+	   4'h3:
+	     begin
+		insn[15:0] = ddr2_array_line2[31:16];
+		insn[31:16] = ddr2_array_line3[31:16];
+	     end
+	   4'h4:
+	     begin
+		insn[15:0] = ddr2_array_line0[47:32];
+		insn[31:16] = ddr2_array_line1[47:32];
+	     end
+	   4'h5:
+	     begin
+		insn[15:0] = ddr2_array_line2[47:32];
+		insn[31:16] = ddr2_array_line3[47:32];
+	     end
+	   4'h6:
+	     begin
+		insn[15:0] = ddr2_array_line0[63:48];
+		insn[31:16] = ddr2_array_line1[63:48];
+	     end
+	   4'h7:
+	     begin
+		insn[15:0] = ddr2_array_line2[63:48];
+		insn[31:16] = ddr2_array_line3[63:48];
+	     end
+	   4'h8:
+	     begin
+		insn[15:0] = ddr2_array_line0[79:64];
+		insn[31:16] = ddr2_array_line1[79:64];
+	     end
+	   4'h9:
+	     begin
+		insn[15:0] = ddr2_array_line2[79:64];
+		insn[31:16] = ddr2_array_line3[79:64];
+	     end
+	   4'ha:
+	     begin
+		insn[15:0] = ddr2_array_line0[95:80];
+		insn[31:16] = ddr2_array_line1[95:80];
+	     end
+	   4'hb:
+	     begin
+		insn[15:0] = ddr2_array_line2[95:80];
+		insn[31:16] = ddr2_array_line3[95:80];
+	     end
+	   4'hc:
+	     begin
+		insn[15:0] = ddr2_array_line0[111:96];
+		insn[31:16] = ddr2_array_line1[111:96];
+	     end
+	   4'hd:
+	     begin
+		insn[15:0] = ddr2_array_line2[111:96];
+		insn[31:16] = ddr2_array_line3[111:96];
+	     end
+	   4'he:
+	     begin
+		insn[15:0] = ddr2_array_line0[127:112];
+		insn[31:16] = ddr2_array_line1[127:112];
+	     end
+	   4'hf:
+	     begin
+		insn[15:0] = ddr2_array_line2[127:112];
+		insn[31:16] = ddr2_array_line3[127:112];
+	     end	   
+	 endcase // case (addr[5:2])
+      end
+   endtask // get_insn_from_xilinx_ddr2
+`endif   
+   
+   
+   task get_insn_from_memory;
+      input [31:0] id_pc;
+      output [31:0] insn;
+      begin
+	 // do a decode of which server we should look in
+	 case (id_pc[31:28])
+`ifdef VERSATILE_SDRAM
+	   4'h0:
+	     get_insn_from_sdram(id_pc, insn);
+`endif
+`ifdef XILINX_DDR2
+	   4'h0:
+	     get_insn_from_xilinx_ddr2(id_pc, insn);
+`endif	   
+	   4'hf:
+	     // Flash isn't stored in a memory, it's an FSM so just skip/ignore
+	     insn = `OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_insn;
+	   default:
+	     begin
+		$fdisplay(fgeneral, "%t: Unknown memory server for address 0x%h", $time,id_pc);
+		insn = 32'hxxxxxxxx; // Unknown server
+	     end
+	 endcase // case (id_pc[31:28])
+      end
+   endtask // get_insn_from_memory
+   
+
+    reg [31:0] mem_word;
+   reg [31:0] last_addr = 0;
+   reg [31:0] last_mem_word;
+
+//`define TRIGGER_FOR_CHECK (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_void === 1'b0)
+   // Disabled:
+`define TRIGGER_FOR_CHECK 0
+`define INSN_TO_CHECK `OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_insn
+`define PC_TO_CHECK `OR1200_TOP.`CPU_cpu.`CPU_except.id_pc
+   
+   // Check instruction in decode stage is what is in the RAM
+   always @(posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
+     begin
+	if (`TRIGGER_FOR_CHECK)
+	  begin
+	     // Check if it's a new PC - will also get triggered if the
+	     // instruction has changed since we last checked it
+	     if ((`PC_TO_CHECK !== last_addr) ||
+		 (last_mem_word != `INSN_TO_CHECK))
+	       begin
+		  // Decode stage not void, check instruction
+		  // get PC
+		  get_insn_from_memory(`PC_TO_CHECK, mem_word);
+
+		  // Debugging output to prove it's doing something!
+		  //$display("%t: Checking instruction for address 0x%h - memory had 0x%h, CPU had 0x%h", $time, `PC_TO_CHECK, mem_word, `INSN_TO_CHECK);
+		  
+		  if (mem_word !== `INSN_TO_CHECK)
+		    begin
+		       $fdisplay(fgeneral, "%t: Instruction mismatch for address 0x%h - memory had 0x%h, CPU had 0x%h", $time, `PC_TO_CHECK, mem_word, `INSN_TO_CHECK);
+		       #20
+			 $finish;		  
+		    end
+		  last_addr = `PC_TO_CHECK;
+		  last_mem_word = mem_word;		  
+	       end // if (`PC_TO_CHECK !== last_addr)
+	  end
+     end // always @ (posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
+      
+
+
+
+   
 endmodule

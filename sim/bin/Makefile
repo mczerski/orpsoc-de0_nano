@@ -13,12 +13,12 @@
 ####  	* Expand software test-suite (uClibc, ecos tests, LTP?)	  ####
 ####                                                              ####
 ####  Author(s):                                                  ####
-####      - jb, jb@orsoc.se                                       ####
+####      - Julius Baxter, julius.baxter@orsoc.se                 ####
 ####                                                              ####
 ####                                                              ####
 ######################################################################
 ####                                                              ####
-#### Copyright (C) 2009 Authors and OPENCORES.ORG                 ####
+#### Copyright (C) 2009,2010 Authors and OPENCORES.ORG            ####
 ####                                                              ####
 #### This source file may be used and distributed without         ####
 #### restriction provided that this copyright statement is not    ####
@@ -241,7 +241,8 @@ PROJECT_ROOT ?=$(CUR_DIR)/../..
 
 # Tests is only defined if it wasn't already defined when make was called
 # This is the default list of every test that is currently possible
-TESTS ?= basic-nocache cbasic-nocache-O2 dhry-nocache-O2 except-nocache mmu-nocache mul-nocache-O2 syscall-nocache tick-nocache uart-nocache basic-icdc cbasic-icdc-O2 dhry-icdc-O2 except-icdc mmu-icdc mul-icdc-O2 syscall-icdc tick-icdc uart-icdc
+TESTS ?= or1200-simple or1200-cbasic or1200-dctest or1200-float or1200asm-basic or1200asm-except or1200asm-linkregtest or1200asm-tick or1200asm-ticksyscall uart-simple
+#basic-nocache cbasic-nocache-O2 dhry-nocache-O2 except-nocache mmu-nocache mul-nocache-O2 syscall-nocache tick-nocache uart-nocache basic-icdc cbasic-icdc-O2 dhry-icdc-O2 except-icdc mmu-icdc mul-icdc-O2 syscall-icdc tick-icdc uart-icdc
 
 # Paths to other important parts of this test suite
 SIM_DIR ?=$(PROJECT_ROOT)/sim
@@ -267,7 +268,7 @@ NCVERILOG=ncverilog
 SILOS=silos
 ICARUS_COMMAND_FILE=icarus.scr
 VLT_COMMAND_FILE=verilator.scr
-SIM_SUCCESS_MESSAGE=deaddead
+SIM_SUCCESS_MESSAGE=8000000d
 MGC_COMMAND_FILE=modelsim.scr
 
 ARCH_SIM_EXE=or32-elf-sim
@@ -350,9 +351,9 @@ RTL_TESTBENCH_TOP ?= orpsoc_testbench
 # Icarus Verilog
 ifeq ($(SIMULATOR), $(ICARUS))
 # Icarus Verilog Simulator compile and run commands
-SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/a.out; $(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) $(DASH_D_EVENT_SIM_FLAGS)
+SIM_COMMANDCOMPILE=rm -f $(SIM_RUN_DIR)/rtlsim.elf; $(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -o rtlsim.elf $(DASH_D_EVENT_SIM_FLAGS)
 # Icarus Verilog run command
-SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log a.out
+SIM_COMMANDRUN=$(ICARUS_VVP) -l $(SIM_RESULTS_DIR)/$$TEST-vvp-out.log rtlsim.elf
 endif
 
 # Modelsim
@@ -490,7 +491,7 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepar
 		echo "\t#### Current test: $$TEST ####"; echo; \
 		echo "\t#### Compiling software ####"; echo; \
 		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST $(TEST_SW_MAKE_OPTS); \
+		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST.vmem $(TEST_SW_MAKE_OPTS); \
 		rm -f $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
 		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
 		ln -s $$CURRENT_TEST_SW_DIR/$$TEST$(FLASH_MEM_FILE_SUFFIX) $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
@@ -517,7 +518,7 @@ rtl-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepar
 		echo "\t#### Beginning simulation ####"; \
 		time -p $(SIM_COMMANDRUN) ; \
 		if [ "$$SIMULATOR" != "$$SILOS" ]; then if [ $$? -gt 0 ]; then exit $$?; fi; fi; \
-		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
+		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep $(SIM_SUCCESS_MESSAGE) -c`; \
 		echo; echo "\t####"; \
 		if [ $$TEST_RESULT -gt 0 ]; then \
 			echo "\t#### Test $$TEST PASSED ####";TESTS_PASSED=`expr $$TESTS_PASSED + 1`;\
@@ -576,11 +577,11 @@ rtl-debug: prepare-sw-uart-printf prepare-rtl prepare-vpi prepare-dirs
 	$(Q)if [ -z $$NO_SIM_LOGGING ]; then echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; fi
 	@echo
 	@echo "\t#### Compiling RTL ####"
-	$(Q)rm -f $(SIM_RUN_DIR)/a.out
-	$(Q)$(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated $(EVENT_SIM_FLAGS)
+	$(Q)rm -f $(SIM_RUN_DIR)/rtlsim.elf
+	$(Q)$(ICARUS) -s$(RTL_TESTBENCH_TOP) -c $(SIM_RUN_DIR)/$(ICARUS_COMMAND_FILE).generated -o rtlsim.elf $(EVENT_SIM_FLAGS)
 	@echo
 	@echo "\t#### Beginning simulation with VPI debug module enabled ####"; echo
-	$(Q)$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log a.out
+	$(Q)$(ICARUS_VVP) $(ICARUS_VPI_OPTS) -l $(SIM_RESULTS_DIR)/$(VPI_TEST_SW)-vvp-out.log rtlsim.elf
 
 ################################################################################
 # Verilator model build rules
@@ -746,7 +747,7 @@ vlt-tests: prepare-sw prepare-rtl prepare-dirs prepare-vlt
 		echo "\t#### Current test: $$TEST ####"; echo; \
 		echo "\t#### Compiling software ####"; echo; \
 		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
+		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST.vmem $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
 		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
 		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.vmem $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
 		echo "\t#### Beginning simulation ####"; \
@@ -805,7 +806,7 @@ sim-tests: prepare-sw
 		echo "\t#### Current test: $$TEST ####"; echo; \
 		echo "\t#### Compiling software ####"; echo; \
 		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
+		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST.vmem $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
 		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
 		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.or32 $(SIM_RUN_DIR)/.; \
 		echo;echo "\t#### Launching architectural simulator ####"; \

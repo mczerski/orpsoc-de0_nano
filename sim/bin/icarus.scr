@@ -10,7 +10,7 @@
 +incdir+$RTL_DIR/components/or1k_startup
 +incdir+$RTL_DIR/components/spi_ctrl
 +incdir+$RTL_DIR/components/or1k_top
-+incdir+$RTL_DIR/components/or1200r2
++incdir+$RTL_DIR/components/or1200
 +incdir+$RTL_DIR/components/tap
 +incdir+$RTL_DIR/components/smii
 +incdir+$RTL_DIR/components/debug_if
@@ -27,7 +27,7 @@
 -y $RTL_DIR/components/or1k_startup
 -y $RTL_DIR/components/spi_ctrl
 -y $RTL_DIR/components/or1k_top
--y $RTL_DIR/components/or1200r2
+-y $RTL_DIR/components/or1200
 -y $RTL_DIR/components/tap
 -y $RTL_DIR/components/smii
 -y $RTL_DIR/components/debug_if
