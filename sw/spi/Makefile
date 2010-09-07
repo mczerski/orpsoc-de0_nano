@@ -8,3 +8,4 @@ include ../Makefile.inc
 
 clean:
 	$(Q)rm -f *.elf *.bin *.vmem *.flashin *.dis
+

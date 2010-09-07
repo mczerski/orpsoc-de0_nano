@@ -42,7 +42,7 @@
 ## Makefile for the ORPSoC software utilities
 ##
 
-PROGRAMS = bin2c bin2srec bin2flimg bin2hex bin2vmem binlog2readable
+PROGRAMS = bin2c bin2srec bin2flimg bin2hex bin2vmem binlog2readable bin2vlogarray bin2binsizeword
 # NB: 'loader' not in that list
 
 CC     = gcc

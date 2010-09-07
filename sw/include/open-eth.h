@@ -1,4 +1,6 @@
 
+#ifndef _OPEN_ETH_H_
+#define _OPEN_ETH_H
 typedef unsigned int uint;
 
 /* Ethernet configuration registers */
@@ -36,8 +38,8 @@ typedef struct _oeth_bd {
         uint    addr;           /* Buffer address */
 } oeth_bd;
 
-// From include/asm/board.h
-#define ETH_BASE_ADD    0x92000000
+// From board.h
+#define ETH_BASE_ADD    ETH0_BASE
 
 #define OETH_REG_BASE           ETH_BASE_ADD
 #define OETH_BD_BASE            (ETH_BASE_ADD + 0x400)
@@ -147,3 +149,4 @@ typedef struct _oeth_bd {
 #define OETH_MIISTATUS_BUSY     0x00000002 /* MII Busy */
 #define OETH_MIISTATUS_NVALID   0x00000004 /* Data in MII Status Register is invalid */
 
+#endif
