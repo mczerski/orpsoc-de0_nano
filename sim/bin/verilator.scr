@@ -31,6 +31,8 @@
 -y $RTL_DIR/components/debug_if
 -y $RTL_DIR/components/wb_sdram_ctrl
 -y $RTL_DIR/components/ram_wb
+-y $RTL_DIR/components/wb_ram_b3
+-y $RTL_DIR/components/wb_switch_b3
 -y $RTL_DIR/components/wb_conbus
 
 // RTL files (top)

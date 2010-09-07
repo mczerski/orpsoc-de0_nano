@@ -6,7 +6,6 @@
 +incdir+$RTL_DIR
 +incdir+$RTL_DIR/components/uart16550
 +incdir+$RTL_DIR/components/ethernet
-+incdir+$RTL_DIR/components/fpu
 +incdir+$RTL_DIR/components/or1k_startup
 +incdir+$RTL_DIR/components/spi_ctrl
 +incdir+$RTL_DIR/components/or1k_top
@@ -23,7 +22,6 @@
 -y $RTL_DIR
 -y $RTL_DIR/components/uart16550
 -y $RTL_DIR/components/ethernet
--y $RTL_DIR/components/fpu
 -y $RTL_DIR/components/or1k_startup
 -y $RTL_DIR/components/spi_ctrl
 -y $RTL_DIR/components/or1k_top
@@ -33,6 +31,8 @@
 -y $RTL_DIR/components/debug_if
 -y $RTL_DIR/components/wb_sdram_ctrl
 -y $RTL_DIR/components/ram_wb
+-y $RTL_DIR/components/wb_ram_b3
+-y $RTL_DIR/components/wb_switch_b3
 -y $RTL_DIR/components/wb_conbus
 
 +libext+.v

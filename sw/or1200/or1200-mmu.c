@@ -60,24 +60,26 @@
 #include "or32-utils.h"
 #include "spr-defs.h"
 #include "board.h"
-#include "uart.h"
+// Uncomment uart.h include for UART output
+//#include "uart.h"
 #include "printf.h"
 
-// Uncomment the following to completely remove all printfs
-//#undef printf
-//#define printf(a, ...)
+// Uncomment the following to completely remove all printfs, or comment them
+// out to enable printf()s, but slows down RTL simulation a lot.
+#undef printf
+#define printf(a, ...)
 
 #include "or1200-defines.h"
 
 #ifdef OR1200_NO_IMMU
 # error
-# error Design has no instruction MMU. Cannot run this test without it.
+# error Processor has no instruction MMU. Cannot run this test without it.
 # error
 #endif
 
 #ifdef OR1200_NO_DMMU
 # error
-# error Design has no data MMU. Cannot run this test without it.
+# error Processor has no data MMU. Cannot run this test without it.
 # error
 #endif
 
@@ -115,10 +117,16 @@ will be used for testing */
 #define TEXT_END_ADD end_text_addr
 #define DATA_END_ADD end_data_addr
 
-// Number of MMU sets that will cover all of the text and data used by the 
-// test program itself - 8*8KB = 64KB should be more tan enough! -- jb
-#define TLB_TEXT_SET_NB 8
-#define TLB_DATA_SET_NB 8
+// Pages to start tests at. This should correspond to where the stack is set. 
+// We can set this by hand or figure it out at runtime.
+// Uncomment the following 3 lines to hard-set the bottom page to test at:
+//#define TLB_BOTTOM_TEST_PAGE_HARDSET
+//#define TLB_TEXT_SET_NB 16
+//#define TLB_DATA_SET_NB 16
+
+// Uncomment the following to determine the page to test from at run-time
+unsigned long TLB_TEXT_SET_NB;
+unsigned long TLB_DATA_SET_NB;
 
 /* MMU page size */
 #define PAGE_SIZE 8192
@@ -567,13 +575,14 @@ int dtlb_translation_test (void)
   /* Write new pattern */
   for (i = TLB_DATA_SET_NB; i < DTLB_SETS; i++) {
     REG32(i*PAGE_SIZE) = i;
-    REG32(((i + 1)*PAGE_SIZE) - 4) = 0xffffffff - i;
+    REG32(((i + 1)*PAGE_SIZE) - 4) = 0xffffffff - i; 
   }
 
   /* Set hi -> lo, lo -> hi translation */
   for (i = TLB_DATA_SET_NB; i < DTLB_SETS; i++) {
     ea = RAM_START + (RAM_SIZE/2) + (i*PAGE_SIZE);
-    ta = RAM_START + (RAM_SIZE/2) + ((DTLB_SETS - i - 1 + TLB_DATA_SET_NB)*PAGE_SIZE);
+    ta = RAM_START + (RAM_SIZE/2) + ((DTLB_SETS - i - 1 + TLB_DATA_SET_NB)*
+				     PAGE_SIZE);
     mtspr (SPR_DTLBMR_BASE(DTLB_WAYS - 1) + i, ea | SPR_DTLBMR_V);
     mtspr (SPR_DTLBTR_BASE(DTLB_WAYS - 1) + i, ta | DTLB_PR_NOLIMIT);
   }
@@ -1418,6 +1427,11 @@ int main (void)
   start_text_addr = (unsigned long*)&stext;
   end_text_addr = (unsigned long*)&endtext;
   end_data_addr = (unsigned long*)&stack;
+
+
+#ifndef TLB_BOTTOM_TEST_PAGE_HARDSET
+  TLB_TEXT_SET_NB =  TLB_DATA_SET_NB = (end_data_addr+PAGE_SIZE) / PAGE_SIZE;
+#endif
   
 #ifdef _UART_H_
   uart_init(DEFAULT_UART);
@@ -1468,7 +1482,7 @@ int main (void)
     dtlb_permission_test (i);
 
   /* Data cache test */
-  /*
+
 #ifndef OR1200_NO_DC
 #ifdef SHORT_TEST
   for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
@@ -1477,7 +1491,7 @@ int main (void)
 #endif
     dtlb_dcache_test (i);
 #endif // ifndef OR1200_NO_DC
-  */
+
 
 #endif
 

@@ -30,7 +30,7 @@
 
 `include "timescale.v"
 `include "or1200_defines.v"
-
+				 
 //
 // Top of OR1200 inside test bench
 //
@@ -44,6 +44,12 @@
 // Enable display_arch_state task
 //
 //`define OR1200_DISPLAY_ARCH_STATE
+
+//
+// Enable disassembly of instructions in execution log
+//
+`define OR1200_MONITOR_PRINT_DISASSEMBLY
+
 
 //
 // Top of OR1200 inside test bench
@@ -118,7 +124,14 @@ module or1200_monitor;
 `ifdef OR1200_DISPLAY_ARCH_STATE
 	 ref = ref + 1;
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
-	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
+	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, 
+		 `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, 
+		 `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
+ `ifdef OR1200_MONITOR_PRINT_DISASSEMBLY
+	 $fwrite(fexe,"\t");	 
+	 // Decode the instruction, print it out
+	 or1200_print_op(`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
+ `endif	 
 	 for(i = 0; i < 32; i = i + 1) begin
 	    if (i % 4 == 0)
 	      $fdisplay(fexe);
@@ -583,6 +596,394 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
      end // always @ (posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
       
 
+
+   /////////////////////////////////////////////////////////////////////////
+   // Instruction decode task
+   /////////////////////////////////////////////////////////////////////////
+
+
+`define OR32_OPCODE_POS 31:26
+`define OR32_J_BR_IMM_POS 25:0
+`define OR32_RD_POS 25:21
+`define OR32_RA_POS 20:16
+`define OR32_RB_POS 15:11
+`define OR32_ALU_OP_POS 3:0
+   
+`define OR32_SHROT_OP_POS 7:6
+`define OR32_SHROTI_IMM_POS 5:0
+`define OR32_SF_OP 25:21
+   
+`define OR32_XSYNC_OP_POS 25:21  
+
+
+// Switch between outputting to execution file or STD out for instruction
+// decoding task.
+//`define PRINT_OP_WRITE $write(
+`define PRINT_OP_WRITE $fwrite(fexe,
+   
+   task or1200_print_op;
+      input [31:0] insn;
+
+      reg [5:0]    opcode;
+      
+      reg [25:0]   j_imm;
+      reg [25:0]   br_imm;
+      
+      reg [4:0]    rD_num, rA_num, rB_num;
+      reg [31:0]   rA_val, rB_val;
+      reg [15:0]   imm_16bit;
+      reg [10:0]   imm_split16bit;      
+      
+      reg [3:0]    alu_op;
+      reg [1:0]    shrot_op;
+
+      reg [5:0]    shroti_imm;
+
+    reg [5:0] 	   sf_op;
+			       
+    reg [5:0] 	   xsync_op;	   
+      
+      begin
+	 // Instruction opcode
+	 opcode = insn[`OR32_OPCODE_POS];
+	 // Immediates for jump or branch instructions
+	 j_imm = insn[`OR32_J_BR_IMM_POS];
+	 br_imm = insn[`OR32_J_BR_IMM_POS];
+	 // Register numbers (D, A and B)
+	 rD_num = insn[`OR32_RD_POS];
+	 rA_num = insn[`OR32_RA_POS];	 
+	 rB_num = insn[`OR32_RB_POS];
+	 // Bottom 16 bits when used as immediates in various instructions
+	 imm_16bit = insn[15:0];
+	 // Bottom 11 bits used as immediates for l.sX instructions
+
+	 // Split 16-bit immediate for l.mtspr/l.sX instructions
+	 imm_split16bit = {insn[25:21],insn[10:0]};
+	 // ALU op for ALU instructions
+	 alu_op = insn[`OR32_ALU_OP_POS];
+	 // Shift-rotate op for SHROT ALU instructions
+	 shrot_op = insn[`OR32_SHROT_OP_POS];
+	 shroti_imm = insn[`OR32_SHROTI_IMM_POS];
+
+	 // Set flag op
+	 sf_op = insn[`OR32_SF_OP];
+	 
+         // Xsync/syscall/trap opcode
+         xsync_op = insn[`OR32_XSYNC_OP_POS];
+			       
+	 case (opcode)
+	   `OR1200_OR32_J:
+	     begin	      
+		`PRINT_OP_WRITE"l.j 0x%h", {j_imm,2'b00});	      
+	     end
+	   
+	   `OR1200_OR32_JAL:
+	     begin
+		`PRINT_OP_WRITE"l.jal 0x%h", {j_imm,2'b00});
+	     end
+
+	   `OR1200_OR32_BNF:
+	     begin
+		`PRINT_OP_WRITE"l.bnf 0x%h", {br_imm,2'b00});	      
+	     end
+	   
+	   `OR1200_OR32_BF:
+	     begin
+		`PRINT_OP_WRITE"l.bf 0x%h", {br_imm,2'b00});
+	     end
+	   
+	   `OR1200_OR32_RFE:
+	     begin
+		`PRINT_OP_WRITE"l.rfe");	      
+	     end
+	   
+	   `OR1200_OR32_JR:
+	     begin
+		`PRINT_OP_WRITE"l.jr r%0d",rB_num);
+	     end
+	   
+	   `OR1200_OR32_JALR:
+	     begin
+		`PRINT_OP_WRITE"l.jalr r%0d",rB_num);
+	     end
+	   
+	   `OR1200_OR32_LWZ:
+	     begin
+		`PRINT_OP_WRITE"l.lwz r%0d,0x%0h(r%0d)",rD_num,imm_16bit,rA_num);
+	     end
+	   
+	   `OR1200_OR32_LBZ:
+	     begin
+		`PRINT_OP_WRITE"l.lbz r%0d,0x%0h(r%0d)",rD_num,imm_16bit,rA_num);
+	     end
+	   
+	   `OR1200_OR32_LBS:
+	     begin
+		`PRINT_OP_WRITE"l.lbs r%0d,0x%0h(r%0d)",rD_num,imm_16bit,rA_num);
+	     end
+	   
+	   `OR1200_OR32_LHZ:
+	     begin
+		`PRINT_OP_WRITE"l.lhz r%0d,0x%0h(r%0d)",rD_num,imm_16bit,rA_num);
+	     end
+	   
+	   `OR1200_OR32_LHS:
+	     begin
+		`PRINT_OP_WRITE"l.lhs r%0d,0x%0h(r%0d)",rD_num,imm_16bit,rA_num);
+	     end
+	   
+	   `OR1200_OR32_SW:
+	     begin
+		`PRINT_OP_WRITE"l.sw 0x%0h(r%0d),r%0d",imm_split16bit,rA_num,rB_num);
+	     end
+	   
+	   `OR1200_OR32_SB:
+	     begin
+		`PRINT_OP_WRITE"l.sb 0x%0h(r%0d),r%0d",imm_split16bit,rA_num,rB_num);
+	     end
+	   
+	   `OR1200_OR32_SH:
+	     begin
+		`PRINT_OP_WRITE"l.sh 0x%0h(r%0d),r%0d",imm_split16bit,rA_num,rB_num);	      
+	     end
+	   
+	   `OR1200_OR32_MFSPR:
+	     begin
+		`PRINT_OP_WRITE"l.mfspr r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit,);	
+	     end	      
+
+	   `OR1200_OR32_MTSPR:
+	     begin
+		`PRINT_OP_WRITE"l.mtspr r%0d,r%0d,0x%h",rA_num,rB_num,imm_split16bit);	
+	     end
+	   
+	   `OR1200_OR32_MOVHI:
+	     begin
+		if (!insn[16])
+		  `PRINT_OP_WRITE"l.movhi r%0d,0x%h",rD_num,imm_16bit);
+		else
+		  `PRINT_OP_WRITE"l.macrc r%0d",rD_num);
+	     end
+	   
+	   `OR1200_OR32_ADDI:
+	     begin
+		`PRINT_OP_WRITE"l.addi r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end
+	   
+	   `OR1200_OR32_ADDIC:
+	     begin
+		`PRINT_OP_WRITE"l.addic r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end
+	   
+	   `OR1200_OR32_ANDI:
+	     begin
+		`PRINT_OP_WRITE"l.andi r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end	     
+	   
+	   `OR1200_OR32_ORI:
+	     begin
+		`PRINT_OP_WRITE"l.ori r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end	     
+
+	   `OR1200_OR32_XORI:
+	     begin
+		`PRINT_OP_WRITE"l.xori r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end	     
+
+	   `OR1200_OR32_MULI:
+	     begin
+		`PRINT_OP_WRITE"l.muli r%0d,r%0d,0x%h",rD_num,rA_num,imm_16bit);
+	     end
+	   
+	   `OR1200_OR32_ALU:
+	     begin
+		case(alu_op)
+		  `OR1200_ALUOP_ADD:
+		    `PRINT_OP_WRITE"l.add ");		
+		  `OR1200_ALUOP_ADDC:
+		    `PRINT_OP_WRITE"l.addc ");		
+		  `OR1200_ALUOP_SUB:
+		    `PRINT_OP_WRITE"l.sub ");		
+		  `OR1200_ALUOP_AND:
+		    `PRINT_OP_WRITE"l.and ");		
+		  `OR1200_ALUOP_OR:
+		    `PRINT_OP_WRITE"l.or ");		
+		  `OR1200_ALUOP_XOR:
+		    `PRINT_OP_WRITE"l.xor ");		
+		  `OR1200_ALUOP_MUL:
+		    `PRINT_OP_WRITE"l.mul ");		
+		  `OR1200_ALUOP_SHROT:
+		    begin
+		       case(shrot_op)
+			 `OR1200_SHROTOP_SLL:
+			   `PRINT_OP_WRITE"l.sll ");
+			 `OR1200_SHROTOP_SRL:
+			   `PRINT_OP_WRITE"l.srl ");
+			 `OR1200_SHROTOP_SRA:
+			   `PRINT_OP_WRITE"l.sra ");
+			 `OR1200_SHROTOP_ROR:
+			   `PRINT_OP_WRITE"l.ror ");
+		       endcase // case (shrot_op)
+		    end
+		  `OR1200_ALUOP_DIV:
+		    `PRINT_OP_WRITE"l.div ");		
+		  `OR1200_ALUOP_DIVU:
+		    `PRINT_OP_WRITE"l.divu ");		
+		  `OR1200_ALUOP_CMOV:
+		    `PRINT_OP_WRITE"l.cmov ");		
+		endcase // case (alu_op)
+		`PRINT_OP_WRITE"r%0d,r%0d,r%0d",rD_num,rA_num,rB_num);
+	     end
+	   
+	   `OR1200_OR32_SH_ROTI:
+	     begin
+		case(shrot_op)
+		  `OR1200_SHROTOP_SLL:
+		    `PRINT_OP_WRITE"l.slli ");
+		  `OR1200_SHROTOP_SRL:
+		    `PRINT_OP_WRITE"l.srli ");
+		  `OR1200_SHROTOP_SRA:
+		    `PRINT_OP_WRITE"l.srai ");
+		  `OR1200_SHROTOP_ROR:
+		    `PRINT_OP_WRITE"l.rori ");
+		endcase // case (shrot_op)
+		`PRINT_OP_WRITE"r%0d,r%0d,0x%h",rD_num,rA_num,shroti_imm);		
+	     end
+	   
+	   `OR1200_OR32_SFXXI:
+	     begin
+		case(sf_op[2:0])
+		  `OR1200_COP_SFEQ:
+		    `PRINT_OP_WRITE"l.sfeqi ");
+		  `OR1200_COP_SFNE:
+		    `PRINT_OP_WRITE"l.sfnei ");
+		  `OR1200_COP_SFGT:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfgtsi ");
+		       else
+			 `PRINT_OP_WRITE"l.sfgtui ");
+		    end
+		  `OR1200_COP_SFGE:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfgesi ");
+		       else
+			 `PRINT_OP_WRITE"l.sfgeui ");
+		    end
+		  `OR1200_COP_SFLT:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfltsi ");
+		       else
+			 `PRINT_OP_WRITE"l.sfltui ");
+		    end
+		  `OR1200_COP_SFLE:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sflesi ");
+		       else
+			 `PRINT_OP_WRITE"l.sfleui ");
+		    end		  
+		endcase // case (sf_op[2:0])
+		
+		`PRINT_OP_WRITE"r%0d,0x%h",rA_num, imm_16bit);
+		
+	     end // case: `OR1200_OR32_SFXXI
+
+	   `OR1200_OR32_SFXX:
+	     begin
+		case(sf_op[2:0])
+		  `OR1200_COP_SFEQ:
+		    `PRINT_OP_WRITE"l.sfeq ");
+		  `OR1200_COP_SFNE:
+		    `PRINT_OP_WRITE"l.sfne ");
+		  `OR1200_COP_SFGT:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfgts ");
+		       else
+			 `PRINT_OP_WRITE"l.sfgtu ");
+		    end
+		  `OR1200_COP_SFGE:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfges ");
+		       else
+			 `PRINT_OP_WRITE"l.sfgeu ");
+		    end
+		  `OR1200_COP_SFLT:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sflts ");
+		       else
+			 `PRINT_OP_WRITE"l.sfltu ");
+		    end
+		  `OR1200_COP_SFLE:
+		    begin
+		       if (sf_op[`OR1200_SIGNED_COMPARE])
+			 `PRINT_OP_WRITE"l.sfles ");
+		       else
+			 `PRINT_OP_WRITE"l.sfleu ");
+		    end
+		  
+		endcase // case (sf_op[2:0])
+		
+		`PRINT_OP_WRITE"r%0d,r%0d",rA_num, rB_num);
+		
+	     end
+	   
+	   `OR1200_OR32_MACI:
+	     begin
+		`PRINT_OP_WRITE"l.maci r%0d,0x%h",rA_num,imm_16bit);
+	     end
+
+	   `OR1200_OR32_MACMSB:
+	     begin
+		if(insn[3:0] == 4'h1)
+		  `PRINT_OP_WRITE"l.mac ");	      
+		else if(insn[3:0] == 4'h2)
+		  `PRINT_OP_WRITE"l.msb ");
+		
+		`PRINT_OP_WRITE"r%0d,r%0d",rA_num,rB_num);
+	     end
+
+	   `OR1200_OR32_NOP:
+	     begin
+		`PRINT_OP_WRITE"l.nop 0x%0h",imm_16bit);
+	     end
+	   
+	   `OR1200_OR32_XSYNC:
+	     begin
+		case (xsync_op)
+		  5'd0:
+		    `PRINT_OP_WRITE"l.sys 0x%h",imm_16bit);
+		  5'd8:
+		    `PRINT_OP_WRITE"l.trap 0x%h",imm_16bit);
+		  5'd16:
+		    `PRINT_OP_WRITE"l.msync");
+		  5'd20:
+		    `PRINT_OP_WRITE"l.psync");
+		  5'd24:
+		    `PRINT_OP_WRITE"l.csync");
+		  default:
+		    begin
+		       $display("%t: Instruction with opcode 0x%h has bad specific type information: 0x%h",$time,opcode,insn);
+		       `PRINT_OP_WRITE"%t: Instruction with opcode 0x%h has has bad specific type information: 0x%h",$time,opcode,insn);
+		    end
+		endcase // case (xsync_op)
+	     end
+	   
+	   default:
+	     begin
+		$display("%t: Unknown opcode 0x%h",$time,opcode);
+		`PRINT_OP_WRITE"%t: Unknown opcode 0x%h",$time,opcode);
+	     end
+	   
+	 endcase // case (opcode)
+	 
+      end
+   endtask // or1200_print_op
 
 
    

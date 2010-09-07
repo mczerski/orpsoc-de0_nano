@@ -241,7 +241,8 @@ PROJECT_ROOT ?=$(CUR_DIR)/../..
 
 # Tests is only defined if it wasn't already defined when make was called
 # This is the default list of every test that is currently possible
-TESTS ?= or1200-simple or1200-cbasic or1200-dctest or1200-float or1200asm-basic or1200asm-except or1200asm-linkregtest or1200asm-tick or1200asm-ticksyscall uart-simple
+
+TESTS ?= or1200-simple or1200-cbasic or1200-dctest or1200-float or1200-mmu or1200asm-basic or1200asm-except or1200asm-linkregtest or1200asm-tick or1200asm-ticksyscall uart-simple
 #basic-nocache cbasic-nocache-O2 dhry-nocache-O2 except-nocache mmu-nocache mul-nocache-O2 syscall-nocache tick-nocache uart-nocache basic-icdc cbasic-icdc-O2 dhry-icdc-O2 except-icdc mmu-icdc mul-icdc-O2 syscall-icdc tick-icdc uart-icdc
 
 # Paths to other important parts of this test suite

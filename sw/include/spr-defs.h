@@ -299,8 +299,7 @@
 #define SPR_DTLBTR_SWE	   0x00000200  /* Supervisor Write Enable */
 #define SPR_DTLBTR_PPN	   0xfffff000  /* Physical Page Number */
 
-#define DTLB_PR_NOLIMIT  ( SPR_DTLBTR_CI   | \
-                           SPR_DTLBTR_URE  | \
+#define DTLB_PR_NOLIMIT  ( SPR_DTLBTR_URE  | \
 			   SPR_DTLBTR_UWE  | \
 			   SPR_DTLBTR_SRE  | \
 			   SPR_DTLBTR_SWE  )

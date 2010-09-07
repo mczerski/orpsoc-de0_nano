@@ -241,8 +241,10 @@ module orpsoc_top
 
    wire 	   eth_clk;
    wire [1:1] 	   eth_int;
-
-   wb_conbus_top
+   /*
+    // Crossbar arbiter.
+    
+    wb_conbus_top
      #(.s0_addr_w(4), .s0_addr(4'h0), // MC
        .s1_addr_w(4), .s1_addr(4'hf), // ROM
        .s27_addr_w(8), 
@@ -498,7 +500,7 @@ module orpsoc_top
       // Inputs
       .clk_i				(wb_clk),
       .rst_i				(wb_rst));
-
+    
    // Tie all cycle type identifiers (CTI) and burst type extension (BTE) signals low
    // Not supported by this arbiter.
    assign wbs_eth1_cfg_bte_i = 0;
@@ -517,6 +519,171 @@ module orpsoc_top
    assign wbs_ds2_cti_i = 0;
    assign wbs_ds3_bte_i = 0;
    assign wbs_ds3_cti_i = 0;   
+    */
+
+   // Switch arbiter
+   
+   wb_switch_b3
+     #(
+       .slave0_sel_width(4),
+       .slave0_sel_addr(4'h0),  // Main memory
+       .slave1_sel_width(4),
+       .slave1_sel_addr(4'hf),  // ROM
+       .slave2_sel_width(8),
+       .slave2_sel_addr(8'h92), // Ethernet Slave
+       .slave3_sel_width(8),
+       .slave3_sel_addr(8'hb0), // SPI
+       .slave4_sel_width(8),
+       .slave4_sel_addr(8'h90)  // UART
+       )
+   wb_switch0
+     (
+      // Master 0
+      // Inputs
+      .wbm0_dat_o			(wbm_or12_i_dat_o),
+      .wbm0_adr_o			(wbm_or12_i_adr_o),
+      .wbm0_sel_o			(wbm_or12_i_sel_o),
+      .wbm0_we_o			(wbm_or12_i_we_o),
+      .wbm0_cyc_o			(wbm_or12_i_cyc_o),
+      .wbm0_stb_o			(wbm_or12_i_stb_o),
+      .wbm0_cti_o			(wbm_or12_i_cti_o),
+      .wbm0_bte_o			(wbm_or12_i_bte_o),
+      // Outputs
+      .wbm0_dat_i			(wbm_or12_i_dat_i),
+      .wbm0_ack_i			(wbm_or12_i_ack_i),
+      .wbm0_err_i			(wbm_or12_i_err_i),
+      .wbm0_rty_i			(wbm_or12_i_rty_i),
+      
+      // Master 1
+      // Inputs
+      .wbm1_dat_o			(wbm_or12_debug_dat_o),
+      .wbm1_adr_o			(wbm_or12_debug_adr_o),
+      .wbm1_sel_o			(wbm_or12_debug_sel_o),
+      .wbm1_we_o			(wbm_or12_debug_we_o),
+      .wbm1_cyc_o			(wbm_or12_debug_cyc_o),
+      .wbm1_stb_o			(wbm_or12_debug_stb_o),
+      .wbm1_cti_o			(wbm_or12_debug_cti_o),
+      .wbm1_bte_o			(wbm_or12_debug_bte_o),
+      // Outputs
+      .wbm1_dat_i			(wbm_or12_debug_dat_i),
+      .wbm1_ack_i			(wbm_or12_debug_ack_i),
+      .wbm1_err_i			(wbm_or12_debug_err_i),
+      .wbm1_rty_i			(wbm_or12_debug_rty_i),
+
+      // Master 2
+      // Inputs
+      .wbm2_dat_o			(wbm_or12_d_dat_o),
+      .wbm2_adr_o			(wbm_or12_d_adr_o),
+      .wbm2_sel_o			(wbm_or12_d_sel_o),
+      .wbm2_we_o			(wbm_or12_d_we_o),
+      .wbm2_cyc_o			(wbm_or12_d_cyc_o),
+      .wbm2_stb_o			(wbm_or12_d_stb_o),
+      .wbm2_cti_o			(wbm_or12_d_cti_o),
+      .wbm2_bte_o			(wbm_or12_d_bte_o),
+      // Outputs
+      .wbm2_dat_i			(wbm_or12_d_dat_i),
+      .wbm2_ack_i			(wbm_or12_d_ack_i),
+      .wbm2_err_i			(wbm_or12_d_err_i),
+      .wbm2_rty_i			(wbm_or12_d_rty_i),
+
+      // Master 3
+      // Inputs
+      .wbm3_dat_o			(wbm_eth1_dat_o),
+      .wbm3_adr_o			(wbm_eth1_adr_o),
+      .wbm3_sel_o			(wbm_eth1_sel_o),
+      .wbm3_we_o			(wbm_eth1_we_o),
+      .wbm3_cyc_o			(wbm_eth1_cyc_o),
+      .wbm3_stb_o			(wbm_eth1_stb_o),
+      .wbm3_cti_o			(wbm_eth1_cti_o),
+      .wbm3_bte_o			(wbm_eth1_bte_o),
+      // Outputs
+      .wbm3_dat_i			(wbm_eth1_dat_i),
+      .wbm3_ack_i			(wbm_eth1_ack_i),
+      .wbm3_err_i			(wbm_eth1_err_i),
+      .wbm3_rty_i			(wbm_eth1_rty_i),
+
+      // Slave 0
+      // Inputs
+      .wbs0_dat_o			(wbs_mc_m_dat_o),
+      .wbs0_ack_o			(wbs_mc_m_ack_o),
+      .wbs0_err_o			(wbs_mc_m_err_o),
+      .wbs0_rty_o			(wbs_mc_m_rty_o),
+      // Outputs
+      .wbs0_dat_i			(wbs_mc_m_dat_i),
+      .wbs0_adr_i			(wbs_mc_m_adr_i),
+      .wbs0_sel_i			(wbs_mc_m_sel_i),
+      .wbs0_we_i			(wbs_mc_m_we_i),
+      .wbs0_cyc_i			(wbs_mc_m_cyc_i),
+      .wbs0_stb_i			(wbs_mc_m_stb_i),
+      .wbs0_cti_i			(wbs_mc_m_cti_i),
+      .wbs0_bte_i			(wbs_mc_m_bte_i),
+
+      // No other slaves have burst capability, dont forward CTI or BTE
+      
+      // Slave 1
+      // Inputs
+      .wbs1_dat_o			(wbs_rom_dat_o),
+      .wbs1_ack_o			(wbs_rom_ack_o),
+      .wbs1_err_o			(wbs_rom_err_o),
+      .wbs1_rty_o			(wbs_rom_rty_o),
+      // Outputs
+      .wbs1_dat_i			(wbs_rom_dat_i),
+      .wbs1_adr_i			(wbs_rom_adr_i),
+      .wbs1_sel_i			(wbs_rom_sel_i),
+      .wbs1_we_i			(wbs_rom_we_i),
+      .wbs1_cyc_i			(wbs_rom_cyc_i),
+      .wbs1_stb_i			(wbs_rom_stb_i),
+      //.wbs1_cab_i			(),
+
+      // Slave 2
+      // Inputs
+      .wbs2_dat_o			(wbs_eth1_cfg_dat_o),
+      .wbs2_ack_o			(wbs_eth1_cfg_ack_o),
+      .wbs2_err_o			(wbs_eth1_cfg_err_o),
+      .wbs2_rty_o			(wbs_eth1_cfg_rty_o),
+      // Outputs
+      .wbs2_dat_i			(wbs_eth1_cfg_dat_i),
+      .wbs2_adr_i			(wbs_eth1_cfg_adr_i),
+      .wbs2_sel_i			(wbs_eth1_cfg_sel_i),
+      .wbs2_we_i			(wbs_eth1_cfg_we_i),
+      .wbs2_cyc_i			(wbs_eth1_cfg_cyc_i),
+      .wbs2_stb_i			(wbs_eth1_cfg_stb_i),
+      //.wbs2_cab_i			(),
+
+      // Slave 3
+      // Inputs
+      .wbs3_dat_o			(wbs_spi_flash_dat_o),
+      .wbs3_ack_o			(wbs_spi_flash_ack_o),
+      .wbs3_err_o			(wbs_spi_flash_err_o),
+      .wbs3_rty_o			(wbs_spi_flash_rty_o),
+      // Outputs
+      .wbs3_dat_i			(wbs_spi_flash_dat_i),
+      .wbs3_adr_i			(wbs_spi_flash_adr_i),
+      .wbs3_sel_i			(wbs_spi_flash_sel_i),
+      .wbs3_we_i			(wbs_spi_flash_we_i),
+      .wbs3_cyc_i			(wbs_spi_flash_cyc_i),
+      .wbs3_stb_i			(wbs_spi_flash_stb_i),
+      //.wbs3_cab_i			(),
+
+      // Slave 4
+      // Inputs
+      .wbs4_dat_o			(wbs_uart0_dat_o),
+      .wbs4_ack_o			(wbs_uart0_ack_o),
+      .wbs4_err_o			(wbs_uart0_err_o),
+      .wbs4_rty_o			(wbs_uart0_rty_o),
+      // Outputs
+      .wbs4_dat_i			(wbs_uart0_dat_i),
+      .wbs4_adr_i			(wbs_uart0_adr_i),
+      .wbs4_sel_i			(wbs_uart0_sel_i),
+      .wbs4_we_i			(wbs_uart0_we_i),
+      .wbs4_cyc_i			(wbs_uart0_cyc_i),
+      .wbs4_stb_i			(wbs_uart0_stb_i),
+      //.wbs4_cab_i			(),
+      
+      // Inputs
+      .wb_clk			(wb_clk),
+      .wb_rst			(wb_rst));
+   
 
    // Programmable interrupt controller lines (aka. IRQ lines)
    assign 	 pic_ints[30] = 1'b0;
@@ -677,12 +844,13 @@ module orpsoc_top
 			   1'b0;
    
 `else // !`ifdef USE_SDRAM
-   
+
+
    parameter ram_wb_dat_width = 32;
    parameter ram_wb_adr_width = 25;
    //parameter ram_wb_mem_size  = 2097152; // 8MB
    parameter ram_wb_mem_size  = 8388608; // 32MB -- for linux test
-
+   /*
    ram_wb
      #
      (
@@ -704,7 +872,33 @@ module orpsoc_top
       .clk_i(wb_clk),
       .rst_i(wb_rst)
       );
+    */
 
+   // New Wishbone B3 RAM
+   wb_ram_b3
+     #
+     (
+      .dw(ram_wb_dat_width),
+      .aw(ram_wb_adr_width),
+      .mem_size(ram_wb_mem_size)
+      )
+   ram_wb0
+     (
+      .wb_dat_i(wbs_mc_m_dat_i),
+      .wb_dat_o(wbs_mc_m_dat_o),
+      .wb_sel_i(wbs_mc_m_sel_i),
+      .wb_adr_i(wbs_mc_m_adr_i[ram_wb_adr_width-1:0]),
+      .wb_we_i (wbs_mc_m_we_i),
+      .wb_bte_i(wbs_mc_m_bte_i),
+      .wb_cti_i(wbs_mc_m_cti_i),
+      .wb_stb_i(wbs_mc_m_stb_i),
+      .wb_cyc_i(wbs_mc_m_cyc_i),
+      .wb_ack_o(wbs_mc_m_ack_o),
+      .wb_clk_i(wb_clk),
+      .wb_rst_i(wb_rst)
+      );
+
+   
 `endif // !`ifdef USE_SDRAM
 
    assign wbs_mc_m_err_o = 1'b0;
