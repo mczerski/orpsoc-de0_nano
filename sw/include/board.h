@@ -1,10 +1,10 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
-//#define IN_CLK  	      50000000 // Hz
+#define IN_CLK  	      50000000 // Hz
 //#define IN_CLK  	      32000000 // Hz
 //#define IN_CLK  	      30000000 // HZ
-#define IN_CLK  	      25000000 // HZ
+//#define IN_CLK  	      25000000 // HZ
 //#define IN_CLK  	      24000000 // HZ
 //#define IN_CLK  	      20000000 // HZ
 //#define IN_CLK  	      18000000 // HZ

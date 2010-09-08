@@ -329,10 +329,15 @@ initial
    // If we're using UART for printf output, include the
    // UART decoder
 `ifdef UART_PRINTF
-   // Define the UART's txt line for it to listen to
- `define UART_TX_LINE uart0_stx_o
- `define UART_BAUDRATE 115200
- `include "uart_decoder.v"
+   uart_decoder
+     #( 
+        .uart_baudrate_period_ns(8680) // 115200 baud = period 8.68uS
+        )
+   uart0_decoder
+     (
+      .clk(clk),
+      .uart_tx(uart0_stx_o)
+      );
 `endif
    
 endmodule // orpsoc_testbench

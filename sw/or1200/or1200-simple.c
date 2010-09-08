@@ -2,5 +2,6 @@
 
 int main()
 {
-  exit(0x8000000d);
+  report(0x8000000d);
+  exit(0);
 }

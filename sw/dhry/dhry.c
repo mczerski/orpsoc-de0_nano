@@ -14,30 +14,16 @@
  *
  ****************************************************************************
  */
-#include "support.h"
-#include "time.h"
+
+#include "or32-utils.h"
+#include "board.h"
 #include "dhry.h"
+#include "uart.h"
+#include "printf.h"
 #ifndef NUM_RUNS
 #define NUM_RUNS (1)
 #endif
-#define DLX_FREQ 200  /* in MHz */
 #define PROC_6 1
-
-// OR32 trap vector dummy functions
-void buserr_except(){}
-void dpf_except(){}
-void ipf_except(){}
-void lpint_except(){timer_interrupt();}
-void align_except(){}
-void illegal_except(){}
-void hpint_except(){}
-void dtlbmiss_except(){}
-void itlbmiss_except(){}
-void range_except(){}
-void syscall_except(){}
-void fpu_except(){}
-void trap_except(){}
-void res2_except(){}
 
 
 #ifndef strcpy
@@ -90,20 +76,6 @@ int             Arr_2_Glob [50] [50];
         Boolean Reg = true;
 #endif
 
-/* variables for time measurement: */
-
-#if DLX || OR1K
-#define Too_Small_Time DLX_FREQ
-#else
-#define Too_Small_Time 1
-#endif
-
-#define TIMER0 0
-#define TIMER1 1
-
-
-
-
 
 unsigned int	Begin_Time,
                 End_Time,
@@ -152,6 +124,8 @@ int main ()
   REG   int             Run_Index;
   REG   int             Number_Of_Runs;
   Rec_Type		x, y;
+
+  uart_init(DEFAULT_UART);
 
   /* Initializations */
   test1(10, 20);
@@ -208,8 +182,10 @@ int main ()
   /***************/
  
 /*  printf("%d", my_test2(Number_Of_Runs));*/
-  start_timer(TIMER0);
-  Begin_Time = read_timer(TIMER0);
+  clear_timer_ticks(); // Clear tick timer counter
+  enable_timer(); // start OR1K tick timer
+
+  Begin_Time = get_timer_ticks();
 
   for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
   {
@@ -297,7 +273,7 @@ int main ()
   /* Stop timer */
   /**************/
   
-  End_Time = read_timer(TIMER0);
+  End_Time = get_timer_ticks();
 
 /*  printf ("Execution ends\n");
   printf ("\n");
@@ -359,9 +335,12 @@ int main ()
 
   printf("Begin Time = %d\n",Begin_Time);
   printf("End Time   = %d\n",End_Time);
- 
 
-  if (User_Time < Too_Small_Time)
+  // Run for at least 10 seconds to get a useful result 
+#define MIN_SECS 10
+#define TOO_SMALL_TICKS (MIN_SECS*TICKS_PER_SEC)
+
+  if (User_Time < TOO_SMALL_TICKS)
   {
     printf ("Measured time too small to obtain meaningful results\n");
     printf ("Please increase number of runs\n");
@@ -369,22 +348,12 @@ int main ()
   }
   else
   {
-#if DLX || OR1K
-    User_Time /= DLX_FREQ;
-#if DLX
-    printf("DLX ");
-#else
-#if OR1K
-    printf("OR1K ");
-#else
-    printf("Unknown CPU ");
-#endif
-#endif
-    printf("at %u MHz  ", DLX_FREQ);
+
+    printf("at %u MHz  ", (IN_CLK/1000000));
     if (PROC_6)
 	    printf("(+PROC_6)");
     printf("\n");
-#endif
+
     Microseconds = User_Time / Number_Of_Runs;
     Dhrystones_Per_Second = Number_Of_Runs * 1000 / User_Time;
     printf ("Microseconds for one run through Dhrystone: ");

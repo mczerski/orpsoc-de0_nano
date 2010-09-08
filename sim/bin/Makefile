@@ -380,6 +380,7 @@ SIM_COMMANDCOMPILE=echo
 SIM_COMMANDRUN=$(SILOS) -b -w +width_mistmatches -f $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) -l $(SIM_RESULTS_DIR)/$$TEST-$(SILOS)-out.log $(EVENT_SIM_FLAGS)
 endif
 
+DIVIDE_LINE=
 
 # Names of memory files used in simulation
 SIM_FLASH_MEM_FILE="flash.in"
@@ -777,8 +778,8 @@ vlt-tests: prepare-sw prepare-rtl prepare-dirs prepare-vlt
 prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda clean vlt-restore-profileoutput prepare-rtl vlt-model-links $(SIM_VLT_DIR)/Vorpsoc_top
 
 $(SIM_VLT_DIR)/OrpsocMain.gcda: $(SIM_VLT_DIR)/Vorpsoc_top-for-profiling prepare-sw-uart-printf
-	$(MAKE) -C $(SW_DIR)/dhry dhry-nocache-O2 NUM_RUNS=200
-	$(SIM_VLT_DIR)/Vorpsoc_top -f $(SW_DIR)/dhry/dhry-nocache-O2.or32 -v -l sim.log --crash-monitor
+	$(MAKE) -C $(SW_DIR)/dhry dhry.elf NUM_RUNS=2000
+	$(SIM_VLT_DIR)/Vorpsoc_top -f $(SW_DIR)/dhry/dhry.elf -v -l sim.log --crash-monitor
 
 .PHONY: $(SIM_VLT_DIR)/Vorpsoc_top-for-profiling
 $(SIM_VLT_DIR)/Vorpsoc_top-for-profiling:
@@ -795,7 +796,6 @@ vlt-restore-profileoutput:
 # Architectural simulator test loop
 ################################################################################
 
-# Verilator defaults to internal memories
 sim-tests: prepare-sw
 	@if [ ! -d $(SIM_RESULTS_DIR) ]; then mkdir -p $(SIM_RESULTS_DIR); fi
 	@echo
@@ -807,11 +807,10 @@ sim-tests: prepare-sw
 		echo "\t#### Current test: $$TEST ####"; echo; \
 		echo "\t#### Compiling software ####"; echo; \
 		CURRENT_TEST_SW_DIR=$(SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST.vmem $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
-		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.or32 $(SIM_RUN_DIR)/.; \
+		$(MAKE) -C $$CURRENT_TEST_SW_DIR $$TEST.elf $(TEST_SW_MAKE_OPTS) UART_PRINTF=1; \
+		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.elf $(SIM_RUN_DIR)/.; \
 		echo;echo "\t#### Launching architectural simulator ####"; \
-		time -p $(ARCH_SIM_EXE) --nosrv -f $(SIM_BIN_DIR)/$(ARCH_SIM_CFG_FILE) $$TEST.or32 > $(SIM_RESULTS_DIR)/$$TEST-or1ksim.log 2>&1; \
+		time -p $(ARCH_SIM_EXE) --nosrv -f $(SIM_BIN_DIR)/$(ARCH_SIM_CFG_FILE) $$TEST.elf > $(SIM_RESULTS_DIR)/$$TEST-or1ksim.log 2>&1; \
 		if [ $$? -gt 0 ]; then exit $$?; fi; \
 		if [ `tail -n 10 $(SIM_RESULTS_DIR)/$$TEST-or1ksim.log | grep -c $(SIM_SUCCESS_MESSAGE)` -gt 0 ]; then \
 			TEST_RESULT=1; \
@@ -823,7 +822,7 @@ sim-tests: prepare-sw
 		fi; \
 		echo "\t####"; echo; \
 		TESTS_PERFORMED=`expr $$TESTS_PERFORMED + 1`;\
-		unlink $(SIM_RUN_DIR)/$$TEST.or32; \
+		unlink $(SIM_RUN_DIR)/$$TEST.elf; \
 	done; \
 	echo "Test results: "$$TESTS_PASSED" out of "$$TESTS_PERFORMED" tests passed"; echo
 

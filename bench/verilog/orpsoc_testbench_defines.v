@@ -39,14 +39,11 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-// 25Mhz clock = 40ns period
-`define CLOCK_PERIOD 40
-`define CLOCK_RATE 25000000
+// 50Mhz clock = 20ns period
+`define CLOCK_PERIOD 20
 
 // Period for 125MHz clock is 8ns
  `define ETH_CLK_PERIOD 8
-   
-
 
 // The ORPSoC tests makefile should generate the test_define.v file in
 // the sim/run directory.

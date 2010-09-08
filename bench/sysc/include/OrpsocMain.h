@@ -53,7 +53,7 @@
 #define BENCH_RESET_TIME      10
 
 //! CPU clock Half period in timescale units
-#define BENCH_CLK_HALFPERIOD  20
+#define BENCH_CLK_HALFPERIOD  10
 
 //! System's internal RAM size in byes - found in rtl/verilog/orpsoc_top.v, param for ram_wb module
 //! Currently is 32MB (8M words)
@@ -72,7 +72,7 @@
 #define FLASH_END   0xf01fffff
 
 //! Default port for RSP to listen on
-#define DEFAULT_RSP_PORT  51000
+#define DEFAULT_RSP_PORT  50003
 
 //! FIFO size for talking to the RSP connection
 #define RSP_FIFO_SIZE  8

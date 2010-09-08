@@ -188,6 +188,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 		    }
 		}
 	    }
+	  /*
 	  else if ((strcmp(argv[i], "-u")==0) ||
 		   (strcmp(argv[i], "--bus-log")==0))
 	    {
@@ -213,6 +214,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 		    bus_trans_log_start_delay = log_start_time;
 		  }
 	    }
+	  */
 	}
     }
 
@@ -375,7 +377,9 @@ Or1200MonitorSC::printUsage()
   printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
   printf("  -m, --memdump <file> <0xstartaddr> <0xendaddr>\n\t\t\tDump data between <0xstartaddr> and <0xendaddr> from\n\t\t\tthe system's RAM to <file> in binary format on exit\n");
   printf("  -c, --crash-monitor\tDetect when the processor has crashed and exit\n");
+/*
   printf("  -u, --bus-log <file> <val>\n\t\t\tLog the wishbone bus transactions to <file>, opt. start\n\t\t\tafter <val> ns\n\n");
+*/
 
 }
 

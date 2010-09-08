@@ -349,7 +349,7 @@ int sc_main (int   argc,
   //printf("* Beginning test\n");
 
   // Init the UART function
-  uart->initUart(25000000, 115200);
+  uart->initUart(50000000, 115200);
 
   if (do_program_file_load) // Did the user specify a file to load?
     {            
