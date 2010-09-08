@@ -39,11 +39,14 @@
 #include "Vorpsoc_top_or1200_sprs.h"
 #include "Vorpsoc_top_or1200_rf.h"
 #include "Vorpsoc_top_or1200_dpram.h"
-//#include "Vorpsoc_top_ram_wb.h"
-//#include "Vorpsoc_top_ram_wb_sc_sw.h"
-#include "Vorpsoc_top_ram_wb__D20_A19_M800000.h"
-#include "Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000.h"
-#include "Vorpsoc_top_wb_conbus_top__pi1.h"
+// Need RAM instantiation has parameters after module name
+// Includes for wb_ram
+//#include "Vorpsoc_top_ram_wb__D20_A19_M800000.h"
+//#include "Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000.h"
+// Include for wb_ram_b3
+#include "Vorpsoc_top_wb_ram_b3__D20_A19_M800000.h"
+// Bus arbiter include - but is for old arbiter, no longer used
+//#include "Vorpsoc_top_wb_conbus_top__pi1.h"
 
 //! Constructor for the ORPSoC access class
 
@@ -60,9 +63,11 @@ OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
   or1200_sprs = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_sprs;
   rf_a        = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_rf->rf_a;
   // Assign main memory accessor objects
-  ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
+  // For old ram_wb: ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
+  ram_wb_sc_sw = orpsoc_top->v->ram_wb0;
+
   // Assign arbiter accessor object
-  wb_arbiter = orpsoc_top->v->wb_conbus;
+  //wb_arbiter = orpsoc_top->v->wb_conbus;
 
 }	// OrpsocAccess ()
 
@@ -324,7 +329,7 @@ OrpsocAccess::getSprEsr ()
 
 }	// getSprEsr ()
 
-
+/*
 //! Access for the arbiter's grant signal
 
 //! @return  The value of the wb_conmax_top.arb signal
@@ -450,3 +455,4 @@ OrpsocAccess::getWbArbMastErrO (uint32_t mast_num)
 
 }	// getWbArbMastErrO ()
 
+*/

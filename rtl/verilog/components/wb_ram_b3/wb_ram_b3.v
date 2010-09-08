@@ -76,27 +76,25 @@ module wb_ram_b3(
        wb_b3_trans <= 0;
 
    // Burst address generation logic
-   always @(/*AUTOSENSE*/wb_ack_o or wb_b3_trans or wb_b3_trans_start
-	    or wb_bte_i_r or wb_cti_i_r or wb_adr_i or wb_rst_i or adr)
-     
+   always @*
      if (wb_rst_i)
-       burst_adr_counter <= 0;
+       burst_adr_counter = 0;
      else if (wb_b3_trans_start)
-       burst_adr_counter <= wb_adr_i[aw-1:2];
+       burst_adr_counter = wb_adr_i[aw-1:2];
      else if ((wb_cti_i_r == 3'b010) & wb_ack_o & wb_b3_trans)
        // Incrementing burst
        begin
 	  if (wb_bte_i_r == 2'b00) // Linear burst
-	    burst_adr_counter <= adr + 1;
+	    burst_adr_counter = adr + 1;
 	  if (wb_bte_i_r == 2'b01) // 4-beat wrap burst
-	    burst_adr_counter[1:0] <= adr[1:0] + 1;
+	    burst_adr_counter[1:0] = adr[1:0] + 1;
 	  if (wb_bte_i_r == 2'b10) // 8-beat wrap burst
-	    burst_adr_counter[2:0] <= adr[2:0] + 1;
+	    burst_adr_counter[2:0] = adr[2:0] + 1;
 	  if (wb_bte_i_r == 2'b11) // 16-beat wrap burst
-	    burst_adr_counter[3:0] <= adr[3:0] + 1;
+	    burst_adr_counter[3:0] = adr[3:0] + 1;
        end // if ((wb_cti_i_r == 3'b010) & wb_ack_o_r)
      else if (!wb_ack_o & wb_b3_trans)
-	    burst_adr_counter <= adr;
+	    burst_adr_counter = adr;
 
 
    always @(posedge wb_clk_i)
@@ -192,7 +190,7 @@ module wb_ram_b3(
 
    assign wb_ack_o = wb_ack_o_r & wb_stb_i;
    
-   always @ (posedge wb_clk_i)
+   always @(posedge wb_clk_i)
      if (wb_rst_i)
        begin
           wb_ack_o_r <= 1'b0;
@@ -259,7 +257,7 @@ module wb_ram_b3(
    
 `else
    always @(wb_rst_i)
-     random_ack_negate <= 0;
+     random_ack_negate = 0;
 `endif
    
    

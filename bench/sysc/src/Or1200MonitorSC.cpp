@@ -328,7 +328,8 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       memdump_start_addr = memdump_start;
       memdump_end_addr = memdump_end;      
     }
-
+  
+  /*
   if (bus_trans_log_enabled)
     {
       // Setup log file and register the bus monitoring function
@@ -344,9 +345,10 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	  cout << endl;
 	}
       else
-	/* Couldn't open */
+	// Couldn't open
 	bus_trans_log_enabled = false;
     }
+
 
   if (bus_trans_log_enabled)
     {
@@ -355,6 +357,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
       sensitive << clk.pos();
       dont_initialize();
     }
+  */
   
 }	// Or1200MonitorSC ()
 
@@ -834,7 +837,7 @@ Or1200MonitorSC::memdump()
   
 }
 
-
+/*
 void
 Or1200MonitorSC::busMonitor()
 {
@@ -909,7 +912,7 @@ Or1200MonitorSC::busMonitor()
   return;
   
 }	// busMonitor ()
-
+*/
 void
 Or1200MonitorSC::simPrintf(uint32_t stackaddr, uint32_t regparam)
 {

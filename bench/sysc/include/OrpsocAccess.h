@@ -38,8 +38,10 @@ class Vorpsoc_top_or1200_ctrl;
 class Vorpsoc_top_or1200_except;
 class Vorpsoc_top_or1200_sprs;
 class Vorpsoc_top_or1200_dpram;
-// Main memory access class - will change if main memory size or other parameters change
-class Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000;
+// Main memory access class - will change if main memory size or other 
+// parameters change
+//Old ram_wbclass: class Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000;
+class Vorpsoc_top_wb_ram_b3__D20_A19_M800000;
 // SoC Arbiter class - will also change if any modifications to bus architecture
 class Vorpsoc_top_wb_conbus_top__pi1;
 
@@ -83,7 +85,7 @@ public:
   void  set_mem32 (uint32_t addr, uint32_t data);
   // Trigger a $readmemh for the RAM array
   void  do_ram_readmemh (void);
-
+  /*
   // Arbiter access functions
   uint8_t getWbArbGrant ();
   // Master Signal Access functions
@@ -97,7 +99,7 @@ public:
   bool  getWbArbMastStbI (uint32_t mast_num);
   bool  getWbArbMastAckO (uint32_t mast_num);
   bool  getWbArbMastErrO (uint32_t mast_num);
-  
+  */
 
 
 private:
@@ -107,9 +109,9 @@ private:
   Vorpsoc_top_or1200_except	*or1200_except;
   Vorpsoc_top_or1200_sprs	*or1200_sprs;
   Vorpsoc_top_or1200_dpram	*rf_a;
-  /*Vorpsoc_top_ram_wb_sc_sw*/Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000 *ram_wb_sc_sw;
+  /*Vorpsoc_top_ram_wb_sc_sw*//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000*/ Vorpsoc_top_wb_ram_b3__D20_A19_M800000 *ram_wb_sc_sw;
   // Arbiter
-  Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
+  //Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
 
 };	// OrpsocAccess ()
 
