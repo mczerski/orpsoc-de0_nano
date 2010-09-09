@@ -23,7 +23,7 @@
 #ifndef NUM_RUNS
 #define NUM_RUNS (1)
 #endif
-#define PROC_6 1
+#define PROC_6 0
 
 
 #ifndef strcpy
@@ -329,18 +329,21 @@ int main ()
 
 */
 
-
   User_Time = End_Time - Begin_Time;
+
+  printf("Timer ticks, %d/s., (%d - %d) =\t%d\n",TICKS_PER_SEC, 
+	 End_Time, Begin_Time, User_Time);
+
  /* microseconds */
+  
+  printf ("\nNumber of Runs %i", NUM_RUNS);
+  printf ("\nElapsed time %d.%d%ds\n", 
+	  (User_Time/TICKS_PER_SEC),
+	  (User_Time/(TICKS_PER_SEC/10))%10,
+	  (User_Time/( TICKS_PER_SEC/100))%10);
 
-  printf("Begin Time = %d\n",Begin_Time);
-  printf("End Time   = %d\n",End_Time);
-
-  // Run for at least 10 seconds to get a useful result 
-#define MIN_SECS 10
-#define TOO_SMALL_TICKS (MIN_SECS*TICKS_PER_SEC)
-
-  if (User_Time < TOO_SMALL_TICKS)
+  
+  if (User_Time < (5*TICKS_PER_SEC))
   {
     printf ("Measured time too small to obtain meaningful results\n");
     printf ("Please increase number of runs\n");
@@ -348,19 +351,21 @@ int main ()
   }
   else
   {
+    printf("Processor at %d MHz\n",(IN_CLK/1000000));
 
-    printf("at %u MHz  ", (IN_CLK/1000000));
-    if (PROC_6)
-	    printf("(+PROC_6)");
-    printf("\n");
 
-    Microseconds = User_Time / Number_Of_Runs;
-    Dhrystones_Per_Second = Number_Of_Runs * 1000 / User_Time;
+    // User_Time is ticks in resolution TICKS_PER_SEC, so to convert to uS
+    Microseconds = (User_Time * (1000000/TICKS_PER_SEC));
+    
+    Dhrystones_Per_Second = Number_Of_Runs / (User_Time/TICKS_PER_SEC);
+
     printf ("Microseconds for one run through Dhrystone: ");
-    printf ("%d us / %d runs\n", User_Time,Number_Of_Runs);
+    printf ("( %d uS / %dk ) = %d uS\n", Microseconds,(Number_Of_Runs/1000),
+	    Microseconds / Number_Of_Runs);
     printf ("Dhrystones per Second:                      ");
     printf ("%d \n", Dhrystones_Per_Second);
   }
+
   report (0xdeaddead);
   return 0;
 }

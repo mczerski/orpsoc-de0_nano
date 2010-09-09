@@ -1059,10 +1059,11 @@
 // Shift {MACHI,MACLO} into destination register when executing l.macrc
 //
 // According to architecture manual there is no shift, so default value is 0.
-//
-// However the implementation has deviated in this from the arch manual and had hard coded shift by 28 bits which
-// is a useful optimization for MP3 decoding (if using libmad fixed point library). Shifts are no longer
-// default setup, but if you need to remain backward compatible, define your shift bits, which were normally
+// However the implementation has deviated in this from the arch manual and had
+// hard coded shift by 28 bits which is a useful optimization for MP3 decoding 
+// (if using libmad fixed point library). Shifts are no longer default setup, 
+// but if you need to remain backward compatible, define your shift bits, which
+// were normally
 // dest_GPR = {MACHI,MACLO}[59:28]
 `define OR1200_MAC_SHIFTBY	0	// 0 = According to arch manual, 28 = obsolete backward compatibility
 
