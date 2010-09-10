@@ -191,6 +191,11 @@
 
 
 
+
+
+
+
+
 #define OR1200_REGISTERED_OUTPUTS
 
 
@@ -431,6 +436,15 @@
 
 
 
+#ifdef OR1200_RST_ACT_LOW
+  #define OR1200_RST_EVENT      negedge
+#else
+  #define OR1200_RST_EVENT      posedge
+#endif
+
+
+
+
 #define OR1200_ALUOP_WIDTH	4
 /* Order defined by arith insns that have two source operands both in regs
    (see binutils/include/opcode/or32.h) */
@@ -482,7 +496,7 @@
 
 
 
- #define OR1200_RFWBOP_WIDTH		4
+#define OR1200_RFWBOP_WIDTH		4
 
 
 #define OR1200_COMPOP_WIDTH	4
