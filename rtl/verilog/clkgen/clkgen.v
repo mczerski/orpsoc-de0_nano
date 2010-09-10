@@ -1,20 +1,13 @@
 //////////////////////////////////////////////////////////////////////
-////                                                              ////
-////  ORPSoC Testbench Defines                                    ////
-////                                                              ////
-////  Description                                                 ////
-////  ORPSoC testbench defines file                               ////
-////                                                              ////
-////  To Do:                                                      ////
-////   -                                                          ////
-////                                                              ////
-////  Author(s):                                                  ////
-////      - jb, jb@orsoc.se                                       ////
-////                                                              ////
-////                                                              ////
+//
+// clkgen
+//
+// Handles clock and reset generation for rest of design
+//
+//
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009 Authors and OPENCORES.ORG                 ////
+//// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -38,20 +31,86 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
+//
+// A simple implementation for the main generic ORPSoC simulations
+//
 
-// 50Mhz clock = 20ns period
-`define CLOCK_PERIOD 20
+`include "timescale.v"
+`include "orpsoc-defines.v"
 
-// Period for 125MHz clock is 8ns
- `define ETH_CLK_PERIOD 8
+module clkgen
+  (
+   // Main clocks in, depending on board
+   clk_pad_i,
+   
+   // Wishbone clock and reset out  
+   wb_clk_o,
+   wb_rst_o,
 
-// The ORPSoC tests makefile should generate the test_define.v file in
-// the sim/run directory.
-`ifdef TEST_DEFINE_FILE
- `include "test_define.v"
-`else
- `define TEST_NAME_STRING "unspecified-test"
- `define TEST_RESULTS_DIR "./"
+   // JTAG clock
+`ifdef JTAG_DEBUG
+   tck_pad_i,
+   dbg_tck_o,
+`endif      
+
+   // Asynchronous, active low reset in
+   rst_n_pad_i
+   
+   );
+
+   input clk_pad_i;
+   
+   output wb_rst_o;
+   output wb_clk_o;
+
+`ifdef JTAG_DEBUG
+   input  tck_pad_i;
+   output dbg_tck_o;
+`endif      
+   
+   // Asynchronous, active low reset (pushbutton, typically)
+   input  rst_n_pad_i;
+   
+   // First, deal with the asychronous reset
+   wire   async_rst;
+   wire   async_rst_n;
+
+   // An input buffer is usually instantiated here
+   assign async_rst_n = rst_n_pad_i;
+   
+   // Everyone likes active-high reset signals...
+   assign async_rst = ~async_rst_n;
+   
+`ifdef JTAG_DEBUG
+   assign dbg_tck_o = tck_pad_i;
 `endif
 
-`undef UART_LOG_TX
+   //
+   // Declare synchronous reset wires here
+   //
+   
+   // An active-low synchronous reset signal (usually a PLL lock signal)
+   wire   sync_rst_n;
+
+   // An active-low synchronous reset from ethernet PLL
+   wire   sync_eth_rst_n;
+
+   // Here we just assign "board" clock (really test) to wishbone clock
+   assign wb_clk_o = clk_pad_i;
+   
+   //
+   // Reset generation
+   //
+   //
+
+   // Reset generation for wishbone
+   reg [15:0] 	   wb_rst_shr;
+   always @(posedge wb_clk_o or posedge async_rst)
+     if (async_rst)
+       wb_rst_shr <= 16'hffff;
+     else
+       wb_rst_shr <= {wb_rst_shr[14:0], ~(sync_rst_n)};
+   
+   assign wb_rst_o = wb_rst_shr[15];
+   
+endmodule // clkgen

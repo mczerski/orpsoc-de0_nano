@@ -6,7 +6,7 @@
 /******************************************************************************/
 
 // Project Name                   : ORPSoC v2
-// File Name                      : bin2c.c
+// File Name                      : bin2vlogarray.c
 // Prepared By                    : 
 // Project Start                  : 
 
@@ -44,25 +44,32 @@
 //
 // Looks like this:
 //
-// 0 : wb_dat_o <= #1 32'h18000000;
-// 1 : wb_dat_o <= #1 32'h18200000;
-// 2 : wb_dat_o <= #1 32'h1880b000;
-// 3 : wb_dat_o <= #1 32'ha8400051;
-// 4 : wb_dat_o <= #1 32'hd8041000;
-// 5 : wb_dat_o <= #1 32'h18c00000;
-// 6 : wb_dat_o <= #1 32'h18e00000;
+// 0 : wb_dat_o <= 32'h18000000;
+// 1 : wb_dat_o <= 32'h18200000;
+// 2 : wb_dat_o <= 32'h1880b000;
+// 3 : wb_dat_o <= 32'ha8400051;
+// 4 : wb_dat_o <= 32'hd8041000;
+// 5 : wb_dat_o <= 32'h18c00000;
+// 6 : wb_dat_o <= 32'h18e00000;
 //
 // etc...
 //
-//
+// The generated file is pulled into the appropriate part of a verilog 
+// module and gets synthesized.
 
 #include <stdio.h>
 #include <stdint.h>
 
 #define OUT_REG_STRING "wb_dat_o"
+
+// OR1200 no longer has these #delays on synchronous assigns - so we don't need
+// them here anymore either.
 //#define ASSIGN_STRING "<= #1"
 #define ASSIGN_STRING "<= "
+
 #define SIZE_STRING "32'h"
+
+// Concatenate the defines 
 #define BEFORE_STRING "%d : "OUT_REG_STRING" "ASSIGN_STRING" "SIZE_STRING
 
 //#define BEFORE_STRING "%d : wb_dat_o <= 32'h"
