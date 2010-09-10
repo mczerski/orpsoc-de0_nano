@@ -255,21 +255,21 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      latch_data <= #1 1'b0;
-      dr <= #1 {`DBG_CPU_DR_LEN{1'b0}};
+      latch_data <=  1'b0;
+      dr <=  {`DBG_CPU_DR_LEN{1'b0}};
     end
   else if (curr_cmd_rd_comm && crc_cnt_31)  // Latching data (from internal regs)
     begin
-      dr[`DBG_CPU_DR_LEN -1:0] <= #1 {acc_type, adr, len};
+      dr[`DBG_CPU_DR_LEN -1:0] <=  {acc_type, adr, len};
     end
   else if (curr_cmd_rd_ctrl && crc_cnt_31)  // Latching data (from control regs)
     begin
-      dr[`DBG_CPU_DR_LEN -1:0] <= #1 {ctrl_reg, {`DBG_CPU_DR_LEN -`DBG_CPU_CTRL_LEN{1'b0}}};
+      dr[`DBG_CPU_DR_LEN -1:0] <=  {ctrl_reg, {`DBG_CPU_DR_LEN -`DBG_CPU_CTRL_LEN{1'b0}}};
     end
   else if (acc_type_read && curr_cmd_go && crc_cnt_31)  // Latchind first data (from WB)
     begin
-      dr[31:0] <= #1 input_data[31:0];
-      latch_data <= #1 1'b1;
+      dr[31:0] <=  input_data[31:0];
+      latch_data <=  1'b1;
     end
   else if (acc_type_read && curr_cmd_go && crc_cnt_end) // Latching data (from WB)
     begin
@@ -277,20 +277,20 @@ begin
         `DBG_CPU_READ: begin
                       if(long & (~long_q))
                         begin
-                          dr[31:0] <= #1 input_data[31:0];
-                          latch_data <= #1 1'b1;
+                          dr[31:0] <=  input_data[31:0];
+                          latch_data <=  1'b1;
                         end
                       else if (enable)
                         begin
-                          dr[31:0] <= #1 {dr[30:0], 1'b0};
-                          latch_data <= #1 1'b0;
+                          dr[31:0] <=  {dr[30:0], 1'b0};
+                          latch_data <=  1'b0;
                         end
                     end
       endcase
     end
   else if (enable && (!addr_len_cnt_end))
     begin
-      dr <= #1 {dr[`DBG_CPU_DR_LEN -2:0], tdi_i};
+      dr <=  {dr[`DBG_CPU_DR_LEN -2:0], tdi_i};
     end
 end
 
@@ -303,11 +303,11 @@ assign cmd_cnt_en = enable & (~cmd_cnt_end);
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    cmd_cnt <= #1 {`DBG_CPU_CMD_CNT_WIDTH{1'b0}};
+    cmd_cnt <=  {`DBG_CPU_CMD_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    cmd_cnt <= #1 {`DBG_CPU_CMD_CNT_WIDTH{1'b0}};
+    cmd_cnt <=  {`DBG_CPU_CMD_CNT_WIDTH{1'b0}};
   else if (cmd_cnt_en)
-    cmd_cnt <= #1 cmd_cnt + 1'b1;
+    cmd_cnt <=  cmd_cnt + 1'b1;
 end
 
 
@@ -315,11 +315,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    curr_cmd <= #1 {`DBG_CPU_CMD_LEN{1'b0}};
+    curr_cmd <=  {`DBG_CPU_CMD_LEN{1'b0}};
   else if (update_dr_i)
-    curr_cmd <= #1 {`DBG_CPU_CMD_LEN{1'b0}};
+    curr_cmd <=  {`DBG_CPU_CMD_LEN{1'b0}};
   else if (cmd_cnt == (`DBG_CPU_CMD_LEN -1))
-    curr_cmd <= #1 {dr[`DBG_CPU_CMD_LEN-2 :0], tdi_i};
+    curr_cmd <=  {dr[`DBG_CPU_CMD_LEN-2 :0], tdi_i};
 end
 
 
@@ -327,9 +327,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    curr_cmd_go_q <= #1 1'b0;
+    curr_cmd_go_q <=  1'b0;
   else
-    curr_cmd_go_q <= #1 curr_cmd_go;
+    curr_cmd_go_q <=  curr_cmd_go;
 end
 
 
@@ -353,11 +353,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    addr_len_cnt <= #1 6'h0;
+    addr_len_cnt <=  6'h0;
   else if (update_dr_i)
-    addr_len_cnt <= #1 6'h0;
+    addr_len_cnt <=  6'h0;
   else if (addr_len_cnt_en)
-    addr_len_cnt <= #1 addr_len_cnt + 1'b1;
+    addr_len_cnt <=  addr_len_cnt + 1'b1;
 end
 
 
@@ -381,11 +381,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt <= #1 {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    data_cnt <= #1 {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
   else if (data_cnt_en)
-    data_cnt <= #1 data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1'b1;
 end
 
 
@@ -394,9 +394,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt_limit <= #1 {`DBG_CPU_DATA_CNT_LIM_WIDTH{1'b0}};
+    data_cnt_limit <=  {`DBG_CPU_DATA_CNT_LIM_WIDTH{1'b0}};
   else if (update_dr_i)
-    data_cnt_limit <= #1 len + 1'b1;
+    data_cnt_limit <=  len + 1'b1;
 end
 
 
@@ -422,11 +422,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_cnt <= #1 {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
+    crc_cnt <=  {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
   else if(crc_cnt_en)
-    crc_cnt <= #1 crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1'b1;
   else if (update_dr_i)
-    crc_cnt <= #1 {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
+    crc_cnt <=  {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
 end
 
 assign cmd_cnt_end      = cmd_cnt      == `DBG_CPU_CMD_LEN;
@@ -439,17 +439,17 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      crc_cnt_end_q       <= #1 1'b0;
-      cmd_cnt_end_q       <= #1 1'b0;
-      data_cnt_end_q      <= #1 1'b0;
-      addr_len_cnt_end_q  <= #1 1'b0;
+      crc_cnt_end_q       <=  1'b0;
+      cmd_cnt_end_q       <=  1'b0;
+      data_cnt_end_q      <=  1'b0;
+      addr_len_cnt_end_q  <=  1'b0;
     end
   else
     begin
-      crc_cnt_end_q       <= #1 crc_cnt_end;
-      cmd_cnt_end_q       <= #1 cmd_cnt_end;
-      data_cnt_end_q      <= #1 data_cnt_end;
-      addr_len_cnt_end_q  <= #1 addr_len_cnt_end;
+      crc_cnt_end_q       <=  crc_cnt_end;
+      cmd_cnt_end_q       <=  cmd_cnt_end;
+      data_cnt_end_q      <=  data_cnt_end;
+      addr_len_cnt_end_q  <=  addr_len_cnt_end;
     end
 end
 
@@ -458,11 +458,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    status_cnt <= #1 {`DBG_CPU_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_CPU_STATUS_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    status_cnt <= #1 {`DBG_CPU_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_CPU_STATUS_CNT_WIDTH{1'b0}};
   else if (status_cnt_en)
-    status_cnt <= #1 status_cnt + 1'b1;
+    status_cnt <=  status_cnt + 1'b1;
 end
 
 
@@ -496,33 +496,33 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      acc_type  <= #1 {`DBG_CPU_ACC_TYPE_LEN{1'b0}};
-      adr       <= #1 {`DBG_CPU_ADR_LEN{1'b0}};
-      len       <= #1 {`DBG_CPU_LEN_LEN{1'b0}};
-      set_addr  <= #1 1'b0;
+      acc_type  <=  {`DBG_CPU_ACC_TYPE_LEN{1'b0}};
+      adr       <=  {`DBG_CPU_ADR_LEN{1'b0}};
+      len       <=  {`DBG_CPU_LEN_LEN{1'b0}};
+      set_addr  <=  1'b0;
     end
   else if(crc_cnt_end && (!crc_cnt_end_q) && crc_match_i && curr_cmd_wr_comm)
     begin
-      acc_type  <= #1 dr[`DBG_CPU_ACC_TYPE_LEN + `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN -1 : `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN];
-      adr       <= #1 dr[`DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN -1 : `DBG_CPU_LEN_LEN];
-      len       <= #1 dr[`DBG_CPU_LEN_LEN -1:0];
-      set_addr  <= #1 1'b1;
+      acc_type  <=  dr[`DBG_CPU_ACC_TYPE_LEN + `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN -1 : `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN];
+      adr       <=  dr[`DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN -1 : `DBG_CPU_LEN_LEN];
+      len       <=  dr[`DBG_CPU_LEN_LEN -1:0];
+      set_addr  <=  1'b1;
     end
   else if(cpu_end_tck)               // Writing back the address
     begin
-      adr  <= #1 cpu_addr_dsff;
+      adr  <=  cpu_addr_dsff;
     end
   else
-    set_addr <= #1 1'b0;
+    set_addr <=  1'b0;
 end
 
 
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_match_reg <= #1 1'b0;
+    crc_match_reg <=  1'b0;
   else if(crc_cnt_end & (~crc_cnt_end_q))
-    crc_match_reg <= #1 crc_match_i;
+    crc_match_reg <=  crc_match_i;
 end
 
 
@@ -530,15 +530,15 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    len_var <= #1 {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
+    len_var <=  {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
   else if(update_dr_i)
-    len_var <= #1 len + 1'b1;
+    len_var <=  len + 1'b1;
   else if (start_rd_tck)
     begin
       if (len_var > 'd4)
-        len_var <= #1 len_var - 3'd4; 
+        len_var <=  len_var - 3'd4; 
       else
-        len_var <= #1 {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
+        len_var <=  {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
     end
 end
 
@@ -554,13 +554,13 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      half_q <= #1  1'b0;
-      long_q <= #1  1'b0;
+      half_q <=   1'b0;
+      long_q <=   1'b0;
     end
   else
     begin
-      half_q <= #1 half;
-      long_q <= #1 long;
+      half_q <=  half;
+      long_q <=  long;
     end
 end
 
@@ -570,30 +570,30 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      start_wr_tck <= #1 1'b0;
-      cpu_dat_tmp <= #1 32'h0;
+      start_wr_tck <=  1'b0;
+      cpu_dat_tmp <=  32'h0;
     end
   else if (curr_cmd_go && acc_type_write)
     begin
       if (long_q)
         begin
-          start_wr_tck <= #1 1'b1;
-          cpu_dat_tmp <= #1 dr[31:0];
+          start_wr_tck <=  1'b1;
+          cpu_dat_tmp <=  dr[31:0];
         end
       else
         begin
-          start_wr_tck <= #1 1'b0;
+          start_wr_tck <=  1'b0;
         end
     end
   else
-    start_wr_tck <= #1 1'b0;
+    start_wr_tck <=  1'b0;
 end
 
 
 // cpu_data_o in WB clk domain
 always @ (posedge cpu_clk_i)
 begin
-  cpu_data_dsff <= #1 cpu_dat_tmp;
+  cpu_data_dsff <=  cpu_dat_tmp;
 end
 
 assign cpu_data_o = cpu_data_dsff;
@@ -603,24 +603,24 @@ assign cpu_data_o = cpu_data_dsff;
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    start_rd_tck <= #1 1'b0;
+    start_rd_tck <=  1'b0;
   else if (curr_cmd_go && (!curr_cmd_go_q) && acc_type_read)              // First read after cmd is entered
-    start_rd_tck <= #1 1'b1;
+    start_rd_tck <=  1'b1;
   else if ((!start_rd_tck) && curr_cmd_go && acc_type_read  && (!len_eq_0) && (!fifo_full) && (!rd_tck_started) && (!cpu_ack_tck))
-    start_rd_tck <= #1 1'b1;
+    start_rd_tck <=  1'b1;
   else
-    start_rd_tck <= #1 1'b0;
+    start_rd_tck <=  1'b0;
 end
 
 
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    rd_tck_started <= #1 1'b0;
+    rd_tck_started <=  1'b0;
   else if (update_dr_i || cpu_end_tck && (!cpu_end_tck_q))
-    rd_tck_started <= #1 1'b0;
+    rd_tck_started <=  1'b0;
   else if (start_rd_tck)
-    rd_tck_started <= #1 1'b1;
+    rd_tck_started <=  1'b1;
 end
 
 
@@ -629,35 +629,35 @@ always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      start_rd_csff   <= #1 1'b0;
-      start_cpu_rd    <= #1 1'b0;
-      start_cpu_rd_q  <= #1 1'b0;
+      start_rd_csff   <=  1'b0;
+      start_cpu_rd    <=  1'b0;
+      start_cpu_rd_q  <=  1'b0;
 
-      start_wr_csff   <= #1 1'b0;
-      start_cpu_wr    <= #1 1'b0;
-      start_cpu_wr_q  <= #1 1'b0;
+      start_wr_csff   <=  1'b0;
+      start_cpu_wr    <=  1'b0;
+      start_cpu_wr_q  <=  1'b0;
 
-      set_addr_csff   <= #1 1'b0;
-      set_addr_cpu    <= #1 1'b0;
-      set_addr_cpu_q  <= #1 1'b0;
+      set_addr_csff   <=  1'b0;
+      set_addr_cpu    <=  1'b0;
+      set_addr_cpu_q  <=  1'b0;
 
-      cpu_ack_q       <= #1 1'b0;
+      cpu_ack_q       <=  1'b0;
     end
   else
     begin
-      start_rd_csff   <= #1 start_rd_tck;
-      start_cpu_rd    <= #1 start_rd_csff;
-      start_cpu_rd_q  <= #1 start_cpu_rd;
+      start_rd_csff   <=  start_rd_tck;
+      start_cpu_rd    <=  start_rd_csff;
+      start_cpu_rd_q  <=  start_cpu_rd;
 
-      start_wr_csff   <= #1 start_wr_tck;
-      start_cpu_wr    <= #1 start_wr_csff;
-      start_cpu_wr_q  <= #1 start_cpu_wr;
+      start_wr_csff   <=  start_wr_tck;
+      start_cpu_wr    <=  start_wr_csff;
+      start_cpu_wr_q  <=  start_cpu_wr;
 
-      set_addr_csff   <= #1 set_addr;
-      set_addr_cpu    <= #1 set_addr_csff;
-      set_addr_cpu_q  <= #1 set_addr_cpu;
+      set_addr_csff   <=  set_addr;
+      set_addr_cpu    <=  set_addr_csff;
+      set_addr_cpu_q  <=  set_addr_cpu;
 
-      cpu_ack_q       <= #1 cpu_ack_i;
+      cpu_ack_q       <=  cpu_ack_i;
     end
 end
 
@@ -666,11 +666,11 @@ end
 always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    cpu_stb_o <= #1 1'b0;
+    cpu_stb_o <=  1'b0;
   else if (cpu_ack_i)
-    cpu_stb_o <= #1 1'b0;
+    cpu_stb_o <=  1'b0;
   else if ((start_cpu_wr && (!start_cpu_wr_q)) || (start_cpu_rd && (!start_cpu_rd_q)))
-    cpu_stb_o <= #1 1'b1;
+    cpu_stb_o <=  1'b1;
 end
 
 
@@ -681,12 +681,12 @@ assign cpu_stall_o = cpu_stb_o | cpu_reg_stall;
 always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    cpu_addr_dsff <= #1 32'h0;
+    cpu_addr_dsff <=  32'h0;
   else if (set_addr_cpu && (!set_addr_cpu_q)) // Setting starting address
-    cpu_addr_dsff <= #1 adr;
+    cpu_addr_dsff <=  adr;
   else if (cpu_ack_i && (!cpu_ack_q))
-    //cpu_addr_dsff <= #1 cpu_addr_dsff + 3'd4;
-    cpu_addr_dsff <= #1 cpu_addr_dsff + 3'd1; // Increment by just 1, to allow block reading -- jb 090901
+    //cpu_addr_dsff <=  cpu_addr_dsff + 3'd4;
+    cpu_addr_dsff <=  cpu_addr_dsff + 3'd1; // Increment by just 1, to allow block reading -- jb 090901
 end
 
 
@@ -695,7 +695,7 @@ assign cpu_addr_o = cpu_addr_dsff;
 
 always @ (posedge cpu_clk_i)
 begin
-  cpu_we_dsff <= #1 curr_cmd_go && acc_type_write;
+  cpu_we_dsff <=  curr_cmd_go && acc_type_write;
 end
 
 
@@ -707,11 +707,11 @@ assign cpu_we_o = cpu_we_dsff;
 always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    cpu_end <= #1 1'b0;
+    cpu_end <=  1'b0;
   else if (cpu_ack_i && (!cpu_ack_q))
-    cpu_end <= #1 1'b1;
+    cpu_end <=  1'b1;
   else if (cpu_end_rst)
-    cpu_end <= #1 1'b0;
+    cpu_end <=  1'b0;
 end
                                                                                                
                                                                                                
@@ -719,15 +719,15 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      cpu_end_csff  <= #1 1'b0;
-      cpu_end_tck   <= #1 1'b0;
-      cpu_end_tck_q <= #1 1'b0;
+      cpu_end_csff  <=  1'b0;
+      cpu_end_tck   <=  1'b0;
+      cpu_end_tck_q <=  1'b0;
     end
   else
     begin
-      cpu_end_csff  <= #1 cpu_end;
-      cpu_end_tck   <= #1 cpu_end_csff;
-      cpu_end_tck_q <= #1 cpu_end_tck;
+      cpu_end_csff  <=  cpu_end;
+      cpu_end_tck   <=  cpu_end_csff;
+      cpu_end_tck_q <=  cpu_end_tck;
     end
 end
 
@@ -736,13 +736,13 @@ always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      cpu_end_rst_csff <= #1 1'b0;
-      cpu_end_rst      <= #1 1'b0;
+      cpu_end_rst_csff <=  1'b0;
+      cpu_end_rst      <=  1'b0;
     end
   else
     begin
-      cpu_end_rst_csff <= #1 cpu_end_tck;
-      cpu_end_rst      <= #1 cpu_end_rst_csff;
+      cpu_end_rst_csff <=  cpu_end_tck;
+      cpu_end_rst      <=  cpu_end_rst_csff;
     end
 end
 
@@ -750,11 +750,11 @@ end
 always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    busy_cpu <= #1 1'b0;
+    busy_cpu <=  1'b0;
   else if (cpu_end_rst)
-    busy_cpu <= #1 1'b0;
+    busy_cpu <=  1'b0;
   else if (cpu_stb_o)
-    busy_cpu <= #1 1'b1;
+    busy_cpu <=  1'b1;
 end
 
 
@@ -762,19 +762,19 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      busy_csff       <= #1 1'b0;
-      busy_tck        <= #1 1'b0;
+      busy_csff       <=  1'b0;
+      busy_tck        <=  1'b0;
 
-      update_dr_csff  <= #1 1'b0;
-      update_dr_cpu   <= #1 1'b0;
+      update_dr_csff  <=  1'b0;
+      update_dr_cpu   <=  1'b0;
     end
   else
     begin
-      busy_csff       <= #1 busy_cpu;
-      busy_tck        <= #1 busy_csff;
+      busy_csff       <=  busy_cpu;
+      busy_tck        <=  busy_csff;
 
-      update_dr_csff  <= #1 update_dr_i;
-      update_dr_cpu   <= #1 update_dr_csff;
+      update_dr_csff  <=  update_dr_i;
+      update_dr_cpu   <=  update_dr_csff;
     end
 end
 
@@ -783,11 +783,11 @@ end
 always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    cpu_overrun <= #1 1'b0;
+    cpu_overrun <=  1'b0;
   else if(start_cpu_wr && (!start_cpu_wr_q) && cpu_ack_i)
-    cpu_overrun <= #1 1'b1;
+    cpu_overrun <=  1'b1;
   else if(update_dr_cpu) // error remains active until update_dr arrives
-    cpu_overrun <= #1 1'b0;
+    cpu_overrun <=  1'b0;
 end
 
 
@@ -795,11 +795,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    underrun_tck <= #1 1'b0;
+    underrun_tck <=  1'b0;
   else if(latch_data && (!fifo_full) && (!data_cnt_end))
-    underrun_tck <= #1 1'b1;
+    underrun_tck <=  1'b1;
   else if(update_dr_i) // error remains active until update_dr arrives
-    underrun_tck <= #1 1'b0;
+    underrun_tck <=  1'b0;
 end
 
 
@@ -807,19 +807,19 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      cpu_overrun_csff <= #1 1'b0;
-      cpu_overrun_tck  <= #1 1'b0;
+      cpu_overrun_csff <=  1'b0;
+      cpu_overrun_tck  <=  1'b0;
 
-      cpu_ack_csff     <= #1 1'b0;
-      cpu_ack_tck      <= #1 1'b0;
+      cpu_ack_csff     <=  1'b0;
+      cpu_ack_tck      <=  1'b0;
     end
   else
     begin
-      cpu_overrun_csff <= #1 cpu_overrun;
-      cpu_overrun_tck  <= #1 cpu_overrun_csff;
+      cpu_overrun_csff <=  cpu_overrun;
+      cpu_overrun_tck  <=  cpu_overrun_csff;
 
-      cpu_ack_csff     <= #1 cpu_ack_i;
-      cpu_ack_tck      <= #1 cpu_ack_csff;
+      cpu_ack_csff     <=  cpu_ack_i;
+      cpu_ack_tck      <=  cpu_ack_csff;
     end
 end
 
@@ -829,13 +829,13 @@ always @ (posedge cpu_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      cpu_ce_csff  <= #1 1'b0;
-      mem_ptr_init      <= #1 1'b0;
+      cpu_ce_csff  <=  1'b0;
+      mem_ptr_init      <=  1'b0;
     end
   else
     begin
-      cpu_ce_csff  <= #1  cpu_ce_i;
-      mem_ptr_init      <= #1 ~cpu_ce_csff;
+      cpu_ce_csff  <=   cpu_ce_i;
+      mem_ptr_init      <=  ~cpu_ce_csff;
     end
 end
 
@@ -845,10 +845,10 @@ always @ (posedge cpu_clk_i)
 begin
   if (cpu_ack_i && (!cpu_ack_q))
     begin
-      mem[0] <= #1 cpu_data_i[31:24];
-      mem[1] <= #1 cpu_data_i[23:16];
-      mem[2] <= #1 cpu_data_i[15:08];
-      mem[3] <= #1 cpu_data_i[07:00];
+      mem[0] <=  cpu_data_i[31:24];
+      mem[1] <=  cpu_data_i[23:16];
+      mem[2] <=  cpu_data_i[15:08];
+      mem[3] <=  cpu_data_i[07:00];
     end
 end
 
@@ -860,13 +860,13 @@ assign input_data = {mem[0], mem[1], mem[2], mem[3]};
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    fifo_full <= #1 1'h0;
+    fifo_full <=  1'h0;
   else if (update_dr_i)
-    fifo_full <= #1 1'h0;
+    fifo_full <=  1'h0;
   else if (cpu_end_tck && (!cpu_end_tck_q) && (!latch_data) && (!fifo_full))  // incrementing
-    fifo_full <= #1 1'b1;
+    fifo_full <=  1'b1;
   else if (!(cpu_end_tck && (!cpu_end_tck_q)) && latch_data && (fifo_full))  // decrementing
-    fifo_full <= #1 1'h0;
+    fifo_full <=  1'h0;
 end
 
 
@@ -914,23 +914,23 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-    status <= #1 {`DBG_CPU_STATUS_LEN{1'b0}};
+    status <=  {`DBG_CPU_STATUS_LEN{1'b0}};
     end
   else if(crc_cnt_end && (!crc_cnt_end_q) && (!(curr_cmd_go && acc_type_read)))
     begin
-    status <= #1 {1'b0, 1'b0, cpu_overrun_tck, crc_match_i};
+    status <=  {1'b0, 1'b0, cpu_overrun_tck, crc_match_i};
     end
   else if (data_cnt_end && (!data_cnt_end_q) && curr_cmd_go && acc_type_read)
     begin
-    status <= #1 {1'b0, 1'b0, underrun_tck, crc_match_reg};
+    status <=  {1'b0, 1'b0, underrun_tck, crc_match_reg};
     end
   else if (addr_len_cnt_end && (!addr_len_cnt_end) && (curr_cmd_rd_comm || curr_cmd_rd_ctrl))
     begin
-    status <= #1 {1'b0, 1'b0, 1'b0, crc_match_reg};
+    status <=  {1'b0, 1'b0, 1'b0, crc_match_reg};
     end
   else if (shift_dr_i && (!status_cnt_end))
     begin
-    status <= #1 {status[`DBG_CPU_STATUS_LEN -2:0], status[`DBG_CPU_STATUS_LEN -1]};
+    status <=  {status[`DBG_CPU_STATUS_LEN -2:0], status[`DBG_CPU_STATUS_LEN -1]};
     end
 end
 // Following status is shifted out (MSB first):

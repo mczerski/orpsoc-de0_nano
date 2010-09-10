@@ -206,7 +206,8 @@
 `include "dbg_cpu_defines.v"
 
 // Top module
-module dbg_top(
+//module dbg_top(
+module dbg_if( // Renamed by julius
                 // JTAG signals
                 tck_i,
                 tdi_i,
@@ -393,11 +394,11 @@ wire shift_crc;
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt <= #1 {`DBG_TOP_DATA_CNT{1'b0}};
+    data_cnt <=  {`DBG_TOP_DATA_CNT{1'b0}};
   else if(shift_dr_i & (~data_cnt_end))
-    data_cnt <= #1 data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1'b1;
   else if (update_dr_i)
-    data_cnt <= #1 {`DBG_TOP_DATA_CNT{1'b0}};
+    data_cnt <=  {`DBG_TOP_DATA_CNT{1'b0}};
 end
 
 
@@ -408,11 +409,11 @@ assign data_cnt_end = data_cnt == `DBG_TOP_MODULE_DATA_LEN;
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_cnt <= #1 {`DBG_TOP_CRC_CNT{1'b0}};
+    crc_cnt <=  {`DBG_TOP_CRC_CNT{1'b0}};
   else if(shift_dr_i & data_cnt_end & (~crc_cnt_end) & module_select)
-    crc_cnt <= #1 crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1'b1;
   else if (update_dr_i)
-    crc_cnt <= #1 {`DBG_TOP_CRC_CNT{1'b0}};
+    crc_cnt <=  {`DBG_TOP_CRC_CNT{1'b0}};
 end
 
 assign crc_cnt_end = crc_cnt == `DBG_TOP_CRC_LEN;
@@ -421,9 +422,9 @@ assign crc_cnt_end = crc_cnt == `DBG_TOP_CRC_LEN;
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_cnt_end_q  <= #1 1'b0;
+    crc_cnt_end_q  <=  1'b0;
   else
-    crc_cnt_end_q  <= #1 crc_cnt_end;
+    crc_cnt_end_q  <=  crc_cnt_end;
 end
 
 
@@ -431,11 +432,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    status_cnt <= #1 {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
   else if(shift_dr_i & crc_cnt_end & (~status_cnt_end))
-    status_cnt <= #1 status_cnt + 1'b1;
+    status_cnt <=  status_cnt + 1'b1;
   else if (update_dr_i)
-    status_cnt <= #1 {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
 end
 
 assign status_cnt_end = status_cnt == `DBG_TOP_STATUS_LEN;
@@ -447,38 +448,38 @@ assign selecting_command = shift_dr_i & (data_cnt == `DBG_TOP_DATA_CNT'h0) & deb
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    module_select <= #1 1'b0;
+    module_select <=  1'b0;
   else if(selecting_command & tdi_i)       // Chain select
-    module_select <= #1 1'b1;
+    module_select <=  1'b1;
   else if (update_dr_i)
-    module_select <= #1 1'b0;
+    module_select <=  1'b0;
 end
 
 /* verilator lint_off COMBDLY */
 always @ (module_id)
 begin
   `ifdef DBG_CPU0_SUPPORTED
-  cpu0_debug_module  <= #1 1'b0;
+  cpu0_debug_module  <=  1'b0;
   `endif
   `ifdef DBG_CPU1_SUPPORTED
-  cpu1_debug_module  <= #1 1'b0;
+  cpu1_debug_module  <=  1'b0;
   `endif
   `ifdef DBG_WISHBONE_SUPPORTED
-  wishbone_module   <= #1 1'b0;
+  wishbone_module   <=  1'b0;
   `endif
-  module_select_error    <= #1 1'b0;
+  module_select_error    <=  1'b0;
   
   case (module_id)                /* synthesis parallel_case */
     `ifdef DBG_CPU0_SUPPORTED
-      `DBG_TOP_CPU0_DEBUG_MODULE     :   cpu0_debug_module   <= #1 1'b1;
+      `DBG_TOP_CPU0_DEBUG_MODULE     :   cpu0_debug_module   <=  1'b1;
     `endif
     `ifdef DBG_CPU1_SUPPORTED
-      `DBG_TOP_CPU1_DEBUG_MODULE     :   cpu1_debug_module   <= #1 1'b1;
+      `DBG_TOP_CPU1_DEBUG_MODULE     :   cpu1_debug_module   <=  1'b1;
     `endif
     `ifdef DBG_WISHBONE_SUPPORTED
-      `DBG_TOP_WISHBONE_DEBUG_MODULE :   wishbone_module     <= #1 1'b1;
+      `DBG_TOP_WISHBONE_DEBUG_MODULE :   wishbone_module     <=  1'b1;
     `endif
-    default                          :   module_select_error <= #1 1'b1; 
+    default                          :   module_select_error <=  1'b1; 
   endcase
 end
 /* verilator lint_on COMBDLY */
@@ -491,7 +492,7 @@ begin
   if (rst_i)
     module_id <= {`DBG_TOP_MODULE_ID_LENGTH{1'b1}};
   else if(module_latch_en & crc_match)
-    module_id <= #1 module_dr[`DBG_TOP_MODULE_DATA_LEN -2:0];
+    module_id <=  module_dr[`DBG_TOP_MODULE_DATA_LEN -2:0];
 end
 
 
@@ -501,9 +502,9 @@ assign data_shift_en = shift_dr_i & (~data_cnt_end);
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    module_dr <= #1 `DBG_TOP_MODULE_DATA_LEN'h0;
+    module_dr <=  `DBG_TOP_MODULE_DATA_LEN'h0;
   else if (data_shift_en)
-    module_dr[`DBG_TOP_MODULE_DATA_LEN -1:0] <= #1 {module_dr[`DBG_TOP_MODULE_DATA_LEN -2:0], tdi_i};
+    module_dr[`DBG_TOP_MODULE_DATA_LEN -1:0] <=  {module_dr[`DBG_TOP_MODULE_DATA_LEN -2:0], tdi_i};
 end
 
 
@@ -533,11 +534,11 @@ assign crc_en_dbg = shift_dr_i & crc_cnt_end & (~status_cnt_end);
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_started <= #1 1'b0;
+    crc_started <=  1'b0;
   else if (crc_en)
-    crc_started <= #1 1'b1;
+    crc_started <=  1'b1;
   else if (update_dr_i)
-    crc_started <= #1 1'b0;
+    crc_started <=  1'b0;
 end
 
 
@@ -625,7 +626,7 @@ end
 
 always @ (negedge tck_i)
 begin
-  tdo_o <= #1 tdo_tmp;
+  tdo_o <=  tdo_tmp;
 end
 
 
@@ -639,40 +640,40 @@ begin
   if (rst_i)
     begin
       `ifdef DBG_WISHBONE_SUPPORTED
-      wishbone_ce <= #1 1'b0;
+      wishbone_ce <=  1'b0;
       `endif
       `ifdef DBG_CPU0_SUPPORTED
-      cpu0_ce <= #1 1'b0;
+      cpu0_ce <=  1'b0;
       `endif
       `ifdef DBG_CPU1_SUPPORTED
-      cpu1_ce <= #1 1'b0;
+      cpu1_ce <=  1'b0;
       `endif
     end
   else if(selecting_command & (~tdi_i))
     begin
       `ifdef DBG_WISHBONE_SUPPORTED
       if (wishbone_module)      // wishbone CE
-        wishbone_ce <= #1 1'b1;
+        wishbone_ce <=  1'b1;
       `endif
       `ifdef DBG_CPU0_SUPPORTED
       if (cpu0_debug_module)     // CPU CE
-        cpu0_ce <= #1 1'b1;
+        cpu0_ce <=  1'b1;
       `endif
       `ifdef DBG_CPU1_SUPPORTED
       if (cpu1_debug_module)     // CPU CE
-        cpu1_ce <= #1 1'b1;
+        cpu1_ce <=  1'b1;
       `endif
     end
   else if (update_dr_i)
     begin
       `ifdef DBG_WISHBONE_SUPPORTED
-      wishbone_ce <= #1 1'b0;
+      wishbone_ce <=  1'b0;
       `endif
       `ifdef DBG_CPU0_SUPPORTED
-      cpu0_ce <= #1 1'b0;
+      cpu0_ce <=  1'b0;
       `endif
       `ifdef DBG_CPU1_SUPPORTED
-      cpu1_ce <= #1 1'b0;
+      cpu1_ce <=  1'b0;
       `endif
     end
 end

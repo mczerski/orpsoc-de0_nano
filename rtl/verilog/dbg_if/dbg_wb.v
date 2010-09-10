@@ -294,11 +294,11 @@ assign acc_type_32bit   = (acc_type == `DBG_WB_READ32 || acc_type == `DBG_WB_WRI
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    ptr <= #1 2'h0;
+    ptr <=  2'h0;
   else if (update_dr_i)
-    ptr <= #1 2'h0;
+    ptr <=  2'h0;
   else if (curr_cmd_go && acc_type_read && crc_cnt_31) // first latch
-    ptr <= #1 ptr + 1'b1;
+    ptr <=  ptr + 1'b1;
   else if (curr_cmd_go && acc_type_read && byte && (!byte_q))
     ptr <= ptr + 1'd1;
 end
@@ -309,17 +309,17 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      latch_data <= #1 1'b0;
-      dr <= #1 {`DBG_WB_DR_LEN{1'b0}};
+      latch_data <=  1'b0;
+      dr <=  {`DBG_WB_DR_LEN{1'b0}};
     end
   else if (curr_cmd_rd_comm && crc_cnt_31)  // Latching data (from iternal regs)
     begin
-      dr[`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1:0] <= #1 {acc_type, adr, len};
+      dr[`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1:0] <=  {acc_type, adr, len};
     end
   else if (acc_type_read && curr_cmd_go && crc_cnt_31)  // Latchind first data (from WB)
     begin
-      dr[31:0] <= #1 input_data[31:0];
-      latch_data <= #1 1'b1;
+      dr[31:0] <=  input_data[31:0];
+      latch_data <=  1'b1;
     end
   else if (acc_type_read && curr_cmd_go && crc_cnt_end) // Latching data (from WB)
     begin
@@ -328,18 +328,18 @@ begin
           if(byte & (~byte_q))
             begin
               case (ptr)    // synthesis parallel_case
-                2'b00 : dr[31:24] <= #1 input_data[31:24];
-                2'b01 : dr[31:24] <= #1 input_data[23:16];
-                2'b10 : dr[31:24] <= #1 input_data[15:8];
-                2'b11 : dr[31:24] <= #1 input_data[7:0];
+                2'b00 : dr[31:24] <=  input_data[31:24];
+                2'b01 : dr[31:24] <=  input_data[23:16];
+                2'b10 : dr[31:24] <=  input_data[15:8];
+                2'b11 : dr[31:24] <=  input_data[7:0];
               endcase
-              latch_data <= #1 1'b1;
+              latch_data <=  1'b1;
             end
           else
             begin
 	       if (enable) // jb
-		 dr[31:24] <= #1 {dr[30:24], 1'b0};
-              latch_data <= #1 1'b0;
+		 dr[31:24] <=  {dr[30:24], 1'b0};
+              latch_data <=  1'b0;
             end
         end
       else if (acc_type == `DBG_WB_READ16)
@@ -347,36 +347,36 @@ begin
           if(half & (~half_q))
             begin
               if (ptr[1])
-                dr[31:16] <= #1 input_data[15:0];
+                dr[31:16] <=  input_data[15:0];
               else
-                dr[31:16] <= #1 input_data[31:16];
-              latch_data <= #1 1'b1;
+                dr[31:16] <=  input_data[31:16];
+              latch_data <=  1'b1;
             end
           else
             begin
 	       if (enable) // jb
-		 dr[31:16] <= #1 {dr[30:16], 1'b0};
-              latch_data <= #1 1'b0;
+		 dr[31:16] <=  {dr[30:16], 1'b0};
+              latch_data <=  1'b0;
             end
         end
       else if (acc_type == `DBG_WB_READ32)
         begin
           if(long & (~long_q))
             begin
-              dr[31:0] <= #1 input_data[31:0];
-              latch_data <= #1 1'b1;
+              dr[31:0] <=  input_data[31:0];
+              latch_data <=  1'b1;
             end
           else
             begin
 	       if (enable) // jb
-		 dr[31:0] <= #1 {dr[30:0], 1'b0};
-              latch_data <= #1 1'b0;
+		 dr[31:0] <=  {dr[30:0], 1'b0};
+              latch_data <=  1'b0;
             end
         end
     end
   else if (enable && (!addr_len_cnt_end))
     begin
-      dr <= #1 {dr[`DBG_WB_DR_LEN -2:0], tdi_i};
+      dr <=  {dr[`DBG_WB_DR_LEN -2:0], tdi_i};
     end
 end
 
@@ -389,11 +389,11 @@ assign cmd_cnt_en = enable & (~cmd_cnt_end);
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    cmd_cnt <= #1 {`DBG_WB_CMD_CNT_WIDTH{1'b0}};
+    cmd_cnt <=  {`DBG_WB_CMD_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    cmd_cnt <= #1 {`DBG_WB_CMD_CNT_WIDTH{1'b0}};
+    cmd_cnt <=  {`DBG_WB_CMD_CNT_WIDTH{1'b0}};
   else if (cmd_cnt_en)
-    cmd_cnt <= #1 cmd_cnt + 1'b1;
+    cmd_cnt <=  cmd_cnt + 1'b1;
 end
 
 
@@ -401,11 +401,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    curr_cmd <= #1 {`DBG_WB_CMD_LEN{1'b0}};
+    curr_cmd <=  {`DBG_WB_CMD_LEN{1'b0}};
   else if (update_dr_i)
-    curr_cmd <= #1 {`DBG_WB_CMD_LEN{1'b0}};
+    curr_cmd <=  {`DBG_WB_CMD_LEN{1'b0}};
   else if (cmd_cnt == (`DBG_WB_CMD_LEN -1))
-    curr_cmd <= #1 {dr[`DBG_WB_CMD_LEN-2 :0], tdi_i};
+    curr_cmd <=  {dr[`DBG_WB_CMD_LEN-2 :0], tdi_i};
 end
 
 
@@ -413,9 +413,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    curr_cmd_go_q <= #1 1'b0;
+    curr_cmd_go_q <=  1'b0;
   else
-    curr_cmd_go_q <= #1 curr_cmd_go;
+    curr_cmd_go_q <=  curr_cmd_go;
 end
 
 
@@ -439,11 +439,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    addr_len_cnt <= #1 6'h0;
+    addr_len_cnt <=  6'h0;
   else if (update_dr_i)
-    addr_len_cnt <= #1 6'h0;
+    addr_len_cnt <=  6'h0;
   else if (addr_len_cnt_en)
-    addr_len_cnt <= #1 addr_len_cnt + 1'b1;
+    addr_len_cnt <=  addr_len_cnt + 1'b1;
 end
 
 
@@ -467,11 +467,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt <= #1 {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    data_cnt <= #1 {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
   else if (data_cnt_en)
-    data_cnt <= #1 data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1'b1;
 end
 
 
@@ -480,9 +480,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt_limit <= #1 {`DBG_WB_DATA_CNT_LIM_WIDTH{1'b0}};
+    data_cnt_limit <=  {`DBG_WB_DATA_CNT_LIM_WIDTH{1'b0}};
   else if (update_dr_i)
-    data_cnt_limit <= #1 len + 1'b1;
+    data_cnt_limit <=  len + 1'b1;
 end
 
 
@@ -508,11 +508,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_cnt <= #1 {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
+    crc_cnt <=  {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
   else if(crc_cnt_en)
-    crc_cnt <= #1 crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1'b1;
   else if (update_dr_i)
-    crc_cnt <= #1 {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
+    crc_cnt <=  {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
 end
 
 assign cmd_cnt_end      = cmd_cnt      == `DBG_WB_CMD_LEN;
@@ -525,17 +525,17 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      crc_cnt_end_q       <= #1 1'b0;
-      cmd_cnt_end_q       <= #1 1'b0;
-      data_cnt_end_q      <= #1 1'b0;
-      addr_len_cnt_end_q  <= #1 1'b0;
+      crc_cnt_end_q       <=  1'b0;
+      cmd_cnt_end_q       <=  1'b0;
+      data_cnt_end_q      <=  1'b0;
+      addr_len_cnt_end_q  <=  1'b0;
     end
   else
     begin
-      crc_cnt_end_q       <= #1 crc_cnt_end;
-      cmd_cnt_end_q       <= #1 cmd_cnt_end;
-      data_cnt_end_q      <= #1 data_cnt_end;
-      addr_len_cnt_end_q  <= #1 addr_len_cnt_end;
+      crc_cnt_end_q       <=  crc_cnt_end;
+      cmd_cnt_end_q       <=  cmd_cnt_end;
+      data_cnt_end_q      <=  data_cnt_end;
+      addr_len_cnt_end_q  <=  addr_len_cnt_end;
     end
 end
 
@@ -544,11 +544,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    status_cnt <= #1 {`DBG_WB_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_WB_STATUS_CNT_WIDTH{1'b0}};
   else if (update_dr_i)
-    status_cnt <= #1 {`DBG_WB_STATUS_CNT_WIDTH{1'b0}};
+    status_cnt <=  {`DBG_WB_STATUS_CNT_WIDTH{1'b0}};
   else if (status_cnt_en)
-    status_cnt <= #1 status_cnt + 1'b1;
+    status_cnt <=  status_cnt + 1'b1;
 end
 
 
@@ -580,61 +580,61 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      acc_type  <= #1 {`DBG_WB_ACC_TYPE_LEN{1'b0}};
-      adr       <= #1 {`DBG_WB_ADR_LEN{1'b0}};
-      len       <= #1 {`DBG_WB_LEN_LEN{1'b0}};
-      set_addr  <= #1 1'b0;
+      acc_type  <=  {`DBG_WB_ACC_TYPE_LEN{1'b0}};
+      adr       <=  {`DBG_WB_ADR_LEN{1'b0}};
+      len       <=  {`DBG_WB_LEN_LEN{1'b0}};
+      set_addr  <=  1'b0;
     end
   else if(crc_cnt_end && (!crc_cnt_end_q) && crc_match_i && curr_cmd_wr_comm)
     begin
-      acc_type  <= #1 dr[`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1 : `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN];
-      adr       <= #1 dr[`DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1 : `DBG_WB_LEN_LEN];
-      len       <= #1 dr[`DBG_WB_LEN_LEN -1:0];
-      set_addr  <= #1 1'b1;
+      acc_type  <=  dr[`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1 : `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN];
+      adr       <=  dr[`DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1 : `DBG_WB_LEN_LEN];
+      len       <=  dr[`DBG_WB_LEN_LEN -1:0];
+      set_addr  <=  1'b1;
     end
   else if(wb_end_tck)               // Writing back the address
     begin
-      adr  <= #1 wb_adr_dsff;
+      adr  <=  wb_adr_dsff;
     end
   else
-    set_addr <= #1 1'b0;
+    set_addr <=  1'b0;
 end
 
 
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    crc_match_reg <= #1 1'b0;
+    crc_match_reg <=  1'b0;
   else if(crc_cnt_end & (~crc_cnt_end_q))
-    crc_match_reg <= #1 crc_match_i;
+    crc_match_reg <=  crc_match_i;
 end
 
 // Length counter
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    len_var <= #1 {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
+    len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
   else if(update_dr_i)
-    len_var <= #1 len + 1'b1;
+    len_var <=  len + 1'b1;
   else if (start_rd_tck)
     begin
       case (acc_type)  // synthesis parallel_case
         `DBG_WB_READ8 : 
                     if (len_var > 'd1)
-                      len_var <= #1 len_var - 1'd1;
+                      len_var <=  len_var - 1'd1;
                     else
-                      len_var <= #1 {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
+                      len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
         `DBG_WB_READ16: 
                     if (len_var > 'd2)
-                      len_var <= #1 len_var - 2'd2; 
+                      len_var <=  len_var - 2'd2; 
                     else
-                      len_var <= #1 {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
+                      len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
         `DBG_WB_READ32: 
                     if (len_var > 'd4)
-                      len_var <= #1 len_var - 3'd4; 
+                      len_var <=  len_var - 3'd4; 
                     else
-                      len_var <= #1 {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
-        default:      len_var <= #1 {1'bx, {`DBG_WB_LEN_LEN{1'bx}}};
+                      len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
+        default:      len_var <=  {1'bx, {`DBG_WB_LEN_LEN{1'bx}}};
       endcase
     end
 end
@@ -652,15 +652,15 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      byte_q <= #1  1'b0;
-      half_q <= #1  1'b0;
-      long_q <= #1  1'b0;
+      byte_q <=   1'b0;
+      half_q <=   1'b0;
+      long_q <=   1'b0;
     end
   else
     begin
-      byte_q <= #1 byte;
-      half_q <= #1 half;
-      long_q <= #1 long;
+      byte_q <=  byte;
+      half_q <=  half;
+      long_q <=  long;
     end
 end
 
@@ -670,8 +670,8 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      start_wr_tck <= #1 1'b0;
-      wb_dat_tmp <= #1 32'h0;
+      start_wr_tck <=  1'b0;
+      wb_dat_tmp <=  32'h0;
     end
   else if (curr_cmd_go && acc_type_write)
     begin
@@ -679,47 +679,47 @@ begin
         `DBG_WB_WRITE8  : begin
                         if (byte_q)
                           begin
-                            start_wr_tck <= #1 1'b1;
-                            wb_dat_tmp <= #1 {4{dr[7:0]}};
+                            start_wr_tck <=  1'b1;
+                            wb_dat_tmp <=  {4{dr[7:0]}};
                           end
                         else
                           begin
-                            start_wr_tck <= #1 1'b0;
+                            start_wr_tck <=  1'b0;
                           end
                       end
         `DBG_WB_WRITE16 : begin
                         if (half_q)
                           begin
-                            start_wr_tck <= #1 1'b1;
-                            wb_dat_tmp <= #1 {2{dr[15:0]}};
+                            start_wr_tck <=  1'b1;
+                            wb_dat_tmp <=  {2{dr[15:0]}};
                           end
                         else
                           begin
-                            start_wr_tck <= #1 1'b0;
+                            start_wr_tck <=  1'b0;
                           end
                       end
         `DBG_WB_WRITE32 : begin
                         if (long_q)
                           begin
-                            start_wr_tck <= #1 1'b1;
-                            wb_dat_tmp <= #1 dr[31:0];
+                            start_wr_tck <=  1'b1;
+                            wb_dat_tmp <=  dr[31:0];
                           end
                         else
                           begin
-                            start_wr_tck <= #1 1'b0;
+                            start_wr_tck <=  1'b0;
                           end
                       end
       endcase
     end
   else
-    start_wr_tck <= #1 1'b0;
+    start_wr_tck <=  1'b0;
 end
 
 
 // wb_dat_o in WB clk domain
 always @ (posedge wb_clk_i)
 begin
-  wb_dat_dsff <= #1 wb_dat_tmp;
+  wb_dat_dsff <=  wb_dat_tmp;
 end
 
 assign wb_dat_o = wb_dat_dsff;
@@ -729,24 +729,24 @@ assign wb_dat_o = wb_dat_dsff;
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    start_rd_tck <= #1 1'b0;
+    start_rd_tck <=  1'b0;
   else if (curr_cmd_go && (!curr_cmd_go_q) && acc_type_read)              // First read after cmd is entered
-    start_rd_tck <= #1 1'b1;
+    start_rd_tck <=  1'b1;
   else if ((!start_rd_tck) && curr_cmd_go && acc_type_read  && (!len_eq_0) && (!fifo_full) && (!rd_tck_started))
-    start_rd_tck <= #1 1'b1;
+    start_rd_tck <=  1'b1;
   else
-    start_rd_tck <= #1 1'b0;
+    start_rd_tck <=  1'b0;
 end
 
 
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    rd_tck_started <= #1 1'b0;
+    rd_tck_started <=  1'b0;
   else if (update_dr_i || wb_end_tck && (!wb_end_tck_q))
-    rd_tck_started <= #1 1'b0;
+    rd_tck_started <=  1'b0;
   else if (start_rd_tck)
-    rd_tck_started <= #1 1'b1;
+    rd_tck_started <=  1'b1;
 end
 
 
@@ -755,31 +755,31 @@ always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      start_rd_csff   <= #1 1'b0;
-      start_wb_rd     <= #1 1'b0;
-      start_wb_rd_q   <= #1 1'b0;
+      start_rd_csff   <=  1'b0;
+      start_wb_rd     <=  1'b0;
+      start_wb_rd_q   <=  1'b0;
 
-      start_wr_csff   <= #1 1'b0;
-      start_wb_wr     <= #1 1'b0;
-      start_wb_wr_q   <= #1 1'b0;
+      start_wr_csff   <=  1'b0;
+      start_wb_wr     <=  1'b0;
+      start_wb_wr_q   <=  1'b0;
 
-      set_addr_csff   <= #1 1'b0;
-      set_addr_wb     <= #1 1'b0;
-      set_addr_wb_q   <= #1 1'b0;
+      set_addr_csff   <=  1'b0;
+      set_addr_wb     <=  1'b0;
+      set_addr_wb_q   <=  1'b0;
     end
   else
     begin
-      start_rd_csff   <= #1 start_rd_tck;
-      start_wb_rd     <= #1 start_rd_csff;
-      start_wb_rd_q   <= #1 start_wb_rd;
+      start_rd_csff   <=  start_rd_tck;
+      start_wb_rd     <=  start_rd_csff;
+      start_wb_rd_q   <=  start_wb_rd;
 
-      start_wr_csff   <= #1 start_wr_tck;
-      start_wb_wr     <= #1 start_wr_csff;
-      start_wb_wr_q   <= #1 start_wb_wr;
+      start_wr_csff   <=  start_wr_tck;
+      start_wb_wr     <=  start_wr_csff;
+      start_wb_wr_q   <=  start_wb_wr;
 
-      set_addr_csff   <= #1 set_addr;
-      set_addr_wb     <= #1 set_addr_csff;
-      set_addr_wb_q   <= #1 set_addr_wb;
+      set_addr_csff   <=  set_addr;
+      set_addr_wb     <=  set_addr_csff;
+      set_addr_wb_q   <=  set_addr_wb;
     end
 end
 
@@ -788,11 +788,11 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_cyc_o <= #1 1'b0;
+    wb_cyc_o <=  1'b0;
   else if ((start_wb_wr && (!start_wb_wr_q)) || (start_wb_rd && (!start_wb_rd_q)))
-    wb_cyc_o <= #1 1'b1;
+    wb_cyc_o <=  1'b1;
   else if (wb_ack_i || wb_err_i)
-    wb_cyc_o <= #1 1'b0;
+    wb_cyc_o <=  1'b0;
 end
 
 
@@ -800,17 +800,17 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_adr_dsff <= #1 32'h0;
+    wb_adr_dsff <=  32'h0;
   else if (set_addr_wb && (!set_addr_wb_q)) // Setting starting address
-    wb_adr_dsff <= #1 adr;
+    wb_adr_dsff <=  adr;
   else if (wb_ack_i)
     begin
       if ((acc_type == `DBG_WB_WRITE8) || (acc_type == `DBG_WB_READ8))
-        wb_adr_dsff <= #1 wb_adr_dsff + 1'd1;
+        wb_adr_dsff <=  wb_adr_dsff + 1'd1;
       else if ((acc_type == `DBG_WB_WRITE16) || (acc_type == `DBG_WB_READ16))
-        wb_adr_dsff <= #1 wb_adr_dsff + 2'd2;
+        wb_adr_dsff <=  wb_adr_dsff + 2'd2;
       else
-        wb_adr_dsff <= #1 wb_adr_dsff + 3'd4;
+        wb_adr_dsff <=  wb_adr_dsff + 3'd4;
     end
 end
 
@@ -828,18 +828,18 @@ assign wb_adr_o = wb_adr_dsff;
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_sel_dsff[3:0] <= #1 4'h0;
+    wb_sel_dsff[3:0] <=  4'h0;
   else
     begin
       case ({wb_adr_dsff[1:0], acc_type_8bit, acc_type_16bit, acc_type_32bit}) // synthesis parallel_case
-        {2'd0, 3'b100} : wb_sel_dsff[3:0] <= #1 4'h8;
-        {2'd0, 3'b010} : wb_sel_dsff[3:0] <= #1 4'hC;
-        {2'd0, 3'b001} : wb_sel_dsff[3:0] <= #1 4'hF;
-        {2'd1, 3'b100} : wb_sel_dsff[3:0] <= #1 4'h4;
-        {2'd2, 3'b100} : wb_sel_dsff[3:0] <= #1 4'h2;
-        {2'd2, 3'b010} : wb_sel_dsff[3:0] <= #1 4'h3;
-        {2'd3, 3'b100} : wb_sel_dsff[3:0] <= #1 4'h1;
-        default:         wb_sel_dsff[3:0] <= #1 4'hx;
+        {2'd0, 3'b100} : wb_sel_dsff[3:0] <=  4'h8;
+        {2'd0, 3'b010} : wb_sel_dsff[3:0] <=  4'hC;
+        {2'd0, 3'b001} : wb_sel_dsff[3:0] <=  4'hF;
+        {2'd1, 3'b100} : wb_sel_dsff[3:0] <=  4'h4;
+        {2'd2, 3'b100} : wb_sel_dsff[3:0] <=  4'h2;
+        {2'd2, 3'b010} : wb_sel_dsff[3:0] <=  4'h3;
+        {2'd3, 3'b100} : wb_sel_dsff[3:0] <=  4'h1;
+        default:         wb_sel_dsff[3:0] <=  4'hx;
       endcase
     end
 end
@@ -850,7 +850,7 @@ assign wb_sel_o = wb_sel_dsff;
 
 always @ (posedge wb_clk_i)
 begin
-  wb_we_dsff <= #1 curr_cmd_go && acc_type_write;
+  wb_we_dsff <=  curr_cmd_go && acc_type_write;
 end
 
 
@@ -866,11 +866,11 @@ assign wb_bte_o = 2'h0;     // always performing single access
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_end <= #1 1'b0;
+    wb_end <=  1'b0;
   else if (wb_ack_i || wb_err_i)
-    wb_end <= #1 1'b1;
+    wb_end <=  1'b1;
   else if (wb_end_rst)
-    wb_end <= #1 1'b0;
+    wb_end <=  1'b0;
 end
                                                                                                
                                                                                                
@@ -878,15 +878,15 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      wb_end_csff  <= #1 1'b0;
-      wb_end_tck   <= #1 1'b0;
-      wb_end_tck_q <= #1 1'b0;
+      wb_end_csff  <=  1'b0;
+      wb_end_tck   <=  1'b0;
+      wb_end_tck_q <=  1'b0;
     end
   else
     begin
-      wb_end_csff  <= #1 wb_end;
-      wb_end_tck   <= #1 wb_end_csff;
-      wb_end_tck_q <= #1 wb_end_tck;
+      wb_end_csff  <=  wb_end;
+      wb_end_tck   <=  wb_end_csff;
+      wb_end_tck_q <=  wb_end_tck;
     end
 end
 
@@ -895,13 +895,13 @@ always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      wb_end_rst_csff <= #1 1'b0;
-      wb_end_rst      <= #1 1'b0;
+      wb_end_rst_csff <=  1'b0;
+      wb_end_rst      <=  1'b0;
     end
   else
     begin
-      wb_end_rst_csff <= #1 wb_end_tck;
-      wb_end_rst      <= #1 wb_end_rst_csff;
+      wb_end_rst_csff <=  wb_end_tck;
+      wb_end_rst      <=  wb_end_rst_csff;
     end
 end
 
@@ -909,11 +909,11 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    busy_wb <= #1 1'b0;
+    busy_wb <=  1'b0;
   else if (wb_end_rst)
-    busy_wb <= #1 1'b0;
+    busy_wb <=  1'b0;
   else if (wb_cyc_o)
-    busy_wb <= #1 1'b1;
+    busy_wb <=  1'b1;
 end
 
 
@@ -921,19 +921,19 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      busy_csff       <= #1 1'b0;
-      busy_tck        <= #1 1'b0;
+      busy_csff       <=  1'b0;
+      busy_tck        <=  1'b0;
 
-      update_dr_csff  <= #1 1'b0;
-      update_dr_wb    <= #1 1'b0;
+      update_dr_csff  <=  1'b0;
+      update_dr_wb    <=  1'b0;
     end
   else
     begin
-      busy_csff       <= #1 busy_wb;
-      busy_tck        <= #1 busy_csff;
+      busy_csff       <=  busy_wb;
+      busy_tck        <=  busy_csff;
 
-      update_dr_csff  <= #1 update_dr_i;
-      update_dr_wb    <= #1 update_dr_csff;
+      update_dr_csff  <=  update_dr_i;
+      update_dr_wb    <=  update_dr_csff;
     end
 end
 
@@ -942,11 +942,11 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_error <= #1 1'b0;
+    wb_error <=  1'b0;
   else if(wb_err_i)
-    wb_error <= #1 1'b1;
+    wb_error <=  1'b1;
   else if(update_dr_wb) // error remains active until update_dr arrives
-    wb_error <= #1 1'b0;
+    wb_error <=  1'b0;
 end
 
 
@@ -954,11 +954,11 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_overrun <= #1 1'b0;
+    wb_overrun <=  1'b0;
   else if(start_wb_wr && (!start_wb_wr_q) && wb_cyc_o)
-    wb_overrun <= #1 1'b1;
+    wb_overrun <=  1'b1;
   else if(update_dr_wb) // error remains active until update_dr arrives
-    wb_overrun <= #1 1'b0;
+    wb_overrun <=  1'b0;
 end
 
 
@@ -966,11 +966,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    underrun_tck <= #1 1'b0;
+    underrun_tck <=  1'b0;
   else if(latch_data && fifo_empty && (!data_cnt_end))
-    underrun_tck <= #1 1'b1;
+    underrun_tck <=  1'b1;
   else if(update_dr_i) // error remains active until update_dr arrives
-    underrun_tck <= #1 1'b0;
+    underrun_tck <=  1'b0;
 end
 
 
@@ -978,19 +978,19 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      wb_error_csff   <= #1 1'b0;
-      wb_error_tck    <= #1 1'b0;
+      wb_error_csff   <=  1'b0;
+      wb_error_tck    <=  1'b0;
 
-      wb_overrun_csff <= #1 1'b0;
-      wb_overrun_tck  <= #1 1'b0;
+      wb_overrun_csff <=  1'b0;
+      wb_overrun_tck  <=  1'b0;
     end
   else
     begin
-      wb_error_csff   <= #1 wb_error;
-      wb_error_tck    <= #1 wb_error_csff;
+      wb_error_csff   <=  wb_error;
+      wb_error_tck    <=  wb_error_csff;
 
-      wb_overrun_csff <= #1 wb_overrun;
-      wb_overrun_tck  <= #1 wb_overrun_csff;
+      wb_overrun_csff <=  wb_overrun;
+      wb_overrun_tck  <=  wb_overrun_csff;
     end
 end
 
@@ -1000,13 +1000,13 @@ always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-      wishbone_ce_csff  <= #1 1'b0;
-      mem_ptr_init      <= #1 1'b0;
+      wishbone_ce_csff  <=  1'b0;
+      mem_ptr_init      <=  1'b0;
     end
   else
     begin
-      wishbone_ce_csff  <= #1  wishbone_ce_i;
-      mem_ptr_init      <= #1 ~wishbone_ce_csff;
+      wishbone_ce_csff  <=   wishbone_ce_i;
+      mem_ptr_init      <=  ~wishbone_ce_csff;
     end
 end
 
@@ -1015,15 +1015,15 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    mem_ptr_dsff <= #1 3'h0;
+    mem_ptr_dsff <=  3'h0;
   else if(mem_ptr_init)
-    mem_ptr_dsff <= #1 3'h0;
+    mem_ptr_dsff <=  3'h0;
   else if (wb_ack_i)
     begin
       if (acc_type == `DBG_WB_READ8)
-        mem_ptr_dsff <= #1 mem_ptr_dsff + 1'd1;
+        mem_ptr_dsff <=  mem_ptr_dsff + 1'd1;
       else if (acc_type == `DBG_WB_READ16)
-        mem_ptr_dsff <= #1 mem_ptr_dsff + 2'd2;
+        mem_ptr_dsff <=  mem_ptr_dsff + 2'd2;
     end
 end
 
@@ -1034,34 +1034,34 @@ begin
   if (wb_ack_i)
     begin
       case (wb_sel_dsff)    // synthesis parallel_case
-        4'b1000  :  mem[mem_ptr_dsff[1:0]] <= #1 wb_dat_i[31:24];            // byte
-        4'b0100  :  mem[mem_ptr_dsff[1:0]] <= #1 wb_dat_i[23:16];            // byte
-        4'b0010  :  mem[mem_ptr_dsff[1:0]] <= #1 wb_dat_i[15:08];            // byte
-        4'b0001  :  mem[mem_ptr_dsff[1:0]] <= #1 wb_dat_i[07:00];            // byte
+        4'b1000  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[31:24];            // byte
+        4'b0100  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[23:16];            // byte
+        4'b0010  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[15:08];            // byte
+        4'b0001  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[07:00];            // byte
                                                                                                
         4'b1100  :                                                      // half
                     begin
-                      mem[mem_ptr_dsff[1:0]]      <= #1 wb_dat_i[31:24];
-                      mem[mem_ptr_dsff[1:0]+1'b1] <= #1 wb_dat_i[23:16];
+                      mem[mem_ptr_dsff[1:0]]      <=  wb_dat_i[31:24];
+                      mem[mem_ptr_dsff[1:0]+1'b1] <=  wb_dat_i[23:16];
                     end
         4'b0011  :                                                      // half
                     begin
-                      mem[mem_ptr_dsff[1:0]]      <= #1 wb_dat_i[15:08];
-                      mem[mem_ptr_dsff[1:0]+1'b1] <= #1 wb_dat_i[07:00];
+                      mem[mem_ptr_dsff[1:0]]      <=  wb_dat_i[15:08];
+                      mem[mem_ptr_dsff[1:0]+1'b1] <=  wb_dat_i[07:00];
                     end
         4'b1111  :                                                      // long
                     begin
-                      mem[0] <= #1 wb_dat_i[31:24];
-                      mem[1] <= #1 wb_dat_i[23:16];
-                      mem[2] <= #1 wb_dat_i[15:08];
-                      mem[3] <= #1 wb_dat_i[07:00];
+                      mem[0] <=  wb_dat_i[31:24];
+                      mem[1] <=  wb_dat_i[23:16];
+                      mem[2] <=  wb_dat_i[15:08];
+                      mem[3] <=  wb_dat_i[07:00];
                     end
         default  :                                                      // long
                     begin
-                      mem[0] <= #1 8'hxx;
-                      mem[1] <= #1 8'hxx;
-                      mem[2] <= #1 8'hxx;
-                      mem[3] <= #1 8'hxx;
+                      mem[0] <=  8'hxx;
+                      mem[1] <=  8'hxx;
+                      mem[2] <=  8'hxx;
+                      mem[3] <=  8'hxx;
                     end
       endcase
     end
@@ -1076,25 +1076,25 @@ assign input_data = {mem[0], mem[1], mem[2], mem[3]};
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    fifo_cnt <= #1 3'h0;
+    fifo_cnt <=  3'h0;
   else if (update_dr_i)
-    fifo_cnt <= #1 3'h0;
+    fifo_cnt <=  3'h0;
   else if (wb_end_tck && (!wb_end_tck_q) && (!latch_data) && (!fifo_full))  // incrementing
     begin
       case (acc_type)  // synthesis parallel_case
-        `DBG_WB_READ8 : fifo_cnt <= #1 fifo_cnt + 1'd1;
-        `DBG_WB_READ16: fifo_cnt <= #1 fifo_cnt + 2'd2;
-        `DBG_WB_READ32: fifo_cnt <= #1 fifo_cnt + 3'd4;
-        default:        fifo_cnt <= #1 3'bxxx;
+        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt + 1'd1;
+        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt + 2'd2;
+        `DBG_WB_READ32: fifo_cnt <=  fifo_cnt + 3'd4;
+        default:        fifo_cnt <=  3'bxxx;
       endcase
     end
   else if (!(wb_end_tck && (!wb_end_tck_q)) && latch_data && (!fifo_empty))  // decrementing
     begin
       case (acc_type)  // synthesis parallel_case
-        `DBG_WB_READ8 : fifo_cnt <= #1 fifo_cnt - 1'd1;
-        `DBG_WB_READ16: fifo_cnt <= #1 fifo_cnt - 2'd2;
-        `DBG_WB_READ32: fifo_cnt <= #1 fifo_cnt - 3'd4;
-        default:        fifo_cnt <= #1 3'bxxx;
+        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt - 1'd1;
+        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt - 2'd2;
+        `DBG_WB_READ32: fifo_cnt <=  fifo_cnt - 3'd4;
+        default:        fifo_cnt <=  3'bxxx;
       endcase
     end
 end
@@ -1149,23 +1149,23 @@ always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
     begin
-    status <= #1 {`DBG_WB_STATUS_LEN{1'b0}};
+    status <=  {`DBG_WB_STATUS_LEN{1'b0}};
     end
   else if(crc_cnt_end && (!crc_cnt_end_q) && (!(curr_cmd_go && acc_type_read)))
     begin
-    status <= #1 {1'b0, wb_error_tck, wb_overrun_tck, crc_match_i};
+    status <=  {1'b0, wb_error_tck, wb_overrun_tck, crc_match_i};
     end
   else if (data_cnt_end && (!data_cnt_end_q) && curr_cmd_go && acc_type_read)
     begin
-    status <= #1 {1'b0, wb_error_tck, underrun_tck, crc_match_reg};
+    status <=  {1'b0, wb_error_tck, underrun_tck, crc_match_reg};
     end
   else if (addr_len_cnt_end && (!addr_len_cnt_end) && curr_cmd_rd_comm)
     begin
-    status <= #1 {1'b0, 1'b0, 1'b0, crc_match_reg};
+    status <=  {1'b0, 1'b0, 1'b0, crc_match_reg};
     end
   else if (shift_dr_i && (!status_cnt_end))
     begin
-    status <= #1 {status[`DBG_WB_STATUS_LEN -2:0], status[`DBG_WB_STATUS_LEN -1]};
+    status <=  {status[`DBG_WB_STATUS_LEN -2:0], status[`DBG_WB_STATUS_LEN -1]};
     end
 end
 // Following status is shifted out (MSB first):

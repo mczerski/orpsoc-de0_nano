@@ -135,13 +135,13 @@ assign new_crc[31] = crc[30];
 always @ (posedge clk or posedge rst)
 begin
   if(rst)
-    crc[31:0] <= #1 32'hffffffff;
+    crc[31:0] <=  32'hffffffff;
   else if(sync_rst)
-    crc[31:0] <= #1 32'hffffffff;
+    crc[31:0] <=  32'hffffffff;
   else if(enable)
-    crc[31:0] <= #1 new_crc;
+    crc[31:0] <=  new_crc;
   else if (shift)
-    crc[31:0] <= #1 {crc[30:0], 1'b0};
+    crc[31:0] <=  {crc[30:0], 1'b0};
 end
 
 

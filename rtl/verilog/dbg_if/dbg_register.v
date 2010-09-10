@@ -85,9 +85,9 @@ reg     [WIDTH-1:0] data_out;
 always @ (posedge clk or posedge reset)
 begin
   if(reset)
-    data_out[WIDTH-1:0] <= #1 RESET_VALUE;
+    data_out[WIDTH-1:0] <=  RESET_VALUE;
   else if(write)
-    data_out[WIDTH-1:0] <= #1 data_in[WIDTH-1:0];
+    data_out[WIDTH-1:0] <=  data_in[WIDTH-1:0];
 end
 
 

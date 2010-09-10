@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  uart_defines.v                                              ////
+////  uart_wb.v                                                   ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the "UART 16550 compatible" project    ////
@@ -15,10 +15,11 @@
 ////  16550D uart (mostly supported)                              ////
 ////                                                              ////
 ////  Overview (main Features):                                   ////
-////  Defines of the Core                                         ////
+////  UART core WISHBONE interface.                               ////
 ////                                                              ////
 ////  Known problems (limits):                                    ////
-////  None                                                        ////
+////  Inserts one wait state on all transfers.                    ////
+////  Note affected signals and the way they are affected.        ////
 ////                                                              ////
 ////  To Do:                                                      ////
 ////  Nothing.                                                    ////
@@ -62,14 +63,11 @@
 //
 // CVS Revision History
 //
-// $Log: uart_defines.v,v $
-// Revision 1.14  2003/09/12 07:26:58  dries
-// adjusted comment + define
+// $Log: not supported by cvs2svn $
+// Revision 1.16  2002/07/29 21:16:18  gorban
+// The uart_defines.v file is included again in sources.
 //
-// Revision 1.13  2003/06/11 16:37:47  gorban
-// This fixes errors in some cases when data is being read and put to the FIFO at the same time. Patch is submitted by Scott Furman. Update is very recommended.
-//
-// Revision 1.12  2002/07/22 23:02:23  gorban
+// Revision 1.15  2002/07/22 23:02:23  gorban
 // Bug Fixes:
 //  * Possible loss of sync and bad reception of stop bit on slow baud rates fixed.
 //   Problem reported by Kenny.Tung.
@@ -85,10 +83,14 @@
 //  It outputs 16xbit_clock_rate - the divided clock.
 //  It's disabled by default. Define UART_HAS_BAUDRATE_OUTPUT to use.
 //
-// Revision 1.10  2001/12/11 08:55:40  mohor
-// Scratch register define added.
+// Revision 1.12  2001/12/19 08:03:34  mohor
+// Warnings cleared.
 //
-// Revision 1.9  2001/12/03 21:44:29  gorban
+// Revision 1.11  2001/12/06 14:51:04  gorban
+// Bug in LSR[0] is fixed.
+// All WISHBONE signals are now sampled, so another wait-state is introduced on all transfers.
+//
+// Revision 1.10  2001/12/03 21:44:29  gorban
 // Updated specification documentation.
 // Added full 32-bit data bus interface, now as default.
 // Address is 5-bit wide in 32-bit data bus mode.
@@ -97,19 +99,14 @@
 // Bits 5 and 6 of LSR are now only cleared on TX FIFO write.
 // My small test bench is modified to work with 32-bit mode.
 //
-// Revision 1.8  2001/11/26 21:38:54  gorban
-// Lots of fixes:
-// Break condition wasn't handled correctly at all.
-// LSR bits could lose their values.
-// LSR value after reset was wrong.
-// Timing of THRE interrupt signal corrected.
-// LSR bit 0 timing corrected.
+// Revision 1.9  2001/10/20 09:58:40  gorban
+// Small synopsis fixes
 //
-// Revision 1.7  2001/08/24 21:01:12  mohor
+// Revision 1.8  2001/08/24 21:01:12  mohor
 // Things connected to parity changed.
 // Clock devider changed.
 //
-// Revision 1.6  2001/08/23 16:05:05  mohor
+// Revision 1.7  2001/08/23 16:05:05  mohor
 // Stop bit bug fixed.
 // Parity bug fixed.
 // WISHBONE read cycle bug fixed,
@@ -117,133 +114,200 @@
 // PE indicator (Parity Error) bug fixed.
 // Register read bug fixed.
 //
-// Revision 1.5  2001/05/31 20:08:01  gorban
+// Revision 1.4  2001/05/31 20:08:01  gorban
 // FIFO changes and other corrections.
 //
-// Revision 1.4  2001/05/21 19:12:02  gorban
+// Revision 1.3  2001/05/21 19:12:01  gorban
 // Corrected some Linter messages.
 //
-// Revision 1.3  2001/05/17 18:34:18  gorban
+// Revision 1.2  2001/05/17 18:34:18  gorban
 // First 'stable' release. Should be sythesizable now. Also added new header.
 //
-// Revision 1.0  2001-05-17 21:27:11+02  jacob
+// Revision 1.0  2001-05-17 21:27:13+02  jacob
 // Initial revision
 //
 //
 
-// Uncomment to get synchronous read memories. Note read on neg edge
-//`define SYNC_RAM
+// UART core WISHBONE interface 
+//
+// Author: Jacob Gorban   (jacob.gorban@flextronicssemi.com)
+// Company: Flextronics Semiconductor
+//
 
-// remove comments to restore to use the new version with 8 data bit interface
-// in 32bit-bus mode, the wb_sel_i signal is used to put data in correct place
-// also, in 8-bit version there'll be no debugging features included
-// CAUTION: doesn't work with current version of OR1200
-//`define DATA_BUS_WIDTH_8
+// synopsys translate_off
+`include "timescale.v"
+// synopsys translate_on
+`include "uart_defines.v"
+ 
+module uart_wb (clk, wb_rst_i, 
+	wb_we_i, wb_stb_i, wb_cyc_i, wb_ack_o, wb_adr_i,
+	wb_adr_int, wb_dat_i, wb_dat_o, wb_dat8_i, wb_dat8_o, wb_dat32_o, wb_sel_i,
+	we_o, re_o // Write and read enable output for the core
+);
+
+input 		  clk;
+
+// WISHBONE interface	
+input 		  wb_rst_i;
+input 		  wb_we_i;
+input 		  wb_stb_i;
+input 		  wb_cyc_i;
+input [3:0]   wb_sel_i;
+input [`UART_ADDR_WIDTH-1:0] 	wb_adr_i; //WISHBONE address line
 
 `ifdef DATA_BUS_WIDTH_8
- `define UART_ADDR_WIDTH 3
- `define UART_DATA_WIDTH 8
-`else
- `define UART_ADDR_WIDTH 5
- `define UART_DATA_WIDTH 32
-`endif
+input [7:0]  wb_dat_i; //input WISHBONE bus 
+output [7:0] wb_dat_o;
+reg [7:0] 	 wb_dat_o;
+wire [7:0] 	 wb_dat_i;
+reg [7:0] 	 wb_dat_is;
+`else // for 32 data bus mode
+input [31:0]  wb_dat_i; //input WISHBONE bus 
+output [31:0] wb_dat_o;
+reg [31:0] 	  wb_dat_o;
+wire [31:0]   wb_dat_i;
+reg [31:0] 	  wb_dat_is;
+`endif // !`ifdef DATA_BUS_WIDTH_8
 
-// Uncomment this if you want your UART to have
-// 16xBaudrate output port.
-// If defined, the enable signal will be used to drive baudrate_o signal
-// It's frequency is 16xbaudrate
+output [`UART_ADDR_WIDTH-1:0]	wb_adr_int; // internal signal for address bus
+input [7:0]   wb_dat8_o; // internal 8 bit output to be put into wb_dat_o
+output [7:0]  wb_dat8_i;
+input [31:0]  wb_dat32_o; // 32 bit data output (for debug interface)
+output 		  wb_ack_o;
+output 		  we_o;
+output 		  re_o;
 
-// `define UART_HAS_BAUDRATE_OUTPUT
+wire 			  we_o;
+reg 			  wb_ack_o;
+reg [7:0] 	  wb_dat8_i;
+wire [7:0] 	  wb_dat8_o;
+wire [`UART_ADDR_WIDTH-1:0]	wb_adr_int; // internal signal for address bus
+reg [`UART_ADDR_WIDTH-1:0]	wb_adr_is;
+reg 								wb_we_is;
+reg 								wb_cyc_is;
+reg 								wb_stb_is;
+reg [3:0] 						wb_sel_is;
+wire [3:0]   wb_sel_i;
+reg 			 wre ;// timing control signal for write or read enable
 
-// Register addresses
-`define UART_REG_RB	`UART_ADDR_WIDTH'd0	// receiver buffer
-`define UART_REG_TR  `UART_ADDR_WIDTH'd0	// transmitter
-`define UART_REG_IE	`UART_ADDR_WIDTH'd1	// Interrupt enable
-`define UART_REG_II  `UART_ADDR_WIDTH'd2	// Interrupt identification
-`define UART_REG_FC  `UART_ADDR_WIDTH'd2	// FIFO control
-`define UART_REG_LC	`UART_ADDR_WIDTH'd3	// Line Control
-`define UART_REG_MC	`UART_ADDR_WIDTH'd4	// Modem control
-`define UART_REG_LS  `UART_ADDR_WIDTH'd5	// Line status
-`define UART_REG_MS  `UART_ADDR_WIDTH'd6	// Modem status
-`define UART_REG_SR  `UART_ADDR_WIDTH'd7	// Scratch register
-`define UART_REG_DL1	`UART_ADDR_WIDTH'd0	// Divisor latch bytes (1-2)
-`define UART_REG_DL2	`UART_ADDR_WIDTH'd1
+// wb_ack_o FSM
+reg [1:0] 	 wbstate;
+always  @(posedge clk or posedge wb_rst_i)
+	if (wb_rst_i) begin
+		wb_ack_o <=  1'b0;
+		wbstate <=  0;
+		wre <=  1'b1;
+	end else
+		case (wbstate)
+			0: begin
+				if (wb_stb_is & wb_cyc_is) begin
+					wre <=  0;
+					wbstate <=  1;
+					wb_ack_o <=  1;
+				end else begin
+					wre <=  1;
+					wb_ack_o <=  0;
+				end
+			end
+			1: begin
+			   wb_ack_o <=  0;
+				wbstate <=  2;
+				wre <=  0;
+			end
+			2,3: begin
+				wb_ack_o <=  0;
+				wbstate <=  0;
+				wre <=  0;
+			end
+		endcase
 
-// Interrupt Enable register bits
-`define UART_IE_RDA	0	// Received Data available interrupt
-`define UART_IE_THRE	1	// Transmitter Holding Register empty interrupt
-`define UART_IE_RLS	2	// Receiver Line Status Interrupt
-`define UART_IE_MS	3	// Modem Status Interrupt
+assign we_o =  wb_we_is & wb_stb_is & wb_cyc_is & wre ; //WE for registers	
+assign re_o = ~wb_we_is & wb_stb_is & wb_cyc_is & wre ; //RE for registers	
 
-// Interrupt Identification register bits
-`define UART_II_IP	0	// Interrupt pending when 0
-`define UART_II_II	3:1	// Interrupt identification
+// Sample input signals
+always  @(posedge clk or posedge wb_rst_i)
+	if (wb_rst_i) begin
+		wb_adr_is <=  0;
+		wb_we_is <=  0;
+		wb_cyc_is <=  0;
+		wb_stb_is <=  0;
+		wb_dat_is <=  0;
+		wb_sel_is <=  0;
+	end else begin
+		wb_adr_is <=  wb_adr_i;
+		wb_we_is <=  wb_we_i;
+		wb_cyc_is <=  wb_cyc_i;
+		wb_stb_is <=  wb_stb_i;
+		wb_dat_is <=  wb_dat_i;
+		wb_sel_is <=  wb_sel_i;
+	end
 
-// Interrupt identification values for bits 3:1
-`define UART_II_RLS	3'b011	// Receiver Line Status
-`define UART_II_RDA	3'b010	// Receiver Data available
-`define UART_II_TI	3'b110	// Timeout Indication
-`define UART_II_THRE	3'b001	// Transmitter Holding Register empty
-`define UART_II_MS	3'b000	// Modem Status
+`ifdef DATA_BUS_WIDTH_8 // 8-bit data bus
+always @(posedge clk or posedge wb_rst_i)
+	if (wb_rst_i)
+		wb_dat_o <=  0;
+	else
+		wb_dat_o <=  wb_dat8_o;
 
-// FIFO Control Register bits
-`define UART_FC_TL	1:0	// Trigger level
+always @(wb_dat_is)
+	wb_dat8_i = wb_dat_is;
 
-// FIFO trigger level values
-`define UART_FC_1		2'b00
-`define UART_FC_4		2'b01
-`define UART_FC_8		2'b10
-`define UART_FC_14	2'b11
+assign wb_adr_int = wb_adr_is;
 
-// Line Control register bits
-`define UART_LC_BITS	1:0	// bits in character
-`define UART_LC_SB	2	// stop bits
-`define UART_LC_PE	3	// parity enable
-`define UART_LC_EP	4	// even parity
-`define UART_LC_SP	5	// stick parity
-`define UART_LC_BC	6	// Break control
-`define UART_LC_DL	7	// Divisor Latch access bit
+`else // 32-bit bus
+// put output to the correct byte in 32 bits using select line
+always @(posedge clk or posedge wb_rst_i)
+	if (wb_rst_i)
+		wb_dat_o <=  0;
+	else if (re_o)
+		case (wb_sel_is)
+			4'b0001: wb_dat_o <=  {24'b0, wb_dat8_o};
+			4'b0010: wb_dat_o <=  {16'b0, wb_dat8_o, 8'b0};
+			4'b0100: wb_dat_o <=  {8'b0, wb_dat8_o, 16'b0};
+			4'b1000: wb_dat_o <=  {wb_dat8_o, 24'b0};
+			4'b1111: wb_dat_o <=  wb_dat32_o; // debug interface output
+ 			default: wb_dat_o <=  0;
+		endcase // case(wb_sel_i)
 
-// Modem Control register bits
-`define UART_MC_DTR	0
-`define UART_MC_RTS	1
-`define UART_MC_OUT1	2
-`define UART_MC_OUT2	3
-`define UART_MC_LB	4	// Loopback mode
+reg [1:0] wb_adr_int_lsb;
 
-// Line Status Register bits
-`define UART_LS_DR	0	// Data ready
-`define UART_LS_OE	1	// Overrun Error
-`define UART_LS_PE	2	// Parity Error
-`define UART_LS_FE	3	// Framing Error
-`define UART_LS_BI	4	// Break interrupt
-`define UART_LS_TFE	5	// Transmit FIFO is empty
-`define UART_LS_TE	6	// Transmitter Empty indicator
-`define UART_LS_EI	7	// Error indicator
+always @(wb_sel_is or wb_dat_is)
+begin
+	case (wb_sel_is)
+		4'b0001 : wb_dat8_i = wb_dat_is[7:0];
+		4'b0010 : wb_dat8_i = wb_dat_is[15:8];
+		4'b0100 : wb_dat8_i = wb_dat_is[23:16];
+		4'b1000 : wb_dat8_i = wb_dat_is[31:24];
+		default : wb_dat8_i = wb_dat_is[7:0];
+	endcase // case(wb_sel_i)
 
-// Modem Status Register bits
-`define UART_MS_DCTS	0	// Delta signals
-`define UART_MS_DDSR	1
-`define UART_MS_TERI	2
-`define UART_MS_DDCD	3
-`define UART_MS_CCTS	4	// Complement signals
-`define UART_MS_CDSR	5
-`define UART_MS_CRI	6
-`define UART_MS_CDCD	7
+  `ifdef LITLE_ENDIAN
+	case (wb_sel_is)
+		4'b0001 : wb_adr_int_lsb = 2'h0;
+		4'b0010 : wb_adr_int_lsb = 2'h1;
+		4'b0100 : wb_adr_int_lsb = 2'h2;
+		4'b1000 : wb_adr_int_lsb = 2'h3;
+		default : wb_adr_int_lsb = 2'h0;
+	endcase // case(wb_sel_i)
+  `else
+	case (wb_sel_is)
+		4'b0001 : wb_adr_int_lsb = 2'h3;
+		4'b0010 : wb_adr_int_lsb = 2'h2;
+		4'b0100 : wb_adr_int_lsb = 2'h1;
+		4'b1000 : wb_adr_int_lsb = 2'h0;
+		default : wb_adr_int_lsb = 2'h0;
+	endcase // case(wb_sel_i)
+  `endif
+end
 
-// FIFO parameter defines
+assign wb_adr_int = {wb_adr_is[`UART_ADDR_WIDTH-1:2], wb_adr_int_lsb};
 
-`define UART_FIFO_WIDTH	8
-`define UART_FIFO_DEPTH	16
-`define UART_FIFO_POINTER_W	4
-`define UART_FIFO_COUNTER_W	5
-// receiver fifo has width 11 because it has break, parity and framing error bits
-`define UART_FIFO_REC_WIDTH  11
+`endif // !`ifdef DATA_BUS_WIDTH_8
+
+endmodule
 
 
-`define VERBOSE_WB  0           // All activity on the WISHBONE is recorded
-`define VERBOSE_LINE_STATUS 0   // Details about the lsr (line status register)
-`define FAST_TEST   1           // 64/1024 packets are sent
+
 
 
 

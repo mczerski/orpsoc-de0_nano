@@ -29,7 +29,7 @@
 ####                                                              ####
 ######################################################################
 
-DESIGN_NAME=design
+DESIGN_NAME=orpsoc
 
 OR32_TOOL_PREFIX=or32-elf-
 
@@ -61,11 +61,10 @@ OR32_CFLAGS ?=-g -nostdlib -O2 -I../include $(MARCH_FLAGS)
 OR32_LDFLAGS ?=-lgcc -T../support/or32.ld -e 256
 
 # This path must be correct!
-# Currently no overall design defines file - to come!
-#DESIGN_VERILOG_DEFINES=../../rtl/verilog/include/$(DESIGN_NAME)-defines.v
-#DESIGN_PROCESSED_VERILOG_DEFINES=../include/$(DESIGN_NAME)-defines.h
+DESIGN_VERILOG_DEFINES=../../rtl/verilog/include/$(DESIGN_NAME)-defines.v
+DESIGN_PROCESSED_VERILOG_DEFINES=../include/$(DESIGN_NAME)-defines.h
 
-OR1200_VERILOG_DEFINES=../../rtl/verilog/or1200_defines.v
+OR1200_VERILOG_DEFINES=../../rtl/verilog/include/or1200_defines.v
 OR1200_PROCESSED_VERILOG_DEFINES=../include/or1200-defines.h
 
 #PROCESSED_DEFINES=$(DESIGN_PROCESSED_VERILOG_DEFINES) $(OR1200_PROCESSED_VERILOG_DEFINES) 

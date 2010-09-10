@@ -1,6 +1,9 @@
-//
-// Or1200 Monitor
-//
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+////  or1200_monitor                                              ////
+////                                                              ////
+////  OR1200 processor monitor module                             ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
@@ -30,16 +33,15 @@
 
 `include "timescale.v"
 `include "or1200_defines.v"
+`include "orpsoc-testbench-defines.v"
+`include "test-defines.v"
 				 
 //
 // Top of OR1200 inside test bench
 //
-`ifndef OR1200_TOP
- `define OR1200_TOP orpsoc_testbench.dut.i_or1k.i_or1200_top
- `include "orpsoc_testbench_defines.v"
-`else
- `include `TESTBENCH_DEFINES
-`endif
+`define OR1200_TOP orpsoc_testbench.dut.or1200_top
+
+
 //
 // Enable display_arch_state task
 //
@@ -48,7 +50,7 @@
 //
 // Enable disassembly of instructions in execution log
 //
-`define OR1200_MONITOR_PRINT_DISASSEMBLY
+//`define OR1200_MONITOR_PRINT_DISASSEMBLY
 
 
 //
@@ -77,11 +79,11 @@ module or1200_monitor;
    //
    initial begin
       ref = 0;
-      fexe = $fopen({`TEST_RESULTS_DIR,`TEST_NAME_STRING,"-executed.log"});
+      fexe = $fopen({"../out/",`TEST_NAME_STRING,"-executed.log"});
       $timeformat (-9, 2, " ns", 12);
-      fspr = $fopen({`TEST_RESULTS_DIR,`TEST_NAME_STRING,"-sprs.log"});
-      fgeneral = $fopen({`TEST_RESULTS_DIR,`TEST_NAME_STRING,"-general.log"});
-      flookup = $fopen({`TEST_RESULTS_DIR,`TEST_NAME_STRING,"-lookup.log"});
+      fspr = $fopen({"../out/",`TEST_NAME_STRING,"-sprs.log"});
+      fgeneral = $fopen({"../out/",`TEST_NAME_STRING,"-general.log"});
+      flookup = $fopen({"../out/",`TEST_NAME_STRING,"-lookup.log"});
       insns = 0;
 
    end

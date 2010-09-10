@@ -61,10 +61,7 @@
 //
 // CVS Revision History
 //
-// $Log: raminfr.v,v $
-// Revision 1.2  2002/07/29 21:16:18  gorban
-// The uart_defines.v file is included again in sources.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.1  2002/07/22 23:02:23  gorban
 // Bug Fixes:
 //  * Possible loss of sync and bad reception of stop bit on slow baud rates fixed.
@@ -83,7 +80,6 @@
 //
 
 //Following is the Verilog code for a dual-port RAM with asynchronous read. 
-`include "uart_defines.v"
 module raminfr   
         (clk, we, a, dpra, di, dpo); 
 
@@ -99,12 +95,8 @@ input  [data_width-1:0] di;
 //output [data_width-1:0] spo;   
 output [data_width-1:0] dpo;   
 reg    [data_width-1:0] ram [depth-1:0]; 
-`ifdef SYNC_RAM
-   reg [data_width-1:0] dpo;
-`else
-   wire [data_width-1:0] dpo;
-`endif
-   
+
+wire [data_width-1:0] dpo;
 wire  [data_width-1:0] di;   
 wire  [addr_width-1:0] a;   
 wire  [addr_width-1:0] dpra;   
@@ -113,13 +105,7 @@ wire  [addr_width-1:0] dpra;
     if (we)   
       ram[a] <= di;   
   end   
-
-`ifdef SYNC_RAM
-   always @(negedge clk)
-     dpo = ram[dpra];
-`else
-   assign dpo = ram[dpra];
-`endif
-   
+//  assign spo = ram[a];   
+  assign dpo = ram[dpra];   
 endmodule 
 
