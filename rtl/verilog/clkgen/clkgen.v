@@ -91,9 +91,8 @@ module clkgen
    
    // An active-low synchronous reset signal (usually a PLL lock signal)
    wire   sync_rst_n;
+   assign sync_rst_n  = async_rst_n; // Pretend it's somehow synchronous now
 
-   // An active-low synchronous reset from ethernet PLL
-   wire   sync_eth_rst_n;
 
    // Here we just assign "board" clock (really test) to wishbone clock
    assign wb_clk_o = clk_pad_i;

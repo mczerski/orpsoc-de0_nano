@@ -31,7 +31,6 @@
 
 #include "Vorpsoc_top.h"
 #include "Vorpsoc_top_orpsoc_top.h"
-#include "Vorpsoc_top_or1k_top.h"
 #include "Vorpsoc_top_or1200_top.h"
 #include "Vorpsoc_top_or1200_cpu.h"
 #include "Vorpsoc_top_or1200_ctrl.h"
@@ -58,13 +57,13 @@
 OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
 {
   // Assign processor accessor objects
-  or1200_ctrl = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_ctrl;
-  or1200_except = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_except;
-  or1200_sprs = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_sprs;
-  rf_a        = orpsoc_top->v->i_or1k->i_or1200_top->or1200_cpu->or1200_rf->rf_a;
+  or1200_ctrl = orpsoc_top->v->or1200_top->or1200_cpu->or1200_ctrl;
+  or1200_except = orpsoc_top->v->or1200_top->or1200_cpu->or1200_except;
+  or1200_sprs = orpsoc_top->v->or1200_top->or1200_cpu->or1200_sprs;
+  rf_a        = orpsoc_top->v->or1200_top->or1200_cpu->or1200_rf->rf_a;
   // Assign main memory accessor objects
   // For old ram_wb: ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
-  ram_wb_sc_sw = orpsoc_top->v->ram_wb0;
+  ram_wb_sc_sw = orpsoc_top->v->wb_ram_b3_0;
 
   // Assign arbiter accessor object
   //wb_arbiter = orpsoc_top->v->wb_conbus;

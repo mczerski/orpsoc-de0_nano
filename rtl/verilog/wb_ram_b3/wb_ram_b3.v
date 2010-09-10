@@ -1,8 +1,6 @@
 
 // Version 5
 
-`define NONBLOCK_ASSIGN <= 
-
 //`define RANDOM_ACK_NEGATION
 
 module wb_ram_b3(

@@ -854,6 +854,12 @@ module arbiter_dbus
   
    // Slave select wire
    wire [wb_num_slaves-1:0]  wb_slave_sel;
+   reg [wb_num_slaves-1:0]   wb_slave_sel_r;
+
+   // Register wb_slave_sel_r to break combinatorial loop when selecting default
+   // slave
+   always @(posedge wb_clk)
+     wb_slave_sel_r <= wb_slave_sel;
    
    // Slave out mux in wires   
    wire [wb_dat_width-1:0]   wbs_dat_o_mux_i [0:wb_num_slaves-1];
@@ -867,7 +873,7 @@ module arbiter_dbus
    assign wb_slave_sel[0] = wbm_adr_o[31:28] == slave0_adr | wbm_adr_o[31:28] == 4'hf; // Special case, point all reads to ROM address to here
    
    // Auto select last slave when others are not selected
-   assign wb_slave_sel[1] = !(wb_slave_sel[0]);
+   assign wb_slave_sel[1] = !(wb_slave_sel_r[0]);
 
 /*
    assign wb_slave_sel[1] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave1_adr;
@@ -925,277 +931,277 @@ module arbiter_dbus
    assign wbs0_adr_i = wbm_adr_o;
    assign wbs0_dat_i = wbm_dat_o;
    assign wbs0_sel_i = wbm_sel_o;
-   assign wbs0_cyc_i = wbm_cyc_o & wb_slave_sel[0];
-   assign wbs0_stb_i = wbm_stb_o & wb_slave_sel[0];   
+   assign wbs0_cyc_i = wbm_cyc_o & wb_slave_sel_r[0];
+   assign wbs0_stb_i = wbm_stb_o & wb_slave_sel_r[0];   
    assign wbs0_we_i =  wbm_we_o;
    assign wbs0_cti_i = wbm_cti_o;
    assign wbs0_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[0] = wbs0_dat_o;
-   assign wbs_ack_o_mux_i[0] = wbs0_ack_o & wb_slave_sel[0];
-   assign wbs_err_o_mux_i[0] = wbs0_err_o & wb_slave_sel[0];
-   assign wbs_rty_o_mux_i[0] = wbs0_rty_o & wb_slave_sel[0];
+   assign wbs_ack_o_mux_i[0] = wbs0_ack_o & wb_slave_sel_r[0];
+   assign wbs_err_o_mux_i[0] = wbs0_err_o & wb_slave_sel_r[0];
+   assign wbs_rty_o_mux_i[0] = wbs0_rty_o & wb_slave_sel_r[0];
 
 
    // Slave 1 inputs
    assign wbs1_adr_i = wbm_adr_o;
    assign wbs1_dat_i = wbm_dat_o;
    assign wbs1_sel_i = wbm_sel_o;
-   assign wbs1_cyc_i = wbm_cyc_o & wb_slave_sel[1];
-   assign wbs1_stb_i = wbm_stb_o & wb_slave_sel[1];   
+   assign wbs1_cyc_i = wbm_cyc_o & wb_slave_sel_r[1];
+   assign wbs1_stb_i = wbm_stb_o & wb_slave_sel_r[1];   
    assign wbs1_we_i =  wbm_we_o;
    assign wbs1_cti_i = wbm_cti_o;
    assign wbs1_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[1] = wbs1_dat_o;
-   assign wbs_ack_o_mux_i[1] = wbs1_ack_o & wb_slave_sel[1];
-   assign wbs_err_o_mux_i[1] = wbs1_err_o & wb_slave_sel[1];
-   assign wbs_rty_o_mux_i[1] = wbs1_rty_o & wb_slave_sel[1];
+   assign wbs_ack_o_mux_i[1] = wbs1_ack_o & wb_slave_sel_r[1];
+   assign wbs_err_o_mux_i[1] = wbs1_err_o & wb_slave_sel_r[1];
+   assign wbs_rty_o_mux_i[1] = wbs1_rty_o & wb_slave_sel_r[1];
 
 /*
    // Slave 2 inputs
    assign wbs2_adr_i = wbm_adr_o;
    assign wbs2_dat_i = wbm_dat_o;
    assign wbs2_sel_i = wbm_sel_o;
-   assign wbs2_cyc_i = wbm_cyc_o & wb_slave_sel[2];
-   assign wbs2_stb_i = wbm_stb_o & wb_slave_sel[2];   
+   assign wbs2_cyc_i = wbm_cyc_o & wb_slave_sel_r[2];
+   assign wbs2_stb_i = wbm_stb_o & wb_slave_sel_r[2];   
    assign wbs2_we_i =  wbm_we_o;
    assign wbs2_cti_i = wbm_cti_o;
    assign wbs2_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[2] = wbs2_dat_o;
-   assign wbs_ack_o_mux_i[2] = wbs2_ack_o & wb_slave_sel[2];
-   assign wbs_err_o_mux_i[2] = wbs2_err_o & wb_slave_sel[2];
-   assign wbs_rty_o_mux_i[2] = wbs2_rty_o & wb_slave_sel[2];
+   assign wbs_ack_o_mux_i[2] = wbs2_ack_o & wb_slave_sel_r[2];
+   assign wbs_err_o_mux_i[2] = wbs2_err_o & wb_slave_sel_r[2];
+   assign wbs_rty_o_mux_i[2] = wbs2_rty_o & wb_slave_sel_r[2];
 
 
    // Slave 3 inputs
    assign wbs3_adr_i = wbm_adr_o;
    assign wbs3_dat_i = wbm_dat_o;
    assign wbs3_sel_i = wbm_sel_o;
-   assign wbs3_cyc_i = wbm_cyc_o & wb_slave_sel[3];
-   assign wbs3_stb_i = wbm_stb_o & wb_slave_sel[3];   
+   assign wbs3_cyc_i = wbm_cyc_o & wb_slave_sel_r[3];
+   assign wbs3_stb_i = wbm_stb_o & wb_slave_sel_r[3];   
    assign wbs3_we_i =  wbm_we_o;
    assign wbs3_cti_i = wbm_cti_o;
    assign wbs3_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[3] = wbs3_dat_o;
-   assign wbs_ack_o_mux_i[3] = wbs3_ack_o & wb_slave_sel[3];
-   assign wbs_err_o_mux_i[3] = wbs3_err_o & wb_slave_sel[3];
-   assign wbs_rty_o_mux_i[3] = wbs3_rty_o & wb_slave_sel[3];
+   assign wbs_ack_o_mux_i[3] = wbs3_ack_o & wb_slave_sel_r[3];
+   assign wbs_err_o_mux_i[3] = wbs3_err_o & wb_slave_sel_r[3];
+   assign wbs_rty_o_mux_i[3] = wbs3_rty_o & wb_slave_sel_r[3];
 
    // Slave 4 inputs
    assign wbs4_adr_i = wbm_adr_o;
    assign wbs4_dat_i = wbm_dat_o;
    assign wbs4_sel_i = wbm_sel_o;
-   assign wbs4_cyc_i = wbm_cyc_o & wb_slave_sel[4];
-   assign wbs4_stb_i = wbm_stb_o & wb_slave_sel[4];   
+   assign wbs4_cyc_i = wbm_cyc_o & wb_slave_sel_r[4];
+   assign wbs4_stb_i = wbm_stb_o & wb_slave_sel_r[4];   
    assign wbs4_we_i =  wbm_we_o;
    assign wbs4_cti_i = wbm_cti_o;
    assign wbs4_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[4] = wbs4_dat_o;
-   assign wbs_ack_o_mux_i[4] = wbs4_ack_o & wb_slave_sel[4];
-   assign wbs_err_o_mux_i[4] = wbs4_err_o & wb_slave_sel[4];
-   assign wbs_rty_o_mux_i[4] = wbs4_rty_o & wb_slave_sel[4];
+   assign wbs_ack_o_mux_i[4] = wbs4_ack_o & wb_slave_sel_r[4];
+   assign wbs_err_o_mux_i[4] = wbs4_err_o & wb_slave_sel_r[4];
+   assign wbs_rty_o_mux_i[4] = wbs4_rty_o & wb_slave_sel_r[4];
 
 
    // Slave 5 inputs
    assign wbs5_adr_i = wbm_adr_o;
    assign wbs5_dat_i = wbm_dat_o;
    assign wbs5_sel_i = wbm_sel_o;
-   assign wbs5_cyc_i = wbm_cyc_o & wb_slave_sel[5];
-   assign wbs5_stb_i = wbm_stb_o & wb_slave_sel[5];   
+   assign wbs5_cyc_i = wbm_cyc_o & wb_slave_sel_r[5];
+   assign wbs5_stb_i = wbm_stb_o & wb_slave_sel_r[5];   
    assign wbs5_we_i =  wbm_we_o;
    assign wbs5_cti_i = wbm_cti_o;
    assign wbs5_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[5] = wbs5_dat_o;
-   assign wbs_ack_o_mux_i[5] = wbs5_ack_o & wb_slave_sel[5];
-   assign wbs_err_o_mux_i[5] = wbs5_err_o & wb_slave_sel[5];
-   assign wbs_rty_o_mux_i[5] = wbs5_rty_o & wb_slave_sel[5];
+   assign wbs_ack_o_mux_i[5] = wbs5_ack_o & wb_slave_sel_r[5];
+   assign wbs_err_o_mux_i[5] = wbs5_err_o & wb_slave_sel_r[5];
+   assign wbs_rty_o_mux_i[5] = wbs5_rty_o & wb_slave_sel_r[5];
 
 
    // Slave 6 inputs
    assign wbs6_adr_i = wbm_adr_o;
    assign wbs6_dat_i = wbm_dat_o;
    assign wbs6_sel_i = wbm_sel_o;
-   assign wbs6_cyc_i = wbm_cyc_o & wb_slave_sel[6];
-   assign wbs6_stb_i = wbm_stb_o & wb_slave_sel[6];   
+   assign wbs6_cyc_i = wbm_cyc_o & wb_slave_sel_r[6];
+   assign wbs6_stb_i = wbm_stb_o & wb_slave_sel_r[6];   
    assign wbs6_we_i =  wbm_we_o;
    assign wbs6_cti_i = wbm_cti_o;
    assign wbs6_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[6] = wbs6_dat_o;
-   assign wbs_ack_o_mux_i[6] = wbs6_ack_o & wb_slave_sel[6];
-   assign wbs_err_o_mux_i[6] = wbs6_err_o & wb_slave_sel[6];
-   assign wbs_rty_o_mux_i[6] = wbs6_rty_o & wb_slave_sel[6];
+   assign wbs_ack_o_mux_i[6] = wbs6_ack_o & wb_slave_sel_r[6];
+   assign wbs_err_o_mux_i[6] = wbs6_err_o & wb_slave_sel_r[6];
+   assign wbs_rty_o_mux_i[6] = wbs6_rty_o & wb_slave_sel_r[6];
 
 
    // Slave 7 inputs
    assign wbs7_adr_i = wbm_adr_o;
    assign wbs7_dat_i = wbm_dat_o;
    assign wbs7_sel_i = wbm_sel_o;
-   assign wbs7_cyc_i = wbm_cyc_o & wb_slave_sel[7];
-   assign wbs7_stb_i = wbm_stb_o & wb_slave_sel[7];   
+   assign wbs7_cyc_i = wbm_cyc_o & wb_slave_sel_r[7];
+   assign wbs7_stb_i = wbm_stb_o & wb_slave_sel_r[7];   
    assign wbs7_we_i =  wbm_we_o;
    assign wbs7_cti_i = wbm_cti_o;
    assign wbs7_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[7] = wbs7_dat_o;
-   assign wbs_ack_o_mux_i[7] = wbs7_ack_o & wb_slave_sel[7];
-   assign wbs_err_o_mux_i[7] = wbs7_err_o & wb_slave_sel[7];
-   assign wbs_rty_o_mux_i[7] = wbs7_rty_o & wb_slave_sel[7];
+   assign wbs_ack_o_mux_i[7] = wbs7_ack_o & wb_slave_sel_r[7];
+   assign wbs_err_o_mux_i[7] = wbs7_err_o & wb_slave_sel_r[7];
+   assign wbs_rty_o_mux_i[7] = wbs7_rty_o & wb_slave_sel_r[7];
 
 
    // Slave 8 inputs
    assign wbs8_adr_i = wbm_adr_o;
    assign wbs8_dat_i = wbm_dat_o;
    assign wbs8_sel_i = wbm_sel_o;
-   assign wbs8_cyc_i = wbm_cyc_o & wb_slave_sel[8];
-   assign wbs8_stb_i = wbm_stb_o & wb_slave_sel[8];   
+   assign wbs8_cyc_i = wbm_cyc_o & wb_slave_sel_r[8];
+   assign wbs8_stb_i = wbm_stb_o & wb_slave_sel_r[8];   
    assign wbs8_we_i =  wbm_we_o;
    assign wbs8_cti_i = wbm_cti_o;
    assign wbs8_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[8] = wbs8_dat_o;
-   assign wbs_ack_o_mux_i[8] = wbs8_ack_o & wb_slave_sel[8];
-   assign wbs_err_o_mux_i[8] = wbs8_err_o & wb_slave_sel[8];
-   assign wbs_rty_o_mux_i[8] = wbs8_rty_o & wb_slave_sel[8];
+   assign wbs_ack_o_mux_i[8] = wbs8_ack_o & wb_slave_sel_r[8];
+   assign wbs_err_o_mux_i[8] = wbs8_err_o & wb_slave_sel_r[8];
+   assign wbs_rty_o_mux_i[8] = wbs8_rty_o & wb_slave_sel_r[8];
 
 
    // Slave 9 inputs
    assign wbs9_adr_i = wbm_adr_o;
    assign wbs9_dat_i = wbm_dat_o;
    assign wbs9_sel_i = wbm_sel_o;
-   assign wbs9_cyc_i = wbm_cyc_o & wb_slave_sel[9];
-   assign wbs9_stb_i = wbm_stb_o & wb_slave_sel[9];   
+   assign wbs9_cyc_i = wbm_cyc_o & wb_slave_sel_r[9];
+   assign wbs9_stb_i = wbm_stb_o & wb_slave_sel_r[9];   
    assign wbs9_we_i =  wbm_we_o;
    assign wbs9_cti_i = wbm_cti_o;
    assign wbs9_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[9] = wbs9_dat_o;
-   assign wbs_ack_o_mux_i[9] = wbs9_ack_o & wb_slave_sel[9];
-   assign wbs_err_o_mux_i[9] = wbs9_err_o & wb_slave_sel[9];
-   assign wbs_rty_o_mux_i[9] = wbs9_rty_o & wb_slave_sel[9];
+   assign wbs_ack_o_mux_i[9] = wbs9_ack_o & wb_slave_sel_r[9];
+   assign wbs_err_o_mux_i[9] = wbs9_err_o & wb_slave_sel_r[9];
+   assign wbs_rty_o_mux_i[9] = wbs9_rty_o & wb_slave_sel_r[9];
 
 
    // Slave 10 inputs
    assign wbs10_adr_i = wbm_adr_o;
    assign wbs10_dat_i = wbm_dat_o;
    assign wbs10_sel_i = wbm_sel_o;
-   assign wbs10_cyc_i = wbm_cyc_o & wb_slave_sel[10];
-   assign wbs10_stb_i = wbm_stb_o & wb_slave_sel[10];   
+   assign wbs10_cyc_i = wbm_cyc_o & wb_slave_sel_r[10];
+   assign wbs10_stb_i = wbm_stb_o & wb_slave_sel_r[10];   
    assign wbs10_we_i =  wbm_we_o;
    assign wbs10_cti_i = wbm_cti_o;
    assign wbs10_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[10] = wbs10_dat_o;
-   assign wbs_ack_o_mux_i[10] = wbs10_ack_o & wb_slave_sel[10];
-   assign wbs_err_o_mux_i[10] = wbs10_err_o & wb_slave_sel[10];
-   assign wbs_rty_o_mux_i[10] = wbs10_rty_o & wb_slave_sel[10];
+   assign wbs_ack_o_mux_i[10] = wbs10_ack_o & wb_slave_sel_r[10];
+   assign wbs_err_o_mux_i[10] = wbs10_err_o & wb_slave_sel_r[10];
+   assign wbs_rty_o_mux_i[10] = wbs10_rty_o & wb_slave_sel_r[10];
 
    
    // Slave 11 inputs
    assign wbs11_adr_i = wbm_adr_o;
    assign wbs11_dat_i = wbm_dat_o;
    assign wbs11_sel_i = wbm_sel_o;
-   assign wbs11_cyc_i = wbm_cyc_o & wb_slave_sel[11];
-   assign wbs11_stb_i = wbm_stb_o & wb_slave_sel[11];   
+   assign wbs11_cyc_i = wbm_cyc_o & wb_slave_sel_r[11];
+   assign wbs11_stb_i = wbm_stb_o & wb_slave_sel_r[11];   
    assign wbs11_we_i =  wbm_we_o;
    assign wbs11_cti_i = wbm_cti_o;
    assign wbs11_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[11] = wbs11_dat_o;
-   assign wbs_ack_o_mux_i[11] = wbs11_ack_o & wb_slave_sel[11];
-   assign wbs_err_o_mux_i[11] = wbs11_err_o & wb_slave_sel[11];
-   assign wbs_rty_o_mux_i[11] = wbs11_rty_o & wb_slave_sel[11];
+   assign wbs_ack_o_mux_i[11] = wbs11_ack_o & wb_slave_sel_r[11];
+   assign wbs_err_o_mux_i[11] = wbs11_err_o & wb_slave_sel_r[11];
+   assign wbs_rty_o_mux_i[11] = wbs11_rty_o & wb_slave_sel_r[11];
 
 
    // Slave 12 inputs
    assign wbs12_adr_i = wbm_adr_o;
    assign wbs12_dat_i = wbm_dat_o;
    assign wbs12_sel_i = wbm_sel_o;
-   assign wbs12_cyc_i = wbm_cyc_o & wb_slave_sel[12];
-   assign wbs12_stb_i = wbm_stb_o & wb_slave_sel[12];   
+   assign wbs12_cyc_i = wbm_cyc_o & wb_slave_sel_r[12];
+   assign wbs12_stb_i = wbm_stb_o & wb_slave_sel_r[12];   
    assign wbs12_we_i =  wbm_we_o;
    assign wbs12_cti_i = wbm_cti_o;
    assign wbs12_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[12] = wbs12_dat_o;
-   assign wbs_ack_o_mux_i[12] = wbs12_ack_o & wb_slave_sel[12];
-   assign wbs_err_o_mux_i[12] = wbs12_err_o & wb_slave_sel[12];
-   assign wbs_rty_o_mux_i[12] = wbs12_rty_o & wb_slave_sel[12];
+   assign wbs_ack_o_mux_i[12] = wbs12_ack_o & wb_slave_sel_r[12];
+   assign wbs_err_o_mux_i[12] = wbs12_err_o & wb_slave_sel_r[12];
+   assign wbs_rty_o_mux_i[12] = wbs12_rty_o & wb_slave_sel_r[12];
 
 
    // Slave 13 inputs
    assign wbs13_adr_i = wbm_adr_o;
    assign wbs13_dat_i = wbm_dat_o;
    assign wbs13_sel_i = wbm_sel_o;
-   assign wbs13_cyc_i = wbm_cyc_o & wb_slave_sel[13];
-   assign wbs13_stb_i = wbm_stb_o & wb_slave_sel[13];   
+   assign wbs13_cyc_i = wbm_cyc_o & wb_slave_sel_r[13];
+   assign wbs13_stb_i = wbm_stb_o & wb_slave_sel_r[13];   
    assign wbs13_we_i =  wbm_we_o;
    assign wbs13_cti_i = wbm_cti_o;
    assign wbs13_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[13] = wbs13_dat_o;
-   assign wbs_ack_o_mux_i[13] = wbs13_ack_o & wb_slave_sel[13];
-   assign wbs_err_o_mux_i[13] = wbs13_err_o & wb_slave_sel[13];
-   assign wbs_rty_o_mux_i[13] = wbs13_rty_o & wb_slave_sel[13];
+   assign wbs_ack_o_mux_i[13] = wbs13_ack_o & wb_slave_sel_r[13];
+   assign wbs_err_o_mux_i[13] = wbs13_err_o & wb_slave_sel_r[13];
+   assign wbs_rty_o_mux_i[13] = wbs13_rty_o & wb_slave_sel_r[13];
 
 
    // Slave 14 inputs
    assign wbs14_adr_i = wbm_adr_o;
    assign wbs14_dat_i = wbm_dat_o;
    assign wbs14_sel_i = wbm_sel_o;
-   assign wbs14_cyc_i = wbm_cyc_o & wb_slave_sel[14];
-   assign wbs14_stb_i = wbm_stb_o & wb_slave_sel[14];   
+   assign wbs14_cyc_i = wbm_cyc_o & wb_slave_sel_r[14];
+   assign wbs14_stb_i = wbm_stb_o & wb_slave_sel_r[14];   
    assign wbs14_we_i =  wbm_we_o;
    assign wbs14_cti_i = wbm_cti_o;
    assign wbs14_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[14] = wbs14_dat_o;
-   assign wbs_ack_o_mux_i[14] = wbs14_ack_o & wb_slave_sel[14];
-   assign wbs_err_o_mux_i[14] = wbs14_err_o & wb_slave_sel[14];
-   assign wbs_rty_o_mux_i[14] = wbs14_rty_o & wb_slave_sel[14];
+   assign wbs_ack_o_mux_i[14] = wbs14_ack_o & wb_slave_sel_r[14];
+   assign wbs_err_o_mux_i[14] = wbs14_err_o & wb_slave_sel_r[14];
+   assign wbs_rty_o_mux_i[14] = wbs14_rty_o & wb_slave_sel_r[14];
 
 
    // Slave 15 inputs
    assign wbs15_adr_i = wbm_adr_o;
    assign wbs15_dat_i = wbm_dat_o;
    assign wbs15_sel_i = wbm_sel_o;
-   assign wbs15_cyc_i = wbm_cyc_o & wb_slave_sel[15];
-   assign wbs15_stb_i = wbm_stb_o & wb_slave_sel[15];   
+   assign wbs15_cyc_i = wbm_cyc_o & wb_slave_sel_r[15];
+   assign wbs15_stb_i = wbm_stb_o & wb_slave_sel_r[15];   
    assign wbs15_we_i =  wbm_we_o;
    assign wbs15_cti_i = wbm_cti_o;
    assign wbs15_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[15] = wbs15_dat_o;
-   assign wbs_ack_o_mux_i[15] = wbs15_ack_o & wb_slave_sel[15];
-   assign wbs_err_o_mux_i[15] = wbs15_err_o & wb_slave_sel[15];
-   assign wbs_rty_o_mux_i[15] = wbs15_rty_o & wb_slave_sel[15];
+   assign wbs_ack_o_mux_i[15] = wbs15_ack_o & wb_slave_sel_r[15];
+   assign wbs_err_o_mux_i[15] = wbs15_err_o & wb_slave_sel_r[15];
+   assign wbs_rty_o_mux_i[15] = wbs15_rty_o & wb_slave_sel_r[15];
 
 
    // Slave 16 inputs
    assign wbs16_adr_i = wbm_adr_o;
    assign wbs16_dat_i = wbm_dat_o;
    assign wbs16_sel_i = wbm_sel_o;
-   assign wbs16_cyc_i = wbm_cyc_o & wb_slave_sel[16];
-   assign wbs16_stb_i = wbm_stb_o & wb_slave_sel[16];   
+   assign wbs16_cyc_i = wbm_cyc_o & wb_slave_sel_r[16];
+   assign wbs16_stb_i = wbm_stb_o & wb_slave_sel_r[16];   
    assign wbs16_we_i =  wbm_we_o;
    assign wbs16_cti_i = wbm_cti_o;
    assign wbs16_bte_i = wbm_bte_o;
    assign wbs_dat_o_mux_i[16] = wbs16_dat_o;
-   assign wbs_ack_o_mux_i[16] = wbs16_ack_o & wb_slave_sel[16];
-   assign wbs_err_o_mux_i[16] = wbs16_err_o & wb_slave_sel[16];
-   assign wbs_rty_o_mux_i[16] = wbs16_rty_o & wb_slave_sel[16];
+   assign wbs_ack_o_mux_i[16] = wbs16_ack_o & wb_slave_sel_r[16];
+   assign wbs_err_o_mux_i[16] = wbs16_err_o & wb_slave_sel_r[16];
+   assign wbs_rty_o_mux_i[16] = wbs16_rty_o & wb_slave_sel_r[16];
 
 */
 
 
 
    // Master out mux from slave in data
-   assign wbm_dat_i = wb_slave_sel[0] ? wbs_dat_o_mux_i[0] :
-		      wb_slave_sel[1] ? wbs_dat_o_mux_i[1] :
-/*		      wb_slave_sel[2] ? wbs_dat_o_mux_i[2] :
-		      wb_slave_sel[3] ? wbs_dat_o_mux_i[3] :
- 		      wb_slave_sel[4] ? wbs_dat_o_mux_i[4] :
-		      wb_slave_sel[5] ? wbs_dat_o_mux_i[5] :
-		      wb_slave_sel[6] ? wbs_dat_o_mux_i[6] :
-		      wb_slave_sel[7] ? wbs_dat_o_mux_i[7] :
-		      wb_slave_sel[8] ? wbs_dat_o_mux_i[8] :
-		      wb_slave_sel[9] ? wbs_dat_o_mux_i[9] :
-		      wb_slave_sel[10] ? wbs_dat_o_mux_i[10] :
-		      wb_slave_sel[11] ? wbs_dat_o_mux_i[11] :
-		      wb_slave_sel[12] ? wbs_dat_o_mux_i[12] :
-		      wb_slave_sel[13] ? wbs_dat_o_mux_i[13] :
-		      wb_slave_sel[14] ? wbs_dat_o_mux_i[14] :
-		      wb_slave_sel[15] ? wbs_dat_o_mux_i[15] :
-		      wb_slave_sel[16] ? wbs_dat_o_mux_i[16] :
+   assign wbm_dat_i = wb_slave_sel_r[0] ? wbs_dat_o_mux_i[0] :
+		      wb_slave_sel_r[1] ? wbs_dat_o_mux_i[1] :
+/*		      wb_slave_sel_r[2] ? wbs_dat_o_mux_i[2] :
+		      wb_slave_sel_r[3] ? wbs_dat_o_mux_i[3] :
+ 		      wb_slave_sel_r[4] ? wbs_dat_o_mux_i[4] :
+		      wb_slave_sel_r[5] ? wbs_dat_o_mux_i[5] :
+		      wb_slave_sel_r[6] ? wbs_dat_o_mux_i[6] :
+		      wb_slave_sel_r[7] ? wbs_dat_o_mux_i[7] :
+		      wb_slave_sel_r[8] ? wbs_dat_o_mux_i[8] :
+		      wb_slave_sel_r[9] ? wbs_dat_o_mux_i[9] :
+		      wb_slave_sel_r[10] ? wbs_dat_o_mux_i[10] :
+		      wb_slave_sel_r[11] ? wbs_dat_o_mux_i[11] :
+		      wb_slave_sel_r[12] ? wbs_dat_o_mux_i[12] :
+		      wb_slave_sel_r[13] ? wbs_dat_o_mux_i[13] :
+		      wb_slave_sel_r[14] ? wbs_dat_o_mux_i[14] :
+		      wb_slave_sel_r[15] ? wbs_dat_o_mux_i[15] :
+		      wb_slave_sel_r[16] ? wbs_dat_o_mux_i[16] :
 */ 
 		      wbs_dat_o_mux_i[0];
    // Master out acks, or together

@@ -43,7 +43,7 @@ class Vorpsoc_top_or1200_dpram;
 //Old ram_wbclass: class Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000;
 class Vorpsoc_top_wb_ram_b3__D20_A19_M800000;
 // SoC Arbiter class - will also change if any modifications to bus architecture
-class Vorpsoc_top_wb_conbus_top__pi1;
+//class Vorpsoc_top_wb_conbus_top__pi1;
 
 
 //! Access functions to the Verilator model

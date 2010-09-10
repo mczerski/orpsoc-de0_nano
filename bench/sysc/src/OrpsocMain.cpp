@@ -69,7 +69,6 @@ int sc_main (int   argc,
   
   sc_signal<bool>      rst;
   sc_signal<bool>      rstn;
-  sc_signal<bool>      rst_o;
 
   sc_signal<bool>      jtag_tdi;		// JTAG interface
   sc_signal<bool>      jtag_tdo;
@@ -78,18 +77,6 @@ int sc_main (int   argc,
 
   sc_signal<bool>      uart_rx;		// External UART
   sc_signal<bool>      uart_tx;
-
-  sc_signal<bool> spi_sd_sclk; // SD Card Memory SPI
-  sc_signal<bool> spi_sd_ss;
-  sc_signal<bool> spi_sd_miso;
-  sc_signal<bool> spi_sd_mosi;
-  
-  sc_signal<uint32_t> gpio_a; // GPIO bus - output only in verilator sims
-
-  sc_signal<bool> spi1_mosi;
-  sc_signal<bool> spi1_miso;
-  sc_signal<bool> spi1_ss;
-  sc_signal<bool> spi1_sclk;
 
   SIM_RUNNING = 0;
 
@@ -274,30 +261,15 @@ int sc_main (int   argc,
     
   // Connect up ORPSoC
   orpsoc->clk_pad_i (clk);
-  orpsoc->rst_pad_i (rstn);
-  orpsoc->rst_pad_o (rst_o);
+  orpsoc->rst_n_pad_i (rstn);
 
-  orpsoc->dbg_tck_pad_i  (jtag_tck);		// JTAG interface
-  orpsoc->dbg_tdi_pad_i  (jtag_tdi);
-  orpsoc->dbg_tms_pad_i  (jtag_tms);
-  orpsoc->dbg_tdo_pad_o  (jtag_tdo);
+  orpsoc->tck_pad_i  (jtag_tck);		// JTAG interface
+  orpsoc->tdi_pad_i  (jtag_tdi);
+  orpsoc->tms_pad_i  (jtag_tms);
+  orpsoc->tdo_pad_o  (jtag_tdo);
 
   orpsoc->uart0_srx_pad_i (uart_rx);		// External UART
   orpsoc->uart0_stx_pad_o (uart_tx);
-
-  orpsoc->spi_sd_sclk_pad_o (spi_sd_sclk); // SD Card Memory SPI
-  orpsoc->spi_sd_ss_pad_o (spi_sd_ss);
-  orpsoc->spi_sd_miso_pad_i (spi_sd_miso);
-  orpsoc->spi_sd_mosi_pad_o (spi_sd_mosi);
-
-  orpsoc->spi1_mosi_pad_o (spi1_mosi);
-  orpsoc->spi1_miso_pad_i (spi1_miso);
-  orpsoc->spi1_ss_pad_o  (spi1_ss);
-  orpsoc->spi1_sclk_pad_o (spi1_sclk);
-
-
-  orpsoc->gpio_a_pad_io (gpio_a); // GPIO bus - output only in 
-                                  // verilator sims
 
   // Connect up the SystemC  modules
   reset->clk (clk);			// Reset
@@ -321,11 +293,6 @@ int sc_main (int   argc,
   jtag_tdi      = 1;			// Tie off the JTAG inputs
   jtag_tms      = 1;
   
-  spi_sd_miso = 0; // Tie off master-in/slave-out of SD SPI bus
-
-  spi1_miso = 0;
-
-
   if (VCD_enabled)
     {
       Verilated::traceEverOn (true);
@@ -345,7 +312,7 @@ int sc_main (int   argc,
 	  verilatorVCDFile->open (vcdDumpFile.c_str());
 	}
     }
-  
+
   //printf("* Beginning test\n");
 
   // Init the UART function
