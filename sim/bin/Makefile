@@ -435,8 +435,10 @@ clean-bootrom:
 clean-out:
 	$(Q)rm -rf $(RTL_SIM_RESULTS_DIR)/*.*
 
+# Clean away verilator build path and objects in SystemC path
 clean-vlt:
 	$(Q)rm -rf $(SIM_VLT_DIR)
+	$(Q)$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make clean
 
 clean-test-defines:
 	$(Q)rm -f $(TEST_DEFINES_VLG)
@@ -446,7 +448,7 @@ clean-sim-test-sw:
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
-	$(Q) $(MAKE) -C $(SW_DIR)/support distclean
+	$(Q) $(MAKE) -C $(SW_DIR)/or1200 clean-all
 
 clean-rtl:
 	$(Q) echo; echo "\t### Cleaning generated verilog RTL ###"; echo;
@@ -488,24 +490,41 @@ SYSC_LIB_ARCH_DIR=$(shell ls $$SYSTEMC | grep "lib-")
 # build directory
 SYSC_MODELS=OrpsocAccess MemoryLoad
 
+ifdef VLT_LINT
+VLT_FLAGS +=--lint-only
+endif
+
 ifdef VLT_DEBUG
 VLT_DEBUG_COMPILE_FLAGS = -g
 # Enabling the following generates a TON of debugging
 # when running verilator. Not so helpful.
-#VLT_DEBUG_OPTIONS = --debug --dump-tree
+#VLT_FLAGS = --debug --dump-tree
 VLT_SYSC_DEBUG_DEFINE = VLT_DEBUG=1
 endif
 
-# If set on the command line we build the cycle accurate model which will generate verilator-specific profiling information. This is useful for checking the efficiency of the model - not really useful for checking code or the function of the model.
-ifdef VLT_ORPSOC_PROFILING
-VLT_CPPFLAGS +=-pg
-VLT_DEBUG_OPTIONS +=-profile-cfuncs
-else
-VLT_CPPFLAGS +=-fprofile-use -Wcoverage-mismatch
-#VLT_CPPFLAGS=-Wall
+# This will build a verilator model that will generate profiling information
+# suitable for gprof
+# Run it through gprof after exection with: gprof Vorpsoc_top > gprof.out
+# then run this through the Verilator tool with:
+# verilator_profcfunc gprof.out > vprof.out
+ifdef VLT_EXECUTION_PROFILE_BUILD
+VLT_CPPFLAGS +=-g -pg
+# Maybe add these to VLT_CPPFLAGS: -ftest-coverage -fprofile-arcs
+VLT_FLAGS +=-profile-cfuncs
 endif
 
-# Set VLT_IN_GDB=1 when making if going to run the cycle accurate model executable in GDB to check suspect behavior. This also removes optimisation.
+# If set on the command line we build the cycle accurate model which will 
+# generate verilator-specific profiling information. This is useful for 
+# checking the efficiency of the model - not really useful for checking code 
+# or the function of the model.
+ifdef VLT_DO_PERFORMANCE_PROFILE_BUILD
+VLT_CPPFLAGS += -fprofile-generate -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer
+else
+VLT_CPPFLAGS +=-fprofile-use -Wcoverage-mismatch
+endif
+
+# Set VLT_IN_GDB=1 when making if going to run the cycle accurate model 
+# executable in GDB.
 ifdef VLT_IN_GDB
 VLT_CPPFLAGS +=-g -O0 
 else
@@ -513,20 +532,20 @@ else
 VLT_CPPFLAGS +=-O3
 endif
 
-ifdef VLT_DO_PROFILING
-VLT_CPPFLAGS +=-ftest-coverage -fprofile-arcs -fprofile-generate 
-endif
-
 # VCD Enabled by default when building, enable it at runtime
-#ifdef VCD
 VLT_FLAGS +=-trace
 TRACE_FLAGS=-DVM_TRACE=1 -I${SYSTEMPERL}/src
-#endif
 
-# Only need the trace target if we are tracing
-#ifneq (,$(findstring -trace, $(VLT_FLAGS)))
+# Verilator tuning
+# Inlining:
+VLT_FLAGS +=--inline-mult 1
+# Optimisation option for Verilator scripts
+VLT_FLAGS +=-O3
+# X-assign - at reset, all signals are set to random values, helps find rst bugs
+VLT_FLAGS +=-x-assign unique
+
 VLT_TRACEOBJ = verilated_vcd_c
-#endif
+
 
 # This is the list of extra models we'll issue make commands for
 # Included is the SystemPerl trace model
@@ -612,7 +631,7 @@ $(SIM_VLT_DIR)/$(VLT_EXE).mk: $(SIM_VLT_DIR)/$(VLT_SCRIPT) $(BENCH_SYSC_SRC_DIR)
 # Now call verilator to generate the .mk files
 	$(Q)echo; echo "\tGenerating makefiles with Verilator"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
-	verilator -language 1364-2001 -Wno-lint --top-module orpsoc_top $(VLT_DEBUG_OPTIONS) -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
+	verilator -language 1364-2001 --top-module orpsoc_top -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
 
 # SystemC modules library
 $(BENCH_SYSC_SRC_DIR)/libmodules.a:
@@ -660,15 +679,25 @@ vlt-tests:
 # paths before we create everything again
 ###############################################################################
 .PHONY: prepare-vlt-profiled
-prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda clean vlt-restore-profileoutput rtl $(SIM_VLT_DIR) $(DUMMY_FILES_FOR_VLT) $(VLT_MODEL_LINKS) $(SIM_VLT_DIR)/$(VLT_EXE)
+prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda \
+	clean-vlt-after-profile-run \
+	rtl $(SIM_VLT_DIR) $(DUMMY_FILES_FOR_VLT) $(VLT_MODEL_LINKS) \
+	$(SIM_VLT_DIR)/$(VLT_EXE)
 
 $(SIM_VLT_DIR)/OrpsocMain.gcda: $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling
-	$(MAKE) -C $(SW_DIR)/dhry dhry.elf NUM_RUNS=200
-	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf -v -l sim.log --crash-monitor
+	$(MAKE) -C $(SW_DIR)/dhry dhry.elf NUM_RUNS=5000
+#	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf -v -l sim.log --crash-monitor
+	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf
 
-.PHONY: $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling
+# Clean all compiled things
+clean-vlt-after-profile-run:
+	$(Q)echo "\tCleaning away compiled cycle-accurate files"
+	$(Q)rm -f $(SIM_VLT_DIR)/*.[oa] $(SIM_VLT_DIR)/$(VLT_EXE)
+	$(Q)rm -f $(BENCH_SYSC_SRC_DIR)/*.[oa]
+
+#.PHONY: $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling
 $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling:
-	$(MAKE) prepare-vlt VLT_DO_PROFILING=1
+	$(MAKE) build-vlt VLT_DO_PERFORMANCE_PROFILE_BUILD=1
 
 .PHONY: vlt-restore-profileoutput
 vlt-restore-profileoutput:
@@ -676,3 +705,9 @@ vlt-restore-profileoutput:
 	$(Q)mkdir -p ../vlt
 	$(Q)cp /tmp/*.gc* $(SIM_VLT_DIR)
 	$(Q)cp /tmp/*.gc* $(BENCH_SYSC_SRC_DIR)
+
+
+lint-vlt: $(SIM_VLT_DIR) rtl $(DUMMY_FILES_FOR_VLT) $(SIM_VLT_DIR)/$(VLT_SCRIPT)
+	$(Q)echo; echo "\tLinting design with Verilator"; echo
+	$(Q)cd $(SIM_VLT_DIR) && \
+	verilator -language 1364-2001 --top-module orpsoc_top --lint-only -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)

@@ -39,81 +39,6 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: dbg_wb.v,v $
-// Revision 1.23  2004/04/01 17:21:22  igorm
-// Changes for the FormalPRO.
-//
-// Revision 1.22  2004/04/01 11:56:59  igorm
-// Port names and defines for the supported CPUs changed.
-//
-// Revision 1.21  2004/03/31 14:34:09  igorm
-// data_cnt_lim length changed to reduce number of warnings.
-//
-// Revision 1.20  2004/03/28 20:27:02  igorm
-// New release of the debug interface (3rd. release).
-//
-// Revision 1.19  2004/03/22 16:35:46  igorm
-// Temp version before changing dbg interface.
-//
-// Revision 1.18  2004/01/25 14:04:18  mohor
-// All flipflops are reset.
-//
-// Revision 1.17  2004/01/22 13:58:53  mohor
-// Port signals are all set to zero after reset.
-//
-// Revision 1.16  2004/01/19 07:32:41  simons
-// Reset values width added because of FV, a good sentence changed because some tools can not handle it.
-//
-// Revision 1.15  2004/01/17 18:01:24  mohor
-// New version.
-//
-// Revision 1.14  2004/01/16 14:51:33  mohor
-// cpu registers added.
-//
-// Revision 1.13  2004/01/15 12:09:43  mohor
-// Working.
-//
-// Revision 1.12  2004/01/14 22:59:18  mohor
-// Temp version.
-//
-// Revision 1.11  2004/01/14 12:29:40  mohor
-// temp version. Resets will be changed in next version.
-//
-// Revision 1.10  2004/01/13 11:28:14  mohor
-// tmp version.
-//
-// Revision 1.9  2004/01/10 07:50:24  mohor
-// temp version.
-//
-// Revision 1.8  2004/01/09 12:48:44  mohor
-// tmp version.
-//
-// Revision 1.7  2004/01/08 17:53:36  mohor
-// tmp version.
-//
-// Revision 1.6  2004/01/07 11:58:56  mohor
-// temp4 version.
-//
-// Revision 1.5  2004/01/06 17:15:19  mohor
-// temp3 version.
-//
-// Revision 1.4  2004/01/05 12:16:00  mohor
-// tmp2 version.
-//
-// Revision 1.3  2003/12/23 16:22:46  mohor
-// Tmp version.
-//
-// Revision 1.2  2003/12/23 15:26:26  mohor
-// Small fix.
-//
-// Revision 1.1  2003/12/23 15:09:04  mohor
-// New directory structure. New version of the debug interface.
-//
-//
-//
 
 // synopsys translate_off
 `include "timescale.v"
@@ -262,7 +187,7 @@ reg     [7:0] mem [0:3];
 reg     [2:0] mem_ptr_dsff;
 reg           wishbone_ce_csff;
 reg           mem_ptr_init;
-reg [`DBG_WB_CMD_LEN -1: 0] curr_cmd;
+reg [`DBG_WB_CMD_LEN_INT -1: 0] curr_cmd;
 wire          curr_cmd_go;
 reg           curr_cmd_go_q;
 wire          curr_cmd_wr_comm;
@@ -393,7 +318,7 @@ begin
   else if (update_dr_i)
     cmd_cnt <=  {`DBG_WB_CMD_CNT_WIDTH{1'b0}};
   else if (cmd_cnt_en)
-    cmd_cnt <=  cmd_cnt + 1'b1;
+    cmd_cnt <=  cmd_cnt + `DBG_WB_CMD_CNT_WIDTH'd1;
 end
 
 
@@ -401,11 +326,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    curr_cmd <=  {`DBG_WB_CMD_LEN{1'b0}};
+    curr_cmd <=  {`DBG_WB_CMD_LEN_INT{1'b0}};
   else if (update_dr_i)
-    curr_cmd <=  {`DBG_WB_CMD_LEN{1'b0}};
-  else if (cmd_cnt == (`DBG_WB_CMD_LEN -1))
-    curr_cmd <=  {dr[`DBG_WB_CMD_LEN-2 :0], tdi_i};
+    curr_cmd <=  {`DBG_WB_CMD_LEN_INT{1'b0}};
+  else if (cmd_cnt == (`DBG_WB_CMD_LEN_INT -1))
+    curr_cmd <=  {dr[`DBG_WB_CMD_LEN_INT-2 :0], tdi_i};
 end
 
 
@@ -439,11 +364,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    addr_len_cnt <=  6'h0;
+    addr_len_cnt <=  6'd0;
   else if (update_dr_i)
-    addr_len_cnt <=  6'h0;
+    addr_len_cnt <=  6'd0;
   else if (addr_len_cnt_en)
-    addr_len_cnt <=  addr_len_cnt + 1'b1;
+    addr_len_cnt <=  addr_len_cnt + 6'd1;
 end
 
 
@@ -467,11 +392,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH+1{1'b0}};
   else if (update_dr_i)
-    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_WB_DATA_CNT_WIDTH+1{1'b0}};
   else if (data_cnt_en)
-    data_cnt <=  data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1;
 end
 
 
@@ -480,9 +405,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt_limit <=  {`DBG_WB_DATA_CNT_LIM_WIDTH{1'b0}};
+    data_cnt_limit <=  {`DBG_WB_DATA_CNT_LIM_WIDTH+1{1'b0}};
   else if (update_dr_i)
-    data_cnt_limit <=  len + 1'b1;
+    data_cnt_limit <=  len + 1;
 end
 
 
@@ -510,7 +435,7 @@ begin
   if (rst_i)
     crc_cnt <=  {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
   else if(crc_cnt_en)
-    crc_cnt <=  crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1;
   else if (update_dr_i)
     crc_cnt <=  {`DBG_WB_CRC_CNT_WIDTH{1'b0}};
 end
@@ -548,7 +473,7 @@ begin
   else if (update_dr_i)
     status_cnt <=  {`DBG_WB_STATUS_CNT_WIDTH{1'b0}};
   else if (status_cnt_en)
-    status_cnt <=  status_cnt + 1'b1;
+    status_cnt <=  status_cnt + `DBG_WB_STATUS_CNT_WIDTH'd1;
 end
 
 
@@ -615,23 +540,23 @@ begin
   if (rst_i)
     len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
   else if(update_dr_i)
-    len_var <=  len + 1'b1;
+    len_var <=  len + 1;
   else if (start_rd_tck)
     begin
       case (acc_type)  // synthesis parallel_case
         `DBG_WB_READ8 : 
                     if (len_var > 'd1)
-                      len_var <=  len_var - 1'd1;
+                      len_var <=  len_var - 1;
                     else
                       len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
         `DBG_WB_READ16: 
                     if (len_var > 'd2)
-                      len_var <=  len_var - 2'd2; 
+                      len_var <=  len_var - 2; 
                     else
                       len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
         `DBG_WB_READ32: 
                     if (len_var > 'd4)
-                      len_var <=  len_var - 3'd4; 
+                      len_var <=  len_var - 4; 
                     else
                       len_var <=  {1'b0, {`DBG_WB_LEN_LEN{1'b0}}};
         default:      len_var <=  {1'bx, {`DBG_WB_LEN_LEN{1'bx}}};
@@ -640,7 +565,8 @@ begin
 end
 
 
-assign len_eq_0 = len_var == 'h0;
+assign len_eq_0 = !(|len_var);
+   
 
 
 assign byte = data_cnt[2:0] == 3'd7;
@@ -708,7 +634,10 @@ begin
                           begin
                             start_wr_tck <=  1'b0;
                           end
-                      end
+                       end
+	default: begin
+
+	end
       endcase
     end
   else
@@ -800,17 +729,17 @@ end
 always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
-    wb_adr_dsff <=  32'h0;
+    wb_adr_dsff <=  32'd0;
   else if (set_addr_wb && (!set_addr_wb_q)) // Setting starting address
     wb_adr_dsff <=  adr;
   else if (wb_ack_i)
     begin
       if ((acc_type == `DBG_WB_WRITE8) || (acc_type == `DBG_WB_READ8))
-        wb_adr_dsff <=  wb_adr_dsff + 1'd1;
+        wb_adr_dsff <=  wb_adr_dsff + 32'd1;
       else if ((acc_type == `DBG_WB_WRITE16) || (acc_type == `DBG_WB_READ16))
-        wb_adr_dsff <=  wb_adr_dsff + 2'd2;
+        wb_adr_dsff <=  wb_adr_dsff + 32'd2;
       else
-        wb_adr_dsff <=  wb_adr_dsff + 3'd4;
+        wb_adr_dsff <=  wb_adr_dsff + 32'd4;
     end
 end
 
@@ -1021,9 +950,9 @@ begin
   else if (wb_ack_i)
     begin
       if (acc_type == `DBG_WB_READ8)
-        mem_ptr_dsff <=  mem_ptr_dsff + 1'd1;
+        mem_ptr_dsff <=  mem_ptr_dsff + 3'd1;
       else if (acc_type == `DBG_WB_READ16)
-        mem_ptr_dsff <=  mem_ptr_dsff + 2'd2;
+        mem_ptr_dsff <=  mem_ptr_dsff + 3'd2;
     end
 end
 
@@ -1082,8 +1011,8 @@ begin
   else if (wb_end_tck && (!wb_end_tck_q) && (!latch_data) && (!fifo_full))  // incrementing
     begin
       case (acc_type)  // synthesis parallel_case
-        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt + 1'd1;
-        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt + 2'd2;
+        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt + 3'd1;
+        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt + 3'd2;
         `DBG_WB_READ32: fifo_cnt <=  fifo_cnt + 3'd4;
         default:        fifo_cnt <=  3'bxxx;
       endcase
@@ -1091,8 +1020,8 @@ begin
   else if (!(wb_end_tck && (!wb_end_tck_q)) && latch_data && (!fifo_empty))  // decrementing
     begin
       case (acc_type)  // synthesis parallel_case
-        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt - 1'd1;
-        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt - 2'd2;
+        `DBG_WB_READ8 : fifo_cnt <=  fifo_cnt - 3'd1;
+        `DBG_WB_READ16: fifo_cnt <=  fifo_cnt - 3'd2;
         `DBG_WB_READ32: fifo_cnt <=  fifo_cnt - 3'd4;
         default:        fifo_cnt <=  3'bxxx;
       endcase

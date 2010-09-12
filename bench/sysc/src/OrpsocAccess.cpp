@@ -43,7 +43,7 @@
 //#include "Vorpsoc_top_ram_wb__D20_A19_M800000.h"
 //#include "Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000.h"
 // Include for wb_ram_b3
-#include "Vorpsoc_top_wb_ram_b3__D20_A19_M800000.h"
+#include "Vorpsoc_top_wb_ram_b3__D20_A17_M800000.h"
 // Bus arbiter include - but is for old arbiter, no longer used
 //#include "Vorpsoc_top_wb_conbus_top__pi1.h"
 

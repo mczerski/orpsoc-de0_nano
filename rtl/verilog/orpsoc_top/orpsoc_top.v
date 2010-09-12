@@ -72,14 +72,17 @@ module orpsoc_top
    //
    // Wires
    //
-   wire 		      wb_clk, wb_rst;
-   wire 		      dbg_tck;
+   wire   async_rst;
+   wire   wb_clk, wb_rst;
+   wire   dbg_tck;
 
    
    clkgen clkgen0
      (
 
       .clk_pad_i             (clk_pad_i),
+
+      .async_rst_o            (async_rst),
       
       .wb_clk_o                  (wb_clk),
       .wb_rst_o                  (wb_rst),
@@ -429,7 +432,7 @@ module orpsoc_top
    wire 				  dbg_if_tdo;
    wire 				  jtag_tap_tdo;   
    wire 				  jtag_tap_shift_dr, jtag_tap_pause_dr, 
-					  jtag_tap_upate_dr, jtag_tap_capture_dr;
+					  jtag_tap_update_dr, jtag_tap_capture_dr;
    //
    // Instantiation
    //
@@ -443,7 +446,7 @@ module orpsoc_top
       .trst_pad_i			(async_rst),
       .tdi_pad_i			(tdi_pad_i),
       
-      .tdo_padoe_o			(tdo_padoe_o),
+      .tdo_padoe_o			(),
       
       .tdo_o				(jtag_tap_tdo),
 
@@ -692,7 +695,7 @@ module orpsoc_top
    ////////////////////////////////////////////////////////////////////////
 
    parameter wb_ram_dat_width = 32;
-   parameter wb_ram_adr_width = 25;
+   parameter wb_ram_adr_width = 23;
    //parameter ram_wb_mem_size  = 2097152; // 8MB
    parameter wb_ram_mem_size  = 8388608; // 32MB -- for linux test
 
@@ -746,8 +749,10 @@ module orpsoc_top
        wb_ram_last_selected <= 2'b10;
    
    // Mux input signals to RAM (default to wbs_d_mc0)
-   assign wb_ram_adr_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_adr_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_adr_i : 0;
+   assign wb_ram_adr_i = (wb_ram_mast_select[1]) ? 
+			 wbs_i_mc0_adr_i[wb_ram_adr_width-1:0] : 
+                         (wb_ram_mast_select[0]) ? 
+			 wbs_d_mc0_adr_i[wb_ram_adr_width-1:0] : 0;
    assign wb_ram_bte_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_bte_i : 
                          (wb_ram_mast_select[0]) ? wbs_d_mc0_bte_i : 0;
    assign wb_ram_cti_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_cti_i : 

@@ -867,7 +867,7 @@
 //
 
 // Define it if you want DU implemented
-`define OR1200_DU_IMPLEMENTED
+//`define OR1200_DU_IMPLEMENTED
 
 //
 // Define if you want HW Breakpoints
@@ -922,10 +922,10 @@
 `define OR1200_DU_DRR		11'd21
 `ifdef OR1200_DU_TB_IMPLEMENTED
 `define OR1200_DU_TBADR		11'h0ff
-`define OR1200_DU_TBIA		11'h1xx
-`define OR1200_DU_TBIM		11'h2xx
-`define OR1200_DU_TBAR		11'h3xx
-`define OR1200_DU_TBTS		11'h4xx
+`define OR1200_DU_TBIA		11'h1??
+`define OR1200_DU_TBIM		11'h2??
+`define OR1200_DU_TBAR		11'h3??
+`define OR1200_DU_TBTS		11'h4??
 `endif
 
 // Position of offset bits inside SPR address
@@ -1631,7 +1631,7 @@
 `else
 `define OR1200_DCCFGR_NCW		3'h0	// 1 cache way
 `define OR1200_DCCFGR_NCS (`OR1200_DCTAG)	// Num cache sets
-`define OR1200_DCCFGR_CBS (`OR1200_DCLS-4)	// 16 byte cache block
+`define OR1200_DCCFGR_CBS `OR1200_DCLS==4 ? 1'b0 : 1'b1 // 16 byte cache block
 `ifdef OR1200_DC_WRITETHROUGH
  `define OR1200_DCCFGR_CWS		1'b0	// Write-through strategy
 `else
@@ -1679,7 +1679,7 @@
 `else
 `define OR1200_ICCFGR_NCW		3'h0	// 1 cache way
 `define OR1200_ICCFGR_NCS (`OR1200_ICTAG)	// Num cache sets
-`define OR1200_ICCFGR_CBS (`OR1200_ICLS-4)	// 16 byte cache block
+`define OR1200_ICCFGR_CBS `OR1200_ICLS==4 ? 1'b0: 1'b1	// 16 byte cache block
 `define OR1200_ICCFGR_CWS		1'b0	// Irrelevant
 `define OR1200_ICCFGR_CCRI		1'b1	// Cache control reg impl.
 `define OR1200_ICCFGR_CBIRI		1'b1	// Cache block inv reg impl.
@@ -1707,7 +1707,7 @@
 `define OR1200_DCFGR_NDP		4'h0	// Zero DVR/DCR pairs
 `define OR1200_DCFGR_WPCI		1'b0	// WP counters not impl.
 `endif
-`define OR1200_DCFGR_RES1		28'h0000000
+`define OR1200_DCFGR_RES1		27'd0
 
 ///////////////////////////////////////////////////////////////////////////////
 // Boot Address Selection                                                    //

@@ -42,7 +42,9 @@ module clkgen
   (
    // Main clocks in, depending on board
    clk_pad_i,
-   
+
+   // Input reset - through a buffer, asynchronous
+   async_rst_o,
    // Wishbone clock and reset out  
    wb_clk_o,
    wb_rst_o,
@@ -60,6 +62,8 @@ module clkgen
 
    input clk_pad_i;
    
+   output async_rst_o;
+   
    output wb_rst_o;
    output wb_clk_o;
 
@@ -72,14 +76,13 @@ module clkgen
    input  rst_n_pad_i;
    
    // First, deal with the asychronous reset
-   wire   async_rst;
    wire   async_rst_n;
 
    // An input buffer is usually instantiated here
    assign async_rst_n = rst_n_pad_i;
    
    // Everyone likes active-high reset signals...
-   assign async_rst = ~async_rst_n;
+   assign async_rst_o = ~async_rst_n;
    
 `ifdef JTAG_DEBUG
    assign dbg_tck_o = tck_pad_i;
@@ -104,8 +107,8 @@ module clkgen
 
    // Reset generation for wishbone
    reg [15:0] 	   wb_rst_shr;
-   always @(posedge wb_clk_o or posedge async_rst)
-     if (async_rst)
+   always @(posedge wb_clk_o or posedge async_rst_o)
+     if (async_rst_o)
        wb_rst_shr <= 16'hffff;
      else
        wb_rst_shr <= {wb_rst_shr[14:0], ~(sync_rst_n)};

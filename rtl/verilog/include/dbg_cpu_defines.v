@@ -39,49 +39,22 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: dbg_cpu_defines.v,v $
-// Revision 1.6  2004/04/05 13:52:54  igorm
-// CPU_WR_CTRL and CPU_RD_CTRL defines changed.
-//
-// Revision 1.5  2004/03/31 14:34:09  igorm
-// data_cnt_lim length changed to reduce number of warnings.
-//
-// Revision 1.4  2004/03/28 20:27:02  igorm
-// New release of the debug interface (3rd. release).
-//
-// Revision 1.3  2004/03/22 16:35:46  igorm
-// Temp version before changing dbg interface.
-//
-// Revision 1.2  2004/01/17 17:01:14  mohor
-// Almost finished.
-//
-// Revision 1.1  2004/01/16 14:53:33  mohor
-// *** empty log message ***
-//
-//
-//
-                                                                                 
-                                                                                 
 
 // Defining length of the command
 `define DBG_CPU_CMD_LEN          3'd4
 `define DBG_CPU_CMD_CNT_WIDTH    3
 
 // Defining length of the access_type field
-`define DBG_CPU_ACC_TYPE_LEN     3'd4
+`define DBG_CPU_ACC_TYPE_LEN     4
 
 // Defining length of the address
-`define DBG_CPU_ADR_LEN          6'd32
+`define DBG_CPU_ADR_LEN          32
 
 // Defining length of the length register
-`define DBG_CPU_LEN_LEN          5'd16
+`define DBG_CPU_LEN_LEN          16
 
 // Defining total length of the DR needed
-//define DBG_CPU_DR_LEN           (`DBG_CPU_ACC_TYPE_LEN + `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN)
-`define DBG_CPU_DR_LEN           52
+`define DBG_CPU_DR_LEN           (`DBG_CPU_ACC_TYPE_LEN + `DBG_CPU_ADR_LEN + `DBG_CPU_LEN_LEN)
 // Defining length of the CRC
 `define DBG_CPU_CRC_LEN          6'd32
 `define DBG_CPU_CRC_CNT_WIDTH    6

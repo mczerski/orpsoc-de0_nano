@@ -269,7 +269,7 @@ begin
 					tstate <=  s_send_byte;
 				end
 				else
-					counter <=  counter - 1'b1;
+					counter <=  counter - 5'd1;
 				stx_o_tmp <=  1'b0;
 			end
 	s_send_byte :	begin
@@ -280,7 +280,7 @@ begin
 				begin
 					if (bit_counter > 3'b0)
 					begin
-						bit_counter <=  bit_counter - 1'b1;
+						bit_counter <=  bit_counter - 3'd1;
 						{shift_out[5:0],bit_out  } <=  {shift_out[6:1], shift_out[0]};
 						tstate <=  s_send_byte;
 					end
@@ -302,7 +302,7 @@ begin
 					counter <=  0;
 				end
 				else
-					counter <=  counter - 1'b1;
+					counter <=  counter - 5'd1;
 				stx_o_tmp <=  bit_out; // set output pin
 			end
 	s_send_parity :	begin
@@ -311,18 +311,18 @@ begin
 				else
 				if (counter == 5'b00001)
 				begin
-					counter <=  4'b0;
+					counter <=  5'd0;
 					tstate <=  s_send_stop;
 				end
 				else
-					counter <=  counter - 1'b1;
+					counter <=  counter - 5'd1;
 				stx_o_tmp <=  bit_out;
 			end
 	s_send_stop :  begin
 				if (~|counter)
 				  begin
-						casex ({lcr[`UART_LC_SB],lcr[`UART_LC_BITS]})
-  						3'b0xx:	  counter <=  5'b01101;     // 1 stop bit ok igor
+						casez ({lcr[`UART_LC_SB],lcr[`UART_LC_BITS]})
+  						3'b0??:	  counter <=  5'b01101;     // 1 stop bit ok igor
   						3'b100:	  counter <=  5'b10101;     // 1.5 stop bit
   						default:	  counter <=  5'b11101;     // 2 stop bits
 						endcase
@@ -334,7 +334,7 @@ begin
 					tstate <=  s_idle;
 				end
 				else
-					counter <=  counter - 1'b1;
+					counter <=  counter - 5'd1;
 				stx_o_tmp <=  1'b1;
 			end
 

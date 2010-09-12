@@ -505,7 +505,7 @@ end
 
 always @ (negedge tck_pad_i)
 begin
-    idcode_tdo <=  idcode_reg;
+    idcode_tdo <=  idcode_reg[0]; // JB 100911
 end
 /**********************************************************************************
 *                                                                                 *

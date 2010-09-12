@@ -15,7 +15,7 @@ module wb_ram_b3(
    parameter dw = 32;
 
    // 32MB memory by default
-   parameter aw = 25;
+   parameter aw = 23;
    parameter mem_size  = 8388608;
 
    input [aw-1:0]	wb_adr_i;
@@ -40,7 +40,7 @@ module wb_ram_b3(
    reg [dw-1:0] 	mem [ 0 : mem_size-1 ]  /* verilator public */ /* synthesis ram_style = no_rw_check */;
    
    //reg [aw-1:2] wb_adr_i_r;
-   reg [(aw-2)-1:0] adr;
+   reg [aw-1:0] adr;
    
    wire [31:0] 			   wr_data;
 
@@ -50,7 +50,7 @@ module wb_ram_b3(
    wire 			   wb_b3_trans_start, wb_b3_trans_stop;
    
    // Register to use for counting the addresses when doing burst accesses
-   reg [aw-1-2:0]  burst_adr_counter;
+   reg [aw-1:0]  burst_adr_counter;
    reg [2:0] 			   wb_cti_i_r;
    reg [1:0] 			   wb_bte_i_r;
    wire 			   using_burst_adr;
@@ -78,7 +78,7 @@ module wb_ram_b3(
      if (wb_rst_i)
        burst_adr_counter = 0;
      else if (wb_b3_trans_start)
-       burst_adr_counter = wb_adr_i[aw-1:2];
+       burst_adr_counter = {2'b00,wb_adr_i[aw-1:2]};
      else if ((wb_cti_i_r == 3'b010) & wb_ack_o & wb_b3_trans)
        // Incrementing burst
        begin
@@ -104,7 +104,7 @@ module wb_ram_b3(
 
    assign using_burst_adr = wb_b3_trans;
    
-   assign burst_access_wrong_wb_adr = (using_burst_adr & (adr != wb_adr_i[aw-1:2]));
+   assign burst_access_wrong_wb_adr = (using_burst_adr & (adr != {2'b00,wb_adr_i[aw-1:2]}));
 
    // Address registering logic
    always@(posedge wb_clk_i)
@@ -113,7 +113,7 @@ module wb_ram_b3(
      else if (using_burst_adr)
        adr <= burst_adr_counter;
      else if (wb_cyc_i & wb_stb_i)
-       adr <= wb_adr_i[aw-1:2];
+       adr <= {2'b00,wb_adr_i[aw-1:2]};
        
    parameter memory_file = "sram.vmem";
 

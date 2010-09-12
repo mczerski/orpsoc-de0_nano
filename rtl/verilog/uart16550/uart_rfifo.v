@@ -192,7 +192,7 @@ reg	[fifo_pointer_w-1:0]	bottom;
 reg	[fifo_counter_w-1:0]	count;
 reg				overrun;
 
-wire [fifo_pointer_w-1:0] top_plus_1 = top + 1'b1;
+wire [fifo_pointer_w-1:0] top_plus_1 = top + 4'h1;
 
 raminfr #(fifo_pointer_w,8,fifo_depth) rfifo  
         (.clk(clk), 
@@ -208,7 +208,7 @@ begin
 	if (wb_rst_i)
 	begin
 		top		<=  0;
-		bottom		<=  1'b0;
+        	bottom  	<=  0;	   
 		count		<=  0;
 		fifo[0] <=  0;
 		fifo[1] <=  0;
@@ -230,7 +230,7 @@ begin
 	else
 	if (fifo_reset) begin
 		top		<=  0;
-		bottom		<=  1'b0;
+		bottom		<=  0;
 		count		<=  0;
 		fifo[0] <=  0;
 		fifo[1] <=  0;
@@ -256,16 +256,16 @@ begin
 			begin
 				top       <=  top_plus_1;
 				fifo[top] <=  data_in[2:0];
-				count     <=  count + 1'b1;
+				count     <=  count + 5'd1;
 			end
 		2'b01 : if(count>0)
 			begin
         fifo[bottom] <=  0;
-				bottom   <=  bottom + 1'b1;
-				count	 <=  count - 1'b1;
+				bottom   <=  bottom + 4'd1;
+				count	 <=  count - 5'd1;
 			end
 		2'b11 : begin
-				bottom   <=  bottom + 1'b1;
+				bottom   <=  bottom + 4'd1;
 				top       <=  top_plus_1;
 				fifo[top] <=  data_in[2:0];
 		        end

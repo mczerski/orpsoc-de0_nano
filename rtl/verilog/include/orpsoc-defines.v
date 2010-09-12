@@ -38,7 +38,7 @@
 `define BOARD_CLOCK_PERIOD_NS 20
 
 // Included modules: define to include
-`define JTAG_DEBUG
+//`define JTAG_DEBUG
 `define UART0
 
 // end of included module defines - keep this comment line here

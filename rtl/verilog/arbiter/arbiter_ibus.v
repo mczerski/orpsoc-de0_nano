@@ -299,7 +299,7 @@ module arbiter_ibus
    // Slave out assigns
    assign wbs0_adr_i = wbm_adr_o;
    assign wbs0_dat_i = wbm_dat_o;
-   assign wbs0_we_i = wbm_dat_o;
+   assign wbs0_we_i  = wbm_we_o;
    assign wbs0_sel_i = wbm_sel_o;
    assign wbs0_cti_i = wbm_cti_o;
    assign wbs0_bte_i = wbm_bte_o;
@@ -308,7 +308,7 @@ module arbiter_ibus
 
    assign wbs1_adr_i = wbm_adr_o;
    assign wbs1_dat_i = wbm_dat_o;
-   assign wbs1_we_i = wbm_dat_o;
+   assign wbs1_we_i  = wbm_we_o;
    assign wbs1_sel_i = wbm_sel_o;
    assign wbs1_cti_i = wbm_cti_o;
    assign wbs1_bte_i = wbm_bte_o;

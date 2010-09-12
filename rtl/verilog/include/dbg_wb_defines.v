@@ -69,16 +69,18 @@
 
 // Defining length of the command
 `define DBG_WB_CMD_LEN          3'd4
+`define DBG_WB_CMD_LEN_INT      4
 `define DBG_WB_CMD_CNT_WIDTH    3
 
 // Defining length of the access_type field
-`define DBG_WB_ACC_TYPE_LEN     3'd4
+`define DBG_WB_ACC_TYPE_LEN     4
+
 
 // Defining length of the address
-`define DBG_WB_ADR_LEN          6'd32
+`define DBG_WB_ADR_LEN          32
 
 // Defining length of the length register
-`define DBG_WB_LEN_LEN          5'd16
+`define DBG_WB_LEN_LEN          16
 
 // Defining total length of the DR needed
 `define DBG_WB_DR_LEN           (`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN)

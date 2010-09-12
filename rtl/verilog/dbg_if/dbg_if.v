@@ -396,7 +396,7 @@ begin
   if (rst_i)
     data_cnt <=  {`DBG_TOP_DATA_CNT{1'b0}};
   else if(shift_dr_i & (~data_cnt_end))
-    data_cnt <=  data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1;
   else if (update_dr_i)
     data_cnt <=  {`DBG_TOP_DATA_CNT{1'b0}};
 end
@@ -411,7 +411,7 @@ begin
   if (rst_i)
     crc_cnt <=  {`DBG_TOP_CRC_CNT{1'b0}};
   else if(shift_dr_i & data_cnt_end & (~crc_cnt_end) & module_select)
-    crc_cnt <=  crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1;
   else if (update_dr_i)
     crc_cnt <=  {`DBG_TOP_CRC_CNT{1'b0}};
 end
@@ -434,7 +434,7 @@ begin
   if (rst_i)
     status_cnt <=  {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
   else if(shift_dr_i & crc_cnt_end & (~status_cnt_end))
-    status_cnt <=  status_cnt + 1'b1;
+    status_cnt <=  status_cnt + 1;
   else if (update_dr_i)
     status_cnt <=  {`DBG_TOP_STATUS_CNT_WIDTH{1'b0}};
 end
@@ -502,7 +502,7 @@ assign data_shift_en = shift_dr_i & (~data_cnt_end);
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    module_dr <=  `DBG_TOP_MODULE_DATA_LEN'h0;
+    module_dr <=  0;   
   else if (data_shift_en)
     module_dr[`DBG_TOP_MODULE_DATA_LEN -1:0] <=  {module_dr[`DBG_TOP_MODULE_DATA_LEN -2:0], tdi_i};
 end

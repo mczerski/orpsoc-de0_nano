@@ -352,29 +352,31 @@ module uart_regs (clk,
    assign 									dtr_pad_o = mcr[`UART_MC_DTR];
 
    // Interrupt signals
-   wire 									rls_int;  // receiver line status interrupt
-   wire 									rda_int;  // receiver data available interrupt
-   wire 									ti_int;   // timeout indicator interrupt
-   wire										thre_int; // transmitter holding register empty interrupt
-   wire 									ms_int;   // modem status interrupt
+   wire 			     rls_int;  // receiver line status interrupt
+   wire 			     rda_int;  // receiver data available interrupt
+   wire 			     ti_int;   // timeout indicator interrupt
+   wire 			     thre_int; // transmitter holding register empty interrupt
+   wire 			     ms_int;   // modem status interrupt
 
    // FIFO signals
-   reg 										tf_push;
-   reg 										rf_pop;
-   wire [`UART_FIFO_REC_WIDTH-1:0] 						rf_data_out;
-   wire 									rf_error_bit; // an error (parity or framing) is inside the fifo
-   wire [`UART_FIFO_COUNTER_W-1:0] 						rf_count;
-   wire [`UART_FIFO_COUNTER_W-1:0] 						tf_count;
-   wire [2:0] 									tstate;
-   wire [3:0] 									rstate;
-   wire [9:0] 									counter_t;
+   reg 				     tf_push;
+   reg 				     rf_pop;
+   wire [`UART_FIFO_REC_WIDTH-1:0]   rf_data_out;
+   wire 			     rf_error_bit; // an error (parity or framing) is inside the fifo
+   wire 			     rf_overrun;
+   wire 			     rf_push_pulse;   
+   wire [`UART_FIFO_COUNTER_W-1:0]   rf_count;
+   wire [`UART_FIFO_COUNTER_W-1:0]   tf_count;
+   wire [2:0] 			     tstate;
+   wire [3:0] 			     rstate;
+   wire [9:0] 			     counter_t;
 
-   wire 									thre_set_en; // THRE status is delayed one character time when a character is written to fifo.
-   reg [7:0] 									block_cnt;   // While counter counts, THRE status is blocked (delayed one character cycle)
-   reg [7:0] 									block_value; // One character length minus stop bit
+   wire 			     thre_set_en; // THRE status is delayed one character time when a character is written to fifo.
+   reg [7:0] 			     block_cnt;   // While counter counts, THRE status is blocked (delayed one character cycle)
+   reg [7:0] 			     block_value; // One character length minus stop bit
 
    // Transmitter Instance
-   wire 									serial_out;
+   wire 			     serial_out;
 
    uart_transmitter transmitter(clk, wb_rst_i, lcr, tf_push, wb_dat_i, enable, serial_out, tstate, tf_count, tx_reset, lsr_mask);
 
@@ -392,7 +394,7 @@ module uart_regs (clk,
    defparam i_uart_sync_flops.init_value = 1'b1;
 
    // handle loopback
-   wire 									serial_in = loopback ? serial_out : srx_pad;
+   wire 			     serial_in = loopback ? serial_out : srx_pad;
    assign stx_pad_o = loopback ? 1'b1 : serial_out;
 
    // Receiver Instance
@@ -406,7 +408,7 @@ module uart_regs (clk,
      begin
 	case (wb_addr_i)
 	  `UART_REG_RB   : wb_dat_o = dlab ? dl[`UART_DL1] : rf_data_out[10:3];
-	  `UART_REG_IE	: wb_dat_o = dlab ? dl[`UART_DL2] : ier;
+	  `UART_REG_IE	: wb_dat_o = dlab ? dl[`UART_DL2] : {4'd0,ier};
 	  `UART_REG_II	: wb_dat_o = {4'b1100,iir};
 	  `UART_REG_LC	: wb_dat_o = lcr;
 	  `UART_REG_LS	: wb_dat_o = lsr;
@@ -498,7 +500,7 @@ module uart_regs (clk,
 `ifdef PRESCALER_PRESET_HARD
 		dl[`UART_DL2];
 `else
-	        wb_dat_i;
+	      wb_dat_i;
 `endif	      
 	   end
 	 else

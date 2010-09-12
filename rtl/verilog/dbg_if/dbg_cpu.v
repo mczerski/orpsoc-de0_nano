@@ -39,50 +39,7 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: dbg_cpu.v,v $
-// Revision 1.12  2004/04/08 14:15:10  igorm
-// CTRL READ fixed. Stall bit was not shifted out OK. Error appeared in last
-// check-in.
-//
-// Revision 1.11  2004/04/07 19:28:55  igorm
-// Zero is shifted out when CTRL_READ command is active.
-//
-// Revision 1.10  2004/04/01 10:22:45  igorm
-// Signals for easier debugging removed.
-//
-// Revision 1.9  2004/03/31 14:34:09  igorm
-// data_cnt_lim length changed to reduce number of warnings.
-//
-// Revision 1.8  2004/03/28 20:27:01  igorm
-// New release of the debug interface (3rd. release).
-//
-// Revision 1.7  2004/01/25 14:04:18  mohor
-// All flipflops are reset.
-//
-// Revision 1.6  2004/01/22 13:58:53  mohor
-// Port signals are all set to zero after reset.
-//
-// Revision 1.5  2004/01/19 07:32:41  simons
-// Reset values width added because of FV, a good sentence changed because some tools can not handle it.
-//
-// Revision 1.4  2004/01/17 18:38:11  mohor
-// cpu_tall_o is set with cpu_stb_o or register.
-//
-// Revision 1.3  2004/01/17 18:01:24  mohor
-// New version.
-//
-// Revision 1.2  2004/01/17 17:01:14  mohor
-// Almost finished.
-//
-// Revision 1.1  2004/01/16 14:53:31  mohor
-// *** empty log message ***
-//
-//
-//
-                                                                                 
+
 // synopsys translate_off
 `include "timescale.v"
 // synopsys translate_on
@@ -285,7 +242,10 @@ begin
                           dr[31:0] <=  {dr[30:0], 1'b0};
                           latch_data <=  1'b0;
                         end
-                    end
+        end
+	default: begin
+	   
+	end
       endcase
     end
   else if (enable && (!addr_len_cnt_end))
@@ -307,7 +267,7 @@ begin
   else if (update_dr_i)
     cmd_cnt <=  {`DBG_CPU_CMD_CNT_WIDTH{1'b0}};
   else if (cmd_cnt_en)
-    cmd_cnt <=  cmd_cnt + 1'b1;
+    cmd_cnt <=  cmd_cnt + 1;
 end
 
 
@@ -357,7 +317,7 @@ begin
   else if (update_dr_i)
     addr_len_cnt <=  6'h0;
   else if (addr_len_cnt_en)
-    addr_len_cnt <=  addr_len_cnt + 1'b1;
+    addr_len_cnt <=  addr_len_cnt + 1;
 end
 
 
@@ -381,11 +341,11 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH+1{1'b0}};
   else if (update_dr_i)
-    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH{1'b0}};
+    data_cnt <=  {`DBG_CPU_DATA_CNT_WIDTH+1{1'b0}};
   else if (data_cnt_en)
-    data_cnt <=  data_cnt + 1'b1;
+    data_cnt <=  data_cnt + 1;
 end
 
 
@@ -394,9 +354,9 @@ end
 always @ (posedge tck_i or posedge rst_i)
 begin
   if (rst_i)
-    data_cnt_limit <=  {`DBG_CPU_DATA_CNT_LIM_WIDTH{1'b0}};
+    data_cnt_limit <=  {`DBG_CPU_DATA_CNT_LIM_WIDTH+1{1'b0}};
   else if (update_dr_i)
-    data_cnt_limit <=  len + 1'b1;
+    data_cnt_limit <=  len + 1;
 end
 
 
@@ -424,7 +384,7 @@ begin
   if (rst_i)
     crc_cnt <=  {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
   else if(crc_cnt_en)
-    crc_cnt <=  crc_cnt + 1'b1;
+    crc_cnt <=  crc_cnt + 1;
   else if (update_dr_i)
     crc_cnt <=  {`DBG_CPU_CRC_CNT_WIDTH{1'b0}};
 end
@@ -462,7 +422,7 @@ begin
   else if (update_dr_i)
     status_cnt <=  {`DBG_CPU_STATUS_CNT_WIDTH{1'b0}};
   else if (status_cnt_en)
-    status_cnt <=  status_cnt + 1'b1;
+    status_cnt <=  status_cnt + 1;
 end
 
 
@@ -532,11 +492,11 @@ begin
   if (rst_i)
     len_var <=  {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
   else if(update_dr_i)
-    len_var <=  len + 1'b1;
+    len_var <=  len + 'd1;
   else if (start_rd_tck)
     begin
-      if (len_var > 'd4)
-        len_var <=  len_var - 3'd4; 
+      if (len_var > 4)
+        len_var <=  len_var - 'd4; 
       else
         len_var <=  {1'b0, {`DBG_CPU_LEN_LEN{1'b0}}};
     end
@@ -571,7 +531,7 @@ begin
   if (rst_i)
     begin
       start_wr_tck <=  1'b0;
-      cpu_dat_tmp <=  32'h0;
+      cpu_dat_tmp <=  32'd0;
     end
   else if (curr_cmd_go && acc_type_write)
     begin
@@ -686,7 +646,8 @@ begin
     cpu_addr_dsff <=  adr;
   else if (cpu_ack_i && (!cpu_ack_q))
     //cpu_addr_dsff <=  cpu_addr_dsff + 3'd4;
-    cpu_addr_dsff <=  cpu_addr_dsff + 3'd1; // Increment by just 1, to allow block reading -- jb 090901
+    // Increment by just 1, to allow block reading -- jb 090901
+    cpu_addr_dsff <=  cpu_addr_dsff + 'd1;
 end
 
 

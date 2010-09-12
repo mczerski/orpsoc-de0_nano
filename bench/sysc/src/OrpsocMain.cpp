@@ -42,7 +42,9 @@
 
 #include "OrpsocMain.h"
 
-#include "JtagSC_includes.h"
+// TODO - copy orpsoc-defines.h and or1200-defines.h somewhere this can see
+//        them and include/exclude RSP stuff. For now is defined
+//#define JTAG_DEBUG
 
 #include "Vorpsoc_top.h"
 #include "OrpsocAccess.h"
@@ -52,7 +54,12 @@
 
 #include "ResetSC.h"
 #include "Or1200MonitorSC.h"
-#include "GdbServerSC.h"
+
+#ifdef JTAG_DEBUG
+# include "GdbServerSC.h"
+# include "JtagSC_includes.h"
+#endif
+
 #include "UartSC.h"
 
 int SIM_RUNNING;
@@ -62,18 +69,20 @@ int sc_main (int   argc,
   sc_set_time_resolution( 1, TIMESCALE_UNIT);
   // CPU clock (also used as JTAG TCK) and reset (both active high and low)
   sc_time  clkPeriod (BENCH_CLK_HALFPERIOD * 2.0, TIMESCALE_UNIT);
-  sc_time   jtagPeriod (JTAG_CLK_HALFPERIOD * 2.0, TIMESCALE_UNIT);
-
   sc_clock             clk ("clk", clkPeriod);
-  sc_clock  jtag_tck ("jtag-clk", jtagPeriod, 0.5, SC_ZERO_TIME, false);
-  
+
   sc_signal<bool>      rst;
   sc_signal<bool>      rstn;
+
+#ifdef JTAG_DEBUG
+  sc_time   jtagPeriod (JTAG_CLK_HALFPERIOD * 2.0, TIMESCALE_UNIT);
+  sc_clock  jtag_tck ("jtag-clk", jtagPeriod, 0.5, SC_ZERO_TIME, false);
 
   sc_signal<bool>      jtag_tdi;		// JTAG interface
   sc_signal<bool>      jtag_tdo;
   sc_signal<bool>      jtag_tms;
   sc_signal<bool>      jtag_trst;
+#endif
 
   sc_signal<bool>      uart_rx;		// External UART
   sc_signal<bool>      uart_tx;
@@ -90,17 +99,21 @@ int sc_main (int   argc,
   bool dumping_now = false;
   int dump_depth = 99; // Default dump depth
   sc_time dump_start,dump_stop, finish_time;
-  bool finish_time_set = false; // By default we will let the simulation finish naturally
+  bool finish_time_set = false; // By default we will let the simulation 
+                                // finish naturally
   VerilatedVcdC *verilatorVCDFile;
   
   /*int*/double time_val;
   bool vcd_file_name_given = false;
 
+#ifdef JTAG_DEBUG
   bool rsp_server_enabled = false;
   int rsp_server_port = DEFAULT_RSP_PORT;
+#endif
 
   // Executable app load variables
-  int do_program_file_load = 0; // Default: we don't require a file, we use the VMEM
+  int do_program_file_load = 0; // Default: we don't require a file, we use the
+                                // VMEM
   char* program_file; // Old char* style for program name
 
   // Verilator accessor
@@ -112,9 +125,14 @@ int sc_main (int   argc,
   MemoryLoad *memoryload;       // Memory loader
   
   ResetSC          *reset;		// Generate a RESET signal
+
   Or1200MonitorSC  *monitor;		// Handle l.nop x instructions
+
+#ifdef JTAG_DEBUG
   JtagSC           *jtag;		// Generate JTAG signals
   GdbServerSC      *gdbServer;		// Map RSP requests to debug unit
+#endif
+
   UartSC          *uart;		// Handle UART signals
 
   // Instantiate the Verilator model, VCD trace handler and accessor
@@ -129,13 +147,16 @@ int sc_main (int   argc,
   
   // Instantiate the SystemC modules
   reset         = new ResetSC ("reset", BENCH_RESET_TIME);
-  
+
+#ifdef JTAG_DEBUG  
   jtag          = new JtagSC ("jtag");
+#endif
 
   uart          = new UartSC("uart"); // TODO: Probalby some sort of param
 
   // Parse command line options
-  // Default is for VCD generation OFF, only turned on if specified on command line
+  // Default is for VCD generation OFF, only turned on if specified on command 
+  // line
   
   // Search through the command line parameters for options  
   if (argc > 1)
@@ -153,7 +174,8 @@ int sc_main (int   argc,
 	  else if ( (strcmp(argv[i], "-f")==0) ||
 		    (strcmp(argv[i], "--program")==0) )
 	    {
-	      do_program_file_load = 1; // Enable program loading - will be done after sim init
+	      do_program_file_load = 1; // Enable program loading - will be 
+	                                // done after sim init.
 	      program_file = argv[i+1]; // Old char* style for program name
 	    }
 	  else if ((strcmp(argv[i], "-d")==0) ||
@@ -192,6 +214,7 @@ int sc_main (int   argc,
 	      dump_stop = dump_stop_time;
 	      dump_stop_set = true;
 	    }
+#ifdef JTAG_DEBUG
 	  else if ( (strcmp(argv[i], "-r")==0) ||
 		    (strcmp(argv[i], "--rsp")==0) )
 	    {
@@ -202,6 +225,7 @@ int sc_main (int   argc,
 				  i++;
 				}
 	    }
+#endif
 	  /* 
 	     Depth setting of VCD doesn't appear to work, I think it's only
 	     configurable during at compile time .
@@ -229,8 +253,10 @@ int sc_main (int   argc,
 
 	      printf("  -s, --vcdstart <val>\tEnable and delay VCD generation until <val> ns\n");
 	      printf("  -t, --vcdstop <val> \tEnable and terminate VCD generation at <val> ns\n");
+#ifdef JTAG_DEBUG
 	      printf("\nRemote debugging:\n");
 	      printf("  -r, --rsp [<port>]\tEnable RSP debugging server, opt. specify <port>\n");	     
+#endif
 	      monitor->printUsage();
 	      printf("\n");
 	      return 0;
@@ -252,21 +278,24 @@ int sc_main (int   argc,
 	cout << ", off at time " << dump_stop.to_string();
       cout << endl;
     }
-  
+#ifdef JTAG_DEBUG  
   if (rsp_server_enabled)
     gdbServer     = new GdbServerSC ("gdb-server", FLASH_START, FLASH_END,
 				       rsp_server_port, jtag->tapActionQueue);
   else
       gdbServer = NULL;
+#endif
     
   // Connect up ORPSoC
   orpsoc->clk_pad_i (clk);
   orpsoc->rst_n_pad_i (rstn);
 
+#ifdef JTAG_DEBUG
   orpsoc->tck_pad_i  (jtag_tck);		// JTAG interface
   orpsoc->tdi_pad_i  (jtag_tdi);
   orpsoc->tms_pad_i  (jtag_tms);
   orpsoc->tdo_pad_o  (jtag_tdo);
+#endif
 
   orpsoc->uart0_srx_pad_i (uart_rx);		// External UART
   orpsoc->uart0_stx_pad_o (uart_tx);
@@ -278,20 +307,24 @@ int sc_main (int   argc,
 
   monitor->clk (clk);			// Monitor
 
+#ifdef JTAG_DEBUG
   jtag->sysReset (rst);			// JTAG
   jtag->tck (jtag_tck);
   jtag->tdi (jtag_tdi);
   jtag->tdo (jtag_tdo);
   jtag->tms (jtag_tms);
   jtag->trst (jtag_trst);
+#endif
 
   uart->clk (clk); // Uart
   uart->uartrx (uart_rx); // orpsoc's receive line
   uart->uarttx (uart_tx); // orpsoc's transmit line
 
   // Tie off signals
+#ifdef JTAG_DEBUG
   jtag_tdi      = 1;			// Tie off the JTAG inputs
   jtag_tms      = 1;
+#endif
   
   if (VCD_enabled)
     {
@@ -302,9 +335,7 @@ int sc_main (int   argc,
       // Establish a new trace with its correct time resolution, and trace to
       // great depth.
       verilatorVCDFile = new VerilatedVcdC ();
-      //verilatorVCDFile->verilated()->set_time_resolution (sc_get_time_resolution());
-      //setSpTimeResolution (sc_get_time_resolution ());
-      //traceTarget->trace (verilatorVCDFile, 99);
+
       orpsoc->trace (verilatorVCDFile, dump_depth);
       
       if (dumping_now)    
@@ -323,7 +354,8 @@ int sc_main (int   argc,
       cout << "* Loading program from " << program_file << endl;
       if (memoryload->loadcode(program_file,0,0) < 0)
 	{
-	  cout << "* Error: executable file " << program_file << " not loaded" << endl;
+	  cout << "* Error: executable file " << program_file << 
+	    " not loaded" << endl;
 	}
     }
   else // Load SRAM from VMEM file
@@ -423,8 +455,9 @@ int sc_main (int   argc,
   else
     {
       // Simple run case
-      // Ideally a "l.nop 1" will terminate the simulation gracefully
-      // Need to step at clock period / 4, otherwise model appears to skip the monitor and logging functions sometimes (?!?)
+      // Ideally a "l.nop 1" will terminate the simulation gracefully.
+      // Need to step at clock period / 4, otherwise model appears to skip the 
+      // monitor and logging functions sometimes (?!?)
       while (SIM_RUNNING)
 	sc_start(BENCH_CLK_HALFPERIOD / 2, TIMESCALE_UNIT);
       //sc_start();
@@ -432,15 +465,21 @@ int sc_main (int   argc,
   
   
   // Free memory
+#ifdef JTAG_DEBUG
   if (rsp_server_enabled)
     delete gdbServer;
+
   delete jtag;
+#endif
+
   delete monitor;
+
   delete reset;
 
   delete accessor;
 
   //delete trace;
+
   delete orpsoc;
 
   return 0;
