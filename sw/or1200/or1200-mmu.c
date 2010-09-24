@@ -91,10 +91,10 @@
 #define DO_DMMU_TESTS 1
 
 // Symbols defined in linker script
-extern unsigned long endtext;
-extern unsigned long stext;
-extern unsigned long edata;
-extern unsigned long stack;
+extern unsigned long _endtext;
+extern unsigned long _stext;
+extern unsigned long _edata;
+extern unsigned long _stack;
 
 unsigned long start_text_addr;
 unsigned long end_text_addr;
@@ -292,7 +292,7 @@ void dtlb_miss_handler (void)
   printf("dtlb miss ea = %.8lx set = %d way = %d\n", ea, set, way);
 
   // Anything under the stack belongs to the program, direct tranlsate it
-  if (ea < (unsigned long)&stack){
+  if (ea < (unsigned long)&_stack){
     /* If this is acces to data of this program set one to one translation */
     mtspr (SPR_DTLBMR_BASE(way) + set, (ea & SPR_DTLBMR_VPN) | SPR_DTLBMR_V);
     mtspr (SPR_DTLBTR_BASE(way) + set, (ea & SPR_DTLBTR_PPN) | DTLB_PR_NOLIMIT);
@@ -1424,9 +1424,9 @@ int main (void)
 {
   int i, j;
 
-  start_text_addr = (unsigned long*)&stext;
-  end_text_addr = (unsigned long*)&endtext;
-  end_data_addr = (unsigned long*)&stack;
+  start_text_addr = (unsigned long*)&_stext;
+  end_text_addr = (unsigned long*)&_endtext;
+  end_data_addr = (unsigned long*)&_stack;
 
 
 #ifndef TLB_BOTTOM_TEST_PAGE_HARDSET

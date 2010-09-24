@@ -12,6 +12,8 @@
 #define UART0_IRQ                    2
 #define UART0_BAUD_RATE 	115200
 
+#define SPI0_BASE 0xb0000000
+
 //
 // OR1200 tick timer period define
 //

@@ -658,7 +658,7 @@ _ibus1:
 	// Check the DMMU is the in the design, otherwise don't compile in this
 	// test.
 #ifndef OR1200_NO_DMMU	
-	.extern _lo_dmmu_en
+	.extern lo_dmmu_en
 _dmmu_except1:
 	/* Call DMMU invalidate function */
 	l.movhi r4, hi(_dmmu_invalidate)
@@ -679,8 +679,8 @@ _dmmu_except1:
 	l.nop
 	
 	/* Now enable DMMU */
-	l.movhi r4, hi(_lo_dmmu_en)
-	l.ori r4, r4, lo(_lo_dmmu_en)
+	l.movhi r4, hi(lo_dmmu_en)
+	l.ori r4, r4, lo(lo_dmmu_en)
 	l.jalr r4
 	l.nop
 
@@ -807,7 +807,7 @@ _dmmu_test_ok:
 	l.nop	2
 
 	l.addi r3,r0,0
-	l.jal	_exit
+	l.jal	exit
 	l.nop
 
 

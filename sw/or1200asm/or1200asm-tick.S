@@ -152,7 +152,7 @@ _die:
 	l.addi  r3,r0,0xeeee
 	l.nop   2
 	l.addi  r3,r0,1
-	l.jal	  _exit
+	l.jal	  exit
 	l.nop
 1:
 	l.j     1b
@@ -491,7 +491,7 @@ _i38:
 	l.nop   2	
 	l.addi  r3,r0,0
 
-	l.jal	  _exit
+	l.jal	  exit
 	l.nop   
 _ok:
 	l.j     _ok

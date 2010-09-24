@@ -70,12 +70,12 @@ symbol:
 #define TIMER_RELOAD_VALUE (SPR_TTMR_IE | SPR_TTMR_RT | ((IN_CLK/TICKS_PER_SEC) & SPR_TTMR_PERIOD))
 	//UNHANDLED_EXCEPTION
 	/* Simply load timer_ticks variable and increment */
-	.extern _timer_ticks
+	.extern timer_ticks
 	l.addi 	r1, r1, -8
 	l.sw 	0(r1), r25	
 	l.sw 	4(r1), r26
-	l.movhi r25, hi(_timer_ticks)
-	l.ori 	r25, r25, lo(_timer_ticks)
+	l.movhi r25, hi(timer_ticks)
+	l.ori 	r25, r25, lo(timer_ticks)
 	l.lwz 	r26, 0(r25)			/* Load variable addr.*/
 	l.addi 	r26, r26, 1			/* Increment variable */
 	l.sw 	0(r25), r26			/* Store variable */
@@ -314,12 +314,12 @@ ENTRY(_start)
 	/* Jump to main program entry point (argc = argv = 0) */
 	CLEAR_GPR(r3)
 	CLEAR_GPR(r4)
-	l.jal   _main
+	l.jal   main
 	l.nop
 	
 	/* If program exits, call exit routine */
 	l.addi  r3, r11, 0
-	l.jal   _exit
+	l.jal   exit
 	l.nop
 
 
@@ -356,7 +356,7 @@ default_exception_handler:
 	l.sw    0x74(r1), r31
 	l.sw    0x78(r1), r32
 	
-	l.jal   _default_exception_handler_c
+	l.jal   default_exception_handler_c
 	l.nop
 	
 	l.lwz    r2, 0x00(r1)
