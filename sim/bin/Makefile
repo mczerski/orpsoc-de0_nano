@@ -55,7 +55,7 @@ BENCH_TOP=$(BENCH_VERILOG_DIR)/$(DESIGN_NAME)_testbench.v
 # Need this for individual test variables to not break
 TEST ?= or1200-simple
 
-TESTS ?= or1200-simple or1200-cbasic or1200-dctest or1200-float or1200-mmu or1200asm-basic or1200asm-except or1200asm-mac or1200asm-linkregtest or1200asm-tick or1200asm-ticksyscall uart-simple
+TESTS ?= or1200-simple or1200-basic or1200-cbasic or1200-dctest or1200-float or1200-mmu  or1200-except or1200-mac or1200-linkregtest or1200-tick or1200-ticksyscall uart-simple
 
 # Gets turned into verilog `define
 SIM_TYPE=RTL
@@ -388,7 +388,7 @@ $(TEST_DEFINES_VLG):
 
 
 # Software make rules (called recursively)
-TEST_SW_DIR=$(SW_DIR)/$(shell echo $(TEST) | cut -d "-" -f 1)
+TEST_SW_DIR=$(SW_DIR)/tests/$(shell echo $(TEST) | cut -d "-" -f 1)/sim
 
 # Set PRELOAD_RAM=1 to preload the system memory, avoiding lengthy SPI FLASH 
 # bootloader process.
@@ -448,7 +448,7 @@ clean-sim-test-sw:
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
-	$(Q) $(MAKE) -C $(SW_DIR)/or1200 clean-all
+	$(Q) $(MAKE) -C $(SW_DIR)/lib clean-all
 
 clean-rtl:
 	$(Q) echo; echo "\t### Cleaning generated verilog RTL ###"; echo;

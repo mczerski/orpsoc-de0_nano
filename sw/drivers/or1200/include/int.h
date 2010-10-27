@@ -1,0 +1,23 @@
+#ifndef _INT_H_
+#define _INT_H_
+/* Number of interrupt handlers */
+#define MAX_INT_HANDLERS	32
+
+/* Handler entry */
+struct ihnd {
+	void 	(*handler)(void *);
+	void	*arg;
+};
+
+/* Add interrupt handler */ 
+int int_add(unsigned long vect, void (* handler)(void *), void *arg);
+
+/* Add exception vector handler */
+void add_handler(unsigned long vector, void (*handler) (void));
+
+/* Initialize routine */
+int int_init();
+
+/* Actual interrup handler function */
+void int_main();
+#endif // _INT_H_
