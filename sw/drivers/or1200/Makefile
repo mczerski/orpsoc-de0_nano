@@ -1,0 +1,9 @@
+SW_ROOT=../..
+
+# Sources to go into the liborpsoc.a support library
+COMPILE_SRCS=exceptions.c int.c  or1200-mmu.S  or1200-utils.c
+
+include $(SW_ROOT)/Makefile.inc
+
+clean:
+	$(Q)rm -f *.a *.o
