@@ -45,10 +45,40 @@ SOURCE_FILES= jp_vpi.c rsp-rtl_sim.c gdb.c
 
 #DEBUG_DEFINES=-DDEBUG -DDEBUG2 -DDEBUG_ON=1 -DDEBUG_GDB=1 -DDEBUG_CMDS=1
 
+# Due to a difference in the type for a memory array passed back to the VPI
+# interface, we must indicate whether we're compiling the jp_vpi module for use
+# with Modelsim or with Icarus. We do this via defines passed at compile time,
+# -DSIMULATOR_VPI
+
+# Set V=1 when calling make to enable verbose output
+# mainly for debugging purposes.
+ifeq ($(V), 1)
+Q=
+QUIET=
+else
+Q ?=@
+QUIET=-quiet
+endif
+
 all: jp_vpi
 
 jp_vpi: $(SOURCE_FILES)
-	iverilog-vpi $(SOURCE_FILES) $(DEBUG_DEFINES)
+	iverilog-vpi $(SOURCE_FILES) $(DEBUG_DEFINES) -DICARUS_VPI
+
+SOURCE_FILES= jp_vpi.c rsp-rtl_sim.c gdb.c
+OBJ_FILES=    jp_vpi.o rsp-rtl_sim.o gdb.o
+
+MODELTECH_INC_PATH=$(MGC_PATH)/modeltech/include
+# Modelsim VPI compile commands
+msim_jp_vpi.sl: $(OBJ_FILES)
+	ld -shared -E -o $@ $?
+%.o: %.c
+	$(Q)echo; echo "\t### Building VPI debug components for Modelsim ###"; echo;
+	$(Q)gcc -g ${DEBUG_DEFINES} -I${MODELTECH_INC_PATH} \
+	-l${MODELTECH_INC_PATH} \
+	-DMODELSIM_VPI \
+	-c $< -o $*.o
 
 clean:
-	rm -f *.o *~ jp_vpi.vpi
+	$(Q)echo; echo "\t### Cleaning VPI debug directory ###"; echo;
+	$(Q)rm -f *.o *~ jp_vpi.vpi msim_jp_vpi.sl

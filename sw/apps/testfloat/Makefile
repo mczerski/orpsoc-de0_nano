@@ -17,7 +17,9 @@ testfloat_SOURCES    = 	systmodes.c	\
 
 ELF_DEPENDS= $(common_testfloat_sources) $(testfloat_SOURCES)
 
-include ../Makefile.inc
+SW_ROOT=../..
+
+include $(SW_ROOT)/Makefile.inc
 
 
 #testfloat.elf: 

@@ -201,6 +201,7 @@ module orpsoc_testbench;
       );
    
    // UART0 stimulus
+   /*
    uart_stim
      #( 
 	.uart_baudrate_period_ns(8680) // 115200 baud = period 8.68uS
@@ -210,7 +211,10 @@ module orpsoc_testbench;
       .clk(clk),
       .uart_rx(uart0_srx_pad_i)
       );
-
+    */
+   // UART0 is looped back for now
+   assign uart0_srx_pad_i = uart0_stx_pad_o;
+   
 `endif //  `ifdef UART0
    
 endmodule // orpsoc_testbench

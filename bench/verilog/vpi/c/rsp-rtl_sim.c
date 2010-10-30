@@ -78,7 +78,8 @@ static uint32_t crc_calc(uint32_t crc, int input_bit) {
 
 /* VPI communication prototyopes */
 static void get_response_from_vpi();
-static void get_data_from_vpi();
+static void get_word_from_vpi();
+static void get_byte_from_vpi();
 static void get_block_data_from_vpi(int len, uint32_t *data);
 static void send_data_to_vpi(uint32_t data);
 static void send_block_data_to_vpi(int len, uint32_t *data);
@@ -162,7 +163,29 @@ void send_block_data_to_vpi(int len, uint32_t *data)
   
 }
 
-void get_data_from_vpi(uint32_t* data)
+
+void get_byte_from_vpi(uint8_t* data)
+{
+  
+  int n;
+  
+  uint8_t inc_data;
+  
+  char* recv_buf;
+  
+  recv_buf = (char*) &inc_data;
+  
+  n = read(vpi_to_rsp_pipe[0],recv_buf,1); // block and wait for the data
+
+  if (DBG_VPI) printf("rsp-rtl_sim: get_byte_from_vpi: 0x%.8x\n",inc_data);
+
+  *data = inc_data;
+  
+  return;
+
+}
+
+void get_word_from_vpi(uint32_t* data)
 {
   
   int n;
@@ -175,7 +198,7 @@ void get_data_from_vpi(uint32_t* data)
   
   n = read(vpi_to_rsp_pipe[0],recv_buf,4); // block and wait for the data
 
-  if (DBG_VPI) printf("rsp-rtl_sim: get_data_from_vpi: 0x%.8x\n",inc_data);
+  if (DBG_VPI) printf("rsp-rtl_sim: get_word_from_vpi: 0x%.8x\n",inc_data);
 
   *data = inc_data;
   
@@ -233,9 +256,11 @@ void get_response_from_vpi()
   int n = 0;
   char tmp;
 
-  if (DBG_CALLS)printf("get_response_from_vpi\n");
+  if (DBG_CALLS)printf("get_response_from_vpi..");
 
   n = read(vpi_to_rsp_pipe[0],&tmp,1); // block and wait
+
+  if (DBG_CALLS)printf("OK\n");
   
   return;
 }
@@ -271,8 +296,8 @@ static void jp2_reset_JTAG() {
   /* now read out the jtag id */
   send_command_to_vpi(CMD_READ_JTAG_ID);
   
-  //id = get_data_from_vpi();  
-  get_data_from_vpi((uint32_t *)&id);  
+  //id = get_word_from_vpi();  
+  get_word_from_vpi((uint32_t *)&id);  
   
   get_response_from_vpi();
  
@@ -374,7 +399,7 @@ int dbg_ctrl_read(int *reset, int *stall)
   
   send_command_to_vpi(CMD_CPU_CTRL_RD);
   
-  get_data_from_vpi((uint32_t *)&resp);
+  get_word_from_vpi((uint32_t *)&resp);
   
   if (DBG_VPI) printf("rsp-rtl_sim: dbg_ctrl_read: 0x%.8x\n",resp);
 
@@ -398,7 +423,25 @@ int dbg_wb_read32(uint32_t adr, uint32_t *data)
   
   send_address_to_vpi(adr);
   
-  get_data_from_vpi(data);
+  get_word_from_vpi(data);
+  
+  get_response_from_vpi();
+  
+  return 0;
+}
+
+/* read a word from wishbone */
+int dbg_wb_read8(uint32_t adr, uint8_t *data) 
+{
+  if (DBG_CALLS)printf("dbg_wb_read8: adr 0x%.8x \n",adr);
+
+  dbg_set_chain(DC_WISHBONE);
+  
+  send_command_to_vpi(CMD_WB_RD8);
+  
+  send_address_to_vpi(adr);
+  
+  get_byte_from_vpi(data);
   
   get_response_from_vpi();
   
@@ -527,7 +570,7 @@ int dbg_cpu0_read(uint32_t adr, uint32_t *data, uint32_t length)
 
   send_data_to_vpi(length); // Added 090901 --jb
 
-  get_block_data_from_vpi(length, data); // changed 090901 --jb //get_data_from_vpi(data);
+  get_block_data_from_vpi(length, data); // changed 090901 --jb //get_word_from_vpi(data);
   
   get_response_from_vpi();
   

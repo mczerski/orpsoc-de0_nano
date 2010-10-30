@@ -41,17 +41,35 @@
 //
 `define OR1200_TOP orpsoc_testbench.dut.or1200_top
 
+//
+// Define to enable lookup file generation
+//
+//`define OR1200_MONITOR_LOOKUP
 
 //
-// Enable display_arch_state task
+// Define to enable SPR access log file generation
 //
-//`define OR1200_DISPLAY_ARCH_STATE
+//`define OR1200_MONITOR_SPRS
 
 //
-// Enable disassembly of instructions in execution log
+// Enable logging of state during execution
+//
+//`define OR1200_MONITOR_EXEC_STATE
+
+//
+// Enable disassembly of instructions in execution state log
 //
 //`define OR1200_MONITOR_PRINT_DISASSEMBLY
 
+// Can either individually enable things above, or usually have the scripts
+// running the simulation pass the PROCESSOR_MONITOR_ENABLE_LOGS define to
+// enable them all.
+
+`ifdef PROCESSOR_MONITOR_ENABLE_LOGS
+ `define OR1200_MONITOR_EXEC_STATE
+ `define OR1200_MONITOR_SPRS
+ `define OR1200_MONITOR_LOOKUP
+`endif
 
 //
 // Top of OR1200 inside test bench
@@ -67,9 +85,13 @@ module or1200_monitor;
 
    integer fexe;
    reg [23:0] ref;
+`ifdef OR1200_MONITOR_SPRS   
    integer    fspr;
+`endif   
    integer    fgeneral;
+`ifdef OR1200_MONITOR_LOOKUP
    integer    flookup;
+`endif   
    integer    r3;
    integer    insns;
 
@@ -79,11 +101,17 @@ module or1200_monitor;
    //
    initial begin
       ref = 0;
+`ifdef OR1200_MONITOR_EXEC_STATE      
       fexe = $fopen({"../out/",`TEST_NAME_STRING,"-executed.log"});
+`endif      
       $timeformat (-9, 2, " ns", 12);
+`ifdef OR1200_MONITOR_SPRS      
       fspr = $fopen({"../out/",`TEST_NAME_STRING,"-sprs.log"});
+`endif      
       fgeneral = $fopen({"../out/",`TEST_NAME_STRING,"-general.log"});
+`ifdef OR1200_MONITOR_LOOKUP      
       flookup = $fopen({"../out/",`TEST_NAME_STRING,"-lookup.log"});
+`endif      
       insns = 0;
 
    end
@@ -123,9 +151,11 @@ module or1200_monitor;
       reg [31:0] r;
       integer 	 j;
       begin
-`ifdef OR1200_DISPLAY_ARCH_STATE
+`ifdef OR1200_MONITOR_EXEC_STATE
 	 ref = ref + 1;
+ `ifdef OR1200_MONITOR_LOOKUP	 
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+ `endif	 
 	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, 
 		 `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, 
 		 `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
@@ -149,10 +179,12 @@ module or1200_monitor;
 	 $fwrite(fexe, "EEAR0: %h  ", r);
 	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.esr;
 	 $fdisplay(fexe, "ESR0 : %h", r);
-`endif //  `ifdef OR1200_DISPLAY_ARCH_STATE
+`endif //  `ifdef OR1200_MONITOR_EXEC_STATE
 `ifdef OR1200_DISPLAY_EXECUTED
 	 ref = ref + 1;
+ `ifdef OR1200_MONITOR_LOOKUP	 
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+ `endif	 
 	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.wb_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn);
 `endif
 	 insns = insns + 1;
@@ -219,9 +251,11 @@ end
       reg [31:0] r;
       integer 	 j;
       begin
-`ifdef OR1200_DISPLAY_ARCH_STATE
+`ifdef OR1200_MONITOR_EXEC_STATE
 	 ref = ref + 1;
+ `ifdef OR1200_MONITOR_LOOKUP	 
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+ `endif	 
 	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h  (exception)", insns, `OR1200_TOP.`CPU_cpu.`CPU_except.ex_pc, `OR1200_TOP.`CPU_cpu.`CPU_ctrl.ex_insn);
 	 for(i = 0; i < 32; i = i + 1) begin
 	    if (i % 4 == 0)
@@ -239,10 +273,12 @@ end
 	 r = `OR1200_TOP.`CPU_cpu.`CPU_sprs.esr;
 	 $fdisplay(fexe, "ESR0 : %h", r);
          insns = insns + 1;
-`endif //  `ifdef OR1200_DISPLAY_ARCH_STATE
+`endif //  `ifdef OR1200_MONITOR_EXEC_STATE
 `ifdef OR1200_DISPLAY_EXECUTED
 	 ref = ref + 1;
+ `ifdef OR1200_MONITOR_LOOKUP	 
 	 $fdisplay(flookup, "Instruction %d: %t", insns, $time);
+ `endif	 
 	 $fwrite(fexe, "\nEXECUTED(%d): %h:  %h  (exception)", insns, 
 		 `OR1200_TOP.`CPU_cpu.`CPU_except.ex_pc, 
 		 `OR1200_TOP.`CPU_cpu.`CPU_ctrl.ex_insn);
@@ -371,9 +407,6 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 	// debug if test (l.nop 10)
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_000a) begin
 	   $fdisplay(fgeneral, "%t: l.nop dbg_if_test", $time);
-`ifdef DBG_IF_MODEL
-	   xess_top.i_xess_fpga.dbg_if_model.dbg_if_test_go = 1;
-`endif
 	end
 	// simulation reports (l.nop 2)
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0002) begin 
@@ -391,16 +424,17 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 	   $write("%c", r3);
 	   $fdisplay(fgeneral, "%t: l.nop putc (%c)", $time, r3);
 	end
-	if (`OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.sprs_op*/ == 
-	    `OR1200_ALUOP_MTSR)  // l.mtspr
+`ifdef OR1200_MONITOR_SPRS	
+	if (`OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_we)
 	  $fdisplay(fspr, "%t: Write to SPR : [%h] <- %h", $time,
-		    `OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.spr_addr*/, 
+		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_addr,
 		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_dat_o);
-	if (`OR1200_TOP.`CPU_cpu.alu_op/*`CPU_sprs.sprs_op*/ == 
-	    `OR1200_ALUOP_MFSR)  // l.mfspr
+	if ((|`OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_cs) & 
+	    !`OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_we)
 	  $fdisplay(fspr, "%t: Read from SPR: [%h] -> %h", $time,
 		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.spr_addr, 
 		    `OR1200_TOP.`CPU_cpu.`CPU_sprs.to_wbmux);
+`endif	
      end
 
 

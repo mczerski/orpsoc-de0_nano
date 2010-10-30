@@ -374,7 +374,6 @@ Or1200MonitorSC::printUsage()
 
   printf("  -b, --binlog <file>\tGenerate binary format execution log (faster, smaller)\n");
 
-  printf("  -q, --quiet\t\tDisable the performance summary at end of simulation\n");
   printf("  -m, --memdump <file> <0xstartaddr> <0xendaddr>\n\t\t\tDump data between <0xstartaddr> and <0xendaddr> from\n\t\t\tthe system's RAM to <file> in binary format on exit\n");
   printf("  -c, --crash-monitor\tDetect when the processor has crashed and exit\n");
 /*

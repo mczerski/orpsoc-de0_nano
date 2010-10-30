@@ -1,0 +1,593 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename orpsoc.info
+@settitle ORPSoC manual 0.1
+@include config.texi
+@c %**end of header
+
+@copying
+This file documents the OpenRISC Reference Platform SoC, @value{ORPSOC}.
+
+Copyright @copyright{} 2010 OpenCores
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+@end quotation
+@end copying
+
+@setchapternewpage on
+@settitle @value{ORPSOC} User Guide
+
+@syncodeindex fn cp
+@syncodeindex vr cp
+
+@titlepage
+@title @value{ORPSOC} User Guide
+@c @subtitle subtitle-if-any
+@c @subtitle second-subtitle
+@author Julius Baxter
+@author OpenCores
+@author Issue 1 for @value{ORPSOC}
+
+@c  The following two commands
+@c  start the copyright page.
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+
+Published by OpenCores
+@end titlepage
+
+@c So the toc is printed at the start.
+@contents
+
+@ifnottex
+@node Top
+@top Scope of this Document
+
+This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platform System on Chip project.
+
+@end ifnottex
+
+@menu
+* Introduction::
+* Project Organisation::
+* Getting Started::
+* Reference Design::
+* Board Designs::
+* ordb1a3pe1500::
+* GNU Free Documentation License::  The license for this documentation
+* Index::
+@end menu
+
+@node Introduction
+@chapter Introduction
+
+@cindex introduction to this @value{ORPSOC}
+
+@value{ORPSOC} is intended to be a reference implementation of processors in the OpenRISC family. It provides a smallest-possible reference system, primarily for testing of the processors, and systems intended to be synthesized and run on physical hardware (boards.) The simple refernce system contains just enough to test the processor's functionality, whereas the board targeted builds will include many additional peripherals.
+
+The reference design will contain a minimal set of resources to create an OpenRISC-based SoC. It is expected the board builds will contain their own set of peripheral modules and software, and still draw upon the resources available in the reference implementation. It is hoped that, with this structure, the project can serve dual roles; to be a development platform for OpenRISC family processors, and to provide a platform for development of complex OpenRISC-based systems on chip.
+
+This document, the user guide, focuses on getting the various designs in @value{ORPSOC} up and running. For matters relating to development of a board port, see the development guide included with this documentation.
+
+@c ****************************************************************************
+@c Project Organisation
+@c **************************************************************************** 
+
+@node Project Organisation
+@chapter Project Organisation
+@cindex organisation of @value{ORPSOC} project
+
+@menu
+* Overview::
+* Software::
+* RTL::
+* Testbenches::
+* Reference And Board Designs::
+@end menu
+
+@node Overview
+@section Overview
+
+The @value{ORPSOC} project is intended for dual uses. One is to act as a development platform for OpenRISC processors, as well as development of complex OpenRISC-based SoCs. Organising a single project to satisfy these requirements can lead to some confusion. This section is intended to make the organisation of the project clear.
+
+In essense, the reference implementation based in the root of the project contains enough to get a simple OpenRISC-based SoC together, the board builds are intended to implement fully-featured systems. The project is organised in such a way that the board builds can use both the reference implementation's RTL and software, as well as its own set of RTL and software. The reference implementation, however, cannot use any board's modules, software or scripts.
+
+The following sections outline the organisation of the software, RTL, and board designs.
+
+@node Software
+@section Software
+
+The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor) and a few custom tools for manipulation of binary software images.
+
+Driver software, implementing access functions for hardware modules, are found under @code{sw/drivers}. There is the concept of a CPU library, providing CPU-specific functions, which can be changed to support different versions of OpenRISC processors. There is also a minimal support library under the @code{sw/lib} path. Both drivers and support library are compiled together to create a library called @code{liborpsoc} which is placed in @code{sw/lib}.
+
+Test software is found under @code{sw/tests}. Typically, each is for a specific module, or for a particular capability (eg. tests for the UART capability are under @code{sw/tests/uart}, rather than @code{sw/tests/uart16550} which.) There are no specific rules here.
+
+Under each test directory are two directories, @code{board} and @code{sim}, containing the test software targeted at each. Code for simulation will produce less printfs and perhaps not run as long as tests intended to run at full speed on target.
+
+There are for naming software tests, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
+
+@node RTL
+@section RTL
+
+The HDL code layout conforms to those outlined in the OpenCores.org coding guidelines. http://cdn.opencores.org/downloads/opencores_coding_guidelines.pdf
+
+Beyond that, there are some rules for the naming in modules. The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...}.
+
+@node Testbenches
+@section Testbenches
+
+For each design in @value{ORPSOC} there will be a testbench instantiating the top level, and any peripherals (at least, as many as there are models for.)
+
+Despite this being far from a thorough verification platform, it is considered useful to be able to perform enough simulation to ensure that the fundamental system is correctly assembled and can communicate with the peripherals. However, this is not intended as a platform for peripheral development (although, it very well could be) the board designs are not expected to have thorough peripheral tests. They are expected to have just enough to prove that basic functionality.
+
+@node Reference And Board Designs
+@section Reference And Board Designs
+
+The goal of the reference design is to provide an environment to develop and test OpenRISC processors (also, potentially, basic components.) The goal of the various board-targeted designs is to provide ready-to-go implementations for hardware.
+
+Typically, a board-targeted design will wish to reuse common components (processor, debug interface, Wishbone arbiters, UART etc.) The project has been configured to allow a board build to use either modules available in the ``common'' RTL path (@code{rtl/verilog/}) as well as those in their ``local'' RTL path (something like @code{boards/vendor/boardname/rtl/verilog}). In the event that some particular modification to a module in the common RTL set is desired for a particular board build, that module can simply be copied into the board's ``local'' RTL path and the scripts will that version instead of the common one.
+
+
+
+@c ****************************************************************************
+@c Getting started
+@c **************************************************************************** 
+
+@node Getting Started
+@chapter Getting Started
+@cindex source files for @value{ORPSOC}, downloading
+
+@menu
+* Supported Platforms::
+* Obtaining Project Source::
+* Required Tools::
+@end menu
+
+@node Supported Platforms
+@section Supported Platforms
+@cindex platforms supported by the @value{ORPSOC} project
+
+At present the majority of  @value{ORPSOC}'s development occurs with tools that run under the GNU/Linux operating system. All of the tools required to run the basic implementation are free, open source, and easily installable in any modern GNU/Linux distribution.
+
+Unless indicated otherwise, support for the project under Cygwin on Microsoft Windows platforms is not a given.
+
+
+@node Obtaining Project Source
+@section Obtaining Project Source
+@cindex getting a copy of the @value{ORPSOC} project
+
+The source for @value{ORPSOC} can be obtained from the OpenCores subversion (SVN) server.
+
+@example
+@kbd{svn export http://opencores.org/ocsvn/openrisc/openrisc/trunk/orpsocv2}
+@end example
+
+@node Required Tools
+@section Required Tools
+@cindex tools and utilities required for @value{ORPSOC}
+
+
+Performing the installation of tools required to design, simulate, verify, compile and debug a SoC is not for the faint hearted. The various sets of tools must be first installed, and the user's environment configured to allow them to run correctly. 
+
+First the host system must be capable of building and running development tools, next the various compilers, simulators and utilities must be installed, and finally, if required, additional tools to interact with the built design are installed. Once complete, the set up rarely needs to be touched, and results in grealty improved productivity. 
+
+The required tools can be divided into four groups.
+
+@itemize @bullet 
+@item
+Host system tools - things like gcc, make, texinfo.
+
+@item
+Target system toolchain and software - the OpenRISC GNU toolchain, with gcc crosscompiler, support libraries, the GNU debugger (gdb), OpenRISC port of various OSes and RTOS, etc.
+
+@item
+Electronic design automation (EDA) tools - preprocessors, simulators, FPGA tool suites, etc.
+
+@item
+Debug tools - tools providing control over the system on target
+@end itemize
+
+The first two items are likely to be the same for most of the designs included in @value{ORPSOC}, however the final two can vary greatly depending on the FPGA vendor, part and configuration, and the application of the SoC design.
+
+There will be a section on the tools for each design in @value{ORPSOC}. This section is intended to provide a list of tools required for each particular build. Any lengthy instructions on installing a particular tool will be attached as an appendix, which can be references by several build prerequisite lists in order to save repetition of information.
+
+Anyone implementing their own board port is encouraged to document, as best they can, any problematic tool installations and contribute them to this document.
+
+
+
+@c ****************************************************************************
+@c Reference Design chapter
+@c ****************************************************************************
+
+@node Reference Design
+@chapter Reference Design
+@cindex reference design
+
+@menu
+* Overview::
+* Structure::
+* Tools::
+* Simulation::
+* Synthesis::
+@end menu
+
+@node Overview
+@subsection Overview
+
+The reference design included in @value{ORPSOC} is intended to be the minimal implementation (or thereabouts) of a SoC required to exercise an OpenRISC processor. In this regard, very little apart from the processor, memory, debug interface and interconnect modules are instantiated.
+
+The primary role for this design is to implement a system that an OpenRISC processor can be instaniated in for for development purposes. The automated testing mechanism, capable of compiling, executing and checking software on the design, is used as a method of regression testing for the processor as it is developed. After features are added or modified in the processor, new software tests can be added to the existing suite, checking for the expected functionality and ensuring legacy behavior is also unchanged.
+
+The design can be simulated two ways. The first uses the standard event-driven simulators such as Icarus Verilog and Mentor Graphics' Modelsim. The second method involves creating a cycle accurate (C or SystemC) model from the Verilog HDL description using the Verilator tool.
+
+The simulations begin with the desired software image preloaded in memory. For debugging the design, the models provide an interface to the system allowing the GNU debugger to control the target processor in a manner similar to that of physical hardware.
+
+The design is not intended for implementation on an FPGA or ASIC, rather purely for development and testing in simulation environments. The board targeted builds in the @value{ORPSOC} project, however, are intended for implementation on hardware.
+
+@node Structure
+@subsection Structure
+
+@menu
+* Overview::
+* RTL::
+* Software::
+* Simulation::
+@end menu
+
+@node Overview
+@subsubsection Overview
+
+The reference design's paths are all based in the root directory of @value{ORPSOC}. This is different from the board-targeted builds, which are based in their specific board paths.
+
+As synthesis and physical implementation is not intended for the reference design there are no @code{syn} or @code{backend} paths in the root directory of @value{ORPSOC}.
+
+@node RTL
+@subsubsection RTL
+
+At present only Verilog HDL is included in the reference implementation of @value{ORPSOC}, as the open source tools intended to simulate the design do not support VHDL.
+
+The directory structure consists of an @code{rtl} directory in the root, and a @code{verilog} path under that. Within the @code{rtl/verilog} path, each module has its own directory.
+
+A common Verilog include path, @code{rtl/verilog/include} directory is used. The Verilog HDL include files for each module should be moved here. This allows each @value{ORPSOC} implementation (board design) to maintain their own include path, and thus configure the modules for their specific implementation.
+
+@node Software
+@subsubsection Software
+
+The software run on the reference design is found in the @value{ORPSOC} root directory, under the @code{sw} path.
+
+The test software for the or1200 processor is found under @code{sw/tests/or1200/sim}.
+
+A minimal set of drivers is built into @code{liborpsoc}, and they are found under @code{sw/tests/drivers}.
+
+In addition to these drivers, a set of support C functions is build into @code{liborpsoc}, which are found in the @code{sw/lib} path.
+
+@node Simulation
+@subsubsection Simulation
+
+The simulation of the reference design is run from the @code{sim/run} path.
+
+The script controlling simulation is the file @code{sim/bin/Makefile}.
+
+The generated output is kept in the @code{sim/out} path, and is cleared away when @kbd{make clean} is run.
+
+When the Verilator-processed cycle accurate model is built, it is done in the @code{sim/vlt} path, which is also cleaned away when @kbd{make clean} is run.
+
+@node Tools
+@subsection Tools
+
+@menu
+* Host Tools:: 
+* Target System Tools:: 
+* EDA Tools:: 
+* Debug Tools::
+@end menu
+
+@node Host Tools
+@subsubsection Host Tools
+@cindex host tools required
+
+Standard development suite of tools: gcc, make, etc.
+
+@node Target System Tools
+@subsubsection Target System Tools
+@cindex target system tools required
+
+OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
+
+@node EDA Tools
+@subsubsection EDA Tools
+@cindex EDA tools required
+
+RTL simulation: Icarus Verilog (also compatible with Mentor Graphics' Modelsim)
+Cycle Accurate Simulation: Verilator, Verilog-Perl, System-Perl, SystemC
+
+@node Debug Tools
+@subsubsection Debug Tools
+@cindex Debug tools required
+
+None. The target is purely simulation, no extra utilities are required to debug.
+
+
+@node Simulation
+@subsection Simulation
+
+@menu
+* RTL:: 
+* Cycle Accurate::
+* Results::
+@end menu
+
+@node RTL
+@subsubsection RTL
+@cindex rtl simulation of reference design
+
+All simulations of the reference design are run from the @code{sim/run} path.
+
+@subsubheading Running RTL Regression Test
+
+The simplest way of starting a run through the regression test, using the default RTL simulator, Icarus Verilog, can be done with:
+
+@example
+@kbd{make rtl-tests}
+@end example
+
+This will compile the software and RTL, and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script. Other default options are that a processor execution log is generated (in @code{sw/out/@emph{testname}-executed.log}), but VCDs are not.
+
+@subsubheading Running An Individual Test
+
+An individual test can be run, by specifying the test name through the @code{TEST} environment variable (which must correspond to a file in @code{sw/tests/@emph{module}/sim/} where @code{@emph{module}} is the name of the module to be tested. In the following example the test @emph{or1200-basic} is run.
+
+@example
+@kbd{make rtl-test TEST=or1200-basic}
+@end example
+
+@subsubheading Running A Set Of Specific Tests
+
+A specific set of tests can be run in the same fashion as the regression tests but with the actual tests to run set in the @code{TESTS} environment variable.
+
+@example
+@kbd{make rtl-tests TESTS="sdram-rows uart-simple or1200-mmu or1200-fp"}
+@end example
+
+
+@subsubheading Options For RTL Tests
+
+There are some options, which can be specified through shell environment variables when running the test.
+
+@table @code
+
+@item VCD
+Set to '1' to enable @emph{value change dump} (VCD) creation in @code{sw/out/@emph{testname}.vcd}
+
+@item VCD_DELAY
+Delay VCD creation start time by this number of timesteps (used as a Verilog @code{#delay} in the testbench.)
+
+@item VCD_DELAY_INSNS
+Delay VCD creation start time until this number of instructions has been executed by the processor. Useful for creating a dump just before a bug exhibited and correlated to an instruction number (from execution trace file.)
+
+@item END_TIME
+Force simulation end (@code{$finish}) at this time.
+
+@item DISABLE_PROCESSOR_LOGS
+Turn off processor monitor's execution trace generation. This helps speed up the simulation (less time writing to files) and avoids creating very large execution logs (in the GBs) for very long simulations.
+
+@item SIMULATOR
+Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsim} to use Mentor Graphics' Modelsim. No others are supported right now.
+
+@end table
+
+
+
+@node Cycle Accurate
+@subsubsection Cycle Accurate
+@cindex cycle accurate simulation of reference design
+
+@subsubheading Running Cycle Accurate Regression Test
+
+The simplest way of starting a run through the regression test using the cycle accurate model can be done with:
+
+@example
+@kbd{make vlt-tests}
+@end example
+
+This will build the cycle accurate model and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script.
+
+@subsubheading Running An Individual Test
+
+An individual test can be run, by specifying the test name through the @code{TEST} environment variable (which must correspond to a file in @code{sw/tests/@emph{module}/sim/} where @code{@emph{module}} is the name of the module to be tested. In the following example the test @emph{or1200-basic} is run.
+
+@example
+@kbd{make vlt-test TEST=or1200-basic}
+@end example
+
+@subsubheading Generating Cycle Accurate Simulator Executable
+
+The cycle accurate model is somewhat similar to the OpenRISC architectural simulator, in that it can be run as a standalone application, although it is not as configurable at runtime. The standalone application can be built with the following command from the @code{sim/run} path.
+
+@example
+@kbd{make prepare-vlt}
+@end example
+
+The resulting executable will be @emph{Vorpsoc_top} in the @code{sim/vlt} path. Run it with the @emph{-h} option for usage instructions.
+
+@subsubheading Generating Automatically Profiled Cycle Accurate Simulator Executable
+
+An automatic profiling and compilation set of commands in the script can be used to create a higher performance cycle accurate model. The following make target will first compile the cycle accurate design to generate profiling outputs, run some software, and recompile using the profiling information.
+
+@example
+@kbd{make prepare-vlt-profiled}
+@end example
+
+@subsubheading Cycle Accurate Model Executable Usage
+
+The executable generated by running any of the above commands is in the @code{sim/vlt} path. The usage options can be listed by running it with the @code{--help} switch.
+
+@example
+@kbd{Vorpsoc_top --help}
+@end example
+
+A short list of options is given here.
+
+@table @code
+
+@item -f @var{file}
+@itemx --program @var{file}
+@cindex @code{-f}
+@cindex @code{--program}
+Load software from OR32 ELF image @var{file}
+
+If unspecified, model attempts to load VMEM file @code{sram.vmem}
+
+@item -v
+@itemx --vcd
+@cindex @code{-v}
+@cindex @code{--vcd}
+Dump VCD file
+
+@item -e @var{value}
+@itemx --endtime @var{value}
+@cindex @code{-e}
+@cindex @code{--endtime}
+End simulation after @var{value} simulated ns
+
+@item -l @var{file}
+@itemx --log @var{file}
+@cindex @code{-l}
+@cindex @code{--log}
+Log processor execution trace to @var{file}
+
+@end table
+
+@node Results
+@subsubsection Results
+@cindex output from simulation of reference design
+
+The following files are generted from the event driven simulation. For output options of the cycle accurate model, see the section on Cycle Accurate Model Executable Usage.
+
+@subsubheading Processor Execution Trace
+
+A trace of the processor after each executed instruction is generated by both the event and cycle accurate models.
+
+In the event driven simulations, the log is created by default, and is stored in @code{sim/out} and will be named @code{@emph{test-name}-executed.log}.
+
+@subsubheading Processor SPR Access Log
+
+A list of processor special purpose registers (SPR) accesses is created when processor logging is enabled.
+
+These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-sprs.log}.
+
+@subsubheading Processor Instruction Excecution Time Log
+
+A list of when each instruction was executed is generated when processor execution logging is enabled.
+
+This is useful when debugging with VCD, and detecting at what time the problematic instructions were executed.
+
+These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-lookup.log}.
+
+@subsubheading Processor Report Mechanism Log
+
+The use of the processor's report mechanism is commonplace in the test software, as it allows for the checking of intermediate values after simulation.
+
+These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-general.log}. This is not optional.
+
+@subsubheading Value Change Dump (VCD)
+
+When VCD files are generated they are placed in the @code{sim/out} path, and are named @code{@emph{test-name}.vcd}. They should be viewable with programs like @emph{GTKWave}.
+
+
+@node Synthesis
+@subsection Synthesis
+
+The reference design is not intended to be synthesised, and thus no backend scripts are provided. See the sections on the board-specific builds.
+
+
+@c ****************************************************************************
+@c ordb1a3pe1500 board build chapter
+@c **************************************************************************** 
+
+@node ordb1a3pe1500
+@chapter ordb1a3pe1500
+@cindex ordb1a3pe1500 board build information
+
+@menu
+* Overview::
+* Structure::
+* Tools::
+* Simulating::
+* Synthesis::
+@end menu
+
+@node Overview
+@subsection Overview
+
+@c TODO
+
+@node Structure
+@subsection Structure
+
+@c TODO
+
+@node Tools
+@subsection Tools
+
+@menu
+* Host Tools:: 
+* Target System Tools:: 
+* EDA Tools:: 
+* Debug Tools::
+@end menu
+
+@node Host Tools
+@subsubsection Host Tools
+@cindex host tools required
+
+Standard development suite of tools: gcc, make, etc.
+
+@node Target System Tools
+@subsubsection Target System Tools
+@cindex target system tools required
+
+OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
+
+@node EDA Tools
+@subsubsection EDA Tools
+@cindex EDA tools required
+
+RTL, gatelevel simulation: Mentor Graphics' Modelsim
+Synthesis: Synopsys Synplify (included in Actel Libero Suite)
+Backend: Actel Designer (included in Actel Libero Suite)
+Programming: Actel FlashPRO (included in Actel Libero Suite)
+
+@node Debug Tools
+@subsubsection Debug Tools
+@cindex Debug tools required
+
+or_debug_proxy, ORPmon
+
+
+@c ****************************************************************************
+@c End bits
+@c **************************************************************************** 
+
+@node  GNU Free Documentation License
+@chapter GNU Free Documentation License
+@cindex license for @value{ORPSOC}
+
+@include fdl-1.2.texi
+
+@node Index
+
+@unnumbered Index
+
+@printindex cp
+
+@bye
+

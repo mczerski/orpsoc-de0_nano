@@ -180,7 +180,7 @@ of s_vpi_systf_data.
 #include "rsp-vpi.h"
 
 // Define the port we open the RSP server on
-#define RSP_SERVER_PORT 5555
+#define RSP_SERVER_PORT 50002
 
 //Function to register the function which sets up the sockets interface
 void register_init_rsp_server_functions() ;
@@ -396,6 +396,12 @@ void print_command_string(unsigned char cmd)
       break;
     case 0xc :
       printf("  read jtag id\n");
+      break;
+    case 0xd :
+      printf("  detach\n");
+      break;
+    case 0xe :
+      printf("  WB read 8\n");
       break;
     }
 }
@@ -629,9 +635,14 @@ void get_command_block_data(){ // $get_command_block_data(length, mem_array)
   argh = vpi_scan(args_iter);
 
   // check we got passed a memory (array of regs)
-  if (vpi_get(vpiType, argh) != vpiMemory)
+  if (!((vpi_get(vpiType, argh) == vpiMemory) 
+#ifdef MODELSIM_VPI
+	|| (vpi_get(vpiType, argh) == vpiRegArray)
+#endif
+	))
     { 
       vpi_printf("jp_vpi: ERROR: did not pass a memory to get_command_block_data\n");
+      vpi_printf("jp_vpi: ERROR: was passed type %d\n", (int)vpi_get(vpiType, argh));
       return;
     }
   
@@ -691,7 +702,7 @@ void return_command_data(char *userdata){
 
   int value,i;
 
-  int n;
+  int n, length;
 
   uint32_t data;
   
@@ -702,6 +713,17 @@ void return_command_data(char *userdata){
   
   // Now call iterate with the vpiArgument parameter
   args_iter = vpi_iterate(vpiArgument, systfref); 
+
+  // get a handle on the length variable
+  argh = vpi_scan(args_iter);
+  
+  argval.format = vpiIntVal;
+  
+  // get the value for the length object
+  vpi_get_value(argh, &argval);
+
+  // now set length
+  length = argval.value.integer;
 
   // get a handle on the object passed to the function
   argh = vpi_scan(args_iter);
@@ -717,12 +739,12 @@ void return_command_data(char *userdata){
   // Cleanup and return
   vpi_free_object(args_iter);
 
-  if (DBG_JP_VPI) printf("jp_vpi: return_command_data 0x%.8x\n",data);
+  if (DBG_JP_VPI) printf("jp_vpi: return_command_data %d bytes, 0x%.8x\n",length,data);
   
   send_buf = (char *) &data; //cast our long as a char buf
   
   // write the data back
-  n = write(vpi_to_rsp_pipe[1],send_buf,4);
+  n = write(vpi_to_rsp_pipe[1],send_buf,length);
 
   return;
 
@@ -770,10 +792,15 @@ void return_command_block_data(){
   // now get a handle on the next object (memory array)
   argh = vpi_scan(args_iter);
 
-  // check we got passed a memory (array of regs)
-  if (vpi_get(vpiType, argh) != vpiMemory)
+  // check we got passed a memory (array of regs) (modelsim passes back a vpiRegArray, so check for that too)
+  if (!((vpi_get(vpiType, argh) == vpiMemory) 
+#ifdef MODELSIM_VPI
+	|| (vpi_get(vpiType, argh) == vpiRegArray)
+#endif
+      ))
     { 
       vpi_printf("jp_vpi: ERROR: did not pass a memory to return_command_block_data\n");
+      vpi_printf("jp_vpi: ERROR: was passed type %d\n", (int)vpi_get(vpiType, argh));
       return;
     }
   

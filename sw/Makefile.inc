@@ -71,6 +71,9 @@ else
 DRIVER_INCLUDE_PATHS +=-I$(BOARD_PATH)/sw/board/include
 endif
 
+# For now, only apps path is in root sw directory
+SW_APPS_PATH=$(SW_ROOT)/apps
+
 VECTORS_OBJ ?=$(CPU_DRIVER)/crt0.o
 ORPSOC_LIB ?=$(SW_ROOT)/lib/liborpsoc.a
 SUPPORT_LIBS ?=$(ORPSOC_LIB)
@@ -125,6 +128,8 @@ $(UTILS_BIN2HEX):
 UTILS_BIN2VMEM=$(SW_ROOT)/utils/bin2vmem
 $(UTILS_BIN2VMEM):
 	$(Q)$(MAKE) -C $(SW_ROOT)/utils bin2vmem
+
+processed-verilog-headers: $(PROCESSED_DEFINES)
 
 # Rule to generate C header file from Verilog file with `defines in it
 $(DESIGN_PROCESSED_VERILOG_DEFINES): $(DESIGN_VERILOG_DEFINES)
@@ -194,4 +199,5 @@ SWDIRS=$(shell ls ../ | grep -v include)
 distclean:
 	$(Q)for dir in $(SWDIRS); do if [ -d ../$$dir ]; then $(MAKE) -C ../$$dir clean; fi; done
 	$(Q)for dir in $(SW_DRIVER_PATHS); do $(MAKE) -C $$dir clean; done
+	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)rm -f $(PROCESSED_DEFINES)

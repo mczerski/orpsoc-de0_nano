@@ -143,6 +143,7 @@ SIMULATOR ?= $(ICARUS)
 
 # VPI debugging interface variables
 VPI_SRC_C_DIR=$(BENCH_VERILOG_DIR)/vpi/c
+VPI_SRC_VERILOG_DIR=$(BENCH_VERILOG_DIR)/vpi/verilog
 VPI_SRCS=$(shell ls $(VPI_SRC_C_DIR)/*.[ch])
 
 # Modelsim VPI compile variables
@@ -164,23 +165,25 @@ endif
 # Suppressed warnings - 3009: Failed to open $readmemh() file
 # Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
 # Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
-VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
-# Modelsim VPI settings
+MGC_VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+# Options required when VPI option used
 ifeq ($(VPI), 1)
-VPI_LIBS=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
-VSIM_ARGS += -pli $(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
+MGC_VPI_LIB=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
+MGC_VSIM_ARGS += -pli $(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
+
+ICARUS_VPI_LIB=$(VPI_SRC_C_DIR)/$(ICARUS_VPILIB)
+ICARUS_VPI_ARGS=-M$(VPI_SRC_C_DIR) -m$(ICARUS_VPILIB)
 endif
-# Rule to make the VPI library for modelsim
-$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB): $(VPI_SRCS)
+# Rule to make the VPI library for Modelsim
+$(MGC_VPI_LIB): $(VPI_SRCS)
 	$(MAKE) -C $(VPI_SRC_C_DIR) $(MODELTECH_VPILIB)
 
-#
-# Icarus Verilog-specific settings
-#
-
-# Rule to make the VPI library for Icarus
-$(VPI_SRC_C_DIR)/$(ICARUS_VPILIB): $(VPI_SRCS)
+# Rule to make VPI library for Icarus Verilog
+$(ICARUS_VPI_LIB): $(VPI_SRCS)
 	$(MAKE) -C $(VPI_SRC_C_DIR) $(ICARUS_VPILIB)
+
+# Manually add the VPI bench verilog path
+BENCH_VERILOG_SRC_SUBDIRS += $(VPI_SRC_VERILOG_DIR)
 
 #
 # Verilog DUT source variables
@@ -237,7 +240,7 @@ print-bench-src:
 	echo $(BENCH_VERILOG_SRC)
 
 # Testbench source subdirectory detection
-BENCH_VERILOG_SRC_SUBDIRS=$(shell for file in `ls $(BENCH_VERILOG_DIR)`; do if [ -d $(BENCH_VERILOG_DIR)/$$file ]; then echo $(BENCH_VERILOG_DIR)/$$file; fi; done)
+BENCH_VERILOG_SRC_SUBDIRS +=$(shell for file in `ls $(BENCH_VERILOG_DIR)`; do if [ -d $(BENCH_VERILOG_DIR)/$$file ]; then echo $(BENCH_VERILOG_DIR)/$$file; fi; done)
 
 # Compile script generation rules:
 
@@ -271,12 +274,12 @@ work: modelsim_dut.scr #$(RTL_VHDL_SRC)
 
 # Single compile rule
 .PHONY : $(MODELSIM)
-$(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
+$(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(MGC_VPI_LIB) work
 	$(Q)echo; echo "\t### Compiling testbench ###"; echo
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
 	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
-	$(Q)vsim $(VSIM_ARGS) tb
+	$(Q)vsim $(MGC_VSIM_ARGS) tb
 
 #
 # Icarus Verilog simulator build and run rules
@@ -372,8 +375,8 @@ $(TEST_DEFINES_VLG):
 	$(Q)if [ ! -z $$PRELOAD_RAM ]; \
 		then echo "\`define PRELOAD_RAM "$$END_TIME >> $@; \
 	fi
-	$(Q)if [ -z $$NO_SIM_LOGGING ]; \
-		then echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $@; \
+	$(Q)if [ -z $$DISABLE_PROCESSOR_LOGS ]; \
+		then echo "\`define PROCESSOR_MONITOR_ENABLE_LOGS" >> $@; \
 	fi
 	$(Q)if [ ! -z $$VPI ]; \
 		then echo "\`define VPI_DEBUG" >> $@; \
@@ -418,6 +421,12 @@ $(TEST_SW_DIR)/$(TEST).flashin:
 $(TEST_SW_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
 	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).vmem
+
+# Rule to force generation of the processed orpsoc-defines.h file
+processed-verilog-headers-in-c-for-vlt:
+	$(Q)$(MAKE) -C $(SW_DIR)/lib processed-verilog-headers
+# Now copy the file into the Verilated model build path
+	$(Q)cp $(SW_DIR)/lib/include/orpsoc-defines.h $(SIM_VLT_DIR)
 
 #
 # Cleaning rules
@@ -568,7 +577,8 @@ DUMMY_FILES_FOR_VLT=$(SIM_VLT_DIR)/timescale.v
 $(DUMMY_FILES_FOR_VLT):
 	$(Q)for file in $@; do if [ ! -e $$file ]; then touch $$file; fi; done
 
-build-vlt: rtl $(SIM_VLT_DIR) $(DUMMY_FILES_FOR_VLT) $(VLT_MODEL_LINKS) $(SIM_VLT_DIR)/$(VLT_EXE)
+build-vlt: rtl $(SIM_VLT_DIR) $(DUMMY_FILES_FOR_VLT) $(VLT_MODEL_LINKS) \
+	processed-verilog-headers-in-c-for-vlt  $(SIM_VLT_DIR)/$(VLT_EXE)
 
 # Main Cycle-accurate build rule
 prepare-vlt: build-vlt
@@ -685,9 +695,9 @@ prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda \
 	$(SIM_VLT_DIR)/$(VLT_EXE)
 
 $(SIM_VLT_DIR)/OrpsocMain.gcda: $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling
-	$(MAKE) -C $(SW_DIR)/dhry dhry.elf NUM_RUNS=5000
+	$(MAKE) -C $(SW_DIR)/apps/dhry dhry.elf NUM_RUNS=5000
 #	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf -v -l sim.log --crash-monitor
-	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf
+	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/apps/dhry/dhry.elf
 
 # Clean all compiled things
 clean-vlt-after-profile-run:

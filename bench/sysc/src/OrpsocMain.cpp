@@ -44,7 +44,7 @@
 
 // TODO - copy orpsoc-defines.h and or1200-defines.h somewhere this can see
 //        them and include/exclude RSP stuff. For now is defined
-//#define JTAG_DEBUG
+
 
 #include "Vorpsoc_top.h"
 #include "OrpsocAccess.h"
@@ -55,12 +55,20 @@
 #include "ResetSC.h"
 #include "Or1200MonitorSC.h"
 
+
+// Include Verilog ORPSoC defines file, converted to C include format to be
+// able to detect if the debug unit is to be built in or not.
+#include "orpsoc-defines.h"
+
+
 #ifdef JTAG_DEBUG
 # include "GdbServerSC.h"
 # include "JtagSC_includes.h"
 #endif
 
-#include "UartSC.h"
+#ifdef UART0
+#  include "UartSC.h"
+#endif
 
 int SIM_RUNNING;
 int sc_main (int   argc,
@@ -84,11 +92,15 @@ int sc_main (int   argc,
   sc_signal<bool>      jtag_trst;
 #endif
 
+#ifdef UART0
   sc_signal<bool>      uart_rx;		// External UART
   sc_signal<bool>      uart_tx;
+#endif
 
   SIM_RUNNING = 0;
 
+  // Are we running "quiet"?
+  bool quiet = false;
   // Setup the name of the VCD dump file
   bool VCD_enabled = false;
   string dumpNameDefault("vlt-dump.vcd");
@@ -133,7 +145,9 @@ int sc_main (int   argc,
   GdbServerSC      *gdbServer;		// Map RSP requests to debug unit
 #endif
 
+#ifdef UART0
   UartSC          *uart;		// Handle UART signals
+#endif
 
   // Instantiate the Verilator model, VCD trace handler and accessor
   orpsoc     = new Vorpsoc_top ("orpsoc");
@@ -142,7 +156,7 @@ int sc_main (int   argc,
   
   memoryload = new MemoryLoad (accessor);
   
-  monitor    = new Or1200MonitorSC ("monitor", accessor, memoryload, 
+  monitor    = new Or1200MonitorSC ("monitor", accessor, memoryload,
 				    argc, argv);
   
   // Instantiate the SystemC modules
@@ -152,7 +166,9 @@ int sc_main (int   argc,
   jtag          = new JtagSC ("jtag");
 #endif
 
-  uart          = new UartSC("uart"); // TODO: Probalby some sort of param
+#ifdef UART0
+  uart          = new UartSC("uart");
+#endif
 
   // Parse command line options
   // Default is for VCD generation OFF, only turned on if specified on command 
@@ -214,6 +230,15 @@ int sc_main (int   argc,
 	      dump_stop = dump_stop_time;
 	      dump_stop_set = true;
 	    }
+	  /* 
+	     Depth setting of VCD doesn't appear to work, I think it's only
+	     configurable during at compile time .
+	  */
+	  /*	  else if ( (strcmp(argv[i], "-p")==0) ||
+		  (strcmp(argv[i], "--vcddepth")==0) )
+		  {
+		  dump_depth = atoi(argv[i+1]);	  
+	  }*/
 #ifdef JTAG_DEBUG
 	  else if ( (strcmp(argv[i], "-r")==0) ||
 		    (strcmp(argv[i], "--rsp")==0) )
@@ -226,15 +251,11 @@ int sc_main (int   argc,
 				}
 	    }
 #endif
-	  /* 
-	     Depth setting of VCD doesn't appear to work, I think it's only
-	     configurable during at compile time .
-	  */
-	  /*	  else if ( (strcmp(argv[i], "-p")==0) ||
-		  (strcmp(argv[i], "--vcddepth")==0) )
-		  {
-		  dump_depth = atoi(argv[i+1]);	  
-		  }*/
+	  else if ((strcmp(argv[i], "-q")==0) ||
+		   (strcmp(argv[i], "--quiet")==0))
+	    {
+	      quiet = true;
+	    }
 	  else if ( (strcmp(argv[i], "-h")==0) ||
 		    (strcmp(argv[i], "--help")==0) )
 	    {
@@ -244,6 +265,7 @@ int sc_main (int   argc,
 	      printf("\n");
 	      printf("Options:\n");
 	      printf("  -h, --help\t\tPrint this help message\n");
+	      printf("  -q, --quiet\t\tDisable all except UART print out\n");
 	      printf("\nSimulation control:\n");
       	      printf("  -f, --program <file> \tLoad program from OR32 ELF <file>\n");
 	      printf("  -e, --endtime <val> \tStop the sim at <val> ns\n");
@@ -297,8 +319,10 @@ int sc_main (int   argc,
   orpsoc->tdo_pad_o  (jtag_tdo);
 #endif
 
+#ifdef UART0
   orpsoc->uart0_srx_pad_i (uart_rx);		// External UART
   orpsoc->uart0_stx_pad_o (uart_tx);
+#endif
 
   // Connect up the SystemC  modules
   reset->clk (clk);			// Reset
@@ -316,9 +340,11 @@ int sc_main (int   argc,
   jtag->trst (jtag_trst);
 #endif
 
+#ifdef UART0
   uart->clk (clk); // Uart
   uart->uartrx (uart_rx); // orpsoc's receive line
   uart->uarttx (uart_tx); // orpsoc's transmit line
+#endif
 
   // Tie off signals
 #ifdef JTAG_DEBUG
@@ -346,8 +372,10 @@ int sc_main (int   argc,
 
   //printf("* Beginning test\n");
 
+#ifdef UART0
   // Init the UART function
   uart->initUart(50000000, 115200);
+#endif
 
   if (do_program_file_load) // Did the user specify a file to load?
     {            
@@ -358,8 +386,11 @@ int sc_main (int   argc,
 	    " not loaded" << endl;
 	}
     }
-  else // Load SRAM from VMEM file
+  else // No ELF file specified, default is to load SRAM from VMEM file
     {
+      if (!quiet)
+	cout << "* Loading memory with image from default file, sram.vmem" 
+	     << endl;
       accessor->do_ram_readmemh();
     }
 

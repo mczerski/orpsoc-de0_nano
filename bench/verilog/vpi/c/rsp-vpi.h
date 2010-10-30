@@ -55,9 +55,9 @@
 // 4'hb reset
 // 4'hc read jtag id (output: data)
 // 4'hd GDB detach - do something (like close down, restart, etc.)
-
+// 4'he wb rd 8 (input: address, data pointer)
 // There should be a correlating set of verilog `define's in the 
-// verilog debug testbench module's include file, test_defines.v
+// verilog debug testbench module's include file, vpi_debug_defines.v
 
 #define CMD_JTAG_SET_IR 0x1
 #define CMD_SET_DEBUG_CHAIN 0x2
@@ -72,3 +72,4 @@
 #define CMD_RESET 0xb
 #define CMD_READ_JTAG_ID 0xc
 #define CMD_GDB_DETACH 0xd
+#define CMD_WB_RD8 0xe

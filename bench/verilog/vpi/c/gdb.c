@@ -144,6 +144,7 @@
     string. So at least NUMREGBYTES*2 + 1 (for the 'G' or the EOS) are needed
     for register packets */
 #define GDB_BUF_MAX  ((NUM_REGS) * 8 + 1)
+#define GDB_BUF_MAX_TIMES_TWO (GDB_BUF_MAX*2)
 //#define GDB_BUF_MAX  1500
 
 /*! Size of the matchpoint hash table. Largest prime < 2^10 */
@@ -424,6 +425,7 @@ static int gdb_set_chain(int chain);
 static int gdb_write_byte(uint32_t adr, uint8_t data);
 static int gdb_write_short(uint32_t adr, uint16_t data);
 static int gdb_write_reg(uint32_t adr, uint32_t data);
+static int gdb_read_byte(uint32_t adr, uint8_t *data);
 static int gdb_read_reg(uint32_t adr, uint32_t *data);
 static int gdb_write_block(uint32_t adr, uint32_t *data, int len);
 static int gdb_read_block(uint32_t adr, uint32_t *data, int len);
@@ -2214,6 +2216,150 @@ static void rsp_read_mem (struct rsp_buf *p_buf)
   int len_cpy;
   /* Couple of temps we might need when doing aligning/leftover accesses */
   uint32_t tmp_word;
+  uint8_t tmp_byte;
+  char *tmp_word_ptr = (char*) &tmp_word;
+  
+
+
+  if (2 != sscanf (p_buf->data, "m%x,%x:", &addr, &len))
+  {
+    fprintf (stderr, "Warning: Failed to recognize RSP read memory "
+       "command: %s\n", p_buf->data);
+    put_str_packet ("E01");
+    return;
+  }
+
+  /* Make sure we won't overflow the buffer (2 chars per byte) */
+  if ((len * 2) >= GDB_BUF_MAX_TIMES_TWO)
+  {
+    fprintf (stderr, "Warning: Memory read %s too large for RSP packet: "
+       "truncated\n", p_buf->data);
+    len = (GDB_BUF_MAX - 1) / 2;
+  }
+
+  if(!(rec_buf = (char*)malloc(len))) {
+    put_str_packet ("E01");
+    return;
+  }
+
+  // Make sure the processor is stalled
+  gdb_ensure_or1k_stalled();
+
+  // Set chain 5 --> Wishbone Memory chain
+  err = gdb_set_chain(SC_WISHBONE);
+  if(err){
+    if (DEBUG_GDB) printf("Error %d in gdb_set_chain\n", err);
+    put_str_packet ("E01");
+    return;
+  }
+  
+  len_cpy = len;
+  rec_buf_ptr = rec_buf; // Need to save a copy of pointer
+  
+  if (addr & 0x3) // address not word-aligned, do byte accesses first
+    {
+
+      int num_bytes_to_align = bytes_per_word - (addr & 0x3);
+
+      int bytes_to_read = (num_bytes_to_align >= len_cpy) ?  
+	len_cpy : num_bytes_to_align;
+      
+      for (i=0;i<bytes_to_read;i++)
+	{
+	  err = gdb_read_byte(addr++, (uint8_t*) &rec_buf[i]);
+	  if(err){
+	    put_str_packet ("E01");
+	    return;
+	  }
+      	}
+      
+      // Adjust our status
+      len_cpy -= bytes_to_read; 
+      rec_buf_ptr += num_bytes_to_align;
+    }
+  
+  if (len_cpy/bytes_per_word) // Now perform all full word accesses
+    {
+      int words_to_read = len_cpy/bytes_per_word; // Full words to read
+      if (DEBUG_GDB) printf("rsp_read_mem: reading %d words from 0x%.8x\n", 
+			    words_to_read, addr);      
+      // Read full data words from Wishbone Memory chain
+      err = gdb_read_block(addr, (uint32_t*)rec_buf_ptr, 
+			   words_to_read*bytes_per_word); 
+      
+      if(err){
+	put_str_packet ("E01");
+	return;
+      }
+
+      // Adjust our status
+      len_cpy -= (words_to_read*bytes_per_word);
+      addr += (words_to_read*bytes_per_word);
+      rec_buf_ptr += (words_to_read*bytes_per_word);
+    }
+  if (len_cpy) // Leftover bytes
+    {
+      for (i=0;i<len_cpy;i++)
+	{
+	  err = gdb_read_byte(addr++, (uint8_t*) &rec_buf_ptr[i]);
+	  if(err){
+	    put_str_packet ("E01");
+	    return;
+	  }
+      	}
+      
+    }
+
+  /* Refill the buffer with the reply */
+  for( off = 0 ; off < len ; off ++ ) {
+    ;
+    p_buf->data[(2*off)] = hexchars[((rec_buf[off]&0xf0)>>4)];
+    p_buf->data[(2*off)+1] = hexchars[(rec_buf[off]&0x0f)];
+  }
+
+  if (DEBUG_GDB && (err > 0)) printf("\nError %x\n", err);fflush (stdout);
+	free(rec_buf);
+  p_buf->data[off * 2] = 0;			/* End of string */
+  p_buf->len           = strlen (p_buf->data);
+  if (DEBUG_GDB_BLOCK_DATA){
+    printf("rsp_read_mem: adr 0x%.8x data: ", addr);
+    for(i=0;i<len*2;i++)
+      printf("%c",p_buf->data[i]);
+    printf("\n");
+  }
+
+  put_packet (p_buf);
+
+}	/* rsp_read_mem () */
+#if 0
+/*---------------------------------------------------------------------------*/
+/* Handle a RSP read memory (symbolic) request
+
+   Syntax is:
+
+     m<addr>,<length>:
+
+   The response is the bytes, lowest address first, encoded as pairs of hex
+   digits.
+
+   The length given is the number of bytes to be read.
+
+   @note This function reuses p_buf, so trashes the original command.
+
+   @param[in] p_buf  The command received                                      */
+/*---------------------------------------------------------------------------*/
+static void rsp_read_mem (struct rsp_buf *p_buf)
+{
+  unsigned int    addr;			/* Where to read the memory */
+  int             len;			/* Number of bytes to read */
+  int             off;			/* Offset into the memory */
+  uint32_t		temp_uint32 = 0;
+  char 						*rec_buf, *rec_buf_ptr;
+  int bytes_per_word = 4; /* Current OR implementation is 4-byte words */
+  int i;
+  int len_cpy;
+  /* Couple of temps we might need when doing aligning/leftover accesses */
+  uint32_t tmp_word;
   char *tmp_word_ptr = (char*) &tmp_word;
   
 
@@ -2353,7 +2499,7 @@ static void rsp_read_mem (struct rsp_buf *p_buf)
     return;
   }
 
-  /* Refill the buffer with the reply */
+  // Refill the buffer with the reply
   for( off = 0 ; off < len ; off ++ ) {
     ;
     p_buf->data[(2*off)] = hexchars[((rec_buf[off]&0xf0)>>4)];
@@ -2373,7 +2519,7 @@ static void rsp_read_mem (struct rsp_buf *p_buf)
 
   put_packet (p_buf);
 }	/* rsp_read_mem () */
-
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*!Handle a RSP write memory (symbolic) request	 ("M")
@@ -3839,6 +3985,17 @@ static void gdb_ensure_or1k_stalled()
   return;
 }
 
+
+int gdb_read_byte(uint32_t adr, uint8_t *data) {
+  if (DEBUG_CMDS) printf("rreg %d\n", gdb_chain);
+  switch (gdb_chain) {
+  case SC_RISC_DEBUG: *data = 0; return 0; // Should probably throw an error for chains without byte read...
+  case SC_REGISTER:   *data = 0; return 0;
+  case SC_WISHBONE:   return dbg_wb_read8(adr, data) ? ERR_CRC : ERR_NONE;
+  case SC_TRACE:      *data = 0; return 0;
+  default:            return JTAG_PROXY_INVALID_CHAIN;
+  }
+}
 
 int gdb_read_reg(uint32_t adr, uint32_t *data) {
   if (DEBUG_CMDS) printf("rreg %d\n", gdb_chain);

@@ -58,6 +58,7 @@ module vpi_debug_module(tms, tck, tdi, tdo);
    reg                  tdi;
    
    reg [31:0] 		in_data_le, in_data_be;
+   reg [31:0] 		incoming_word;
    reg                  err;
    integer              i;
    
@@ -114,7 +115,7 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 	// (this is around 20k ns if the flash_crash boot code
 	// is being booted from, else much bigger, around 10mil ns)
 	
-	#200_000 main;
+	#2_000 main;
 	  
      end
    
@@ -193,7 +194,7 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 		  
 		  debug_cpu_rd_ctrl(cpu_ctrl_val);
 
-		  $return_command_data(cpu_ctrl_val);
+		  $return_command_data(4,cpu_ctrl_val);
 		  
 	       end
 
@@ -287,7 +288,18 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 
 		  wb_read_32(cmd_data, cmd_adr, 16'h3);
 
-		  $return_command_data(cmd_data);
+		  $return_command_data(4,cmd_data);
+		  
+	       end
+
+	     `CMD_WB_RD8 :
+	       begin
+
+		  $get_command_address(cmd_adr);
+
+		  wb_read_8(cmd_data, cmd_adr, 16'h0);
+
+		  $return_command_data(1,cmd_data);
 		  
 	       end
 	     
@@ -322,14 +334,14 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 		   
 		   read_id_code(id);
 		   
-		   $return_command_data(id);
+		   $return_command_data(4,id);
 		   
 		end
 	      
 	      `CMD_GDB_DETACH :
 		begin
 
-		   $display("Debugging client disconnected. Finishing simulation");
+		   $display("(%t)(%m)Debugging client disconnected. Finishing simulation", $time);
 		   
 		   
 		   $finish();
@@ -694,7 +706,25 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 	 if (length>3)
 	   $display("WARNING: Only first data word is stored for writting ( See module %m)");
       end
-   endtask
+   endtask // wb_read_32
+
+   // 8-bit read from the wishbone
+   task wb_read_8;
+
+    output [31:0] data;
+
+    input [`DBG_WB_ADR_LEN -1:0] addr;
+    input [`DBG_WB_LEN_LEN -1:0] length;
+
+      begin
+	 debug_wishbone_wr_comm(`DBG_WB_READ8, addr, length, 1'b0);
+	 last_wb_cmd = `DBG_WB_READ8;  last_wb_cmd_text = "DBG_WB_READ8";
+	 length_global = length + 1;
+	 debug_wishbone_go(1'b1, 1'b0);
+	 data = data_storage[0];
+      end
+   endtask // wb_read_8
+   
 
 
    // block 32-bit read from the wishbone
@@ -991,16 +1021,27 @@ module vpi_debug_module(tms, tck, tdi, tdo);
 		   
 		   gen_clk(1);
 		   
-		   if (i[4:0] == 31)   // Latching data
+		   if (i[2:0] == 7)   // Latching data
+			incoming_word = {incoming_word[23:0],in_data_be[7:0]};
+
+		   if (i[4:0] == 31)
 		     begin
-			
-			data_storage[word_pointer] = in_data_be;
+			data_storage[word_pointer] = incoming_word;
 `ifdef DEBUG_INFO
-			$display("\t\tin_data_be = 0x%x", in_data_be);
+			$display("\t\tin_data_be = 0x%x", incoming_word);
 `endif
 			word_pointer = word_pointer + 1;
 			
 		     end
+		end // for (i=0; i<(length_global<<3); i=i+1)
+	      
+	      // Copy in any leftovers
+	      if (length_global[1:0] != 0)
+		begin
+		   data_storage[word_pointer] = incoming_word;
+`ifdef DEBUG_INFO
+		   $display("\t\tin_data_be = 0x%x", incoming_word);
+`endif		   
 		end
 	   end
 	 

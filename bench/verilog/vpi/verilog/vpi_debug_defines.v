@@ -198,7 +198,7 @@
 `define CMD_RESET                4'hb
 `define CMD_READ_JTAG_ID         4'hc
 `define CMD_GDB_DETACH           4'hd
-
+`define CMD_WB_RD8               4'he /* Byte read is useful with a system with byte peripherals! */
 // commands:
 // 4'h1 jtag set instruction register (input: instruction value)
 // 4'h2 set debug chain (dbg_set_command here) (input: chain value)

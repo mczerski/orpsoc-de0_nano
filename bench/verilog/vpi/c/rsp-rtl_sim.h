@@ -38,33 +38,30 @@
 
 #include <stdint.h> // For uint32_t types
 
-//#define DEBUG 1
-//#define DEBUG2 1
+#define DEBUG 0
+#define DEBUG2 0
+#define DBG_ON  0
+#define DBG_JP_VPI 0
+#define DBG_VPI 0
+#define DBG_CALLS 0
+
 
 #define Boolean int
 #define false 0
 #define true 1
 
-#ifdef DEBUG
+#if DEBUG==1
 #define debug printf
 #else
 #define debug
 #endif
 
-#ifdef DEBUG2
+#if DEBUG2==1
 #define debug2 printf
 #else
 #define debug2
 #endif
 
-
-#define DBG_ON  0
-
-#define DBG_JP_VPI 0
-
-#define DBG_VPI 0
-
-#define DBG_CALLS 0
 
 extern uint32_t vpi_to_rsp_pipe[2]; // [0] - read, [1] - write
 extern uint32_t rsp_to_vpi_pipe[2]; // [0] - read, [1] - write
@@ -90,6 +87,7 @@ void run_rsp_server(int);
 
 /* read a word from wishbone */
 int dbg_wb_read32(uint32_t adr, uint32_t *data);
+int dbg_wb_read8(uint32_t adr, uint8_t* data);
 
 /* write a word to wishbone */
 int dbg_wb_write32(uint32_t adr, uint32_t data);

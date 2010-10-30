@@ -3,33 +3,25 @@
  *
  * Tests UART and interrupt routines servicing them.
  *
- * Relies on testbench having uart0's tx line tied to uart1's rx line
- *
- * Shows how single ISR can be used for two cores.
+ * Relies on testbench having uart0's lines in loopback (rx = tx)
  *
  * Julius Baxter, julius.baxter@orsoc.se
  *
 */
 
 
-#include "uart-utils.h"
+#include "cpu-utils.h"
 #include "spr-defs.h"
 #include "board.h"
 #include "uart.h"
 #include "int.h"
-#include "design-defines.h"
+#include "orpsoc-defines.h"
 
 #ifndef UART0
 # error
 # error UART0 missing and is required for UART interrupt (loopback) test
 # error
 #endif
-#ifndef UART1
-# error
-# error UART1 missing and is required for UART interrupt (loopback) test
-# error
-#endif
-
 
 struct uart_tx_ctrl
 {
@@ -63,7 +55,7 @@ void uart_int_handler(void* corenum)
 	{
 	  rxchar = uart_getc(core);
 	  report(0xff & rxchar);
-	  if (rxchar == 0x2a) // when char is "*"
+	  if (rxchar == 0x2a) // Exit simulation when RX char is '*'
 	    exit(0x8000000d);
 	}
     }
@@ -111,19 +103,20 @@ int main()
 
   /* Install UART core 0 interrupt handler */
   int_add(UART0_IRQ, uart_int_handler,(void*) &uart0_core);
-
+  
   /* Install UART core 1 interrupt handler */
-  int_add(UART1_IRQ, uart_int_handler,(void*) &uart1_core);
+  //int_add(UART1_IRQ, uart_int_handler,(void*) &uart1_core);
 
   /* Enable interrupts in supervisor register */
   mtspr (SPR_SR, mfspr (SPR_SR) | SPR_SR_IEE);
   
   uart_init(uart0_core);
-  uart_init(uart1_core);
+  //uart_init(uart1_core);
   
-  uart_rxint_enable(uart1_core);
+  //uart_rxint_enable(uart1_core);
+  uart_rxint_enable(uart0_core);
   
-  char* teststring = "\n\tHello world, and UART 1, from UART 0\n\0";
+  char* teststring = "\n\tHello world from UART 0\n\0";
 
   uart0_tx_buffer(teststring);
 
@@ -139,6 +132,8 @@ int main()
 
   uart0_tx_buffer(done_calculating);
   
+  // Character '*', which will be received in the interrupt handler and cause
+  // the simulation to exit.
   char* finish = "*\n\0";
   
   uart0_tx_buffer(finish);

@@ -21,13 +21,17 @@
 # author: julius.baxter@orsoc.se
 #
 
+SW_ROOT=../..
+
 #PROGRAMMINGFILE=
 PROGRAMMINGFILE_SWBIN=progfile.swbin # Binary file with sizeword
 PROGRAMMINGFILE_DATA=progfile.o
 
 ELF_DEPENDS +=$(PROGRAMMINGFILE_DATA)
 
-include ../Makefile.inc
+
+
+include $(SW_ROOT)/Makefile.inc
 
 OR32_LDFLAGS = -lgcc -Tspiflash-program.ld -e 256
 
