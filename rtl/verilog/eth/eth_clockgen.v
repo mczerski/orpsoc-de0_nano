@@ -40,10 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_clockgen.v,v $
-// Revision 1.4  2005/02/21 12:48:05  igorm
-// Warning fixes.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.3  2002/01/23 10:28:16  mohor
 // Link in the header changed.
 //
@@ -99,15 +96,15 @@ assign CounterPreset[7:0] = (TempDivider[7:0]>>1) - 1'b1;           // We are co
 always @ (posedge Clk or posedge Reset)
 begin
   if(Reset)
-    Counter[7:0] <= #Tp 8'h1;
+    Counter[7:0] <=  8'h1;
   else
     begin
       if(CountEq0)
         begin
-          Counter[7:0] <= #Tp CounterPreset[7:0];
+          Counter[7:0] <=  CounterPreset[7:0];
         end
       else
-        Counter[7:0] <= #Tp Counter - 8'h1;
+        Counter[7:0] <=  Counter - 8'h1;
     end
 end
 
@@ -116,11 +113,11 @@ end
 always @ (posedge Clk or posedge Reset)
 begin
   if(Reset)
-    Mdc <= #Tp 1'b0;
+    Mdc <=  1'b0;
   else
     begin
       if(CountEq0)
-        Mdc <= #Tp ~Mdc;
+        Mdc <=  ~Mdc;
     end
 end
 

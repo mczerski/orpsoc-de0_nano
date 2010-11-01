@@ -3,6 +3,7 @@
 
 #define IN_CLK  	      50000000 // Hz
 
+
 //
 // Defines for each core (memory map base, OR1200 interrupt line number, etc.)
 //

@@ -38,16 +38,45 @@
 **************************************************************************/
 
 `include "timescale.v"
+`include "test-defines.v"
+
+// Uncomment one of the following to have the appropriate size definitions
+// for the part.
+//`define MT48LC32M16   // 64MB part
+`define MT48LC16M16   // 32MB part
+//`define MT48LC4M16    //  8MB part
 
 module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
 
-    parameter addr_bits =      13;
-    parameter data_bits =      16;
-    parameter col_bits  =       9;
-    parameter mem_sizes = 4194303;
+
+`ifdef MT48LC32M16
+   // Params. for  mt48lc32m16a2 (64MB part)
+   parameter addr_bits =      13;
+   parameter col_bits  =      10;
+   parameter mem_sizes = 8388606;
+`endif
+
+`ifdef MT48LC16M16
+   // Params. for  mt48lc16m16a2 (32MB part)
+   parameter addr_bits =      13;
+   parameter col_bits  =       9;
+   parameter mem_sizes = 4194303;
+`endif
+   
+`ifdef MT48LC4M16    
+  //Params for mt48lc4m16a2 (8MB part)
+   parameter addr_bits =      12;
+   parameter col_bits  =       8;
+   parameter mem_sizes =   1048575;
+`endif
+   
+   // Common to all parts
+   parameter data_bits =      16;
+
+   
 
     inout     [data_bits - 1 : 0] Dq;
-    input     [addr_bits - 1 : 0] Addr;
+    input [addr_bits - 1 : 0] 	  Addr;
     input                 [1 : 0] Ba;
     input                         Clk;
     input                         Cke;
@@ -61,7 +90,7 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
     reg       [data_bits - 1 : 0] Bank1 [0 : mem_sizes];
     reg       [data_bits - 1 : 0] Bank2 [0 : mem_sizes];
     reg       [data_bits - 1 : 0] Bank3 [0 : mem_sizes];
-
+       reg       [31 : 0] Bank0_32bit [0 : (mem_sizes/2)]; // Temporary 32-bit wide array to hold readmemh()'d data before loading into 16-bit wide array
     reg                   [1 : 0] Bank_addr [0 : 3];                // Bank Address Pipeline
     reg        [col_bits - 1 : 0] Col_addr [0 : 3];                 // Column Address Pipeline
     reg                   [3 : 0] Command [0 : 3];                  // Command Operation Pipeline
@@ -157,6 +186,9 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
     time  RCD_chk0, RCD_chk1, RCD_chk2, RCD_chk3;
     time  RP_chk0, RP_chk1, RP_chk2, RP_chk3;
 
+   integer mem_cnt;
+   
+
     initial begin
         Dq_reg = {data_bits{1'bz}};
         Data_in_enable = 0; Data_out_enable = 0;
@@ -171,7 +203,31 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
         RC_chk0 = 0; RC_chk1 = 0; RC_chk2 = 0; RC_chk3 = 0;
         RP_chk0 = 0; RP_chk1 = 0; RP_chk2 = 0; RP_chk3 = 0;
         $timeformat (-9, 1, " ns", 12);
-    end
+//`define INIT_CLEAR_MEM_BANKS       
+`ifdef INIT_CLEAR_MEM_BANKS // Added, jb
+       // Initialse the memory before we use it, clearing x's
+       for(mem_cnt = 0; mem_cnt < mem_sizes; mem_cnt = mem_cnt + 1)
+	 begin
+	    Bank0[mem_cnt] = 0;
+	    Bank1[mem_cnt] = 0;
+	    Bank2[mem_cnt] = 0;
+	    Bank3[mem_cnt] = 0;
+	 end
+`endif
+
+`ifdef PRELOAD_RAM // Added jb
+       $display("* Preloading SDRAM bank 0.\n");
+       // Uses the vmem file for the internal SRAM, so words are 32-bits wide
+       // and we need to copy them into the 16-bit wide array, which the simulator
+       // can't figure out how to do, so we'll do it manually here.
+       $readmemh("sram.vmem", Bank0_32bit);
+       for (mem_cnt=0;mem_cnt < (mem_sizes/2); mem_cnt = mem_cnt + 1)
+	 begin
+	    Bank0[(mem_cnt*2)+1] = Bank0_32bit[mem_cnt][15:0];
+	    Bank0[(mem_cnt*2)] = Bank0_32bit[mem_cnt][31:16];
+	 end
+`endif
+end
 
     // System clock generator
     always begin
@@ -1069,4 +1125,36 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
         $setuphold(posedge Dq_chk, Dq,    tDS,  tDH);
     endspecify
 
+   task get_byte;
+      input [31:0] addr;
+      output [7:0] data;
+      reg [1:0]	   bank;
+      reg [15:0]   short;
+      
+      begin
+	 bank = addr[24:23];
+	 
+	 case(bank)
+	   2'b00:
+	     short = Bank0[addr[22:1]];
+	   2'b01:
+	     short = Bank1[addr[22:1]];
+	   2'b10:
+	     short = Bank2[addr[22:1]];
+	   2'b11:
+	     short = Bank3[addr[22:1]];
+	 endcase // case (bank)
+
+	 // Get the byte from the short
+	 if (!addr[0])
+	   data = short[15:8];
+	 else
+	   data = short[7:0];
+
+	 //$display("SDRAM addr 0x%0h, bank %0d, short 0x%0h, byte 0x%0h", addr, bank, short, data);
+	 
+	 
+      end
+   endtask // get_byte
+   
 endmodule

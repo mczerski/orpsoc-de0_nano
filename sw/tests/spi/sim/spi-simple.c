@@ -6,15 +6,15 @@
 
   Nothing much actually gets tested here.
 
-  Ensure the slave selects for the spi are enabled in design-defines.v
+  Ensure the slave selects for the spi are enabled in orpsoc-defines.v
 
 */
 
 
-#include "or32-utils.h"
+#include "cpu-utils.h"
 #include "simple-spi.h"
 
-#include "design-defines.h"
+#include "orpsoc-defines.h"
 
 // Detect which of the SPI cores are enabled, tailor the test for that
 #ifndef SPI1

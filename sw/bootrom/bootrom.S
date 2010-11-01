@@ -39,7 +39,7 @@
 	
 #include "board.h"
 
-#ifdef BOOTLOADER_SPI_FLASH
+#ifdef BOOTROM_SPI_FLASH
 	
 	/* Assembly program to go into the boot ROM */
 	/* Currently just loads a program from SPI flash into RAM */
@@ -117,7 +117,7 @@ spi_xfer_poll:
 
 #endif
 
-#ifdef BOOTLOADER_GOTO_RESET
+#ifdef BOOTROM_GOTO_RESET
 	/* Jump to reset vector in the SDRAM */
 	l.movhi r0, 0
 	l.movhi r4, SDRAM_BASE
@@ -127,7 +127,7 @@ spi_xfer_poll:
 	
 #endif	
 
-#ifdef BOOTLOADER_LOOP_AT_ZERO
+#ifdef BOOTROM_LOOP_AT_ZERO
 
 	/* Don't load app via SPI, instead just put an infinite loop into bottom
 	of memory and jump there.
@@ -147,7 +147,7 @@ spi_xfer_poll:
 
 #endif
 
-#ifdef BOOTLOADER_LOOP_IN_ROM
+#ifdef BOOTROM_LOOP_IN_ROM
 
 	/* Don't load app via SPI, instead just put an infinite loop into bottom
 	of memory and jump there.

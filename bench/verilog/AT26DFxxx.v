@@ -89,7 +89,8 @@ output	SO;		// Serial Output
 parameter DEVICE = "AT25DF041A";	// Device selected
 parameter PRELOAD = 1;			// preload memory with content in MEMORY_FILE
 parameter MEMORY_FILE = "flash.in";	// Memory pre-load
-
+   parameter VERBOSE = 1;
+   
 // ********************************************************************* //
 //Timing Parameters :
 // ******************************************************************** //
@@ -584,8 +585,9 @@ begin
 		#tV SO_reg = temp_data[i];
 		SO_on = 1'b1; 
 		if (i == 0) 
-		begin
-			//$display ("Data: %h read from memory location %h",temp_data,read_addr);
+		  begin
+		     if (VERBOSE)
+			$display ("Data: %h read from memory location %h",temp_data,read_addr);
 			read_addr = read_addr + 1; // next byte
 			i = 7;
 			if (read_addr >= (MEMSIZE-1))

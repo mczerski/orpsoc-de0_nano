@@ -40,10 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_shiftreg.v,v $
-// Revision 1.6  2005/03/08 14:45:09  igorm
-// Case statement improved for synthesys.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.5  2002/08/14 18:16:59  mohor
 // LinkFail signal was not latching appropriate bit.
 //
@@ -111,9 +108,9 @@ always @ (posedge Clk or posedge Reset)
 begin
   if(Reset)
     begin
-      ShiftReg[7:0] <= #Tp 8'h0;
-      Prsd[15:0] <= #Tp 16'h0;
-      LinkFail <= #Tp 1'b0;
+      ShiftReg[7:0] <=  8'h0;
+      Prsd[15:0] <=  16'h0;
+      LinkFail <=  1'b0;
     end
   else
     begin
@@ -122,25 +119,25 @@ begin
           if(|ByteSelect)
             begin
               case (ByteSelect[3:0])  // synopsys parallel_case full_case
-                4'h1 :    ShiftReg[7:0] <= #Tp {2'b01, ~WriteOp, WriteOp, Fiad[4:1]};
-                4'h2 :    ShiftReg[7:0] <= #Tp {Fiad[0], Rgad[4:0], 2'b10};
-                4'h4 :    ShiftReg[7:0] <= #Tp CtrlData[15:8];
-                4'h8 :    ShiftReg[7:0] <= #Tp CtrlData[7:0];
+                4'h1 :    ShiftReg[7:0] <=  {2'b01, ~WriteOp, WriteOp, Fiad[4:1]};
+                4'h2 :    ShiftReg[7:0] <=  {Fiad[0], Rgad[4:0], 2'b10};
+                4'h4 :    ShiftReg[7:0] <=  CtrlData[15:8];
+                4'h8 :    ShiftReg[7:0] <=  CtrlData[7:0];
               endcase
             end 
           else
             begin
-              ShiftReg[7:0] <= #Tp {ShiftReg[6:0], Mdi};
+              ShiftReg[7:0] <=  {ShiftReg[6:0], Mdi};
               if(LatchByte[0])
                 begin
-                  Prsd[7:0] <= #Tp {ShiftReg[6:0], Mdi};
+                  Prsd[7:0] <=  {ShiftReg[6:0], Mdi};
                   if(Rgad == 5'h01)
-                    LinkFail <= #Tp ~ShiftReg[1];  // this is bit [2], because it is not shifted yet
+                    LinkFail <=  ~ShiftReg[1];  // this is bit [2], because it is not shifted yet
                 end
               else
                 begin
                   if(LatchByte[1])
-                    Prsd[15:8] <= #Tp {ShiftReg[6:0], Mdi};
+                    Prsd[15:8] <=  {ShiftReg[6:0], Mdi};
                 end
             end
         end

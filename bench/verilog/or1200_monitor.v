@@ -39,7 +39,7 @@
 //
 // Top of OR1200 inside test bench
 //
-`define OR1200_TOP orpsoc_testbench.dut.or1200_top
+`define OR1200_TOP orpsoc_testbench.dut.or1200_top0
 
 //
 // Define to enable lookup file generation
@@ -439,7 +439,7 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 
 
 `ifdef VERSATILE_SDRAM
- `define SDRAM_TOP design_testbench.sdram0
+ `define SDRAM_TOP orpsoc_testbench.sdram0
    // Bit selects to define the bank
    // 32 MB part with 4 banks
  `define SDRAM_BANK_SEL_BITS 24:23
@@ -465,7 +465,7 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 `endif //  `ifdef VERSATILE_SDRAM
 
 `ifdef XILINX_DDR2
- `define DDR2_TOP design_testbench.gen_cs[0]
+ `define DDR2_TOP orpsoc_testbench.gen_cs[0]
    // Gets instruction word from correct bank
    task get_insn_from_xilinx_ddr2;
       input [31:0] addr;

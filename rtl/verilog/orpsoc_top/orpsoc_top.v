@@ -509,7 +509,7 @@ module orpsoc_top
    // 
    // Instantiation
    //    
-   or1200_top or1200_top
+   or1200_top or1200_top0
        (
 	// Instruction bus, clocks, reset
 	.iwb_clk_i			(wb_clk),

@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_rxethmac.v,v $
-// Revision 1.13  2005/02/21 12:48:07  igorm
-// Warning fixes.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.12  2004/04/26 15:26:23  igorm
 // - Bug connected to the TX_BD_NUM_Wr signal fixed (bug came in with the
 //   previous update of the core.
@@ -252,16 +249,16 @@ eth_crc crcrx (.Clk(MRxClk), .Reset(Reset), .Data(Data_Crc), .Enable(Enable_Crc)
 
 always @ (posedge MRxClk)
 begin
-  CrcHashGood <= #Tp StateData[0] & ByteCntEq6;
+  CrcHashGood <=  StateData[0] & ByteCntEq6;
 end
 
 always @ (posedge MRxClk)
 begin
   if(Reset | StateIdle)
-    CrcHash[5:0] <= #Tp 6'h0;
+    CrcHash[5:0] <=  6'h0;
   else
   if(StateData[0] & ByteCntEq6)
-    CrcHash[5:0] <= #Tp Crc[31:26];
+    CrcHash[5:0] <=  Crc[31:26];
 end
 
 
@@ -270,23 +267,23 @@ always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
     begin
-      RxData_d[7:0]      <= #Tp 8'h0;
-      DelayData          <= #Tp 1'b0;
-      LatchedByte[7:0]   <= #Tp 8'h0;
-      RxData[7:0]        <= #Tp 8'h0;
+      RxData_d[7:0]      <=  8'h0;
+      DelayData          <=  1'b0;
+      LatchedByte[7:0]   <=  8'h0;
+      RxData[7:0]        <=  8'h0;
     end
   else
     begin
-      LatchedByte[7:0]   <= #Tp {MRxD[3:0], LatchedByte[7:4]};  // Latched byte
-      DelayData          <= #Tp StateData[0];
+      LatchedByte[7:0]   <=  {MRxD[3:0], LatchedByte[7:4]};  // Latched byte
+      DelayData          <=  StateData[0];
 
       if(GenerateRxValid)
-        RxData_d[7:0] <= #Tp LatchedByte[7:0] & {8{|StateData}};  // Data goes through only in data state 
+        RxData_d[7:0] <=  LatchedByte[7:0] & {8{|StateData}};  // Data goes through only in data state 
       else
       if(~DelayData)
-        RxData_d[7:0] <= #Tp 8'h0;                                // Delaying data to be valid for two cycles. Zero when not active.
+        RxData_d[7:0] <=  8'h0;                                // Delaying data to be valid for two cycles. Zero when not active.
 
-      RxData[7:0] <= #Tp RxData_d[7:0];                           // Output data byte
+      RxData[7:0] <=  RxData_d[7:0];                           // Output data byte
     end
 end
 
@@ -295,17 +292,17 @@ end
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    Broadcast <= #Tp 1'b0;
+    Broadcast <=  1'b0;
   else
     begin      
       if(StateData[0] & ~(&LatchedByte[7:0]) & ByteCntSmall7)
-        Broadcast <= #Tp 1'b0;
+        Broadcast <=  1'b0;
       else
       if(StateData[0] & (&LatchedByte[7:0]) & ByteCntEq1)
-        Broadcast <= #Tp 1'b1;
+        Broadcast <=  1'b1;
       else
       if(RxAbort | RxEndFrm)
-        Broadcast <= #Tp 1'b0;
+        Broadcast <=  1'b0;
     end
 end
 
@@ -313,13 +310,13 @@ end
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    Multicast <= #Tp 1'b0;
+    Multicast <=  1'b0;
   else
     begin      
       if(StateData[0] & ByteCntEq1 & LatchedByte[0])
-        Multicast <= #Tp 1'b1;
+        Multicast <=  1'b1;
       else if(RxAbort | RxEndFrm)
-      Multicast <= #Tp 1'b0;
+      Multicast <=  1'b0;
     end
 end
 
@@ -330,13 +327,13 @@ always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
     begin
-      RxValid_d <= #Tp 1'b0;
-      RxValid   <= #Tp 1'b0;
+      RxValid_d <=  1'b0;
+      RxValid   <=  1'b0;
     end
   else
     begin
-      RxValid_d <= #Tp GenerateRxValid;
-      RxValid   <= #Tp RxValid_d;
+      RxValid_d <=  GenerateRxValid;
+      RxValid   <=  RxValid_d;
     end
 end
 
@@ -347,13 +344,13 @@ always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
     begin
-      RxStartFrm_d <= #Tp 1'b0;
-      RxStartFrm   <= #Tp 1'b0;
+      RxStartFrm_d <=  1'b0;
+      RxStartFrm   <=  1'b0;
     end
   else
     begin
-      RxStartFrm_d <= #Tp GenerateRxStartFrm;
-      RxStartFrm   <= #Tp RxStartFrm_d;
+      RxStartFrm_d <=  GenerateRxStartFrm;
+      RxStartFrm   <=  RxStartFrm_d;
     end
 end
 
@@ -366,13 +363,13 @@ always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
     begin
-      RxEndFrm_d <= #Tp 1'b0;
-      RxEndFrm   <= #Tp 1'b0;
+      RxEndFrm_d <=  1'b0;
+      RxEndFrm   <=  1'b0;
     end
   else
     begin
-      RxEndFrm_d <= #Tp GenerateRxEndFrm;
-      RxEndFrm   <= #Tp RxEndFrm_d | DribbleRxEndFrm;
+      RxEndFrm_d <=  GenerateRxEndFrm;
+      RxEndFrm   <=  RxEndFrm_d | DribbleRxEndFrm;
     end
 end
 

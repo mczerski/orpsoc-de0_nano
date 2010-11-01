@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_txethmac.v,v $
-// Revision 1.9  2005/02/21 11:25:28  igorm
-// Delayed CRC fixed.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.8  2003/01/30 13:33:24  mohor
 // When padding was enabled and crc disabled, frame was not ended correctly.
 //
@@ -230,14 +227,14 @@ assign StartTxAbort = TooBig | UnderRun | ExcessiveDeferOccured | LateCollision 
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    StopExcessiveDeferOccured <= #Tp 1'b0;
+    StopExcessiveDeferOccured <=  1'b0;
   else
     begin
       if(~TxStartFrm)
-        StopExcessiveDeferOccured <= #Tp 1'b0;
+        StopExcessiveDeferOccured <=  1'b0;
       else
       if(ExcessiveDeferOccured)
-        StopExcessiveDeferOccured <= #Tp 1'b1;
+        StopExcessiveDeferOccured <=  1'b1;
     end
 end
 
@@ -246,14 +243,14 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    ColWindow <= #Tp 1'b1;
+    ColWindow <=  1'b1;
   else
     begin  
       if(~Collision & ByteCnt[5:0] == CollValid[5:0] & (StateData[1] | StatePAD & NibCnt[0] | StateFCS & NibCnt[0]))
-        ColWindow <= #Tp 1'b0;
+        ColWindow <=  1'b0;
       else
       if(StateIdle | StateIPG)
-        ColWindow <= #Tp 1'b1;
+        ColWindow <=  1'b1;
     end
 end
 
@@ -262,14 +259,14 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    StatusLatch <= #Tp 1'b0;
+    StatusLatch <=  1'b0;
   else
     begin
       if(~TxStartFrm)
-        StatusLatch <= #Tp 1'b0;
+        StatusLatch <=  1'b0;
       else
       if(ExcessiveDeferOccured | StateIdle)
-        StatusLatch <= #Tp 1'b1;
+        StatusLatch <=  1'b1;
      end
 end
 
@@ -278,9 +275,9 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    TxUsedData <= #Tp 1'b0;
+    TxUsedData <=  1'b0;
   else
-    TxUsedData <= #Tp |StartData;
+    TxUsedData <=  |StartData;
 end
 
 
@@ -288,14 +285,14 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    TxDone <= #Tp 1'b0;
+    TxDone <=  1'b0;
   else
     begin
       if(TxStartFrm & ~StatusLatch)
-        TxDone <= #Tp 1'b0;
+        TxDone <=  1'b0;
       else
       if(StartTxDone)
-        TxDone <= #Tp 1'b1;
+        TxDone <=  1'b1;
     end
 end
 
@@ -304,14 +301,14 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    TxRetry <= #Tp 1'b0;
+    TxRetry <=  1'b0;
   else
     begin
       if(TxStartFrm & ~StatusLatch)
-        TxRetry <= #Tp 1'b0;
+        TxRetry <=  1'b0;
       else
       if(StartTxRetry)
-        TxRetry <= #Tp 1'b1;
+        TxRetry <=  1'b1;
      end
 end                                    
 
@@ -320,14 +317,14 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    TxAbort <= #Tp 1'b0;
+    TxAbort <=  1'b0;
   else
     begin
       if(TxStartFrm & ~StatusLatch & ~ExcessiveDeferOccured)
-        TxAbort <= #Tp 1'b0;
+        TxAbort <=  1'b0;
       else
       if(StartTxAbort)
-        TxAbort <= #Tp 1'b1;
+        TxAbort <=  1'b1;
     end
 end
 
@@ -336,15 +333,15 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    RetryCnt[3:0] <= #Tp 4'h0;
+    RetryCnt[3:0] <=  4'h0;
   else
     begin
       if(ExcessiveDeferOccured | UnderRun | TooBig | StartTxDone | TxUnderRun 
           | StateJam & NibCntEq7 & (~ColWindow | RetryMax))
-        RetryCnt[3:0] <= #Tp 4'h0;
+        RetryCnt[3:0] <=  4'h0;
       else
       if(StateJam & NibCntEq7 & ColWindow & (RandomEq0 | NoBckof) | StateBackOff & RandomEqByteCnt)
-        RetryCnt[3:0] <= #Tp RetryCnt[3:0] + 1'b1;
+        RetryCnt[3:0] <=  RetryCnt[3:0] + 1'b1;
     end
 end
 
@@ -382,9 +379,9 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    MTxEn <= #Tp 1'b0;
+    MTxEn <=  1'b0;
   else
-    MTxEn <= #Tp StatePreamble | (|StateData) | StatePAD | StateFCS | StateJam;
+    MTxEn <=  StatePreamble | (|StateData) | StatePAD | StateFCS | StateJam;
 end
 
 
@@ -392,9 +389,9 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    MTxD[3:0] <= #Tp 4'h0;
+    MTxD[3:0] <=  4'h0;
   else
-    MTxD[3:0] <= #Tp MTxD_d[3:0];
+    MTxD[3:0] <=  MTxD_d[3:0];
 end
 
 
@@ -402,9 +399,9 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    MTxErr <= #Tp 1'b0;
+    MTxErr <=  1'b0;
   else
-    MTxErr <= #Tp TooBig | UnderRun;
+    MTxErr <=  TooBig | UnderRun;
 end
 
 
@@ -412,9 +409,9 @@ end
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    WillTransmit <= #Tp  1'b0;
+    WillTransmit <=   1'b0;
   else
-    WillTransmit <= #Tp StartPreamble | StatePreamble | (|StateData) | StatePAD | StateFCS | StateJam;
+    WillTransmit <=  StartPreamble | StatePreamble | (|StateData) | StatePAD | StateFCS | StateJam;
 end
 
 
@@ -426,13 +423,13 @@ always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
     begin
-      PacketFinished <= #Tp 1'b0;
-      PacketFinished_q  <= #Tp 1'b0;
+      PacketFinished <=  1'b0;
+      PacketFinished_q  <=  1'b0;
     end
   else
     begin
-      PacketFinished <= #Tp PacketFinished_d;
-      PacketFinished_q  <= #Tp PacketFinished;
+      PacketFinished <=  PacketFinished_d;
+      PacketFinished_q  <=  PacketFinished;
     end
 end
 

@@ -96,22 +96,14 @@ module smii_phy
 
    always @(posedge clk)
      begin
-	if (!rst_n)
-	  begin
-	     state_shiftreg <= 10'b0000000001;
-	  end
+	if (smii_sync) /* sync signal from MAC */
+	  state_shiftreg <= 10'b0000000010;
+	else if (state_shiftreg[10])
+	  state_shiftreg <= 10'b0000000001;
 	else
-	  begin
-	     if (smii_sync) /* sync signal from MAC */
-	       state_shiftreg <= 10'b0000000010;
-	     else if (state_shiftreg[10])
-	       state_shiftreg <= 10'b0000000001;
-	     else
-	       state_shiftreg[10:2] <= state_shiftreg[9:1];
-	  end // else: !if(!rst_n)	
-     end // always @ (posedge clk)
-   
-   
+	  state_shiftreg[10:2] <= state_shiftreg[9:1];
+     end
+
    /* counter from 0 to 9, counting the 10-bit segments we'll transmit
     via SMII*/
    reg [3:0] segment_ctr; 
@@ -138,7 +130,6 @@ module smii_phy
 /* RX path logic PHY->(MII->SMII)->MAC */
 /**************************************************************************/
 
-   reg rx_nibble_sel, rx_byte_valid;
    reg [7:0] rx_data_byte_rx_clk;
 
    reg [4:0] rx_dv_nib_0;
@@ -147,14 +138,12 @@ module smii_phy
 
    // Allow us to check if RX DV has been low for a while
    reg [3:0] rx_dv_long_low_sr;
-   wire      rx_dv_long_low;   
+   wire      dv_long_low;   
    always @(posedge ethphy_mii_rx_clk)
      rx_dv_long_low_sr[3:0] <= {rx_dv_long_low_sr[2:0], ethphy_mii_rx_dv};
-   assign rx_dv_long_low = ~(|rx_dv_long_low_sr[3:0]);
-   reg      rx_dv;
-   wire [8:0] rx_fifo_out;
+   assign rx_dv_long_low = ~(|rx_dv_long_low_sr);
+   wire [9:0] rx_fifo_out;
    wire       rx_fifo_empty,rx_fifo_almost_empty;
-   reg 	      rx_fifo_pop;
    
    always @(posedge ethphy_mii_rx_clk or negedge rst_n)
      begin
@@ -176,34 +165,75 @@ module smii_phy
 	  end
      end // always @ (posedge ethphy_mii_rx_clk or negedge rst_n)
 
-     always @(posedge clk or negedge rst_n)
-       begin 
-	  if (!rst_n) rx_fifo_pop <= 0;
-	  else rx_fifo_pop <= (rx_fifo_almost_empty) ? (rx_fifo_pop ? ~rx_fifo_empty : rx_fifo_pop) : 1;
-
-	  rx_dv <= (state_shiftreg[10] & (((rx_segment_begin_num == (segment_ctr-1)) && !fast_ethernet)| fast_ethernet)) ? (rx_fifo_pop) : rx_dv;
-       end
+   wire rx_fifo_pop;
    
+  
+   reg ethphy_mii_rx_dv_r;
+   wire ethphy_mii_rx_dv_re;
+   wire ethphy_mii_rx_dv_fe;
+   
+   always @(posedge ethphy_mii_rx_clk)
+	ethphy_mii_rx_dv_r <= ethphy_mii_rx_dv;
+
+   assign ethphy_mii_rx_dv_re = ethphy_mii_rx_dv & !ethphy_mii_rx_dv_r;
+   assign ethphy_mii_rx_dv_fe = !ethphy_mii_rx_dv & ethphy_mii_rx_dv_r;
+   
+   reg 	rx_fifo_final_pop;
+
    always @(posedge clk)
-     begin
-	/* remember which counter value we were at when rx enable/valid
-	 went high.	 
-	 This is only useful when not doing fast ethernet*/
-
-	/* rx en has gone high - remember the sequence number we're in */
-	if ((rx_segment_begin_num == 4'hf) & (~rx_dv_long_low))
-	  rx_segment_begin_num <= segment_ctr;
-	
-	/* If rx enable goes low again, reset the segment number */  
-	if (rx_dv_long_low)
-	     /* reset to 0xf */
-	     rx_segment_begin_num <= 4'hf;
-     end
+     if (!rst_n)
+       rx_fifo_final_pop <= 0;
+     else if (rx_fifo_final_pop & state_shiftreg[1] & 
+	      (((rx_segment_begin_num == segment_ctr) & !fast_ethernet) | fast_ethernet))
+       rx_fifo_final_pop <= 0;
+     else if (rx_fifo_pop & rx_fifo_empty)
+       rx_fifo_final_pop <= 1;
    
-	  
+   always @(posedge ethphy_mii_rx_clk)
+	if (ethphy_mii_rx_dv_re)
+	  rx_segment_begin_num <= segment_ctr;
 
+   reg do_fifo_pop;
+   always @(posedge clk)
+     if (!rst_n)
+       do_fifo_pop <= 0;
+     else if (rx_fifo_empty)
+       do_fifo_pop <= 0;
+     else if (!rx_fifo_almost_empty)
+       do_fifo_pop <= 1;		 
+   
+   assign rx_fifo_pop = (state_shiftreg[9] & do_fifo_pop) & 
+			(((rx_segment_begin_num == segment_ctr) & !fast_ethernet) 
+			 | fast_ethernet);
+
+   reg rx_dv_r;
+   wire rx_dv;
+   
+   // Error where rx_dv goes high one cycle too late, so is low for very first data frame - FIXME!
+   //reg rx_dv;
+   always @(posedge clk)
+     if (!rst_n)
+       rx_dv_r <= 0;
+     else if (rx_fifo_final_pop & state_shiftreg[1] & 
+	      (((rx_segment_begin_num == segment_ctr) & !fast_ethernet) | fast_ethernet))
+       rx_dv_r <= 0;
+     else if (rx_fifo_pop)
+       rx_dv_r <= rx_fifo_out[9];
+
+   assign rx_dv = rx_dv_r | rx_fifo_pop;
+   
+
+   reg sending_segment;
+   always @(posedge clk)
+     if (!rst_n)
+       sending_segment <= 0;
+     else if (rx_fifo_final_pop & state_shiftreg[1] & (((rx_segment_begin_num == segment_ctr) & !fast_ethernet) | fast_ethernet))
+       sending_segment <= 0;
+     else if ((state_shiftreg[9] & do_fifo_pop) & (((rx_segment_begin_num == segment_ctr) & !fast_ethernet) | fast_ethernet))
+       sending_segment <= !rx_fifo_empty;
+      
      /* A fifo, storing RX bytes coming from the PHY interface */
-   generic_fifo #(9, 64) rx_fifo
+   generic_fifo #(10, 1024, 10) rx_fifo
      (
       // Outputs
       .psh_full				(),
@@ -214,45 +244,60 @@ module smii_phy
       .async_rst_n			(rst_n),
       .psh_clk				(ethphy_mii_rx_clk),
       .psh_we				(rx_nib_first_r),
-      .psh_d				({ethphy_mii_rx_err,ethphy_mii_rx_d,rx_dv_nib_0[3:0]}),
+      .psh_d				({ethphy_mii_rx_dv,ethphy_mii_rx_err,ethphy_mii_rx_d,rx_dv_nib_0[3:0]}),
       .pop_clk				(clk),
-      .pop_re				((state_shiftreg[1] & rx_fifo_pop)&(((rx_segment_begin_num == segment_ctr) && !fast_ethernet)| fast_ethernet)));
+      .pop_re				(rx_fifo_pop)
+      );
 
- 
-  `ifdef RX_SYNC_1
-   
-    /* Assign the rx line out */
+   reg [9:0] smii_rx_frame_next;
    always @(posedge clk)
-    smii_rx <= state_shiftreg[1] ? ethphy_mii_crs : /* 1st bit is MII CRS */
-		    state_shiftreg[2] ? ((rx_dv & (segment_ctr==4'h0) & !fast_ethernet) | 
-					 rx_dv) :
-	       // inter-frame status byte or data byte
-	       state_shiftreg[3] ? (rx_dv ?  (rx_fifo_out[0]) : ethphy_mii_rx_err) :
-	       state_shiftreg[4] ? (rx_dv ?  (rx_fifo_out[1]) : fast_ethernet) :
-	       state_shiftreg[5] ? (rx_dv ?  (rx_fifo_out[2]) : duplex) :
-	       state_shiftreg[6] ? (rx_dv ?  (rx_fifo_out[3]) : link) :
-	       state_shiftreg[7] ? (rx_dv ?  (rx_fifo_out[4]) : jabber) :
-	       state_shiftreg[8] ? (rx_dv ?  (rx_fifo_out[5]) : 1) :
-	       state_shiftreg[9] ? (rx_dv ?  (rx_fifo_out[6]) : 0) :
-	       state_shiftreg[10] ? (rx_dv ?  (rx_fifo_out[7]) : 1) : 0;
+     if (state_shiftreg[10])
+       smii_rx_frame_next <= rx_dv ? {rx_fifo_out[7:0],1'b1,ethphy_mii_crs} :
+			     {3'b101,jabber,link,duplex,fast_ethernet,
+			      ethphy_mii_rx_err,1'b0,ethphy_mii_crs};
 
-  `else // !`ifdef RX_SYNC_1
-   
-       /* Assign the rx line out */
    always @(posedge clk)
-    smii_rx <= state_shiftreg[10] ? ethphy_mii_crs : /* 1st bit is MII CRS */
-		    state_shiftreg[1] ? ((rx_dv & (segment_ctr==4'h0) & !fast_ethernet) | 
-					 rx_dv) :
-	       // inter-frame status byte or data byte
-	       state_shiftreg[2] ? (rx_dv ?  (rx_fifo_out[0]) : ethphy_mii_rx_err) :
-	       state_shiftreg[3] ? (rx_dv ?  (rx_fifo_out[1]) : fast_ethernet) :
-	       state_shiftreg[4] ? (rx_dv ?  (rx_fifo_out[2]) : duplex) :
-	       state_shiftreg[5] ? (rx_dv ?  (rx_fifo_out[3]) : link) :
-	       state_shiftreg[6] ? (rx_dv ?  (rx_fifo_out[4]) : jabber) :
-	       state_shiftreg[7] ? (rx_dv ?  (rx_fifo_out[5]) : 1) :
-	       state_shiftreg[8] ? (rx_dv ?  (rx_fifo_out[6]) : 0) :
-	       state_shiftreg[9] ? (rx_dv ?  (rx_fifo_out[7]) : 1) : 0;
-  `endif // !`ifdef RX_SYNC_1
+     smii_rx <= state_shiftreg[10] &  smii_rx_frame_next[0] |
+		state_shiftreg[1] &  smii_rx_frame_next[1] |
+		state_shiftreg[2] &  smii_rx_frame_next[2] |
+		state_shiftreg[3] &  smii_rx_frame_next[3] |
+		state_shiftreg[4] &  smii_rx_frame_next[4] |
+		state_shiftreg[5] &  smii_rx_frame_next[5] |
+		state_shiftreg[6] &  smii_rx_frame_next[6] |
+		state_shiftreg[7] &  smii_rx_frame_next[7] |
+		state_shiftreg[8] &  smii_rx_frame_next[8] |
+		state_shiftreg[9] &  smii_rx_frame_next[9];
+   
+		
+   
+   reg [79:0] rx_statename;
+  always @* begin
+    case (1)
+      state_shiftreg[1]   :
+        rx_statename = "CRS";
+      state_shiftreg[2] :
+        rx_statename = "RX_DV";
+      state_shiftreg[3]:
+        rx_statename = "RXD0/RXERR";
+      state_shiftreg[4]:
+        rx_statename = "RXD1/Fast";
+      state_shiftreg[5]:
+        rx_statename = "RXD2/Dupl";
+      state_shiftreg[6]:
+        rx_statename = "RXD3/Link";
+      state_shiftreg[7]:
+        rx_statename = "RXD4/Jabb";
+      state_shiftreg[8]:
+        rx_statename = "RXD5/UNV";
+      state_shiftreg[9]:
+        rx_statename = "RXD6/FCD";
+      state_shiftreg[10] :
+        rx_statename = "RXD7/AS1";
+      default:
+        rx_statename = "XXXXXXX";
+    endcase // case (1)
+  end // always @ *
+   
    
 
    /* Status seq.: CRS, DV, ER, Speed, Duplex, Link, Jabber, UPV, FCD, 1 */
@@ -402,18 +447,18 @@ module smii_phy
 		  else /* Finish up */
 		    begin
 		       tx_byte_to_phy <= 3;
-		       ethphy_mii_tx_en <= 0;
 		    end
 	       end
 	     else if (tx_byte_to_phy == 3) /* De-assert TX_EN */
 	       begin
 		  tx_byte_to_phy <= 2'b00;
+		  ethphy_mii_tx_en <= 0;
 	       end
 	  end // else: !if(!rst_n)
      end // always @ (posedge ethphy_mii_tx_clk or negedge rst_n)
 
    /* A fifo, storing TX bytes coming from the SMII interface */
-   generic_fifo #(9, 64) tx_fifo
+   generic_fifo #(9, 64, 6) tx_fifo
      (
       // Outputs
       .psh_full				(tx_fifo_full),
@@ -458,17 +503,24 @@ module generic_fifo (async_rst_n, psh_clk, psh_we, psh_d, psh_full, pop_clk, pop
    output reg [dw-1:0] pop_q;
    output 	       pop_empty;
    output wire	       almost_empty;
-  
+
+   integer     i;  
    
    /* Actual FIFO memory */
    reg [dw-1:0]   fifo_mem [0:size-1];
 
+   initial
+     begin
+	for (i=0;i<size;i=i+1)
+	  begin
+	     fifo_mem[i] = {dw{1'b0}};
+	  end
+     end
+   
 
    /* FIFO position ptr regs */
    reg [size_log_2 - 1 : 0 ]   wr_ptr, rd_ptr, ctr;
 
-   integer     i;
-   
 
    /* FIFO full signal for push side */
    //assign psh_full = (ptr == size-1) ? 1 : 0;
@@ -480,17 +532,24 @@ module generic_fifo (async_rst_n, psh_clk, psh_we, psh_d, psh_full, pop_clk, pop
    //assign pop_empty = ctr==0;
    assign pop_empty = rd_ptr == wr_ptr;
 
-   assign almost_empty = ctr < 2;
+   assign almost_empty = ctr < 16;
    
    always @(posedge pop_re or negedge async_rst_n)
      begin
 	if (!async_rst_n)
-	  rd_ptr <= 0;
+	  begin
+	     rd_ptr <= 0;
+	     pop_q <= 0;
+	  end
 	else
 	  begin
-	     pop_q = fifo_mem[rd_ptr];
-	     rd_ptr <= rd_ptr + 1;
-	     ctr <= ctr - 1;
+	     if (!pop_empty)
+	       begin
+		  pop_q <= fifo_mem[rd_ptr];
+		  ctr <= ctr - 1;
+		  rd_ptr <= rd_ptr + 1;
+	       end
+		  
 	  end
      end
 
@@ -512,5 +571,3 @@ module generic_fifo (async_rst_n, psh_clk, psh_we, psh_d, psh_full, pop_clk, pop
    
    		       
 endmodule // generic_fifo
-
-   

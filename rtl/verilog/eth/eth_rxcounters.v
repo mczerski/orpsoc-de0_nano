@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_rxcounters.v,v $
-// Revision 1.6  2005/02/21 11:00:57  igorm
-// Delayed CRC fixed.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.5  2002/02/15 11:13:29  mohor
 // Format of the file changed a bit.
 //
@@ -149,14 +146,14 @@ assign IncrementByteCounter = ~ResetByteCounter & MRxDV &
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    ByteCnt[15:0] <= #Tp 16'h0;
+    ByteCnt[15:0] <=  16'h0;
   else
     begin
       if(ResetByteCounter)
-        ByteCnt[15:0] <= #Tp 16'h0;
+        ByteCnt[15:0] <=  16'h0;
       else
       if(IncrementByteCounter)
-        ByteCnt[15:0] <= #Tp ByteCnt[15:0] + 1'b1;
+        ByteCnt[15:0] <=  ByteCnt[15:0] + 1'b1;
      end
 end
 
@@ -184,14 +181,14 @@ assign IncrementIFGCounter = ~ResetIFGCounter & (StateDrop | StateIdle | StatePr
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    IFGCounter[4:0] <= #Tp 5'h0;
+    IFGCounter[4:0] <=  5'h0;
   else
     begin
       if(ResetIFGCounter)
-        IFGCounter[4:0] <= #Tp 5'h0;
+        IFGCounter[4:0] <=  5'h0;
       else
       if(IncrementIFGCounter)
-        IFGCounter[4:0] <= #Tp IFGCounter[4:0] + 1'b1; 
+        IFGCounter[4:0] <=  IFGCounter[4:0] + 1'b1; 
     end
 end
 
@@ -203,17 +200,17 @@ assign IFGCounterEq24 = (IFGCounter[4:0] == 5'h18) | r_IFG; // 24*400 = 9600 ns 
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    DlyCrcCnt[3:0] <= #Tp 4'h0;
+    DlyCrcCnt[3:0] <=  4'h0;
   else
     begin
       if(DlyCrcCnt[3:0] == 4'h9)
-        DlyCrcCnt[3:0] <= #Tp 4'h0;
+        DlyCrcCnt[3:0] <=  4'h0;
       else
       if(DlyCrcEn & StateSFD)
-        DlyCrcCnt[3:0] <= #Tp 4'h1;
+        DlyCrcCnt[3:0] <=  4'h1;
       else
       if(DlyCrcEn & (|DlyCrcCnt[3:0]))
-        DlyCrcCnt[3:0] <= #Tp DlyCrcCnt[3:0] + 1'b1;
+        DlyCrcCnt[3:0] <=  DlyCrcCnt[3:0] + 1'b1;
     end
 end
 

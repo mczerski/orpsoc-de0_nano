@@ -40,10 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_register.v,v $
-// Revision 1.6  2002/08/16 22:10:12  mohor
-// Synchronous reset added.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.5  2002/08/16 12:33:27  mohor
 // Parameter ResetValue changed to capital letters.
 //
@@ -77,7 +74,7 @@
 `include "timescale.v"
 
 
-module eth_register(DataIn, DataOut, Write, Clk, Reset);
+module eth_register(DataIn, DataOut, Write, Clk, Reset, SyncReset);
 
 parameter WIDTH = 8; // default parameter of the register width
 parameter RESET_VALUE = 0;
@@ -87,17 +84,25 @@ input [WIDTH-1:0] DataIn;
 input Write;
 input Clk;
 input Reset;
+input SyncReset;
 
 output [WIDTH-1:0] DataOut;
 reg    [WIDTH-1:0] DataOut;
 
 
 
-   always @ (posedge Clk or posedge Reset)
-     if(Reset)
-       DataOut<=#1 RESET_VALUE;
-     else
-       if(Write)                         // write
-	 DataOut<=#1 DataIn;
-   
+always @ (posedge Clk or posedge Reset)
+begin
+  if(Reset)
+    DataOut<= RESET_VALUE;
+  else
+  if(SyncReset)
+    DataOut<= RESET_VALUE;
+  else
+  if(Write)                         // write
+    DataOut<= DataIn;
+end
+
+
+
 endmodule   // Register

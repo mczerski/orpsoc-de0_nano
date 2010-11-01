@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_random.v,v $
-// Revision 1.4  2003/06/13 11:26:08  mohor
-// Binary operator used instead of unary (xnor).
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.3  2002/01/23 10:28:16  mohor
 // Link in the header changed.
 //
@@ -106,9 +103,9 @@ reg  [9:0] RandomLatched;
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    x[9:0] <= #Tp 0;
+    x[9:0] <=  0;
   else
-    x[9:0] <= #Tp {x[8:0], Feedback};
+    x[9:0] <=  {x[8:0], Feedback};
 end
 
 assign Feedback = ~(x[2] ^ x[9]);
@@ -128,11 +125,11 @@ assign Random [9] = (RetryCnt > 9) ? x[9] : 1'b0;
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    RandomLatched <= #Tp 10'h000;
+    RandomLatched <=  10'h000;
   else
     begin
       if(StateJam & StateJam_q)
-        RandomLatched <= #Tp Random;
+        RandomLatched <=  Random;
     end
 end
 

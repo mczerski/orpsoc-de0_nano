@@ -40,10 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_fifo.v,v $
-// Revision 1.4  2005/02/21 12:48:07  igorm
-// Warning fixes.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.3  2002/04/22 13:45:52  mohor
 // Generic ram or Xilinx ram can be used in fifo (selectable by setting
 // ETH_FIFO_XILINX in eth_defines.v).
@@ -68,8 +65,6 @@ parameter DATA_WIDTH    = 32;
 parameter DEPTH         = 8;
 parameter CNT_WIDTH     = 4;
 
-parameter Tp            = 1;
-
 input                     clk;
 input                     reset;
 input                     write;
@@ -84,16 +79,89 @@ output                    almost_empty;
 output                    empty;
 output  [CNT_WIDTH-1:0]   cnt;
 
-`ifdef ETH_FIFO_XILINX
-`else
-  `ifdef ETH_ALTERA_ALTSYNCRAM
-  `else
-    reg     [DATA_WIDTH-1:0]  fifo  [0:DEPTH-1];
-//    reg     [DATA_WIDTH-1:0]  data_out;
-  `endif
-`endif
 
-reg     [CNT_WIDTH-1:0]   cnt;
+
+reg [CNT_WIDTH-1:0] 	  cnt;
+   reg 			  final_read;
+   
+always @ (posedge clk or posedge reset)
+begin
+  if(reset)
+    cnt <= 0;
+  else
+  if(clear)
+    cnt <= { {(CNT_WIDTH-1){1'b0}}, read^write};
+  else
+  if(read ^ write)
+    if(read)
+      cnt <= cnt - 1'b1;
+    else
+      cnt <= cnt + 1'b1;
+end
+
+   
+`ifdef ETH_FIFO_GENERIC
+
+   reg     [DATA_WIDTH-1:0]  fifo  [0:DEPTH-1] /*synthesis syn_ramstyle = "no_rw_check"*/ ;
+   
+   
+   // This should make the synthesis tool infer RAMs
+   reg [CNT_WIDTH-2:0] waddr, raddr, raddr_reg;
+   reg 		       clear_reg; // Register the clear pulse   
+   
+   always @(posedge clk)
+     if (reset)
+       waddr <= 0;
+     else if (write)
+       waddr <= waddr + 1;
+
+   wire 	       raddr_reg_adv;
+   reg 		       read_reg;
+   always @(posedge clk)
+     read_reg <= read;
+
+   // Advance the address after a read = first/next word fallthrough   
+   assign raddr_reg_adv = (cnt > 2) & read_reg;
+   
+   always @(posedge clk)
+     if (reset)
+       raddr <= 0;
+     else if (clear)
+       raddr <= waddr;
+     else if (read | clear_reg )
+       raddr <= raddr + 1;
+   
+   always @ (posedge clk)
+     if (write & ~full)
+       fifo[waddr] <=  data_in;
+
+
+   always @(posedge clk)
+     clear_reg <= clear;
+
+   always @ (posedge clk)
+     if (read | clear_reg)
+       raddr_reg <= raddr;
+   
+   assign  data_out = fifo[raddr_reg];
+
+
+   always @(posedge clk)
+     if (reset)
+       final_read <= 0;
+     else if (final_read & read & !write)
+       final_read <= ~final_read;
+     else if ((cnt == 1) & read & !write)
+       final_read <= 1; // Indicate last read data has been output
+   
+   
+   assign empty = ~(|cnt);
+   assign almost_empty = cnt==1;
+   assign full  = cnt == DEPTH;
+   assign almost_full  = &cnt[CNT_WIDTH-2:0];
+
+`else // !`ifdef ETH_FIFO_GENERIC
+   
 reg     [CNT_WIDTH-2:0]   read_pointer;
 reg     [CNT_WIDTH-2:0]   write_pointer;
 
@@ -101,48 +169,27 @@ reg     [CNT_WIDTH-2:0]   write_pointer;
 always @ (posedge clk or posedge reset)
 begin
   if(reset)
-    cnt <=#Tp 0;
+    read_pointer <= 0;
   else
   if(clear)
-    cnt <=#Tp { {(CNT_WIDTH-1){1'b0}}, read^write};
-  else
-  if(read ^ write)
-    if(read)
-      cnt <=#Tp cnt - 1'b1;
-    else
-      cnt <=#Tp cnt + 1'b1;
-end
-
-always @ (posedge clk or posedge reset)
-begin
-  if(reset)
-    read_pointer <=#Tp 0;
-  else
-  if(clear)
-    read_pointer <=#Tp { {(CNT_WIDTH-2){1'b0}}, read};
+    //read_pointer <= { {(CNT_WIDTH-2){1'b0}}, read};
+    read_pointer <= { {(CNT_WIDTH-2){1'b0}}, 1'b1};
   else
   if(read & ~empty)
-    read_pointer <=#Tp read_pointer + 1'b1;
+    read_pointer <= read_pointer + 1'b1;
 end
 
 always @ (posedge clk or posedge reset)
 begin
   if(reset)
-    write_pointer <=#Tp 0;
+    write_pointer <= 0;
   else
   if(clear)
-    write_pointer <=#Tp { {(CNT_WIDTH-2){1'b0}}, write};
+    write_pointer <= { {(CNT_WIDTH-2){1'b0}}, write};
   else
   if(write & ~full)
-    write_pointer <=#Tp write_pointer + 1'b1;
+    write_pointer <= write_pointer + 1'b1;
 end
-
-assign empty = ~(|cnt);
-assign almost_empty = cnt == 1;
-assign full  = cnt == DEPTH;
-assign almost_full  = &cnt[CNT_WIDTH-2:0];
-
-
 
 `ifdef ETH_FIFO_XILINX
   xilinx_dist_ram_16x32 fifo
@@ -164,48 +211,17 @@ assign almost_full  = &cnt[CNT_WIDTH-2:0];
   	.clock            (clk),
   	.q                (data_out)
   );  //exemplar attribute altera_dpram_16x32_inst NOOPT TRUE
-`else   // !ETH_ALTERA_ALTSYNCRAM
+`endif //  `ifdef ETH_ALTERA_ALTSYNCRAM
+`endif // !`ifdef ETH_FIFO_XILINX
 
-   wire [CNT_WIDTH-2:0] waddr, raddr;
-   reg [CNT_WIDTH-2:0] 	raddr_reg;
-   wire       we;
-
-   assign waddr = clear ? {CNT_WIDTH-1{1'b0}} : write_pointer;
-   assign raddr = clear ? {CNT_WIDTH-1{1'b0}} : read_pointer;
    
-   assign we = (write & clear) | (write & ~full);
-
-   always @ (posedge clk)
-     if (we)
-       fifo[waddr] <= #Tp data_in;
-
-   always @ (posedge clk)
-     raddr_reg <= raddr;
-
-   assign #Tp data_out = fifo[raddr_reg];
+assign empty = ~(|cnt);
+assign almost_empty = cnt == 1;
+assign full  = cnt == DEPTH;
+assign almost_full  = &cnt[CNT_WIDTH-2:0];
    
-     
-   /*
-  always @ (posedge clk)
-  begin
-    if(write & clear)
-      fifo[0] <=#Tp data_in;
-    else
-   if(write & ~full)
-      fifo[write_pointer] <=#Tp data_in;
-  end
-  
-
-  always @ (posedge clk)
-  begin
-    if(clear)
-      data_out <=#Tp fifo[0];
-    else
-      data_out <=#Tp fifo[read_pointer];
-  end
-    */
-`endif  // !ETH_ALTERA_ALTSYNCRAM
-`endif  // !ETH_FIFO_XILINX
+`endif // !`ifdef ETH_FIFO_GENERIC
+   
 
 
 endmodule

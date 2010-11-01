@@ -45,7 +45,7 @@ module orpsoc_testbench;
    reg rst_n = 1; // Active LOW
    
    always
-     #((`BOARD_CLOCK_PERIOD_NS)/2) clk <= ~clk;
+     #((`BOARD_CLOCK_PERIOD)/2) clk <= ~clk;
 
    // Reset, ACTIVE LOW
    initial 
@@ -96,11 +96,11 @@ module orpsoc_testbench;
 `ifndef SIM_QUIET
  `define CPU_ic_top or1200_ic_top
  `define CPU_dc_top or1200_dc_top
-   wire ic_en = orpsoc_testbench.dut.or1200_top.or1200_ic_top.ic_en;
+   wire ic_en = orpsoc_testbench.dut.or1200_top0.or1200_ic_top.ic_en;
    always @(posedge ic_en)
      $display("Or1200 IC enabled at %t", $time);
 
-   wire dc_en = orpsoc_testbench.dut.or1200_top.or1200_dc_top.dc_en;
+   wire dc_en = orpsoc_testbench.dut.or1200_top0.or1200_dc_top.dc_en;
    always @(posedge dc_en)
      $display("Or1200 DC enabled at %t", $time);
 `endif
@@ -128,7 +128,7 @@ module orpsoc_testbench;
    initial 
      begin
 `ifndef SIM_QUIET
-	$display("\n* Starting simulation of design RTL.\n* Test: %s\n",
+	$display("\n* Starting simulation of ORPSoC RTL.\n* Test: %s\n",
 		 `TEST_NAME_STRING );
 `endif	
       

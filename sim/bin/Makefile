@@ -55,7 +55,7 @@ BENCH_TOP=$(BENCH_VERILOG_DIR)/$(DESIGN_NAME)_testbench.v
 # Need this for individual test variables to not break
 TEST ?= or1200-simple
 
-TESTS ?= or1200-simple or1200-basic or1200-cbasic or1200-dctest or1200-float or1200-mmu  or1200-except or1200-mac or1200-linkregtest or1200-tick or1200-ticksyscall uart-simple
+TESTS ?= or1200-simple or1200-basic or1200-cbasic or1200-dctest or1200-float or1200-mmu  or1200-except or1200-mac or1200-ffl1 or1200-linkregtest or1200-tick or1200-ticksyscall uart-simple
 
 # Gets turned into verilog `define
 SIM_TYPE=RTL
@@ -88,6 +88,7 @@ RTL_SIM_RESULTS_DIR=$(RTL_SIM_DIR)/out
 # Testbench paths
 BENCH_DIR=$(PROJECT_ROOT)/bench
 BENCH_VERILOG_DIR=$(BENCH_DIR)/verilog
+BENCH_VERILOG_INCLUDE_DIR=$(BENCH_VERILOG_DIR)/include
 #BENCH_VHDL_DIR=$(BENCH_DIR)/vhdl
 BENCH_SYSC_DIR=$(BENCH_DIR)/sysc
 BENCH_SYSC_SRC_DIR=$(BENCH_SYSC_DIR)/src
@@ -248,7 +249,7 @@ modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERIL
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
 	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
-	$(Q)echo "+incdir+"$(BENCH_VERILOG_DIR) >> $@;
+	$(Q)echo "+incdir+"$(BENCH_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
 	$(Q)for module in $(RTL_VERILOG_MODULES); do if [ -d $(RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; fi; done
 	$(Q)echo >> $@
@@ -347,75 +348,29 @@ check-test-log:
 	$(Q) echo; echo "\t### Checking simulation results for "$(TEST)" test ###"; echo;
 	$(Q)./$@
 
-
-# Test defines.v file, called recursively, .PHONY to force its generation
-.PHONY: $(TEST_DEFINES_VLG)
-$(TEST_DEFINES_VLG):
-	$(Q)echo "\`define "$(SIM_TYPE)"_SIM" > $@
-	$(Q)echo "\`define SIMULATOR_"`echo $(SIMULATOR) | tr  "[:lower:]" "[:upper:]"` > $@
-	$(Q)echo "\`define TEST_NAME_STRING \""$(TEST)"\"" >> $@
-	$(Q)if [ ! -z $$VCD ]; \
-		then echo "\`define VCD" >> $@; \
-	fi
-	$(Q)if [ ! -z $$VCD_DELAY ]; \
-		then echo "\`define VCD_DELAY "$$VCD_DELAY >> $@; \
-	fi
-	$(Q)if [ ! -z $$VCD_DEPTH ]; \
-		then echo "\`define VCD_DEPTH "$$VCD_DEPTH >> $@; \
-	fi
-	$(Q)if [ ! -z $$VCD_DELAY_INSNS ]; \
-		then echo "\`define VCD_DELAY_INSNS "$$VCD_DELAY_INSNS >> $@; \
-	fi
-	$(Q)if [ ! -z $$END_TIME ]; \
-		then echo "\`define END_TIME "$$END_TIME >> $@; \
-	fi
-	$(Q)if [ ! -z $$END_INSNS ]; \
-		then echo "\`define END_INSNS "$$END_INSNS >> $@; \
-	fi
-	$(Q)if [ ! -z $$PRELOAD_RAM ]; \
-		then echo "\`define PRELOAD_RAM "$$END_TIME >> $@; \
-	fi
-	$(Q)if [ -z $$DISABLE_PROCESSOR_LOGS ]; \
-		then echo "\`define PROCESSOR_MONITOR_ENABLE_LOGS" >> $@; \
-	fi
-	$(Q)if [ ! -z $$VPI ]; \
-		then echo "\`define VPI_DEBUG" >> $@; \
-	fi
-	$(Q)if [ ! -z $$SIM_QUIET ]; \
-		then echo "\`define SIM_QUIET" >> $@; \
-	fi
-
+# Include the test-defines.v generation rule
+include ../bin/definesgen.inc
 
 #	$(Q)for module in $(GATELEVEL_MODULES); do echo "\`define "$$module"_IS_GATELEVEL " >> $@; done
 # More possible test defines go here
 
-
+#
 # Software make rules (called recursively)
+#
+
+# Path for the current test
 TEST_SW_DIR=$(SW_DIR)/tests/$(shell echo $(TEST) | cut -d "-" -f 1)/sim
 
-# Set PRELOAD_RAM=1 to preload the system memory, avoiding lengthy SPI FLASH 
-# bootloader process.
-#ifeq ($(PRELOAD_RAM), 1)
+# Name of the image the RAM model will attempt to load via Verilog $readmemh
+# system function.
 SIM_SW_IMAGE ?=sram.vmem
-#else
-#SIM_SW_IMAGE ?=flash.in
-#endif
 
 .PHONY : sw
 sw: $(SIM_SW_IMAGE)
 
-flash.in: $(TEST_SW_DIR)/$(TEST).flashin
-	$(Q)if [ -L $@ ]; then unlink $@; fi
-	$(Q)ln -s $< $@
-
 sram.vmem: $(TEST_SW_DIR)/$(TEST).vmem
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)ln -s $< $@
-
-.PHONY: $(TEST_SW_DIR)/$(TEST).flashin
-$(TEST_SW_DIR)/$(TEST).flashin:
-	$(Q) echo; echo "\t### Compiling software ###"; echo;
-	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).flashin
 
 .PHONY: $(TEST_SW_DIR)/$(TEST).vmem
 $(TEST_SW_DIR)/$(TEST).vmem:

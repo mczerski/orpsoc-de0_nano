@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_crc.v,v $
-// Revision 1.3  2002/01/23 10:28:16  mohor
-// Link in the header changed.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.2  2001/10/19 08:43:51  mohor
 // eth_timescale.v changed to timescale.v This is done because of the
 // simulation of the few cores in a one joined project.
@@ -135,12 +132,12 @@ assign CrcNext[31] = Crc[27];
 always @ (posedge Clk or posedge Reset)
 begin
   if (Reset)
-    Crc <= #1 32'hffffffff;
+    Crc <=  32'hffffffff;
   else
   if(Initialize)
-    Crc <= #Tp 32'hffffffff;
+    Crc <=  32'hffffffff;
   else
-    Crc <= #Tp CrcNext;
+    Crc <=  CrcNext;
 end
 
 assign CrcError = Crc[31:0] != 32'hc704dd7b;  // CRC not equal to magic number

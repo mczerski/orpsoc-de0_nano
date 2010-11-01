@@ -5,7 +5,7 @@
  *
 */
 
-#include "or32-utils.h"
+#include "cpu-utils.h"
 #include "board.h"
 #include "sdram.h"
 

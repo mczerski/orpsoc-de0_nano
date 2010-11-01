@@ -4,6 +4,8 @@
 ////                                                              ////
 ////  This file is part of the Ethernet IP core project           ////
 ////  http://www.opencores.org/projects/ethmac/                   ////
+//// Altered by Julius Baxter, julius.baxter@orsoc.se, increasing ////
+//// TX fifo buffer size, and uncommenting WB_B3 compat define    ////
 ////                                                              ////
 ////  Author(s):                                                  ////
 ////      - Igor Mohor (igorM@opencores.org)                      ////
@@ -40,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_defines.v,v $
-// Revision 1.34  2005/02/21 12:48:06  igorm
-// Warning fixes.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.33  2003/11/12 18:24:58  tadejm
 // WISHBONE slave changed and tested from only 32-bit accesss to byte access.
 //
@@ -182,6 +181,8 @@
 
 `define ETH_MBIST_CTRL_WIDTH 3        // width of MBIST control bus
 
+// Generic FIFO implementation - hopefully synthesizable with Synplify
+`define ETH_FIFO_GENERIC
 // Ethernet implemented in Xilinx Chips (uncomment following lines)
 // `define ETH_FIFO_XILINX             // Use Xilinx distributed ram for tx and rx fifo
 // `define ETH_XILINX_RAMB4            // Selection of the used memory for Buffer descriptors
@@ -222,6 +223,7 @@
 `define ETH_HASH1_ADR         8'h13   // 0x4C
 `define ETH_TX_CTRL_ADR       8'h14   // 0x50
 `define ETH_RX_CTRL_ADR       8'h15   // 0x54
+`define ETH_DBG_ADR           8'h16   // 0x58
 
 
 `define ETH_MODER_DEF_0         8'h00
@@ -317,21 +319,74 @@
 `define ETH_REGISTERED_OUTPUTS
 
 // Settings for TX FIFO
-//`define ETH_TX_FIFO_CNT_WIDTH  5
-//`define ETH_TX_FIFO_DEPTH      16
-// Settings for TX FIFO buffer for a while ethernet packet (1500 bytes)
-`define ETH_TX_FIFO_CNT_WIDTH  9
-`define ETH_TX_FIFO_DEPTH      375
 `define ETH_TX_FIFO_DATA_WIDTH 32
 
+// Defines for ethernet TX fifo size - impacts FPGA resource usage
+//`define ETH_TX_FULL_PACKET_FIFO  // Full 1500 byte TX buffer - uncomment this
+//`define ETH_TX_256BYTE_FIFO  // 256 byte TX buffer - uncomment this
+//`define ETH_TX_512BYTE_FIFO  // 512 byte TX buffer - uncomment this
+`define ETH_TX_1KBYTE_FIFO     // 1024 byte TX buffer - uncomment this
+
+`ifdef  ETH_TX_FULL_PACKET_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  11
+ `define ETH_TX_FIFO_DEPTH      375
+`else
+ `ifdef ETH_TX_1KBYTE_FIFO
+  `define ETH_TX_FIFO_CNT_WIDTH  9
+  `define ETH_TX_FIFO_DEPTH      256
+ `else
+  `ifdef ETH_TX_512BYTE_FIFO
+   `define ETH_TX_FIFO_CNT_WIDTH  8
+   `define ETH_TX_FIFO_DEPTH      128
+  `else
+   `ifdef ETH_TX_256BYTE_FIFO
+    `define ETH_TX_FIFO_CNT_WIDTH  7
+    `define ETH_TX_FIFO_DEPTH      64
+   `else
+// Default is 64 bytes
+    `define ETH_TX_FIFO_CNT_WIDTH  5
+    `define ETH_TX_FIFO_DEPTH      16
+   `endif
+  `endif
+ `endif // !`ifdef ETH_TX_512BYTE_FIFO
+`endif // !`ifdef ETH_TX_FULL_PACKET_FIFO
+
+
+
 // Settings for RX FIFO
-`define ETH_RX_FIFO_CNT_WIDTH  5
-`define ETH_RX_FIFO_DEPTH      16
+`define ETH_RX_FIFO_CNT_WIDTH  9
+`define ETH_RX_FIFO_DEPTH      256
+//`define ETH_RX_FIFO_CNT_WIDTH  8
+//`define ETH_RX_FIFO_DEPTH      128
+//`define ETH_RX_FIFO_CNT_WIDTH  7
+//`define ETH_RX_FIFO_DEPTH      64
+//`define ETH_RX_FIFO_CNT_WIDTH  6
+//`define ETH_RX_FIFO_DEPTH      32
+//`define ETH_RX_FIFO_CNT_WIDTH  5
+//`define ETH_RX_FIFO_DEPTH      16
+
 `define ETH_RX_FIFO_DATA_WIDTH 32
 
 // Burst length
-`define ETH_BURST_LENGTH       4    // Change also ETH_BURST_CNT_WIDTH
-`define ETH_BURST_CNT_WIDTH    3    // The counter must be width enough to count to ETH_BURST_LENGTH
+`define BURST_4BEAT
+`ifdef BURST_4BEAT
+ `define ETH_BURST_LENGTH       4    // Change also ETH_BURST_CNT_WIDTH
+ `define ETH_BURST_CNT_WIDTH    3    // The counter must be width enough to count to ETH_BURST_LENGTH
+`endif
+
+//`define ETH_BURST_LENGTH      32    // Change also ETH_BURST_CNT_WIDTH
+//`define ETH_BURST_CNT_WIDTH    7    // The counter must be width enough to count to ETH_BURST_LENGTH
+
+// Undefine this to enable bursting for RX (writing to memory)
+`define ETH_RX_BURST_EN
+
 
 // WISHBONE interface is Revision B3 compliant (uncomment when needed)
 `define ETH_WISHBONE_B3
+
+// Hack where the transmit logic polls each of the TX buffers instead of having to keep track of what's going on
+//`define TXBD_POLL
+
+// Define this to allow reading of the Wishbone control state machine on reg
+// address 0x58
+`define WISHBONE_DEBUG

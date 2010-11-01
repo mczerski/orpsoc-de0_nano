@@ -40,11 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_transmitcontrol.v,v $
-// Revision 1.6  2002/11/21 00:16:14  mohor
-// When TxUsedData and CtrlMux occur at the same time, byte counter needs
-// to be incremented by 2. Signal IncrementByteCntBy2 added for that reason.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.5  2002/11/19 17:37:32  mohor
 // When control frame (PAUSE) was sent, status was written in the
 // eth_wishbone module and both TXB and TXC interrupts were set. Fixed.
@@ -143,13 +139,13 @@ wire          EnableCnt;
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    WillSendControlFrame <= #Tp 1'b0;
+    WillSendControlFrame <=  1'b0;
   else
   if(TxCtrlEndFrm & CtrlMux)
-    WillSendControlFrame <= #Tp 1'b0;
+    WillSendControlFrame <=  1'b0;
   else
   if(TPauseRq & TxFlow)
-    WillSendControlFrame <= #Tp 1'b1;
+    WillSendControlFrame <=  1'b1;
 end
 
 
@@ -157,13 +153,13 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    TxCtrlStartFrm <= #Tp 1'b0;
+    TxCtrlStartFrm <=  1'b0;
   else
   if(TxUsedDataIn_q & CtrlMux)
-    TxCtrlStartFrm <= #Tp 1'b0;
+    TxCtrlStartFrm <=  1'b0;
   else
   if(WillSendControlFrame & ~TxUsedDataOut & (TxDoneIn | TxAbortIn | TxStartFrmIn | (~TxUsedDataOutDetected)))
-    TxCtrlStartFrm <= #Tp 1'b1;
+    TxCtrlStartFrm <=  1'b1;
 end
 
 
@@ -172,12 +168,12 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    TxCtrlEndFrm <= #Tp 1'b0;
+    TxCtrlEndFrm <=  1'b0;
   else
   if(ControlEnd | ControlEnd_q)
-    TxCtrlEndFrm <= #Tp 1'b1;
+    TxCtrlEndFrm <=  1'b1;
   else
-    TxCtrlEndFrm <= #Tp 1'b0;
+    TxCtrlEndFrm <=  1'b0;
 end
 
 
@@ -186,13 +182,13 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    CtrlMux <= #Tp 1'b0;
+    CtrlMux <=  1'b0;
   else
   if(WillSendControlFrame & ~TxUsedDataOut)
-    CtrlMux <= #Tp 1'b1;
+    CtrlMux <=  1'b1;
   else
   if(TxDoneIn)
-    CtrlMux <= #Tp 1'b0;
+    CtrlMux <=  1'b0;
 end
 
 
@@ -201,22 +197,22 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    SendingCtrlFrm <= #Tp 1'b0;
+    SendingCtrlFrm <=  1'b0;
   else
   if(WillSendControlFrame & TxCtrlStartFrm)
-    SendingCtrlFrm <= #Tp 1'b1;
+    SendingCtrlFrm <=  1'b1;
   else
   if(TxDoneIn)
-    SendingCtrlFrm <= #Tp 1'b0;
+    SendingCtrlFrm <=  1'b0;
 end
 
 
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    TxUsedDataIn_q <= #Tp 1'b0;
+    TxUsedDataIn_q <=  1'b0;
   else
-    TxUsedDataIn_q <= #Tp TxUsedDataIn;
+    TxUsedDataIn_q <=  TxUsedDataIn;
 end
 
 
@@ -226,20 +222,20 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    BlockTxDone <= #Tp 1'b0;
+    BlockTxDone <=  1'b0;
   else
   if(TxCtrlStartFrm)
-    BlockTxDone <= #Tp 1'b1;
+    BlockTxDone <=  1'b1;
   else
   if(TxStartFrmIn)
-    BlockTxDone <= #Tp 1'b0;
+    BlockTxDone <=  1'b0;
 end
 
 
 always @ (posedge MTxClk)
 begin
-  ControlEnd_q     <= #Tp ControlEnd;
-  TxCtrlStartFrm_q <= #Tp TxCtrlStartFrm;
+  ControlEnd_q     <=  ControlEnd;
+  TxCtrlStartFrm_q <=  TxCtrlStartFrm;
 end
 
 
@@ -250,13 +246,13 @@ assign IncrementDlyCrcCnt = CtrlMux & TxUsedDataIn &  ~DlyCrcCnt[2];
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    DlyCrcCnt <= #Tp 4'h0;
+    DlyCrcCnt <=  4'h0;
   else
   if(ResetByteCnt)
-    DlyCrcCnt <= #Tp 4'h0;
+    DlyCrcCnt <=  4'h0;
   else
   if(IncrementDlyCrcCnt)
-    DlyCrcCnt <= #Tp DlyCrcCnt + 1'b1;
+    DlyCrcCnt <=  DlyCrcCnt + 1'b1;
 end
 
              
@@ -269,16 +265,16 @@ assign EnableCnt = (~DlyCrcEn | DlyCrcEn & (&DlyCrcCnt[1:0]));
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    ByteCnt <= #Tp 6'h0;
+    ByteCnt <=  6'h0;
   else
   if(ResetByteCnt)
-    ByteCnt <= #Tp 6'h0;
+    ByteCnt <=  6'h0;
   else
   if(IncrementByteCntBy2 & EnableCnt)
-    ByteCnt <= #Tp (ByteCnt[5:0] ) + 2'h2;
+    ByteCnt <=  (ByteCnt[5:0] ) + 2'h2;
   else
   if(IncrementByteCnt & EnableCnt)
-    ByteCnt <= #Tp (ByteCnt[5:0] ) + 1'b1;
+    ByteCnt <=  (ByteCnt[5:0] ) + 1'b1;
 end
 
 
@@ -319,10 +315,10 @@ end
 always @ (posedge MTxClk or posedge TxReset)
 begin
   if(TxReset)
-    ControlData[7:0] <= #Tp 8'h0;
+    ControlData[7:0] <=  8'h0;
   else
   if(~ByteCnt[0])
-    ControlData[7:0] <= #Tp MuxedCtrlData[7:0];
+    ControlData[7:0] <=  MuxedCtrlData[7:0];
 end
 
 

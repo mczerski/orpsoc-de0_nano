@@ -40,11 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_rxaddrcheck.v,v $
-// Revision 1.9  2002/11/22 01:57:06  mohor
-// Rx Flow control fixed. CF flag added to the RX buffer descriptor. RxAbort
-// synchronized.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.8  2002/11/19 17:34:52  mohor
 // AddressMiss status is connecting to the Rx BD. AddressMiss is identifying
 // that a frame was received because of the promiscous mode.
@@ -134,11 +130,11 @@ assign RxCheckEn   = | StateData;
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    RxAbort <= #Tp 1'b0;
+    RxAbort <=  1'b0;
   else if(RxAddressInvalid & ByteCntEq7 & RxCheckEn)
-    RxAbort <= #Tp 1'b1;
+    RxAbort <=  1'b1;
   else
-    RxAbort <= #Tp 1'b0;
+    RxAbort <=  1'b0;
 end
  
 
@@ -146,9 +142,9 @@ end
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    AddressMiss <= #Tp 1'b0;
+    AddressMiss <=  1'b0;
   else if(ByteCntEq7 & RxCheckEn)
-    AddressMiss <= #Tp (~(UnicastOK | BroadcastOK | MulticastOK | (PassAll & ControlFrmAddressOK)));
+    AddressMiss <=  (~(UnicastOK | BroadcastOK | MulticastOK | (PassAll & ControlFrmAddressOK)));
 end
 
 
@@ -156,11 +152,11 @@ end
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    MulticastOK <= #Tp 1'b0;
+    MulticastOK <=  1'b0;
   else if(RxEndFrm | RxAbort)
-    MulticastOK <= #Tp 1'b0;
+    MulticastOK <=  1'b0;
   else if(CrcHashGood & Multicast)
-    MulticastOK <= #Tp HashBit;
+    MulticastOK <=  HashBit;
 end
  
  
@@ -169,28 +165,28 @@ end
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    UnicastOK <= #Tp 1'b0;
+    UnicastOK <=  1'b0;
   else
   if(RxCheckEn & ByteCntEq2)
-    UnicastOK <= #Tp   RxData[7:0] == MAC[47:40];
+    UnicastOK <=    RxData[7:0] == MAC[47:40];
   else
   if(RxCheckEn & ByteCntEq3)
-    UnicastOK <= #Tp ( RxData[7:0] == MAC[39:32]) & UnicastOK;
+    UnicastOK <=  ( RxData[7:0] == MAC[39:32]) & UnicastOK;
   else
   if(RxCheckEn & ByteCntEq4)
-    UnicastOK <= #Tp ( RxData[7:0] == MAC[31:24]) & UnicastOK;
+    UnicastOK <=  ( RxData[7:0] == MAC[31:24]) & UnicastOK;
   else
   if(RxCheckEn & ByteCntEq5)
-    UnicastOK <= #Tp ( RxData[7:0] == MAC[23:16]) & UnicastOK;
+    UnicastOK <=  ( RxData[7:0] == MAC[23:16]) & UnicastOK;
   else
   if(RxCheckEn & ByteCntEq6)
-    UnicastOK <= #Tp ( RxData[7:0] == MAC[15:8])  & UnicastOK;
+    UnicastOK <=  ( RxData[7:0] == MAC[15:8])  & UnicastOK;
   else
   if(RxCheckEn & ByteCntEq7)
-    UnicastOK <= #Tp ( RxData[7:0] == MAC[7:0])   & UnicastOK;
+    UnicastOK <=  ( RxData[7:0] == MAC[7:0])   & UnicastOK;
   else
   if(RxEndFrm | RxAbort)
-    UnicastOK <= #Tp 1'b0;
+    UnicastOK <=  1'b0;
 end
    
 assign IntHash = (CrcHash[5])? HASH1 : HASH0;

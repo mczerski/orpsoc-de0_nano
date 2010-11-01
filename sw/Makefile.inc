@@ -46,29 +46,47 @@ OR32_OBJCOPY=$(OR32_TOOL_PREFIX)objcopy
 # Special case for CPU drivers
 CPU_DRIVER ?=$(SW_ROOT)/drivers/or1200
 
-# Rest of drivers, check if we have any that we should use board-specific 
-# versions of.
-# Expecting BOARD_SPECIFIC_DRIVERS and BOARD_PATH to be set
+# If BOARD_PATH is set, we'll first scan that path for which drivers they have
+# and will override any locally named driver directories here.
+ifdef BOARD_PATH
+#$(info BOARD_PATH is being used: $(BOARD_PATH))
+BOARD_SPECIFIC_DRIVERS=$(shell if [ -e $(BOARD_PATH)/sw/drivers ]; then ls $(BOARD_PATH)/sw/drivers; fi)
+endif
+
 COMMON_SW_DRIVERS=$(shell ls $(SW_ROOT)/drivers )
-COMMON_SW_DRIVERS_EXCLUDE_BOARD_DRIVERS_CMD=$(shell for driver in $(BOARD_SPECIFIC_DRIVERS); do echo -n "grep -v $$driver"; done)
-COMMON_SW_DRIVERS_WITHOUT_BOARD_DRIVERS=$(shell echo $(COMMON_SW_DRIVERS) $(COMMON_SW_DRIVERS_EXCLUDE_BOARD_DRIVERS_CMD))
+COMMON_SW_DRIVERS_WITHOUT_BOARD_DRIVERS=$(filter-out $(BOARD_SPECIFIC_DRIVERS),$(COMMON_SW_DRIVERS))
 
-# Add paths to the common drivers
-SW_DRIVER_PATHS=$(shell for driver in $(COMMON_SW_DRIVERS_WITHOUT_BOARD_DRIVERS); do echo $(SW_ROOT)/drivers/$$driver; done)
-# If anything in BOARD_SPECIFIC_DRIVERS, add it to SW_DRIVER_PATHS
-# It's expected BOARD_PATH points to the board's path and the heirarchy of
-# sw/drivers exists
-SW_DRIVER_PATHS += $(shell for driver in $(BOARD_SPECIFIC_DRIVERS); do echo $(BOARD_PATH)/sw/drivers/$$driver; done)
+#
+# Create paths pointing to each driver directory
+#
+SW_DRIVER_PATHS=$(addprefix $(SW_ROOT)/drivers/,$(COMMON_SW_DRIVERS_WITHOUT_BOARD_DRIVERS))
+# If any board paths add them here
+SW_DRIVER_PATHS += $(addprefix $(BOARD_PATH)/sw/drivers/,$(BOARD_SPECIFIC_DRIVERS))
 
-# Now assemble all of the include paths for the drivers, prefix with -I for GCC
-DRIVER_INCLUDE_PATHS=$(shell for driverpath in $(SW_DRIVER_PATHS); do echo "-I$$driverpath/include"; done)
+
+# Add /include to each path - the expected include directories
+SW_DRIVER_INCLUDE_PATHS=$(addsuffix /include,$(SW_DRIVER_PATHS))
+# Now add the -I to the front of each so we can pass this to GCC
+INCLUDE_FLAGS=$(addprefix -I,$(SW_DRIVER_INCLUDE_PATHS))
+
+
+print-driver-paths:
+	$(Q)echo "\tDrivers in use from common sw path"; echo;
+	@echo $(COMMON_SW_DRIVERS); echo; echo
+	$(Q)echo "\tDrivers in use from board sw path"; echo;
+	@echo $(BOARD_SPECIFIC_DRIVERS); echo; echo;
+	$(Q)echo "\tCommon sw drivers without board drivers"; echo;
+	@echo $(COMMON_SW_DRIVERS_WITHOUT_BOARD_DRIVERS); echo; echo;
+	$(Q)echo "\tAll drivers and their paths"; echo;
+	@echo $(SW_DRIVER_PATHS); echo; echo
+
 
 # If BOARD_PATH isn't set, then we're not compiling for a board, so use the
 # generic board.h include path, otherwise, use that board's
-ifeq ($(BOARD_PATH),)
-DRIVER_INCLUDE_PATHS +=-I$(SW_ROOT)/board/include
+ifdef BOARD_PATH
+INCLUDE_FLAGS +=-I$(BOARD_PATH)/sw/board/include
 else
-DRIVER_INCLUDE_PATHS +=-I$(BOARD_PATH)/sw/board/include
+INCLUDE_FLAGS +=-I$(SW_ROOT)/board/include
 endif
 
 # For now, only apps path is in root sw directory
@@ -93,7 +111,7 @@ DRIVER_OBJ=compiled.o
 MARCH_FLAGS ?=-mhard-mul -mhard-div -msoft-float
 
 OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
-		$(DRIVER_INCLUDE_PATHS) \
+		$(INCLUDE_FLAGS) \
 		-I$(SW_ROOT)/lib/include
 
 OR32_LDFLAGS ?=-lgcc -T$(CPU_DRIVER)/link.ld -e 256
@@ -187,17 +205,25 @@ $(ORPSOC_LIB): $(PROCESSED_DEFINES)
 $(VECTORS_OBJ):
 	$(Q)$(MAKE) -C $(CPU_DRIVER) crt0.o
 
+
+# Get a list of the tests
+SW_TESTS=$(shell ls $(SW_ROOT)/tests)
+# A list of the directories in each test directory (not always the same) and
+# get a list of what's in them.
+SW_TESTS_SUBDIRS=$(shell for test in $(SW_TESTS); do ls -d $(SW_ROOT)/tests/$$test/*; done)
+
+print-sw-tests:
+	$(Q)echo; echo "\tSoftware tests"; echo;
+	$(Q)echo $(SW_TESTS); echo
+
+print-sw-tests-subdirs:
+	$(Q)echo; echo "\tSoftware tests subdirs"; echo;
+	$(Q)echo $(SW_TESTS_SUBDIRS); echo
+
 # This relies on the local clean rule of each makefile
-clean-all: distclean
-
-clean-support:
-	$(Q)$(MAKE) -C ../support clean
-
-# List of software directories, exclude include/
-SWDIRS=$(shell ls ../ | grep -v include)
-
-distclean:
-	$(Q)for dir in $(SWDIRS); do if [ -d ../$$dir ]; then $(MAKE) -C ../$$dir clean; fi; done
+clean-all: clean
+	$(Q)for testssubdir in $(SW_TESTS_SUBDIRS); do $(MAKE) -C $$testssubdir clean; done
 	$(Q)for dir in $(SW_DRIVER_PATHS); do $(MAKE) -C $$dir clean; done
+	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)rm -f $(PROCESSED_DEFINES)

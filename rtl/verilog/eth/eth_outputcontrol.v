@@ -40,10 +40,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_outputcontrol.v,v $
-// Revision 1.4  2002/07/09 20:11:59  mohor
-// Comment removed.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.3  2002/01/23 10:28:16  mohor
 // Link in the header changed.
 //
@@ -109,17 +106,17 @@ always @ (posedge Clk or posedge Reset)
 begin
   if(Reset)
     begin
-      MdoEn_2d <= #Tp 1'b0;
-      MdoEn_d <= #Tp 1'b0;
-      MdoEn <= #Tp 1'b0;
+      MdoEn_2d <=  1'b0;
+      MdoEn_d <=  1'b0;
+      MdoEn <=  1'b0;
     end
   else
     begin
       if(MdcEn_n)
         begin
-          MdoEn_2d <= #Tp SerialEn | InProgress & BitCounter<32;
-          MdoEn_d <= #Tp MdoEn_2d;
-          MdoEn <= #Tp MdoEn_d;
+          MdoEn_2d <=  SerialEn | InProgress & BitCounter<32;
+          MdoEn_d <=  MdoEn_2d;
+          MdoEn <=  MdoEn_d;
         end
     end
 end
@@ -130,17 +127,17 @@ always @ (posedge Clk or posedge Reset)
 begin
   if(Reset)
     begin
-      Mdo_2d <= #Tp 1'b0;
-      Mdo_d <= #Tp 1'b0;
-      Mdo <= #Tp 1'b0;
+      Mdo_2d <=  1'b0;
+      Mdo_d <=  1'b0;
+      Mdo <=  1'b0;
     end
   else
     begin
       if(MdcEn_n)
         begin
-          Mdo_2d <= #Tp ~SerialEn & BitCounter<32;
-          Mdo_d <= #Tp ShiftedBit | Mdo_2d;
-          Mdo <= #Tp Mdo_d;
+          Mdo_2d <=  ~SerialEn & BitCounter<32;
+          Mdo_d <=  ShiftedBit | Mdo_2d;
+          Mdo <=  Mdo_d;
         end
     end
 end

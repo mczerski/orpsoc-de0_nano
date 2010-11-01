@@ -42,10 +42,7 @@
 //
 // CVS Revision History
 //
-// $Log: eth_txcounters.v,v $
-// Revision 1.6  2005/02/21 11:25:27  igorm
-// Delayed CRC fixed.
-//
+// $Log: not supported by cvs2svn $
 // Revision 1.5  2002/04/22 14:54:14  mohor
 // FCS should not be included in NibbleMinFl.
 //
@@ -155,14 +152,14 @@ assign ResetNibCnt = StateDefer & ExcessiveDefer & ~TxStartFrm | StatePreamble &
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    NibCnt <= #Tp 16'h0;
+    NibCnt <=  16'h0;
   else
     begin
       if(ResetNibCnt)
-        NibCnt <= #Tp 16'h0;
+        NibCnt <=  16'h0;
       else
       if(IncrementNibCnt)
-        NibCnt <= #Tp NibCnt + 1'b1;
+        NibCnt <=  NibCnt + 1'b1;
      end
 end
 
@@ -187,14 +184,14 @@ assign ResetByteCnt = StartBackoff | StateIdle & TxStartFrm | PacketFinished_q;
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    ByteCnt[15:0] <= #Tp 16'h0;
+    ByteCnt[15:0] <=  16'h0;
   else
     begin
       if(ResetByteCnt)
-        ByteCnt[15:0] <= #Tp 16'h0;
+        ByteCnt[15:0] <=  16'h0;
       else
       if(IncrementByteCnt)
-        ByteCnt[15:0] <= #Tp ByteCnt[15:0] + 1'b1;
+        ByteCnt[15:0] <=  ByteCnt[15:0] + 1'b1;
     end
 end
 
@@ -208,14 +205,14 @@ assign ByteCntMax = &ByteCnt[15:0];
 always @ (posedge MTxClk or posedge Reset)
 begin
   if(Reset)
-    DlyCrcCnt <= #Tp 3'h0;
+    DlyCrcCnt <=  3'h0;
   else
     begin        
       if(StateData[1] & DlyCrcCnt == 3'h4 | StartJam | PacketFinished_q)
-        DlyCrcCnt <= #Tp 3'h0;
+        DlyCrcCnt <=  3'h0;
       else
       if(DlyCrcEn & (StateSFD | StateData[1] & (|DlyCrcCnt[2:0])))
-        DlyCrcCnt <= #Tp DlyCrcCnt + 1'b1;
+        DlyCrcCnt <=  DlyCrcCnt + 1'b1;
     end
 end
 

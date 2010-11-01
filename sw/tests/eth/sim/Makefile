@@ -1,4 +1,6 @@
-include ../Makefile.inc
+SW_ROOT=../../..
+
+include $(SW_ROOT)/Makefile.inc
 
 %.dis: %.elf
 	$(Q)$(OR32_OBJDUMP) -d $< > $@
@@ -8,3 +10,4 @@ include ../Makefile.inc
 
 clean:
 	$(Q)rm -f *.elf *.bin *.vmem *.flashin *.dis
+

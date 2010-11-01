@@ -1,13 +1,13 @@
 #include "board.h"
 #include "spr-defs.h"
-#include "or32-utils.h"
+#include "cpu-utils.h"
 #include "simple-spi.h"
 #include "int.h"
 
 #include "simple-spi.h"
 
 
-#include "design-defines.h"
+#include "orpsoc-defines.h"
 
 // Detect which of the SPI cores are enabled, tailor the test for that
 #ifndef SPI1
