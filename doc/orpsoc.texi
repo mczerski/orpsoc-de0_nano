@@ -861,16 +861,16 @@ For example, to add I/Os for a module called @code{foo}, and in @code{orpsoc-def
 @example
 @kbd{	$(Q)if [ ! -z $$FOO1 ]; then \
         echo "set_io foo1_srx_i " $(FOO_SRX_BUS_SETTINGS) " \
-        -pinname "$(FOO1_SRX_PIN) >> $@; \
+        -pinname "$(FOO1_SRX_PIN) >> $@@; \
 	echo "set_io foo1_tx_o\\[0\\] " $(FOO_TX_BUS_SETTINGS) " \
-         -pinname "$(FOO1_TX0_PIN) >> $@; \
+         -pinname "$(FOO1_TX0_PIN) >> $@@; \
 	echo "set_io foo1_tx_o\\[1\\] " $(FOO_TX_BUS_SETTINGS) "  \
-        -pinname "$(FOO1_TX1_PIN) >> $@; \
+        -pinname "$(FOO1_TX1_PIN) >> $@@; \
 	echo "set_io foo1_tx_o\\[2\\] " $(FOO_TX_BUS_SETTINGS) "  \
-        -pinname "$(FOO1_TX2_PIN) >> $@; \
+        -pinname "$(FOO1_TX2_PIN) >> $@@; \
 	echo "set_io foo1_tx_o\\[3\\] " $(FOO_TX_BUS_SETTINGS) "  \
-        -pinname "$(FOO1_TX3_PIN) >> $@; \
-        fi
+        -pinname "$(FOO1_TX3_PIN) >> $@@; \
+fi
        }
 @end example
 

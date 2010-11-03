@@ -1,0 +1,13 @@
+	      OpenRISC Reference Platform System on Chip (ORPSoC)
+	      ===================================================
+
+
+* Documentation:
+
+The main documentation and usage guide for ORPSoC is buildable in the doc/ 
+path with the following:
+
+	./configure
+	make pdf
+
+
