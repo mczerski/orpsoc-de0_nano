@@ -29,17 +29,15 @@ PROGRAMMINGFILE_DATA=progfile.o
 
 ELF_DEPENDS +=$(PROGRAMMINGFILE_DATA)
 
-
-
 include $(SW_ROOT)/Makefile.inc
 
 OR32_LDFLAGS = -lgcc -Tspiflash-program.ld -e 256
 
-../utils/bin2binsizeword:
-	$(Q)$(MAKE) -C ../utils bin2binsizeword
+$(SW_ROOT)/utils/bin2binsizeword:
+	$(Q)$(MAKE) -C $(SW_ROOT)/utils bin2binsizeword
 
-$(PROGRAMMINGFILE_SWBIN): $(PROGRAMMINGFILE) ../utils/bin2binsizeword
-	$(Q)../utils/bin2binsizeword $< $@
+$(PROGRAMMINGFILE_SWBIN): $(PROGRAMMINGFILE) $(SW_ROOT)/utils/bin2binsizeword
+	$(Q)$(SW_ROOT)/utils/bin2binsizeword $< $@
 
 $(PROGRAMMINGFILE_DATA): $(PROGRAMMINGFILE_SWBIN) 
 	$(Q)$(OR32_LD) -r -b binary -o $@ $<
@@ -54,4 +52,4 @@ $(PROGRAMMINGFILE_DATA): $(PROGRAMMINGFILE_SWBIN)
 clean:
 	$(Q)rm -f *.elf *.bin *.vmem *.flashin *.dis $(PROGRAMMINGFILE_SWBIN) $(PROGRAMMINGFILE_DATA)
 
-clean-all: clean-support clean
+#clean-all: clean

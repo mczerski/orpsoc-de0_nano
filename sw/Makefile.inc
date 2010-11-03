@@ -51,6 +51,7 @@ CPU_DRIVER ?=$(SW_ROOT)/drivers/or1200
 ifdef BOARD_PATH
 #$(info BOARD_PATH is being used: $(BOARD_PATH))
 BOARD_SPECIFIC_DRIVERS=$(shell if [ -e $(BOARD_PATH)/sw/drivers ]; then ls $(BOARD_PATH)/sw/drivers; fi)
+BOARD_SW_TESTS=$(shell if [ -e $(BOARD_PATH)/sw/tests ]; then ls $(BOARD_PATH)/sw/tests; fi)
 endif
 
 COMMON_SW_DRIVERS=$(shell ls $(SW_ROOT)/drivers )
@@ -80,6 +81,9 @@ print-driver-paths:
 	$(Q)echo "\tAll drivers and their paths"; echo;
 	@echo $(SW_DRIVER_PATHS); echo; echo
 
+print-include-paths:
+	$(Q)echo "\tSoftware include paths"; echo;
+	@echo $(INCLUDE_FLAGS); echo; echo
 
 # If BOARD_PATH isn't set, then we're not compiling for a board, so use the
 # generic board.h include path, otherwise, use that board's
@@ -101,14 +105,14 @@ SUPPORT_LIBS ?=$(ORPSOC_LIB)
 DRIVER_OBJ=compiled.o
 
 # Machine flags - uncomment one or create custom combination of flags
-# All software div, mul and FPU
-#MACH_FLAGS ?=-msoft-mul -msoft-div -msoft-float
-# FPGA default - only hardware multiply
-#MACH_FLAGS ?=-mhard-mul -msoft-div -msoft-float
 # All hardware flags
 #MARCH_FLAGS ?=-mhard-mul -mhard-div -mhard-float
 # Hardware integer arith, soft float
 MARCH_FLAGS ?=-mhard-mul -mhard-div -msoft-float
+# FPGA default - only hardware multiply
+#MACH_FLAGS ?=-mhard-mul -msoft-div -msoft-float
+# All software div, mul and FPU
+#MACH_FLAGS ?=-msoft-mul -msoft-div -msoft-float
 
 OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
 		$(INCLUDE_FLAGS) \
@@ -207,14 +211,22 @@ $(VECTORS_OBJ):
 
 
 # Get a list of the tests
-SW_TESTS=$(shell ls $(SW_ROOT)/tests)
+COMMON_SW_TESTS=$(shell ls $(SW_ROOT)/tests)
+
 # A list of the directories in each test directory (not always the same) and
 # get a list of what's in them.
-SW_TESTS_SUBDIRS=$(shell for test in $(SW_TESTS); do ls -d $(SW_ROOT)/tests/$$test/*; done)
+SW_TESTS_SUBDIRS=$(shell for test in $(COMMON_SW_TESTS); do ls -d $(SW_ROOT)/tests/$$test/*; done)
+
+# Add board test paths, if any, to be cleaned too
+ifdef BOARD_PATH
+SW_TESTS_SUBDIRS +=$(shell for test in $(BOARD_SW_TESTS); do ls -d $(BOARD_PATH)/sw/tests/$$test/*; done)
+endif
 
 print-sw-tests:
 	$(Q)echo; echo "\tSoftware tests"; echo;
-	$(Q)echo $(SW_TESTS); echo
+	$(Q)echo $(COMMON_SW_TESTS); echo
+	$(Q)echo; echo "\tSoftware tests in board path (if any)"; echo;
+	$(Q)echo $(BOARD_SW_TESTS); echo
 
 print-sw-tests-subdirs:
 	$(Q)echo; echo "\tSoftware tests subdirs"; echo;
@@ -226,4 +238,5 @@ clean-all: clean
 	$(Q)for dir in $(SW_DRIVER_PATHS); do $(MAKE) -C $$dir clean; done
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
+	$(Q)$(MAKE) -C $(SW_ROOT)/lib clean
 	$(Q)rm -f $(PROCESSED_DEFINES)

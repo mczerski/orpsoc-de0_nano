@@ -38,7 +38,13 @@ void exit (int i)
   while (1);
 }
 
-
+/* Enable user interrupts */
+void
+cpu_enable_user_interrupts(void)
+{
+  /* Enable interrupts in supervisor register */
+  mtspr (SPR_SR, mfspr (SPR_SR) | SPR_SR_IEE);
+}
 
 /* Tick timer variable */
 unsigned long timer_ticks;

@@ -1,7 +1,7 @@
 // Program that will erase and program an SPI flash
 
-#include "or32-utils.h"
-#include "spr-defs.h"
+#include "cpu-utils.h"
+
 #include "board.h"
 #include "uart.h"
 #include "simple-spi.h"
@@ -13,8 +13,6 @@ unsigned long programming_file_end;
 unsigned long programming_file_length;
 int spi_master;
 char slave;
-
-
 
 // Little program to dump the contents of the SPI flash memory it's connected 
 // to on the board

@@ -43,7 +43,7 @@
 
 #include "spr-defs.h"
 #include "board.h"
-#define  RAM_START RAM_BASE
+#define  RAM_START 0x0
 	
 /* 	Within the test we'll use following global variables:
 	

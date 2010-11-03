@@ -37,8 +37,8 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-#include "or32-utils.h"
-#include "spr-defs.h"
+#include "cpu-utils.h"
+//#include "spr-defs.h"
 #include "board.h"
 #include "int.h"
 #include "uart.h"
@@ -51,8 +51,12 @@ static int next_tx_buf_num;
 
 //#define OUR_IP_BYTES 0xc0,0xa8,0x64,0x9b // 192.168.100.155
 //#define OUR_IP_LONG 0xc0a8649b
-#define OUR_IP_BYTES 0xc0,0xa8,0x0,0x14 // 192.168.1.20
-#define OUR_IP_LONG 0xc0a80014
+
+//#define OUR_IP_BYTES 0xc0,0xa8,0x0,0x14 // 192.168.0.20
+//#define OUR_IP_LONG 0xc0a80014
+
+#define OUR_IP_BYTES 0xc0,0xa8,0x1,0x2 // 192.168.1.2
+#define OUR_IP_LONG 0xc0a80102
 
 static char our_ip[4] = {OUR_IP_BYTES};
 
@@ -1870,14 +1874,14 @@ oeth_tx(void)
 int main ()
 {
 
-  /* Initialise handler vector */
+  /* Initialise vector handler */
   int_init();
 
   /* Install ethernet interrupt handler, it is enabled here too */
   int_add(ETH0_IRQ, oeth_interrupt, 0);
 
-  /* Enable interrupts in supervisor register */
-  mtspr (SPR_SR, mfspr (SPR_SR) | SPR_SR_IEE);
+  /* Enable interrupts */
+  cpu_enable_user_interrupts();
     
   last_char=0; /* Variable init for spin_cursor() */
   next_tx_buf_num = 4; /* init for tx buffer counter */

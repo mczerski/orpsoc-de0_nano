@@ -33,6 +33,9 @@ void report(unsigned long value);
 /* Loops/exits simulation */
 void exit(int i);
 
+/* Enable user interrupts */
+void cpu_enable_user_interrupts(void);
+
 /* Variable keeping track of timer ticks */
 extern unsigned long timer_ticks;
 /* Enable tick timer and interrupt generation */

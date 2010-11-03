@@ -60,12 +60,12 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 * Getting Started::
 * Reference Design::
 * Board Designs::
-* ordb1a3pe1500::
+* ORDB1A3PE1500::
 * GNU Free Documentation License::  The license for this documentation
 * Index::
 @end menu
 
-@node Introduction
+@node Document Introduction
 @chapter Introduction
 
 @cindex introduction to this @value{ORPSOC}
@@ -92,8 +92,8 @@ This document, the user guide, focuses on getting the various designs in @value{
 * Reference And Board Designs::
 @end menu
 
-@node Overview
-@section Overview
+@node Organisation Overview
+@section Organisation Overview
 
 The @value{ORPSOC} project is intended for dual uses. One is to act as a development platform for OpenRISC processors, as well as development of complex OpenRISC-based SoCs. Organising a single project to satisfy these requirements can lead to some confusion. This section is intended to make the organisation of the project clear.
 
@@ -101,7 +101,7 @@ In essense, the reference implementation based in the root of the project contai
 
 The following sections outline the organisation of the software, RTL, and board designs.
 
-@node Software
+@node Software Organisation 
 @section Software
 
 The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor) and a few custom tools for manipulation of binary software images.
@@ -114,21 +114,21 @@ Under each test directory are two directories, @code{board} and @code{sim}, cont
 
 There are for naming software tests, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
 
-@node RTL
+@node RTL Organisation 
 @section RTL
 
 The HDL code layout conforms to those outlined in the OpenCores.org coding guidelines. http://cdn.opencores.org/downloads/opencores_coding_guidelines.pdf
 
 Beyond that, there are some rules for the naming in modules. The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...}.
 
-@node Testbenches
-@section Testbenches
+@node Testbench Organisation 
+@section Testbench
 
 For each design in @value{ORPSOC} there will be a testbench instantiating the top level, and any peripherals (at least, as many as there are models for.)
 
 Despite this being far from a thorough verification platform, it is considered useful to be able to perform enough simulation to ensure that the fundamental system is correctly assembled and can communicate with the peripherals. However, this is not intended as a platform for peripheral development (although, it very well could be) the board designs are not expected to have thorough peripheral tests. They are expected to have just enough to prove that basic functionality.
 
-@node Reference And Board Designs
+@node Organisation of Reference And Board Designs
 @section Reference And Board Designs
 
 The goal of the reference design is to provide an environment to develop and test OpenRISC processors (also, potentially, basic components.) The goal of the various board-targeted designs is to provide ready-to-go implementations for hardware.
@@ -151,7 +151,7 @@ Typically, a board-targeted design will wish to reuse common components (process
 * Required Tools::
 @end menu
 
-@node Supported Platforms
+@node Getting Started Supported Platforms
 @section Supported Platforms
 @cindex platforms supported by the @value{ORPSOC} project
 
@@ -160,7 +160,7 @@ At present the majority of  @value{ORPSOC}'s development occurs with tools that 
 Unless indicated otherwise, support for the project under Cygwin on Microsoft Windows platforms is not a given.
 
 
-@node Obtaining Project Source
+@node Getting Started Obtaining Project Source
 @section Obtaining Project Source
 @cindex getting a copy of the @value{ORPSOC} project
 
@@ -170,7 +170,7 @@ The source for @value{ORPSOC} can be obtained from the OpenCores subversion (SVN
 @kbd{svn export http://opencores.org/ocsvn/openrisc/openrisc/trunk/orpsocv2}
 @end example
 
-@node Required Tools
+@node Getting Started Required Tools
 @section Required Tools
 @cindex tools and utilities required for @value{ORPSOC}
 
@@ -219,7 +219,7 @@ Anyone implementing their own board port is encouraged to document, as best they
 * Synthesis::
 @end menu
 
-@node Overview
+@node Reference Design Overview
 @subsection Overview
 
 The reference design included in @value{ORPSOC} is intended to be the minimal implementation (or thereabouts) of a SoC required to exercise an OpenRISC processor. In this regard, very little apart from the processor, memory, debug interface and interconnect modules are instantiated.
@@ -232,7 +232,7 @@ The simulations begin with the desired software image preloaded in memory. For d
 
 The design is not intended for implementation on an FPGA or ASIC, rather purely for development and testing in simulation environments. The board targeted builds in the @value{ORPSOC} project, however, are intended for implementation on hardware.
 
-@node Structure
+@node Reference Design Structure
 @subsection Structure
 
 @menu
@@ -242,14 +242,14 @@ The design is not intended for implementation on an FPGA or ASIC, rather purely 
 * Simulation::
 @end menu
 
-@node Overview
+@node Reference Design Overview
 @subsubsection Overview
 
 The reference design's paths are all based in the root directory of @value{ORPSOC}. This is different from the board-targeted builds, which are based in their specific board paths.
 
 As synthesis and physical implementation is not intended for the reference design there are no @code{syn} or @code{backend} paths in the root directory of @value{ORPSOC}.
 
-@node RTL
+@node Reference Design RTL
 @subsubsection RTL
 
 At present only Verilog HDL is included in the reference implementation of @value{ORPSOC}, as the open source tools intended to simulate the design do not support VHDL.
@@ -258,7 +258,7 @@ The directory structure consists of an @code{rtl} directory in the root, and a @
 
 A common Verilog include path, @code{rtl/verilog/include} directory is used. The Verilog HDL include files for each module should be moved here. This allows each @value{ORPSOC} implementation (board design) to maintain their own include path, and thus configure the modules for their specific implementation.
 
-@node Software
+@node Reference Design Software
 @subsubsection Software
 
 The software run on the reference design is found in the @value{ORPSOC} root directory, under the @code{sw} path.
@@ -269,7 +269,7 @@ A minimal set of drivers is built into @code{liborpsoc}, and they are found unde
 
 In addition to these drivers, a set of support C functions is build into @code{liborpsoc}, which are found in the @code{sw/lib} path.
 
-@node Simulation
+@node Reference Design Simulation
 @subsubsection Simulation
 
 The simulation of the reference design is run from the @code{sim/run} path.
@@ -280,7 +280,7 @@ The generated output is kept in the @code{sim/out} path, and is cleared away whe
 
 When the Verilator-processed cycle accurate model is built, it is done in the @code{sim/vlt} path, which is also cleaned away when @kbd{make clean} is run.
 
-@node Tools
+@node Reference Design Tools
 @subsection Tools
 
 @menu
@@ -290,33 +290,33 @@ When the Verilator-processed cycle accurate model is built, it is done in the @c
 * Debug Tools::
 @end menu
 
-@node Host Tools
+@node Reference Design Host Tools
 @subsubsection Host Tools
 @cindex host tools required
 
 Standard development suite of tools: gcc, make, etc.
 
-@node Target System Tools
+@node Reference Design Target System Tools
 @subsubsection Target System Tools
 @cindex target system tools required
 
 OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
 
-@node EDA Tools
+@node Reference Design EDA Tools
 @subsubsection EDA Tools
 @cindex EDA tools required
 
 RTL simulation: Icarus Verilog (also compatible with Mentor Graphics' Modelsim)
 Cycle Accurate Simulation: Verilator, Verilog-Perl, System-Perl, SystemC
 
-@node Debug Tools
+@node Reference Design Debug Tools
 @subsubsection Debug Tools
 @cindex Debug tools required
 
 None. The target is purely simulation, no extra utilities are required to debug.
 
 
-@node Simulation
+@node Reference Design Simulation
 @subsection Simulation
 
 @menu
@@ -325,7 +325,7 @@ None. The target is purely simulation, no extra utilities are required to debug.
 * Results::
 @end menu
 
-@node RTL
+@node Reference Design RTL
 @subsubsection RTL
 @cindex rtl simulation of reference design
 
@@ -339,7 +339,7 @@ The simplest way of starting a run through the regression test, using the defaul
 @kbd{make rtl-tests}
 @end example
 
-This will compile the software and RTL, and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script. Other default options are that a processor execution log is generated (in @code{sw/out/@emph{testname}-executed.log}), but VCDs are not.
+This will compile the software and RTL, and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script. Other default options are that a processor execution log is generated (in @code{sim/out/@emph{testname}-executed.log}), but VCDs are not.
 
 @subsubheading Running An Individual Test
 
@@ -349,6 +349,7 @@ An individual test can be run, by specifying the test name through the @code{TES
 @kbd{make rtl-test TEST=or1200-basic}
 @end example
 
+@node Running A Set Of Specific Reference Design RTL Tests
 @subsubheading Running A Set Of Specific Tests
 
 A specific set of tests can be run in the same fashion as the regression tests but with the actual tests to run set in the @code{TESTS} environment variable.
@@ -357,7 +358,7 @@ A specific set of tests can be run in the same fashion as the regression tests b
 @kbd{make rtl-tests TESTS="sdram-rows uart-simple or1200-mmu or1200-fp"}
 @end example
 
-
+@node Options For Reference Design RTL Tests
 @subsubheading Options For RTL Tests
 
 There are some options, which can be specified through shell environment variables when running the test.
@@ -365,7 +366,7 @@ There are some options, which can be specified through shell environment variabl
 @table @code
 
 @item VCD
-Set to '1' to enable @emph{value change dump} (VCD) creation in @code{sw/out/@emph{testname}.vcd}
+Set to '1' to enable @emph{value change dump} (VCD) creation in @code{sim/out/@emph{testname}.vcd}
 
 @item VCD_DELAY
 Delay VCD creation start time by this number of timesteps (used as a Verilog @code{#delay} in the testbench.)
@@ -386,7 +387,7 @@ Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsi
 
 
 
-@node Cycle Accurate
+@node Reference Design Cycle Accurate
 @subsubsection Cycle Accurate
 @cindex cycle accurate simulation of reference design
 
@@ -466,7 +467,7 @@ Log processor execution trace to @var{file}
 
 @end table
 
-@node Results
+@node Reference Design Results
 @subsubsection Results
 @cindex output from simulation of reference design
 
@@ -503,39 +504,55 @@ These values are logged to a file in @code{sim/out} named @code{@emph{test-name}
 When VCD files are generated they are placed in the @code{sim/out} path, and are named @code{@emph{test-name}.vcd}. They should be viewable with programs like @emph{GTKWave}.
 
 
-@node Synthesis
+@node Reference Design Synthesis
 @subsection Synthesis
 
 The reference design is not intended to be synthesised, and thus no backend scripts are provided. See the sections on the board-specific builds.
 
 
 @c ****************************************************************************
-@c ordb1a3pe1500 board build chapter
+@c ORDB1A3PE1500 board build chapter
 @c **************************************************************************** 
 
-@node ordb1a3pe1500
-@chapter ordb1a3pe1500
-@cindex ordb1a3pe1500 board build information
+@node ORDB1A3PE1500
+@chapter ORDB1A3PE1500
+@cindex ORDB1A3PE1500 board build information
 
 @menu
 * Overview::
 * Structure::
 * Tools::
 * Simulating::
-* Synthesis::
+* Synthesis and Backend::
+* Programming File Generation::
+* Customising::
 @end menu
 
-@node Overview
+@node ORDB1A3PE1500 Overview
 @subsection Overview
 
-@c TODO
+The ORDB1 (ORSoC development board 1) with Actel A3PE1500 FPGA is supported by this build.
 
-@node Structure
+As the ORDB1 is intended to be a daughter board for a variety of I/O boards its options for configuration are extensive.
+
+This board port of ORPSoC implements an example of a configurable system, with many cores that can be enabled or disabled as required by the expansion board's capabilities.
+
+The port was mainly developed with the ORSoC ethernet expansion board (OREEB1), and was used with the OpenRISC port of the Linux kernel and BusyBox suite running network applications.
+
+This guide will overview how to simulation, synthesize and customise the system.
+
+@node ORDB1A3PE1500 Structure
 @subsection Structure
 
-@c TODO
+Note that in this chapter the term @emph{board path} refers to the path in the project for this board port; @code{boards/actel/ordb1a3pe1500}.
 
-@node Tools
+The board port's structure is similar to that of a standalone project which accords with the OpenCores coding guidelines. However, all software and RTL that is available in the reference design is also available to the board port, with any local (ie. in the board's @code{rtl} or @code{sw} paths) versions taking precedence over the versions available in the reference design.
+
+The Verilog RTL specific to this board is under @code{rtl/verilog} in the board path. The @code{include} path in there is the place where all required definitions files, configuring the RTL, are found.
+
+Backend files, things such as PLLs and buffers generated by Actel's @emph{smartgen} tool, are found in the board's @code{backend/rtl/verilog} path.
+
+@node ORDB1A3PE1500 Tools
 @subsection Tools
 
 @menu
@@ -545,32 +562,324 @@ The reference design is not intended to be synthesised, and thus no backend scri
 * Debug Tools::
 @end menu
 
-@node Host Tools
+@node ORDB1A3PE1500 Host Tools
 @subsubsection Host Tools
-@cindex host tools required
+@cindex host tools required ORDB1A3PE1500 
 
 Standard development suite of tools: gcc, make, etc.
 
-@node Target System Tools
+@node ORDB1A3PE1500 Target System Tools
 @subsubsection Target System Tools
-@cindex target system tools required
+@cindex target system tools required ORDB1A3PE1500 
 
 OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
 
-@node EDA Tools
+@node ORDB1A3PE1500 EDA Tools
 @subsubsection EDA Tools
-@cindex EDA tools required
+@cindex EDA tools required ORDB1A3PE1500 
 
 RTL, gatelevel simulation: Mentor Graphics' Modelsim
 Synthesis: Synopsys Synplify (included in Actel Libero Suite)
 Backend: Actel Designer (included in Actel Libero Suite)
 Programming: Actel FlashPRO (included in Actel Libero Suite)
 
-@node Debug Tools
+This has been developed with Libero v8.6 for Linux.
+
+@node ORDB1A3PE1500 Debug Tools
 @subsubsection Debug Tools
-@cindex Debug tools required
+@cindex Debug tools required ORDB1A3PE1500 
 
 or_debug_proxy, ORPmon
+
+@node ORDB1A3PE1500 Simulating
+@subsection Simulating
+@cindex simulating ORDB1A3PE1500 
+
+@subsubheading Run RTL Regression Test
+
+To run the default set of regression tests for the build, run the following command in the board's @code{sw/run} path.
+
+@example
+@kbd{make rtl-tests}
+@end example
+
+The same set of options for RTL tests available in the reference design should available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
+
+@node ORDB1A3PE1500 Synthesis
+@subsection Synthesis
+
+Synthesis of the board port for the Actel technology with the Synplify tool can be run in the board's @code{syn/synplify/run} path with the following command.
+
+@example
+@kbd{make all}
+@end example
+
+This will create a EDIF netlist in @code{syn/synplify/out}.
+
+Hopefully it's all automated enough so that, as long as the design is simulating as desired, the correct set of RTL will be picked up and synthesized without any need for customising scripts for the tool.
+
+@node ORDB1A3PE1500 Synthesis Options
+@subsubsection Options
+
+The following can be passed as environment variables when running @kbd{make all}.
+
+@table @code
+
+@item RTL_TOP
+Default's to the designs top level module, @emph{orpsoc_top}, but if wishing to synthesize a particular module, its name (not instantiated name) should be set here.
+
+@item FPGA_PART
+Defaults to A3PE1500 but if targeting any other set it with this.
+
+@item FPGA_FAMILY
+Defaults to the A3PE1500's @emph{ProASIC3E} but if targeting any other set it with this.
+
+@item FPGA_PACKAGE
+Defaults to PQFP208 but if targeting any other set it with this.
+
+@item FPGA_SPEED_GRADE
+Defaults to Std but if targeting any other set it with this.
+
+@item FREQ
+Target frequency for synthesis.
+
+@item MAXFAN
+Maximum net fanout.
+
+@item MAXFAN_HARD
+Hard limit on maximum net fanout.
+
+@item GLOBALTHRESH
+Threshold of fanout before promoting signal to a global routing net.
+
+@item RETIMING
+Defaults to '1' (on) but set to '0' to disable.
+
+@item RESOURCE_SHARING
+Defaults to '1' (on) but set to '0' to disable.
+
+@item DISABLE_IO_INSERTION
+Defaults to '0' (off) but set to '1' to enable. Useful when synthesizing individual modules not intended as a top level.
+
+@end table
+
+@node ORDB1A3PE1500 Synthesis Warnings
+@subsubsection Checks
+
+The following is a list of some considerations before synthesis.
+
+@itemize @bullet 
+@item bootrom.v
+
+If the bootROM module is being used to provide the processor with a progrm at startup, check that board software include file, in the board's @code{sw/board/include} path, is selecting the correct bootROM program.
+
+Do a @kbd{make clean-all} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
+
+
+@item Clean away old leftovers
+
+If the unwanted files from an old synthesis run are still there before the next run, it's best to clean them away with @kbd{make clean} from the synthesis run directory.
+
+
+@item Check Command Line Options
+
+If using any command line settings, they can be checked by passing them to the following make target: @kbd{make print-config}
+
+
+@end itemize
+
+@node ORDB1A3PE1500 Place and Route
+@subsection Place and Route
+
+Place and route is run from the board's @code{backend/par/run} path with the following command.
+
+@example
+@kbd{make all}
+@end example
+
+This will create a @code{.adb} file in the same path.
+
+All steps, up to programming file generation are done here. This is mainly a licensing thing (free liceneses for Libero under Linux @emph{do not} allow programming file generation - they do, however, under Windows.)
+
+@node ORDB1A3PE1500 Place and route options
+@subsubsection Options
+
+Most of the design's parameters are deteremined by processing the @code{orpsoc-defines.v} file and determining, for example, the frequency of the clocks entering the design.
+
+The following can be passed as environment variables when running @kbd{make all}.
+
+@table @code
+
+@item FPGA_PART
+Defaults to A3PE1500 but if targeting any other set it with this.
+
+@item FPGA_FAMILY
+Defaults to the A3PE1500's @emph{ProASIC3E} but if targeting any other set it with this.
+
+@item FPGA_PACKAGE
+Defaults to ``208 PQFP'' but if targeting any other set it with this.
+
+
+@item FPGA_SPEED_GRADE
+Defaults to Std but if targeting any other set it with this.
+
+@item FPGA_VOLTAGE
+Defaults to 1.5 but if targeting any other set it with this.
+
+@item FPGA_TEMP_RANGE
+Defaults to COM but if targeting any other set it with this.
+
+@item FPGA_VOLT_RANGE
+Defaults to COM but if targeting any other set it with this.
+
+@item PLACE_INCREMENTAL
+Defaults to off.
+
+@item ROUTE_INCREMENTAL
+Defaults to off.
+
+@item PLACER_HIGH_EFFORT
+Defaults to off.
+
+@item BOARD_CONFIG
+Defaults to @code{orsoccpuexpio.mkpinassigns}
+
+@end table
+
+@node ORDB1A3PE1500 Constraints
+@subsubsection Constraints
+
+
+A @emph{synposys design constraints} (SDC) file, and @emph{physical design constraints} (PDC) file are generated automatically by the scripts. The main Verilog defines file is parsed to detect which modules are included in the design, and generates the appropriate constraints which are embedded in the Makefile.
+
+
+The PDC relies on the @code{BOARD_CONFIG} environment variable to indicate which pin assignment file to pull into the Makefile (they live in @code{backend/par/bin}). The PDC also depends on the actual contents of the main place and route Makefile, @code{backend/par/bin/Makefile}.
+
+
+By default these should have support for the peripherals included with ORPSoC. Double check, however, that the correct constraints are set, by running the following command before starting place and route.
+
+@example
+@kbd{make pdc-file sdc-file}
+@end example
+
+These can be generated and edited and then used when running place and route, they will not get replaced.
+
+@node ORDB1A3PE1500 Programming File Generation
+@subsection Programming File Generation
+
+The @code{.adb} file resulting from place and route can be opened in the Actel @emph{Designer} tool and a programming file generated there.
+
+Once this programming file is created, Actel's @emph{FlashPro} can used to program the ORDB1A3PE1500 board.
+
+@node ORDB1A3PE1500 Customising
+@subsection Customising
+
+The versatile nature of the ORDB1A3PE1500 means the design that goes on it must be equally versatile, if not more so.
+
+The following sections have information on how to configure the design.
+
+@node ORDB1A3PE1500 Customising Enabling Existing Modules
+@subsubsection Enabling Existing RTL Modules
+
+The design relies on the Verilog HDL @emph{define} function to indicate which modules are included.
+
+There are only a few modules included by deafult.
+
+@itemize @bullet 
+@item Processor - @emph{or1200}
+@item Clock and reset generation - @emph{clkgen}
+@item Bus arbiters - @emph{arbiter_ibus}, @emph{arbiter_dbus}, @emph{arbiter_bytebus}
+@end itemize
+
+The rest are optional, depending on what is defined in the board's @code{rtl/verilog/include/orpsoc-defines.v} file.
+
+Inspect that file to see which modules are able to be included. At present the list includes USB 1.1 host controller and/or slave interface, I2C master/slave core, and SPI master cores.
+
+These cores should be supported and ready to go by just defining them (uncommont in the @code{orspco-defines.v} file.)
+
+@node ORDB1A3PE1500 Customising Adding Modules
+@subsubsection Adding RTL Modules
+
+There are a number of steps to take when adding a new module to the design.
+
+@itemize @bullet 
+@item RTL Files
+
+Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module. 
+
+Ensure the module's top level file and actual name of the module when it will be instantiated are @emph{all the same}.
+
+Place any include files into the board's @code{rtl/verilog/include} path.
+
+@item Instantiate in ORPSoC Top Level File
+
+Instantiate the module in the ORPSoC top level file, @code{rtl/verilog/orpsoc_top/orpsoc_top.v}, and be sure to take care of the following.
+@itemize @bullet 
+@item Create appropriate @emph{`define} in @code{orpsoc-defines.v} and surround module instantiation with it.
+@item Add required I/Os (surrounded by appropriate @emph{`ifdef })
+@item Attach to appropriate bus arbiter, declaring any signals required. Be sure to tie them off if modules is not included.
+@item Update appropriate bus arbiter (in board's @code{rtl/verilog/arbiters} path) adding (uncommenting) additional ports as needed.
+@item Update board's @code{rtl/verilog/include/orpsoc-params.v} file with appropriate set of parameters for new module, as well as arbiter memory mapping assignment.
+@item Attach appropriate clocks and resets, modify the board's @code{rtl/verilog/clkgen/clkgen.v} file generating appropriate clocks if required.
+@item Attach any interrupts to the processor's PIC vector in, assigned as the last thing in the file.
+@end itemize
+
+@item Update ORPSoC Testbench
+
+Update the board's @code{bench/verilog/orpsoc_testbench.v} file with appropriate ports (surrounded by appropriate @emph{`ifdef}.)
+
+Add any desired models to help test the module to the board's @code{bench/verilog} path and instantiate it correctly in the testbench.
+
+@item Add Software Drivers and Tests
+
+In a similar fashion to what is already in the board's @code{sw/drivers} and @code{sw/tests} path, create desired driver and test software to be used during simulation (and potentially on target.)
+
+@item Update Backend Scripts
+
+If any I/O is added, or special timing specified, the board's backend main Makefile, @code{backend/par/bin/Makefile} and pinout files (in @code{backend/par/bin} wll need to be updated.
+
+The section in @code{backend/par/bin/Makefile} mapping signals to Makefile variables will need to have these new signals added to them. The section in the file begins with @code{$(PDC_FILE):} and is actually a set of long bash lines.
+
+Continuing the format already there should be easy enough. Rememeber that the @code{orspoc-defines.v} file is parsed and it's possible to tell if the module is included by testing if the variable is defined. 
+
+For example, to add I/Os for a module called @code{foo}, and in @code{orpsoc-defines.v} a value @code{FOO1} is defined, we can add I/Os @code{foo1_srx_i} and @code{foo1_tx_o[3:0]} with the following.
+
+@example
+@kbd{	$(Q)if [ ! -z $$FOO1 ]; then \
+        echo "set_io foo1_srx_i " $(FOO_SRX_BUS_SETTINGS) " \
+        -pinname "$(FOO1_SRX_PIN) >> $@; \
+	echo "set_io foo1_tx_o\\[0\\] " $(FOO_TX_BUS_SETTINGS) " \
+         -pinname "$(FOO1_TX0_PIN) >> $@; \
+	echo "set_io foo1_tx_o\\[1\\] " $(FOO_TX_BUS_SETTINGS) "  \
+        -pinname "$(FOO1_TX1_PIN) >> $@; \
+	echo "set_io foo1_tx_o\\[2\\] " $(FOO_TX_BUS_SETTINGS) "  \
+        -pinname "$(FOO1_TX2_PIN) >> $@; \
+	echo "set_io foo1_tx_o\\[3\\] " $(FOO_TX_BUS_SETTINGS) "  \
+        -pinname "$(FOO1_TX3_PIN) >> $@; \
+        fi
+       }
+@end example
+
+@emph{(ensure there is no whitespace after the trailing backslashes.)}
+
+It's a little hard to follow, but it's essentially one @code{set_io} line for each I/O line.
+
+First the line checks if the module's define was exported (which happens automatically if it's defined in @code{orpsoc-defines.v}.
+
+Note that what is defined can be checked by running @kbd{make print-defines} in the board's @code{backend/par/run} path.
+
+The values of the bus settings variables depend on the desired I/O standards and other examples in the Makefile can be referenced.
+
+The pin numbers need to be set in the @code{.mkpinassigns} which is included intot he Makefile (according to the @code{BOARD_CONFIG} variable set when running the @code{make} command.)
+
+These files are simple assignments of values to variables (and potentially then to other variables) which correspond to the variables finally used in the main Makefile.
+
+The physical constraints file can be generated manually with the @kbd{make pdc-file} command.
+
+@end itemize
+
+
+
 
 
 @c ****************************************************************************

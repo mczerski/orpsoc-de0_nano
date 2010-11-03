@@ -32,34 +32,6 @@
 ////                                                             ////
 /////////////////////////////////////////////////////////////////////
 
-//  CVS Log
-//
-//  $Id: simple_spi_top.v,v 1.5 2004-02-28 15:59:50 rherveille Exp $
-//
-//  $Date: 2004-02-28 15:59:50 $
-//  $Revision: 1.5 $
-//  $Author: rherveille $
-//  $Locker:  $
-//  $State: Exp $
-//
-// Change History:
-//               $Log: not supported by cvs2svn $
-//               Revision 1.4  2003/08/01 11:41:54  rherveille
-//               Fixed some timing bugs.
-//
-//               Revision 1.3  2003/01/09 16:47:59  rherveille
-//               Updated clkcnt size and decoding due to new SPR bit assignments.
-//
-//               Revision 1.2  2003/01/07 13:29:52  rherveille
-//               Changed SPR bits coding.
-//
-//               Revision 1.1.1.1  2002/12/22 16:07:15  rherveille
-//               Initial release
-//
-//
-
-
-
 //
 // Motorola MC68HC11E based SPI interface
 //
@@ -136,63 +108,17 @@ module simple_spi ( // renamed by Julius
   reg [1:0] state;    // statemachine state
   reg [2:0] bcnt;
 
-
-   // Little startup init FSM and logic
-   // Does 4 accesses and waits to read out the data so the module is 
-   // properly reset:
-   // Write 1: 0x3
-   // Write 2: 0x0
-   // Write 3: 0x0
-   // Write 4: 0x0
-   //
-   // This means anysoftware that wants to read can simply start pushing stuff
-   // into the fifo to kick it off
-   //
-   reg [3:0] 			       startup_state = 0;
-   reg [3:0] 			       startup_state_r = 0;
-   parameter startup_state_reset = 0; // Set to 0x10 to init to read on startup
-   parameter startup_spcr = 0;
-   parameter startup_slave_select = 0;
-   
-   wire 			       startup_rfre;
-   wire 			       startup_busy;
-   assign startup_busy = |startup_state_r;
-   
-   
-   always @(posedge clk_i)
-     if (rst_i)
-       startup_state <= startup_state_reset;
-     else if ((startup_state == startup_state_r))// Whenever state is back to 0
-       startup_state <= {1'b0,startup_state[3:1]};
-   
-   always @(posedge clk_i)
-     if (rst_i)
-       startup_state_r <= startup_state_reset;
-     else if (startup_rfre)
-       startup_state_r <= {1'b0,startup_state_r[3:1]};
-   
-   wire [1:0] 			       startup_state_wdf;
-   // This sets the 0x3 command, to read
-   assign startup_state_wdf = {startup_state[3], startup_state[3]};
-
-   wire 			       startup_wfwe;
-   assign startup_wfwe = startup_busy & (startup_state == startup_state_r & !rst_i);
-   
-   
-   assign startup_rfre = (startup_busy) & !rfempty & 
-			 (startup_state != startup_state_r);
-   
    
   //
   // Wishbone interface
-  wire wb_acc = cyc_i & stb_i & !startup_busy;       // WISHBONE access
+  wire wb_acc = cyc_i & stb_i;       // WISHBONE access
   wire wb_wr  = wb_acc & we_i;       // WISHBONE write access
 
   // dat_i
   always @(posedge clk_i)
     if (`SIMPLE_SPI_RST_SENS)
       begin
-         spcr <=  8'h10 | startup_spcr;  // set master bit
+         spcr <=  8'h10;  // set master bit
          sper <=  8'h00;
 	 ss_r <=  0;
       end
@@ -207,8 +133,6 @@ module simple_spi ( // renamed by Julius
 	 if (adr_i == 3'b100)
            ss_r <=  dat_i[slave_select_width-1:0];
       end // if (wb_wr)
-    else if (startup_busy)
-      ss_r <= startup_slave_select;
    
    // Slave select output
    // SPI slave select is active low   
@@ -287,12 +211,12 @@ module simple_spi ( // renamed by Julius
 
 
    wire [7:0] wfifo_dat_i;
-   assign wfifo_dat_i = startup_busy ? {6'd0, startup_state_wdf} : dat_i;
+   assign wfifo_dat_i = dat_i;
    
    wire       wfifo_wfwe;
-   assign wfifo_wfwe =  wfwe | startup_wfwe;
+   assign wfifo_wfwe =  wfwe;
 
-   wire       rfifo_rfre = rfre | startup_rfre;
+   wire       rfifo_rfre = rfre;
    
   //
   // hookup read/write buffer fifo
