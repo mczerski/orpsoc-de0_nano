@@ -1481,7 +1481,7 @@ module orpsoc_top
    assign eth0_rst_n_o = !wb_rst;
 `endif
    
-   eth eth0
+   ethmac ethmac0
      (
       // Wishbone Slave interface
       .wb_clk_i		(wb_clk),

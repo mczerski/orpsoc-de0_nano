@@ -605,6 +605,20 @@ To run the default set of regression tests for the build, run the following comm
 
 The same set of options for RTL tests available in the reference design should available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
 
+Options specific to the ORDB1A3PE1500 build.
+
+@table @code
+
+@item PRELOAD_RAM
+Set to '1' to enable loading of the software image into RAM at the beginning of simulation.
+
+If the chosen bootROM program (set via a define in software header file in the board's @code{sw/board/include} path) will jump straight to RAM to begin execution, then the software image will need to be in RAM for the simulation to work. This define @emph{must} be used in that case for the simulation to do anything.
+
+
+@end table
+
+
+
 @node ORDB1A3PE1500 Synthesis
 @subsection Synthesis
 

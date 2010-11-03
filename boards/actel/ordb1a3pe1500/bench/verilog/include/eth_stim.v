@@ -47,7 +47,7 @@
 // Is straight forward when using RTL design, but if using netlist then paths to
 // the RX/TX enabled bits depend on synthesis tool, etc, but ones here appear to
 // work with design put through Synplify, with hierarchy maintained.
-`define ETH_TOP dut.eth0
+`define ETH_TOP dut.ethmac0
 `define ETH_BD_RAM_PATH `ETH_TOP.wishbone.bd_ram
 `define ETH_MODER_PATH `ETH_TOP.ethreg1.MODER_0
 
