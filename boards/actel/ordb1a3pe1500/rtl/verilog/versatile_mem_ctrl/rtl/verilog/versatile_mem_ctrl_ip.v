@@ -98,8 +98,13 @@ module versatile_fifo_async_cmp ( wptr, rptr, fifo_empty, fifo_full, wclk, rclk,
    output reg	fifo_empty;
    output       fifo_full;
    input 	wclk, rclk, rst;   
-   
+
+`ifndef GENERATE_DIRECTION_AS_LATCH   
    wire direction;
+`endif
+`ifdef GENERATE_DIRECTION_AS_LATCH
+   reg direction;
+`endif
    reg 	direction_set, direction_clr;
    
    wire async_empty, async_full;
@@ -298,7 +303,7 @@ module vfifo_dual_port_ram_dc_dw
    input 			 we_b;
    input 			 clk_a, clk_b;
    reg [(DATA_WIDTH-1):0] 	 q_b;   
-   reg [DATA_WIDTH-1:0] ram [(1<<ADDR_WIDTH)-1:0] `SYN;
+   reg [DATA_WIDTH-1:0] ram [(1<<ADDR_WIDTH)-1:0] /*synthesis syn_ramstyle = "no_rw_check"*/;
    always @ (posedge clk_a)
      begin 
 	q_a <= ram[adr_a];
@@ -3474,10 +3479,9 @@ endmodule   // versatile_mem_ctrl_ddr
 
 // Most of these defines have an effect on things in fsm_sdr_16.v
 
-
 //`define MT48LC32M16   // 64MB part
-`define MT48LC16M16 // 32MB part
-//`define MT48LC4M16  //  8MB part
+`define MT48LC16M16   // 32MB part
+//`define MT48LC4M16    //  8MB part
 
 // Define this to allow indication that a burst read is still going
 // to the wishbone state machine, so it doesn't start emptying the
@@ -3493,7 +3497,7 @@ endmodule   // versatile_mem_ctrl_ddr
 
 
 `ifdef MT48LC32M16
-// using 1 of MT48LC16M16
+// using 1 of MT48LC32M16
 // SDRAM data width is 16
   
 `define SDRAM_DATA_WIDTH 16
@@ -4100,6 +4104,11 @@ vfifo_dual_port_ram_dc_sw
 
 endmodule
 `endif // !`ifdef ORIGINAL_EGRESS_FIFO
+// true dual port RAM, sync
+
+`ifdef ACTEL
+	`define SYN 
+`endif
 module vfifo_dual_port_ram_dc_sw
   (
    d_a,
@@ -4119,7 +4128,7 @@ module vfifo_dual_port_ram_dc_sw
    output [(DATA_WIDTH-1):0] 	 q_b;
    input 			 clk_a, clk_b;
    reg [(ADDR_WIDTH-1):0] 	 adr_b_reg;
-   reg [DATA_WIDTH-1:0] ram [(1<<ADDR_WIDTH)-1:0]/*synthesis syn_ramstyle = "no_rw_check"*/ ;
+   reg [DATA_WIDTH-1:0] ram [(1<<ADDR_WIDTH)-1:0] /*synthesis syn_ramstyle = "no_rw_check"*/;
    always @ (posedge clk_a)
    if (we_a)
      ram[adr_a] <= d_a;

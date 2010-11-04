@@ -487,15 +487,11 @@ module orpsoc_testbench;
       .Dqm   (sdram_dqm_pad_o_to_sdram));
 `endif //  `ifdef VERSATILE_SDRAM
 
-   
-   initial 
-     begin
-`ifndef SIM_QUIET
-	$display("\n* Starting simulation of design RTL.\n* Test: %s\n",
-		 `TEST_NAME_STRING );
-`endif	
-      
 `ifdef VCD
+   reg vcd_go = 0;
+   always @(vcd_go)
+     begin
+	
  `ifdef VCD_DELAY
 	#(`VCD_DELAY);   
  `endif
@@ -522,9 +518,22 @@ module orpsoc_testbench;
   `define VCD_DEPTH 0
  `endif     
 	$dumpvars(`VCD_DEPTH);
+	
+     end
+`endif //  `ifdef VCD
+   
+   initial 
+     begin
+`ifndef SIM_QUIET
+	$display("\n* Starting simulation of design RTL.\n* Test: %s\n",
+		 `TEST_NAME_STRING );
+`endif	
+	
+`ifdef VCD
+	vcd_go = 1;
 `endif
-      
-   end // initial begin
+	
+     end // initial begin
    
 `ifdef END_TIME
    initial begin

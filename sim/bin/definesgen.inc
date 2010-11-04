@@ -36,3 +36,7 @@ $(TEST_DEFINES_VLG):
 	$(Q)if [ ! -z $$SIM_QUIET ]; \
 		then echo "\`define SIM_QUIET" >> $@; \
 	fi
+	$(Q)for module in $(GATELEVEL_MODULES); do echo "\`define "$$module"_IS_GATELEVEL " >> $@; done
+
+
+

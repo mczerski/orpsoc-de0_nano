@@ -540,7 +540,7 @@ oeth_tx(void)
 static char tx_buffer[MAX_TX_BUFFER];
 
 void
-fill_and_tx_packet(int size)
+fill_and_tx_call_packet(int size, int response_time)
 {
   int i;
 
@@ -563,7 +563,11 @@ fill_and_tx_packet(int size)
 
   unsigned int* data_w = (unsigned int*) data_b;
 
-  for(i=0;i<words_to_fill;i++)
+  // Put first word as size of packet, second as response time
+  data_w[0] = size;
+  data_w[1] = response_time;
+
+  for(i=2;i<words_to_fill;i++)
     data_w[i] = rand();
 
   // Point data_b to offset wher word fills ended
@@ -628,19 +632,25 @@ main ()
   rx_done = 0;
 
   ethphy_set_100mbit(0);
-
-  send_ethmac_rxtx_test_init_packet(0xff); // Test value of 0xFF
+  
+  send_ethmac_rxtx_test_init_packet(0x0); // 0x0 - call response test
  
-  //oeth_enable_rx();
-
 #define ETH_TX_MIN_PACKET_SIZE 512
-#define ETH_TX_NUM_PACKETS (ETH_TX_MIN_PACKET_SIZE + 32)
+#define ETH_TX_NUM_PACKETS (ETH_TX_MIN_PACKET_SIZE + 20)
 
+  //int response_time = 150000; // Response time before response packet it sent
+                              // back (should be in nanoseconds).
+  int response_time  = 0;
+  
   unsigned long num_to_check;
   for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
       num_to_check<ETH_TX_NUM_PACKETS;
       num_to_check++)
-    fill_and_tx_packet(num_to_check);
+    fill_and_tx_call_packet(num_to_check, response_time);
+
+  
+  // Wait a moment for the RX packet check to complete before switching off RX
+  for(num_to_check=0;num_to_check=1000;num_to_check++);
   
   oeth_disable_rx();
 
@@ -652,7 +662,7 @@ main ()
   for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
       num_to_check<ETH_TX_NUM_PACKETS;
       num_to_check++)
-    fill_and_tx_packet(num_to_check);
+    fill_and_tx_call_packet(num_to_check, response_time);
     
   oeth_disable_rx();
 
@@ -664,7 +674,7 @@ main ()
   for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
       num_to_check<ETH_TX_NUM_PACKETS;
       num_to_check++)
-    fill_and_tx_packet(num_to_check);
+    fill_and_tx_call_packet(num_to_check, response_time);
 
   exit(0x8000000d);
   

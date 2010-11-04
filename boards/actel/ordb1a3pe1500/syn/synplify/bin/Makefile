@@ -120,6 +120,8 @@ SYN_PROJ_NAME ?= $(DESIGN_NAME)
 RTL_TOP ?= $(DESIGN_NAME)_top
 EDIF_FILE ?=$(RTL_TOP).edn
 EDIF_FILE_OUT ?= ../out/$(EDIF_FILE)
+VLOG_NETLIST_FILE ?=$(RTL_TOP).vm
+VLOG_NETLIST_FILE_OUT ?= ../out/$(VLOG_NETLIST_FILE)
 # Synthesis params
 #FREQ ?= 50.0000
 FREQ ?= 125.000
@@ -161,7 +163,7 @@ print-config:
 
 
 
-all: print-config $(EDIF_FILE_OUT)
+all: print-config $(EDIF_FILE_OUT) $(VLOG_NETLIST_FILE_OUT)
 
 #create the work dir
 $(SYN_WORK_DIR):
@@ -303,6 +305,9 @@ syn-report: $(MODULES_SRR)
 
 
 $(EDIF_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(EDIF_FILE)
+	cp $^ $@
+
+$(VLOG_NETLIST_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(VLOG_NETLIST_FILE)
 	cp $^ $@
 
 clean-all: clean-sw clean clean-edifs

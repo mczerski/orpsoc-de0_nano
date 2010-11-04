@@ -8,8 +8,7 @@
 ////  256 packets to be sent.                                     ////
 ////                                                              ////
 ////  Author(s):                                                  ////
-////      - jb, jb@orsoc.se, with parts taken from Linux kernel   ////
-////        open_eth driver.                                      ////
+////      - Julius Baxter, julius@opencores.org                   ////
 ////                                                              ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
@@ -40,12 +39,9 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "cpu-utils.h"
-//#include "spr-defs.h"
 #include "board.h"
 #include "int.h"
-#include "uart.h"
 #include "ethmac.h"
-#include "printf.h"
 #include "eth-phy-mii.h"
 
 volatile unsigned tx_done;
@@ -53,35 +49,27 @@ volatile unsigned rx_done;
 
 /* Functions in this file */
 void ethmac_setup(void);
-void ethphy_init(void);
 void oeth_dump_bds();
 /* Interrupt functions */
 void oeth_interrupt(void);
 static void oeth_rx(void);
 static void oeth_tx(void);
+/* Function to calculate checksum of ping responses we send */
+unsigned short calculate_checksum(char* dats, unsigned int len) ;
 
-/* Defining RTLSIM turns off use of real printf'ing to save time in simulation */
-#define RTLSIM
-
-#ifdef RTLSIM
-#define printk
-#else
-#define printk printf
-#endif
 /* Let the ethernet packets use a space beginning here for buffering */
 #define ETH_BUFF_BASE 0x01000000
 
-
 #define RXBUFF_PREALLOC	1
 #define TXBUFF_PREALLOC	1
-//#undef RXBUFF_PREALLOC
-//#undef TXBUFF_PREALLOC
 
 /* The transmitter timeout
  */
 #define TX_TIMEOUT	(2*HZ)
 
 /* Buffer number (must be 2^n) 
+ * Note: if changing these, must also change settings in eth_stim.v testbench
+ * file!
  */
 #define OETH_RXBD_NUM		16
 #define OETH_TXBD_NUM		16
@@ -116,125 +104,9 @@ struct oeth_private {
 };
 
 
+char CHECKSUM_BUFFER[OETH_RX_BUFF_SIZE]; // Big enough to hold a packet
+
 #define PHYNUM 7
-
-/* Scan the MIIM bus for PHYs */
-void scan_ethphys(void)
-{
-  unsigned int phynum,regnum, i;
-  
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-  
-  regs->miitx_data = 0;
- 
-  for(phynum=0;phynum<32;phynum++)
-    {
-      for (regnum=0;regnum<8;regnum++)
-	{
-	  printk("scan_ethphys: phy %d r%d ",phynum, regnum);
-	  
-	  /* Now actually perform the read on the MIIM bus*/
-	  regs->miiaddress = (regnum << 8) | phynum; /* Basic Control Register */
-	  regs->miicommand = OETH_MIICOMMAND_RSTAT;
-	  
-	  while(!(regs->miistatus & OETH_MIISTATUS_BUSY)); /* Wait for command to be registered*/
-	
-	  regs->miicommand = 0;
-	  
-	  while(regs->miistatus & OETH_MIISTATUS_BUSY);
-	  
-	  printk("%x\n",regs->miirx_data);
-	}
-    }
-}
-
-
-	  
-void ethmac_scanstatus(void)
-{
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-
-  
-  printk("Oeth: regs->miistatus %x regs->miirx_data %x\n",regs->miistatus, regs->miirx_data);
-  regs->miiaddress = 0;
-  regs->miitx_data = 0;
-  regs->miicommand = OETH_MIICOMMAND_SCANSTAT;
-  printk("Oeth: regs->miiaddress %x regs->miicommand %x\n",regs->miiaddress, regs->miicommand);  
-  //regs->miicommand = 0; 
-  volatile int i; for(i=0;i<1000;i++);
-   while(regs->miistatus & OETH_MIISTATUS_BUSY) ;
-   //spin_cursor(); 
-   //printk("\r"); 
-   //or32_exit(0);
-}
-
-void 
-eth_mii_write(char phynum, short regnum, short data)
-{
-  static volatile oeth_regs *regs = (oeth_regs *)(OETH_REG_BASE);
-  regs->miiaddress = (regnum << 8) | phynum;
-  regs->miitx_data = data;
-  regs->miicommand = OETH_MIICOMMAND_WCTRLDATA;
-  regs->miicommand = 0; 
-  while(regs->miistatus & OETH_MIISTATUS_BUSY);
-}
-
-short 
-eth_mii_read(char phynum, short regnum)
-{
-  static volatile oeth_regs *regs = (oeth_regs *)(OETH_REG_BASE);
-  regs->miiaddress = (regnum << 8) | phynum;
-  regs->miicommand = OETH_MIICOMMAND_RSTAT;
-  regs->miicommand = 0; 
-  while(regs->miistatus & OETH_MIISTATUS_BUSY);
-  
-  return regs->miirx_data;
-}
-	  
-void ethphy_init(void)
-{
-
-  /* Init the Alaska 88E1111 Phy */
-  char alaska88e1111_ml501_phynum = 0x7;
-
-  /* Init, reset */
-  short ctl = eth_mii_read(alaska88e1111_ml501_phynum, MII_BMCR);
-  ctl &= ~(BMCR_FULLDPLX|BMCR_SPEED100|BMCR_SPD2|BMCR_ANENABLE);
-  ctl |= BMCR_SPEED100; // 100MBit
-  ctl |= BMCR_FULLDPLX; // Full duplex
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_BMCR, ctl);
-
-  // Setup Autoneg
-  short adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_ADVERTISE);
-  adv &= ~(ADVERTISE_ALL | ADVERTISE_100BASE4 | ADVERTISE_1000XFULL
-	   |ADVERTISE_1000XHALF | ADVERTISE_1000XPAUSE |
-	   ADVERTISE_1000XPSE_ASYM);
-  adv |= ADVERTISE_10HALF;
-  adv |= ADVERTISE_10FULL;
-  adv |= ADVERTISE_100HALF;
-  adv |= ADVERTISE_100FULL;
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_ADVERTISE, adv);
-  // Disable gigabit???
-  adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_M1011_PHY_SPEC_CONTROL);
-  adv &= ~(MII_1000BASETCONTROL_FULLDUPLEXCAP |
-	   MII_1000BASETCONTROL_HALFDUPLEXCAP);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_M1011_PHY_SPEC_CONTROL, adv);
-  // Even more disable gigabit?!
-  adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_CTRL1000);
-  adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_CTRL1000, adv);
-
-  // Restart autoneg
-  printk("Resetting phy...\n");  
-  ctl = eth_mii_read(alaska88e1111_ml501_phynum, MII_BMCR);
-  ctl |= (BMCR_ANENABLE | BMCR_ANRESTART);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_BMCR, ctl);
-
-  
-}
-
 
 void ethmac_setup(void)
 {
@@ -353,6 +225,18 @@ void ethmac_setup(void)
   return;
 }
 
+void 
+ethmac_halt(void)
+{
+  volatile oeth_regs *regs;
+    
+  regs = (oeth_regs *)(OETH_REG_BASE);
+
+  // Disable receive and transmit
+  regs->moder &= ~(OETH_MODER_RXEN | OETH_MODER_TXEN);
+
+}
+
 
 /* The interrupt handler.
  */
@@ -416,13 +300,12 @@ oeth_rx(void)
   
   rx_bdp = ((oeth_bd *)OETH_BD_BASE) + OETH_TXBD_NUM;
   
-  printk("r");
-  
   /* Find RX buffers marked as having received data */
   for(i = 0; i < OETH_RXBD_NUM; i++)
     {
       bad=0;
-      if(!(rx_bdp[i].len_status & OETH_RX_BD_EMPTY)){ /* Looking for NOT empty buffers desc. */
+      /* Looking for buffer descriptors marked not empty */
+      if(!(rx_bdp[i].len_status & OETH_RX_BD_EMPTY)){ 
 	/* Check status for errors.
 	 */
 	report(i);
@@ -459,9 +342,14 @@ oeth_rx(void)
 	}
 	else {
 	  /* 
-	  Process the incoming frame.
+	   * Process the incoming frame.
 	   */
 	  pkt_len = rx_bdp[i].len_status >> 16;
+
+	  // Do a bit of work - ie. copy it, process it
+	  memcpy(CHECKSUM_BUFFER, rx_bdp[i].addr, pkt_len);
+	  report(0xc4eccccc);
+	  report(calculate_checksum(CHECKSUM_BUFFER, pkt_len));
 	  
 	  /* finish up */
 	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS; /* Clear stats */
@@ -473,6 +361,27 @@ oeth_rx(void)
     }
 }
 
+// Calculate checksum on received data.
+// From http://lkml.indiana.edu/hypermail/linux/kernel/9612.3/0060.html
+unsigned short calculate_checksum(char* dats, unsigned int len) 
+{
+  unsigned int itr;
+  unsigned long accum = 0;
+  unsigned long longsum;
+  
+  // Sum all pairs of data
+  for(itr=0;itr<(len & ~0x1);itr+=2)
+    accum += (unsigned long)(((dats[itr]<<8)&0xff00)|(dats[itr+1]&0x00ff));
+  
+  if (len & 0x1) // Do leftover
+    accum += (unsigned long) ((dats[itr-1]<<8)&0xff00);
+
+  longsum = (unsigned long) (accum & 0xffff); 
+  longsum += (unsigned long) (accum >> 16); // Sum the carries
+  longsum += (longsum >> 16);
+  return (unsigned short)((longsum ^ 0xffff) & 0xffff);
+  
+}
 
 
 static void
@@ -497,8 +406,6 @@ oeth_tx(void)
 	  /* set our test variable */
 	  tx_done = 1;
 
-	  printk("T%d",i);
-	  
 	}
     }
   return;  
@@ -517,7 +424,8 @@ is_prime_number(unsigned long n)
   return 1;
 }
 
-int main ()
+int
+main ()
 {
   
   /* Initialise handler vector */
@@ -528,25 +436,38 @@ int main ()
 
   /* Enable interrupts in supervisor register */
   cpu_enable_user_interrupts();
+
+  /* Enable CPU timer */
+  cpu_enable_timer();
   
   rx_done = 0;
   
   ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX in MODER */
 
+  
 #define NUM_PRIMES_TO_CHECK 1000
+#define RX_TEST_LENGTH_PACKETS 50
 
   char prime_check_results[NUM_PRIMES_TO_CHECK];
   unsigned long num_to_check;
 
-      for(num_to_check=2;num_to_check<NUM_PRIMES_TO_CHECK;num_to_check++)
-	{
-	  prime_check_results[num_to_check-2] 
-	    = (char) is_prime_number(num_to_check);
-	  report(num_to_check | (0x1e<<24));
-	  report(prime_check_results[num_to_check-2] | (0x2e<<24));
-	  if (rx_done >= 255) // Check number of packets received, testbench
-	                     // will hopefully send at least 256 packets
-	    exit(0x8000000d);
-	}
-      exit(0xbaaaaaad);
+  for(num_to_check=2;num_to_check<NUM_PRIMES_TO_CHECK;num_to_check++)
+    {
+      prime_check_results[num_to_check-2] 
+	= (char) is_prime_number(num_to_check);
+      report(num_to_check | (0x1e<<24));
+      report(prime_check_results[num_to_check-2] | (0x2e<<24));
+      // Check number of packets received, testbench will hopefully send at
+      // least this many packets
+      if (rx_done >= (RX_TEST_LENGTH_PACKETS - 1))
+	exit(0x8000000d);
+    }
+
+  ethmac_halt();
+  
+  exit(0x8000000d);
+
+  //exit(0xbaaaaaad);
+  
+  return 0;
 }

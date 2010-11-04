@@ -134,6 +134,10 @@ TECHNOLOGY_BACKEND_DIR=$(BOARD_DIR)/../backend
 # This path is for the technology library
 TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
 
+# Synthesis directory for board
+BOARD_SYN_DIR=$(BOARD_DIR)/syn/synplify
+BOARD_SYN_OUT_DIR=$(BOARD_SYN_DIR)/out
+
 # System software dir
 COMMON_SW_DIR=$(PROJECT_ROOT)/sw
 BOARD_SW_DIR=$(BOARD_DIR)/sw
@@ -208,13 +212,18 @@ $(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB): $(VPI_SRCS)
 #
 # Verilog DUT source variables
 #
+
+# First consider any modules we'll use gatelevel descriptions of.
+# These will have to be set on the command line
+GATELEVEL_MODULES ?=
+
 # First we get a list of modules in the RTL path of the board's path.
 # Next we check which modules not in the board's RTL path are in the root RTL
 # path (modules which can be commonly instantiated, but over which board 
 # build-specific versions take precedence.)
 
 # Paths under board/***/rtl/verilog we wish to exclude when getting modules
-BOARD_VERILOG_MODULES_EXCLUDE= include
+BOARD_VERILOG_MODULES_EXCLUDE= include $(GATELEVEL_MODULES)
 BOARD_VERILOG_MODULES_DIR_LIST=$(shell ls $(BOARD_RTL_VERILOG_DIR))
 # Apply exclude to list of modules
 BOARD_RTL_VERILOG_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_VERILOG_MODULES_DIR_LIST))
@@ -227,9 +236,15 @@ print-board-modules:
 # Now get list of modules that we don't have a version of in the board path
 COMMON_VERILOG_MODULES_EXCLUDE= include
 COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_RTL_VERILOG_MODULES)
+COMMON_VERILOG_MODULES_EXCLUDE += $(GATELEVEL_MODULES)
 
 COMMON_RTL_VERILOG_MODULES_DIR_LIST=$(shell ls $(COMMON_RTL_VERILOG_DIR))
 COMMON_RTL_VERILOG_MODULES=$(filter-out $(COMMON_VERILOG_MODULES_EXCLUDE), $(COMMON_RTL_VERILOG_MODULES_DIR_LIST))
+
+
+# Add these to exclude their RTL directories from being included in scripts
+
+
 
 # Rule for debugging this script
 print-common-modules-exclude:
@@ -355,6 +370,10 @@ modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERIL
 	$(Q)for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(BOARD_RTL_VERILOG_DIR)/$$module >> $@; fi; done
 	$(Q)for module in $(COMMON_RTL_VERILOG_MODULES); do if [ -d $(COMMON_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(COMMON_RTL_VERILOG_DIR)/$$module >> $@; fi; done
 	$(Q)echo "-y " $(BOARD_BACKEND_VERILOG_DIR) >> $@;
+	$(Q)if [ ! -z "$$GATELEVEL_MODULES" ]; \
+		then echo "-y " $(BOARD_SYN_OUT_DIR) >> $@; \
+		echo "+libext+.vm" >> $@; \
+	fi
 	$(Q)echo >> $@
 
 modelsim_bench.scr: $(BOARD_BENCH_VERILOG_SRC) $(COMMON_BENCH_VERILOG_SRC)
@@ -431,9 +450,6 @@ check-test-log:
 # Include the test-defines.v generation rule
 include $(PROJECT_ROOT)/sim/bin/definesgen.inc
 
-#	$(Q)for module in $(GATELEVEL_MODULES); do echo "\`define "$$module"_IS_GATELEVEL " >> $@; done
-# More possible test defines go here
-
 #
 # Software make rules (called recursively)
 #
@@ -472,6 +488,7 @@ endif
 .PHONY : sw
 sw: $(SIM_SW_IMAGE)
 
+
 flash.in: $(SW_TEST_DIR)/$(TEST).flashin
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)ln -s $< $@
@@ -489,6 +506,14 @@ $(SW_TEST_DIR)/$(TEST).flashin:
 $(SW_TEST_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
 	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).vmem
+
+# Create test software disassembly
+
+sw-dis: $(SW_TEST_DIR)/$(TEST).dis
+	$(Q)cp -v $< .
+
+$(SW_TEST_DIR)/$(TEST).dis:
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).dis
 
 #
 # Cleaning rules

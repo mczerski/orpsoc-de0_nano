@@ -1,6 +1,7 @@
 #ifndef _INT_H_
 #define _INT_H_
-/* Number of interrupt handlers */
+
+/* Number of interrupt handlers - really depends on PIC width in OR1200*/
 #define MAX_INT_HANDLERS	32
 
 /* Handler entry */
@@ -13,7 +14,7 @@ struct ihnd {
 int int_add(unsigned long vect, void (* handler)(void *), void *arg);
 
 /* Add exception vector handler */
-void add_handler(unsigned long vector, void (*handler) (void));
+void add_handler(unsigned long vector, void (* handler) (void *));
 
 /* Initialize routine */
 int int_init();

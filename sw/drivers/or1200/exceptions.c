@@ -41,7 +41,7 @@ char *exception_strings[] = {
 
 extern void int_main();
 
-void (*except_handlers[]) (void) = {0,    // 0
+void (*except_handlers[]) (void ) = {0,    // 0
 				    0,    // 1
 				    0,    // 2
 				    0,    // 3
@@ -64,7 +64,7 @@ void (*except_handlers[]) (void) = {0,    // 0
   
 
 void
-add_handler(unsigned long vector, void (*handler) (void))
+add_handler(unsigned long vector, void (*handler) (void *))
 {
   except_handlers[vector] = handler;
 }

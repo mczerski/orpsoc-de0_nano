@@ -52,7 +52,7 @@
 `define ETH_MODER_PATH `ETH_TOP.ethreg1.MODER_0
 
 `ifdef RTL_SIM
- `ifdef eth_IS_GATELEVEL
+ `ifdef ethmac_IS_GATELEVEL
   `define ETH_MODER_TXEN_BIT `ETH_MODER_PATH.r_TxEn;
   `define ETH_MODER_RXEN_BIT `ETH_MODER_PATH.r_RxEn;
  `else
@@ -72,7 +72,14 @@ reg [31:0] lfsr;
 integer lfsr_last_byte;
 
 // Is number of ethernet packets to send if doing the eth-rx test.
-parameter eth_stim_num_rx_only_tests = 256;
+parameter eth_stim_num_rx_only_num_packets = 500; // Set to 0 for continuous RX
+parameter eth_stim_num_rx_only_packet_size = 512;
+parameter eth_stim_num_rx_only_packet_size_change = 2'b01;  // 2'b01: Increment
+parameter eth_stim_num_rx_only_packet_size_change_amount = 1;
+parameter eth_stim_num_rx_only_IPG = 800000; // ns
+
+// Do call/response test
+reg eth_stim_do_rx_reponse_to_tx;
 
   
 parameter num_tx_bds = 16;
@@ -80,6 +87,7 @@ parameter num_tx_bds_mask = 4'hf;
 parameter num_rx_bds = 16;
 parameter num_rx_bds_mask = 4'hf;
 parameter max_eth_packet_size = 16'h0600;
+
 // If running eth-rxtxbig test (sending and receiving maximum packets), then
 // set this parameter to the max packet size, otherwise min packet size
 //parameter rx_while_tx_min_packet_size = max_eth_packet_size;
@@ -140,6 +148,10 @@ initial
      lfsr_last_byte = 0;
      
      eth_stim_waiting = 1;
+     expected_rxbd = num_tx_bds; // init this here
+
+     eth_stim_do_rx_reponse_to_tx = 0;
+     
      
      while (eth_stim_waiting) // Loop, waiting for enabling of MAC by software
        begin
@@ -149,22 +161,52 @@ initial
 	    begin
 	       if (eth_inject_errors)
 		 begin
-		    do_rx_only_stim(16, 0, 0);
-		    do_rx_only_stim(128, 1'b1, 8);
-		    do_rx_only_stim(256, 1'b1, 4);
+		    do_rx_only_stim(16, 64, 0, 0);
+		    do_rx_only_stim(128, 64, 1'b1, 8);
+		    do_rx_only_stim(256, 64, 1'b1, 4);
 		    eth_stim_waiting = 0;	    
 		 end
 	       else
 		 begin
-		    do_rx_only_stim(eth_stim_num_rx_only_tests, 0, 0);
+		    //do_rx_only_stim(eth_stim_num_rx_only_num_packets, 
+		    //eth_stim_num_rx_only_packet_size, 0, 0);
+
+		    // Call packet send loop directly. No error injection.
+		    send_packet_loop(eth_stim_num_rx_only_num_packets, 
+				     eth_stim_num_rx_only_packet_size, 
+				     eth_stim_num_rx_only_packet_size_change,
+				     eth_stim_num_rx_only_packet_size_change_amount,
+				     eth_phy0.eth_speed,     // Speed
+				     eth_stim_num_rx_only_IPG, // IPG
+			       48'h0012_3456_789a, 48'h0708_090A_0B0C, 1, 
+			       0, 0);
+		    
 		    eth_stim_waiting = 0;	    
 		 end
 	    end // if (ethmac_rxen === 1'b1 & !(ethmac_txen===1'b1))
 	  // If both RX and TX enabled
 	  else if (ethmac_rxen === 1'b1 & ethmac_txen===1'b1)
 	    begin
-	       // If RX enable and TX enable
-	       do_rx_while_tx_stim(1400);
+	       // Both enabled - let's wait for the first packet transmitted
+	       // to see what stimulus we should provide
+	       while (num_tx_packets==1)
+		 #1000;
+
+	       $display("* ethmac RX/TX test request: %x", eth_phy0.tx_mem[0]);
+		 
+	       // Check the first received byte's value
+		 case (eth_phy0.tx_mem[0])
+		   0:
+		     begin
+			// kickoff call/response here
+			eth_stim_do_rx_reponse_to_tx = 1;
+		     end
+		   default:
+		     begin
+			do_rx_while_tx_stim(1400);
+		     end
+		 endcase // case (eth_phy0.tx_mem[0])
+	  
 	       eth_stim_waiting = 0;
 	    end
        end // while (eth_stim_waiting)     
@@ -175,16 +217,17 @@ initial
    // Sends a set of packets at both speeds
    task do_rx_only_stim;
       input [31:0] num_packets;
+      input [31:0] start_packet_size;      
       input 	   inject_errors;
       input [31:0] inject_errors_mod;
       
       begin
-	 expected_rxbd = num_tx_bds; // init this here
 	 
 	 for(speed_loop=1;speed_loop<3;speed_loop=speed_loop+1)
 	   begin
 	      
-	      send_packet_loop(num_packets, 64, 2'b01, 1, speed_loop[0], 10000,
+	      send_packet_loop(num_packets, start_packet_size, 2'b01, 1, 
+			       speed_loop[0], 10000,
 			       48'h0012_3456_789a, 48'h0708_090A_0B0C, 1, 
 			       inject_errors, inject_errors_mod);
 	      
@@ -202,7 +245,6 @@ initial
       
       integer 	 j;      
       begin
-	 expected_rxbd = num_tx_bds; // init this here
 	 
 	 for(j=0;j<num_packets;j=j+1)
 	   begin
@@ -269,71 +311,142 @@ initial
       end
    endtask // do_rx_stim
 
+   // Registers used in detecting transmitted packets
+   reg eth_stim_tx_loop_keep_polling;
+   reg [31:0] ethmac_txbd_lenstat, ethmac_last_txbd_lenstat;
+   reg 	      eth_stim_detected_packet_tx;
+
+   // If in call-response mode, whenever we receive a TX packet, we generate
+   // one and send it back
+   always @(negedge eth_stim_detected_packet_tx)
+     begin
+	if (eth_stim_do_rx_reponse_to_tx & ethmac_rxen)
+	  // Continue if we are enabled
+	  do_rx_response_to_tx();
+     end
+   
+   // Generate RX packet in rsponse to TX packet
+   task do_rx_response_to_tx;
+      //input unused;
+      
+     reg [31:0] IPG; // Inter-packet gap
+      reg [31:0] packet_size;
+      
+      integer 	 j;      
+      begin
+
+	 // Get packet size test wants us to send
+	 packet_size = {eth_phy0.tx_mem[0],eth_phy0.tx_mem[1],
+			eth_phy0.tx_mem[2],eth_phy0.tx_mem[3]};
+	 
+
+	 IPG = {eth_phy0.tx_mem[4],eth_phy0.tx_mem[5],
+		eth_phy0.tx_mem[6],eth_phy0.tx_mem[7]};
+	 
+	 
+	 $display("do_rx_response_to_tx IPG = %0d", IPG);
+	 if (packet_size == 0)
+	   begin			
+	      // Constrained random sized packets
+	      packet_size = $random;
+	      
+	      while (packet_size > (max_eth_packet_size-4))
+		packet_size = packet_size / 2;
+	      
+	      if (packet_size < 60)
+		packet_size = packet_size + 60;
+	   end
+	 
+	 $display("do_rx_response_to_tx packet_size = %0d", packet_size);
+	 send_packet_loop(1, packet_size, 2'b01, 1, eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0);
+	 
+	 // If RX enable went low, wait for it go high again
+	 if (ethmac_rxen===1'b0)
+	   begin
+	      
+	      while (ethmac_rxen===1'b0)
+		begin
+		   @(posedge ethmac_rxen);
+		   #10000;
+		end
+	      
+	      // RX disabled and when re-enabled we reset the buffer 
+	      // descriptor number
+	      expected_rxbd = num_tx_bds;
+
+	   end
+
+      end
+   endtask // do_rx_response_to_tx
+   
+
+   
+   
+   
    //
    // always@() to check the TX buffer descriptors
    //
-      reg keep_polling;
-      reg [31:0] txbd_lenstat, last_txbd_lenstat;
-      reg 	 detected_packet_tx;
    always @(posedge ethmac_txen)
      begin
-	 last_txbd_lenstat = 0;	 
-	 keep_polling=1;
+	 ethmac_last_txbd_lenstat = 0;	 
+	 eth_stim_tx_loop_keep_polling=1;
 	 // Wait on the TxBD Ready bit
-	 while(keep_polling)
+	 while(eth_stim_tx_loop_keep_polling)
 	   begin
 	      #10;
-	      get_bd_lenstat(expected_txbd, txbd_lenstat);
+	      get_bd_lenstat(expected_txbd, ethmac_txbd_lenstat);
 	      // Check if we've finished transmitting this BD
-	      if (!txbd_lenstat[15] & last_txbd_lenstat[15])
+	      if (!ethmac_txbd_lenstat[15] & ethmac_last_txbd_lenstat[15])
 		// Falling edge of TX BD Ready
-		detected_packet_tx = 1;
+		eth_stim_detected_packet_tx = 1;
 
-	      last_txbd_lenstat = txbd_lenstat;
+	      ethmac_last_txbd_lenstat = ethmac_txbd_lenstat;
 	      
 	      // If TX en goes low then exit
 	      if (!ethmac_txen)
-		keep_polling = 0;
-	      else if (detected_packet_tx)
+		eth_stim_tx_loop_keep_polling = 0;
+	      else if (eth_stim_detected_packet_tx)
 		begin
 		   // Wait until the eth_phy has finished receiving it
 		   while (eth_phy0.mtxen_i === 1'b1)
 		     #10;
 		   
 		   $display("(%t) Check TX packet: bd %d: 0x%h",$time,
-			    expected_txbd, txbd_lenstat);
+			    expected_txbd, ethmac_txbd_lenstat);
 
 		   // Check the TXBD, see if the packet transmitted OK
-		   if (txbd_lenstat[8] | txbd_lenstat[3])
+		   if (ethmac_txbd_lenstat[8] | ethmac_txbd_lenstat[3])
 		     begin
 			// Error occured
 			`TIME;
 			$display("*E TX Error of packet %0d detected.", 
 				 num_tx_packets);
 			$display(" TX BD %0d = 0x%h", expected_txbd,
-				 txbd_lenstat);
-			if (txbd_lenstat[8])
+				 ethmac_txbd_lenstat);
+			if (ethmac_txbd_lenstat[8])
 			  $display(" Underrun in MAC during TX");
-			if (txbd_lenstat[3])
+			if (ethmac_txbd_lenstat[3])
 			  $display(" Retransmission limit hit");
 			
 			$finish;
 		     end
 		   else
 		     begin
-			// Packet was OK, let's compare the contents we received
-			// with those that were meant to be transmitted
+			// Packet was OK, let's compare the contents we 
+			// received with those that were meant to be transmitted
 			if (eth_stim_check_tx_packet_contents)
 			  begin
 			     check_tx_packet(expected_txbd);
 			     expected_txbd = (expected_txbd + 1) & 
 					     num_tx_bds_mask;
 			     num_tx_packets = num_tx_packets + 1;
-			     detected_packet_tx = 0;
+			     eth_stim_detected_packet_tx = 0;
 			  end			
 		     end
 		end
-	   end // while (keep_polling)
+	   end // while (eth_stim_tx_loop_keep_polling)
      end // always @ (posedge ethmac_txen)
    
 
@@ -348,7 +461,8 @@ initial
       reg [7:0]    phy_byte;
       
       reg [31:0]   txpnt_wb; // Pointer in array to where data should be
-      reg [24:0]   txpnt_sdram; // Index in array of shorts for data in SDRAM part
+      reg [24:0]   txpnt_sdram; // Index in array of shorts for data in SDRAM 
+                                // part
       reg [21:0]   buffer;
       reg [7:0]    sdram_byte;
       reg [31:0]   tx_len_bd;
@@ -453,6 +567,11 @@ initial
       begin
 	 error_type = 0;
 	 error_this_time = 0;
+
+	 if (num_packets == 0)
+	   // Loop forever when num_packets is 0
+	   num_packets = 32'h7fffffff;
+	 
 	 
 	 if (speed & !(eth_phy0.control_bit14_10[13] === 1'b1))
 	   begin
@@ -712,7 +831,9 @@ initial
    endtask // set_rx_addr_type
 
 
-`ifdef eth_IS_GATELEVEL // Check if we're using a synthesized version of eth module
+   // Check if we're using a synthesized version of eth module
+`ifdef ethmac_IS_GATELEVEL
+
    // Get the length/status register of the ethernet buffer descriptor
    task get_bd_lenstat;
       input [31:0] bd_num;// Number of ethernet BD to check
@@ -778,7 +899,7 @@ initial
       end
    endtask // get_bd_addr
 
-`else // !`ifdef eth_IS_GATELEVEL
+`else // !`ifdef ethmac_IS_GATELEVEL
   
    // Get the length/status register of the ethernet buffer descriptor
    task get_bd_lenstat;
@@ -806,12 +927,14 @@ initial
    
    always @*
      begin
-	// Loop here waiting for a packet to be sent, or if we shouldn't
-	// check them at all.
+	// Loop here until:
+	// 1 - packets sent is not equal to packets checked (ie. some to check)
+	// 2 - we're explicitly disabled for some reason
+	// 3 - Receive has been disabled in the MAC
 	while((eth_rx_num_packets_sent == eth_rx_num_packets_checked) || 
-	      !eth_stim_check_rx_packet_contents)
+	      !eth_stim_check_rx_packet_contents || !(ethmac_rxen===1'b1))
 	  #1000;
-	
+
 	eth_rx_packet_length_to_check 
 	  = rx_packet_lengths[(eth_rx_num_packets_checked & 12'h3ff)];
 	
@@ -899,9 +1022,9 @@ initial
 
 	      if (phy_byte !== sdram_byte)
 		begin
-		   `TIME;		  
-		   $display("*E Wrong byte (%d) of RX packet! phy = %h, ram = %h",
-			    i, phy_byte, sdram_byte);
+//		   `TIME;		  
+		   $display("*E Wrong byte (%5d) of RX packet %5d! phy = %h, ram = %h",
+			    i, eth_rx_num_packets_checked, phy_byte, sdram_byte);
 		   failure = 1;
 		end
 

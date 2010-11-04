@@ -39,16 +39,16 @@ void cpu_enable_user_interrupts(void);
 /* Variable keeping track of timer ticks */
 extern unsigned long timer_ticks;
 /* Enable tick timer and interrupt generation */
-void enable_timer(void);
+void cpu_enable_timer(void);
 /* Disable tick timer and interrupt generation */
-void disable_timer(void);
+void cpu_disable_timer(void);
 /* Timer increment - called by interrupt routine */
-void timer_tick(void);
+void cpu_timer_tick(void);
 /* Reset tick counter */
-void clear_timer_ticks(void);
+void cpu_reset_timer_ticks(void);
 /* Get tick counter */
-unsigned long get_timer_ticks(void);
+unsigned long cpu_get_timer_ticks(void);
 /* Wait for 10ms */
-void wait_10ms(void);
+void cpu_sleep_10ms(void);
 
 #endif

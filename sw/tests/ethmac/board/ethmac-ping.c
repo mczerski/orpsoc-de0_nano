@@ -38,7 +38,6 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "cpu-utils.h"
-//#include "spr-defs.h"
 #include "board.h"
 #include "int.h"
 #include "uart.h"
@@ -54,6 +53,10 @@ static int next_tx_buf_num;
 
 //#define OUR_IP_BYTES 0xc0,0xa8,0x0,0x14 // 192.168.0.20
 //#define OUR_IP_LONG 0xc0a80014
+
+
+//#define OUR_IP_BYTES 0xc0,0xa8,0x1,0x22 // 192.168.1.34
+//#define OUR_IP_LONG 0xc0a80122
 
 #define OUR_IP_BYTES 0xc0,0xa8,0x1,0x2 // 192.168.1.2
 #define OUR_IP_LONG 0xc0a80102
@@ -72,14 +75,12 @@ void oeth_dump_bds();
 void oeth_interrupt(void);
 static void oeth_rx(void);
 static void oeth_tx(void);
+/* Function to calculate checksum of ping responses we send */
+unsigned short calculate_checksum(char* dats, unsigned int len) ;
 
-#define NEVER_PRINT_PACKET 1
+// Global used to control whether we print out packets as we receive them
+int print_packet_contents;
 
-#define DISABLE_PRINTF 0
-
-#if DISABLE_PRINTF==1
-#undef printf 
-#endif
 /* Let the ethernet packets use a space beginning here for buffering */
 #define ETH_BUFF_BASE 0x01000000
 
@@ -95,8 +96,8 @@ static void oeth_tx(void);
 
 /* Buffer number (must be 2^n) 
 */
-#define OETH_RXBD_NUM		8
-#define OETH_TXBD_NUM		8
+#define OETH_RXBD_NUM		32
+#define OETH_TXBD_NUM		32
 #define OETH_RXBD_NUM_MASK	(OETH_RXBD_NUM-1)
 #define OETH_TXBD_NUM_MASK	(OETH_TXBD_NUM-1)
 
@@ -104,20 +105,6 @@ static void oeth_tx(void);
 */
 #define OETH_RX_BUFF_SIZE	2048
 #define OETH_TX_BUFF_SIZE	2048
-
-/* OR32 Page size def */
-#define PAGE_SHIFT		13
-#define PAGE_SIZE		(1UL << PAGE_SHIFT)
-
-/* How many buffers per page 
-*/
-#define OETH_RX_BUFF_PPGAE	(PAGE_SIZE/OETH_RX_BUFF_SIZE)
-#define OETH_TX_BUFF_PPGAE	(PAGE_SIZE/OETH_TX_BUFF_SIZE)
-
-/* How many pages is needed for buffers 
-*/
-#define OETH_RX_BUFF_PAGE_NUM	(OETH_RXBD_NUM/OETH_RX_BUFF_PPGAE)
-#define OETH_TX_BUFF_PAGE_NUM	(OETH_TXBD_NUM/OETH_TX_BUFF_PPGAE)
 
 /* Buffer size  (if not XXBUF_PREALLOC 
 */
@@ -851,7 +838,8 @@ void ethmac_setup(void)
   regs->miicommand = 0;
   
   regs->mac_addr1 = ETH_MACADDR0 << 8 | ETH_MACADDR1;
-  regs->mac_addr0 = ETH_MACADDR2 << 24 | ETH_MACADDR3 << 16 | ETH_MACADDR4 << 8 | ETH_MACADDR5;
+  regs->mac_addr0 = ETH_MACADDR2 << 24 | ETH_MACADDR3 << 16 | 
+    ETH_MACADDR4 << 8 | ETH_MACADDR5;
   
   /* Clear all pending interrupts 
   */
@@ -859,7 +847,8 @@ void ethmac_setup(void)
   
   /* Promisc, IFG, CRCEn
   */
-  regs->moder |= OETH_MODER_PRO | OETH_MODER_PAD | OETH_MODER_IFG | OETH_MODER_CRCEN | OETH_MODER_FULLD;
+  regs->moder |= OETH_MODER_PRO | OETH_MODER_PAD | OETH_MODER_IFG | 
+    OETH_MODER_CRCEN | OETH_MODER_FULLD;
   
   /* Enable interrupt sources.
   */
@@ -890,26 +879,22 @@ void ethmac_setup(void)
   /* Preallocated ethernet buffer setup */
   unsigned long mem_addr = ETH_BUFF_BASE; /* Defined at top */
 
-  /* Setup for TX buffers*/
-  for(i = 0, k = 0; i < OETH_TX_BUFF_PAGE_NUM; i++) {
-    for(j = 0; j < OETH_TX_BUFF_PPGAE; j++, k++) {
-      //tx_bd[k].len_status = OETH_TX_BD_PAD | OETH_TX_BD_CRC | OETH_RX_BD_IRQ;
-      tx_bd[k].len_status = OETH_TX_BD_PAD | OETH_TX_BD_CRC;
-      tx_bd[k].addr = mem_addr;
-      mem_addr += OETH_TX_BUFF_SIZE;
-    }
+  // Setup TX Buffers
+  for(i = 0; i < OETH_TXBD_NUM; i++) {
+    //tx_bd[i].len_status = OETH_TX_BD_PAD | OETH_TX_BD_CRC | OETH_RX_BD_IRQ;
+    tx_bd[i].len_status = OETH_TX_BD_PAD | OETH_TX_BD_CRC;
+    tx_bd[i].addr = mem_addr;
+    mem_addr += OETH_TX_BUFF_SIZE;
   }
   tx_bd[OETH_TXBD_NUM - 1].len_status |= OETH_TX_BD_WRAP;
 
-  /* Setup for RX buffers */
-  for(i = 0, k = 0; i < OETH_RX_BUFF_PAGE_NUM; i++) {
-    for(j = 0; j < OETH_RX_BUFF_PPGAE; j++, k++) {
-      rx_bd[k].len_status = OETH_RX_BD_EMPTY | OETH_RX_BD_IRQ; /* Enable interrupt */
-      rx_bd[k].addr = mem_addr;
-      mem_addr += OETH_RX_BUFF_SIZE;
-    }
+  // Setup RX buffers
+  for(i = 0; i < OETH_RXBD_NUM; i++) {
+    rx_bd[i].len_status = OETH_RX_BD_EMPTY | OETH_RX_BD_IRQ; // Init. with IRQ
+    rx_bd[i].addr = mem_addr;
+    mem_addr += OETH_RX_BUFF_SIZE;
   }
-  rx_bd[OETH_RXBD_NUM - 1].len_status |= OETH_RX_BD_WRAP; /* Final buffer has wrap bit set */
+  rx_bd[OETH_RXBD_NUM - 1].len_status |= OETH_RX_BD_WRAP; // Last buffer wraps
 
   /* Enable receiver and transmiter 
   */
@@ -970,9 +955,9 @@ struct oeth_bd* get_next_tx_bd()
     
     if(!(tx_bd[i].len_status & OETH_TX_BD_READY)) /* Looking for buffer NOT ready for transmit. ie we can manipulate it */
       {
-#if NEVER_PRINT_PACKET==0
-	printf("Oeth: Using TX_bd at 0x%lx\n",(unsigned long)&tx_bd[i]);
-#endif	
+	if (print_packet_contents)
+	  printf("Oeth: Using TX_bd at 0x%lx\n",(unsigned long)&tx_bd[i]);
+
 	if (next_tx_buf_num == OETH_TXBD_NUM-1) next_tx_buf_num = 0;
 	else next_tx_buf_num++;
 	
@@ -995,9 +980,6 @@ struct oeth_bd* get_next_tx_bd()
 static void
 oeth_print_packet(unsigned long add, int len)
 {
-#if NEVER_PRINT_PACKET==1
-  return;
-#endif
 
   int truncate = (len > 256);
   int length_to_print = truncate ? 256 : len;
@@ -1039,9 +1021,8 @@ void tx_packet(void* data, int length)
   return;
   }
   */
-#if NEVER_PRINT_PACKET==0
-  printf("Oeth: Using TX_bd buffer address: 0x%lx\n",(unsigned long) tx_bd->addr);
-#endif
+  if (print_packet_contents)
+    printf("Oeth: Using TX_bd buffer address: 0x%lx\n",(unsigned long) tx_bd->addr);
 
   /* Clear all of the status flags.
   */
@@ -1777,9 +1758,8 @@ oeth_rx(void)
   
   rx_bdp = ((oeth_bd *)OETH_BD_BASE) + OETH_TXBD_NUM;
   
-#if NEVER_PRINT_PACKET==0  
-  printf("rx");
-#endif
+  if (print_packet_contents)
+    printf("rx");
   
   /* Find RX buffers marked as having received data */
   for(i = 0; i < OETH_RXBD_NUM; i++)
@@ -1823,10 +1803,11 @@ oeth_rx(void)
 	  packet_check_arp_header((void *)rx_bdp[i].addr );
 	  // See if it's an ICMP echo request
 	  packet_check_icmp_header((void *)rx_bdp[i].addr );
-#if NEVER_PRINT_PACKET==0
-	  oeth_print_packet(rx_bdp[i].addr, rx_bdp[i].len_status >> 16);
-	  printf("\t end of packet\n\n");
-#endif	  
+	  if (print_packet_contents)
+	    {
+	      oeth_print_packet(rx_bdp[i].addr, rx_bdp[i].len_status >> 16);
+	      printf("\t end of packet\n\n");
+	    }
 	  /* finish up */
 	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS; /* Clear stats */
 	  rx_bdp[i].len_status |= OETH_RX_BD_EMPTY; /* Mark RX BD as empty */
@@ -1844,9 +1825,9 @@ oeth_tx(void)
 {
   volatile oeth_bd *tx_bd;
   int i;
-#if NEVER_PRINT_PACKET==0  
-  printf("tx");
-#endif
+  if (print_packet_contents)
+    printf("tx");
+
   tx_bd = (volatile oeth_bd *)OETH_BD_BASE; /* Search from beginning*/
   
   /* Go through the TX buffs, search for one that was just sent */
@@ -1861,10 +1842,8 @@ oeth_tx(void)
 
 	  /* Probably good to check for TX errors here */
 	  
-#if NEVER_PRINT_PACKET==0  
-	  printf("T%d",i);
-#endif
-	  
+	  if (print_packet_contents)
+	    printf("T%d",i);
 	}
     }
   return;  
@@ -1873,7 +1852,9 @@ oeth_tx(void)
 
 int main ()
 {
-
+  
+  print_packet_contents = 0; // Default to not printing packet contents.
+  
   /* Initialise vector handler */
   int_init();
 
@@ -1886,24 +1867,17 @@ int main ()
   last_char=0; /* Variable init for spin_cursor() */
   next_tx_buf_num = 4; /* init for tx buffer counter */
 
-#ifndef RTLSIM
   uart_init(DEFAULT_UART); // init the UART before we can printf
   printf("\n\teth ping program\n\n");
   printf("\n\tboard IP: %d.%d.%d.%d\n",our_ip[0]&0xff,our_ip[1]&0xff,
 	 our_ip[2]&0xff,our_ip[3]&0xff);
-#endif
   
   ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX and TX in MODER */
   
   //scan_ethphys(); /* Scan MIIM bus for PHYs */
-  //jb ethphy_init(); /* Attempt reset and configuration of PHY via MIIM */
+  //ethphy_init(); /* Attempt reset and configuration of PHY via MIIM */
   //ethmac_scanstatus(); /* Enable scanning of status register via MIIM */
 
-  /* clear tx_done, the tx interrupt handler will set it when it's been transmitted */
-  tx_done = 0;
-
-  
-#ifndef RTLSIM
   /* Loop, monitoring user input from TTY */
   while(1)  
     {
@@ -1912,7 +1886,7 @@ int main ()
       while(!uart_check_for_char(DEFAULT_UART))
 	{
 	  spin_cursor();
-	  oeth_monitor_rx();
+	  //oeth_monitor_rx();
 	}
       
       c = uart_getc(DEFAULT_UART);
@@ -1925,6 +1899,8 @@ int main ()
 	scan_ethphys();
       if (c == 'i')
 	ethphy_init();
+      if (c == 'P')
+	print_packet_contents = print_packet_contents ? 0 : 1;
       if (c == 'p')
 	oeth_printregs();
       if (c == '0')
@@ -1956,9 +1932,5 @@ int main ()
 	}
 
     }
-
-
-
-#endif
 
 }

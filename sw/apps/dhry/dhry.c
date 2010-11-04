@@ -182,10 +182,10 @@ int main ()
   /***************/
  
 /*  printf("%d", my_test2(Number_Of_Runs));*/
-  clear_timer_ticks(); // Clear tick timer counter
-  enable_timer(); // start OR1K tick timer
+  cpu_reset_timer_ticks(); // Clear tick timer counter
+  cpu_enable_timer(); // start OR1K tick timer
 
-  Begin_Time = get_timer_ticks();
+  Begin_Time = cpu_get_timer_ticks();
 
   for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
   {
@@ -273,7 +273,7 @@ int main ()
   /* Stop timer */
   /**************/
   
-  End_Time = get_timer_ticks();
+  End_Time = cpu_get_timer_ticks();
 
 /*  printf ("Execution ends\n");
   printf ("\n");
