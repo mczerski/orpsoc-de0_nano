@@ -1,10 +1,10 @@
 /****************************************************************************************
 *
-*    File Name:  ddr2.v
+*    File Name:  ddr2_model.v
 *      Version:  5.80
 *        Model:  BUS Functional
 *
-* Dependencies:  ddr2_parameters.vh
+* Dependencies:  ddr2_parameters.v
 *
 *  Description:  Micron SDRAM DDR2 (Double Data Rate 2)
 *
@@ -137,7 +137,7 @@ module ddr2_model (
     odt
 );
 
-`include "ddr2_model_parameters.vh"
+`include "ddr2_model_parameters.v"
    
     // text macros
     `define DQ_PER_DQS DQ_BITS/DQS_BITS

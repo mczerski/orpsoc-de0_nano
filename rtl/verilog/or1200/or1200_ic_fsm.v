@@ -102,7 +102,8 @@ reg	[2:0]			cnt;
 reg				hitmiss_eval;
 reg				load;
 reg				cache_inhibit;
-
+reg 				waiting_for_first_fill_ack; // JPB
+   
    //
    // Generate of ICRAM write enables
    //
@@ -144,6 +145,8 @@ reg				cache_inhibit;
 	 load <=  1'b0;
 	 cnt <=  3'b000;
 	 cache_inhibit <=  1'b0;
+	 waiting_for_first_fill_ack <= 0; // JPB
+	 
       end
       else
 	case (state)	// synopsys parallel_case
@@ -154,12 +157,13 @@ reg				cache_inhibit;
 	       hitmiss_eval <=  1'b1;
 	       load <=  1'b1;
 	       cache_inhibit <=  icqmem_ci_i;
+	       waiting_for_first_fill_ack <= 0; // JPB
 	    end
 	    else begin			// idle
 	       hitmiss_eval <=  1'b0;
 	       load <=  1'b0;
 	       cache_inhibit <=  1'b0;
-	    end
+	    end	  
 	  `OR1200_ICFSM_CFETCH: begin	// fetch
 	     
 	     if (icqmem_cycstb_i & icqmem_ci_i)
@@ -178,6 +182,7 @@ reg				cache_inhibit;
 		hitmiss_eval <=  1'b0;
 		load <=  1'b0;
 		cache_inhibit <=  1'b0;
+		waiting_for_first_fill_ack <= 0;
 	     end // if ((!ic_en) ||...	     
 	     // fetch missed, finish current external fetch and refill
 	     else if (tagcomp_miss & biudata_valid) begin	
@@ -186,6 +191,7 @@ reg				cache_inhibit;
 		hitmiss_eval <=  1'b0;
 		cnt <=  `OR1200_ICLS-2;
 		cache_inhibit <=  1'b0;
+		waiting_for_first_fill_ack <= 0; // JPB
 	     end
 	     // fetch aborted (usually caused by exception)
 	     else if (!icqmem_cycstb_i) begin	
@@ -193,14 +199,23 @@ reg				cache_inhibit;
 		hitmiss_eval <=  1'b0;
 		load <=  1'b0;
 		cache_inhibit <=  1'b0;
+		waiting_for_first_fill_ack <= 0; // JPB
 	     end
 	     // fetch hit, finish immediately
-	     else if (!tagcomp_miss & !icqmem_ci_i) begin 
+	     else if (!tagcomp_miss & !icqmem_ci_i &
+		      !waiting_for_first_fill_ack) begin
+		state <=  `OR1200_ICFSM_IDLE; // JPB
+		load <= 1'b0; // JPB	
+		hitmiss_eval <=  1'b0; // JPB
 		saved_addr_r <=  start_addr;
 		cache_inhibit <=  1'b0;
 	     end
 	     else   // fetch in-progress
 	       hitmiss_eval <=  1'b0;
+
+	     if (hitmiss_eval & tagcomp_miss) // JPB
+	       waiting_for_first_fill_ack <= 1;
+	     
 	  end
 	  `OR1200_ICFSM_LREFILL3 : begin
 	     // abort because IC has just been turned off

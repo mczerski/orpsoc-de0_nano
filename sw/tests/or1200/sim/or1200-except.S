@@ -448,55 +448,55 @@ _align1:
 6:	l.addi r12,r12,1 /* Increment 2nd exception counter */
 	
 	/* Test l.sw */
-	l.ori r5,r0,0x1 /* Word access, offset 1 */     
-	l.j 7f
-	l.sw 0x0(r5), r0
+	l.ori 	r5,r0,0x1 /* Word access, offset 1 */     
+	l.j 	7f
+	l.sw 	0x0(r5), r0
 	l.nop	
-7:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x2 /* Word access, offset 2 */     
-	l.j 8f
-	l.sw 0x0(r5), r0
+7:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x2 /* Word access, offset 2 */     
+	l.j 	8f
+	l.sw 	0x0(r5), r0
 	l.nop	
-8:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x3 /* Word access, offset 3 */     
-	l.j 9f
-	l.sh 0x0(r5), r0
+8:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x3 /* Word access, offset 3 */     
+	l.j 	9f
+	l.sh 	0x0(r5), r0
 	l.nop
-9:	l.addi r12,r12,1 /* Increment 2nd exception counter */
+9:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
 
 	/* Test l.lwz */
-	l.ori r5,r0,0x1 /* Word access, offset 1 */
-	l.j 10f
-	l.lwz r3,0x0(r5)
+	l.ori 	r5,r0,0x1 /* Word access, offset 1 */
+	l.j 	10f
+	l.lwz 	r3,0x0(r5)
 	l.nop
-10:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x2 /* Word access, offset 2 */
-	l.j 11f
-	l.lwz r3,0x0(r5)
+10:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x2 /* Word access, offset 2 */
+	l.j 	11f
+	l.lwz 	r3,0x0(r5)
 	l.nop
-11:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x3 /* Word access, offset 3 */
-	l.j 12f
-	l.lwz r3,0x0(r5)
+11:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x3 /* Word access, offset 3 */
+	l.j 	12f
+	l.lwz 	r3,0x0(r5)
 	l.nop
-12:	l.addi r12,r12,1 /* Increment 2nd exception counter */
+12:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
 #if OR1200_HAS_LWS==1
 	/* Test l.lws */
-	l.ori r5,r0,0x1 /* Word access, offset 1 */
-	l.j 13f
-	l.lws r3,0x0(r5)
+	l.ori 	r5,r0,0x1 /* Word access, offset 1 */
+	l.j 	13f
+	l.lws 	r3,0x0(r5)
 	l.nop
-13:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x2 /* Word access, offset 2 */
-	l.j 14f
-	l.lws r3,0x0(r5)
+13:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x2 /* Word access, offset 2 */
+	l.j 	14f
+	l.lws 	r3,0x0(r5)
 	l.nop
-14:	l.addi r12,r12,1 /* Increment 2nd exception counter */
-	l.ori r5,r0,0x3 /* Word access, offset 3 */
-	l.j 15f
-	l.lws r3,0x0(r5)
+14:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r5,r0,0x3 /* Word access, offset 3 */
+	l.j 	15f
+	l.lws 	r3,0x0(r5)
 	l.nop
-15:	l.addi r12,r12,1 /* Increment 2nd exception counter */
+15:	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
 		
 #endif
 	/* Check 1st and 2nd exception counters are equal */
@@ -512,37 +512,37 @@ _illegal1:
 	l.nop
 	l.nop
 	l.movhi r5, hi(0x44004800) /* Put "l.jr r9" instruction in r5 */
-	l.ori r5, r5, lo(0x44004800)
-	l.sw 0x0(r0), r5 /* Write "l.j r9" to address 0x0 in RAM */	
+	l.ori 	r5, r5, lo(0x44004800)
+	l.sw 	0x0(r0), r5 /* Write "l.j r9" to address 0x0 in RAM */	
 	l.movhi r5, 0xff00 /* Put an illegal instruction in r5 */
-	l.sw 0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */	
+	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */	
 	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */
 	/* Call 0x4, illegal opcode instruction */
-	l.ori r6, r0, 0x4
-	l.jalr r6 /* Jump to address 0x4, will land on an illegal instruction */
-	l.addi r12,r12,1 /* Increment 2nd exception counter */
+	l.ori 	r6, r0, 0x4
+	l.jalr 	r6 /* Jump to address 0x4, landing on an illegal instruction */
+	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
+	l.nop /* Should return here */	
 	l.nop
-	l.nop /* Should return here */
 
 	/* Test in delay slot */
 	
 	l.movhi r5, 0xff00 /* Put an illegal instruction in r5 */
-	l.sw 0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */
-	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */
-	l.jalr r0 /* Jump to address 0, will be a jump back but with an illegal
+	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */
+	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */	
+	l.jalr 	r0 /* Jump to address 0, will be a jump back but with an illegal
 	             dslot instruction which will befixed by handler */
-	l.addi r12,r12,1 /* Increment 2nd exception counter */
+	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
 	l.nop /* Should return here */
 
 	/* Check 1st and 2nd exception counters are equal */
 	l.sfeq	r11,r12			/* Should be equal */
-	l.bf 1f
+	l.bf 	1f
 	l.nop
-	l.or r3, r12, r12
-	l.nop 2 /* Report expected exception count */
-	l.or r3, r11, r11
-	l.nop 2 /* Report actual exception count */
-	l.nop 1
+	l.or 	r3, r12, r12
+	l.nop 	2 /* Report expected exception count */
+	l.or 	r3, r11, r11
+	l.nop 	2 /* Report actual exception count */
+	l.nop 	1
 1:	l.nop
 	l.nop
 	

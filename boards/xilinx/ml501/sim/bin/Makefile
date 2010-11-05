@@ -1,161 +1,543 @@
-# Include file for tools, etc (mainly interested in the Xilinx path here)
-include ../../../../tools.inc
+######################################################################
+####                                                              ####
+####  ORPSoCv2 Testbenches Makefile                               ####
+####                                                              ####
+####  Description                                                 ####
+####  ORPSoCv2 Testbenches Makefile, containing rules for         ####
+####  configuring and running different tests on the current      ####
+####  ORPSoC(v2) design.                                          ####
+####                                                              ####
+####  To do:                                                      ####
+####                                                              ####
+####  Author(s):                                                  ####
+####      - Julius Baxter, julius@opencores.org                   ####
+####                                                              ####
+####                                                              ####
+######################################################################
+####                                                              ####
+#### Copyright (C) 2009,2010 Authors and OPENCORES.ORG            ####
+####                                                              ####
+#### This source file may be used and distributed without         ####
+#### restriction provided that this copyright statement is not    ####
+#### removed from the file and that any derivative work contains  ####
+#### the original copyright notice and the associated disclaimer. ####
+####                                                              ####
+#### This source file is free software; you can redistribute it   ####
+#### and/or modify it under the terms of the GNU Lesser General   ####
+#### Public License as published by the Free Software Foundation; ####
+#### either version 2.1 of the License, or (at your option) any   ####
+#### later version.                                               ####
+####                                                              ####
+#### This source is distributed in the hope that it will be       ####
+#### useful, but WITHOUT ANY WARRANTY; without even the implied   ####
+#### warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ####
+#### PURPOSE.  See the GNU Lesser General Public License for more ####
+#### details.                                                     ####
+####                                                              ####
+#### You should have received a copy of the GNU Lesser General    ####
+#### Public License along with this source; if not, download it   ####
+#### from http://www.opencores.org/lgpl.shtml                     ####
+####                                                              ####
+######################################################################
 
-ORPSOC_ROOT=../../../../..
-BOARD=ml501
-
+# Name of the directory we're currently in
 CUR_DIR=$(shell pwd)
+
 # The root path of the whole project
-PROJECT_ROOT =$(CUR_DIR)/$(ORPSOC_ROOT)
+PROJECT_ROOT ?=$(CUR_DIR)/../../../../..
 
-SIM_DIR=$(CUR_DIR)/../../sim
+DESIGN_NAME=orpsoc
+RTL_TESTBENCH_TOP=$(DESIGN_NAME)_testbench
 
-BOARD_BENCH_DIR=$(CUR_DIR)/../../bench
-BOARD_RTL_DIR=$(CUR_DIR)/../../rtl
-BOARD_SW_DIR=$(CUR_DIR)/../../sw
-BOARD_SYN_DIR=$(CUR_DIR)/../../syn
+# Hardset the board name, even though we could probably determine it
+FPGA_VENDOR=xilinx
+BOARD_NAME=ml501
+BOARD_DIR=$(PROJECT_ROOT)/boards/$(FPGA_VENDOR)/$(BOARD_NAME)
 
+# Export BOARD_PATH for the software makefiles
+BOARD_PATH=$(BOARD_DIR)
+export BOARD_PATH
 
-# Important!
-RTL_TESTBENCH_TOP=ml501_testbench
-BENCH_TOP_VERILOG_DIR=$(BOARD_BENCH_DIR)
+# Paths to other important parts of this test suite
+COMMON_RTL_DIR = $(PROJECT_ROOT)/rtl
+COMMON_RTL_VERILOG_DIR = $(COMMON_RTL_DIR)/verilog
+#COMMON_RTL_VHDL_DIR = $(COMMON_RTL_DIR)/vhdl
 
-# Extra defines passed to testbench compilation
-# Used here for DDR2 model defines
-EXTRA_BENCH_DEFINES=+define+sg37E +define+x16
+BOARD_RTL_DIR=$(BOARD_DIR)/rtl
+BOARD_RTL_VERILOG_DIR=$(BOARD_RTL_DIR)/verilog
+# Only 1 include path for board builds - their own!
+BOARD_RTL_VERILOG_INCLUDE_DIR=$(BOARD_RTL_VERILOG_DIR)/include
 
-#MEMORY_MODELS=$(BENCH_VERILOG_DIR)/cy7c1354.v $(BENCH_VERILOG_DIR)/ddr2_model.v
+BOARD_BENCH_DIR=$(BOARD_DIR)/bench
+BOARD_BENCH_VERILOG_DIR=$(BOARD_BENCH_DIR)/verilog
+BOARD_BENCH_VERILOG_INCLUDE_DIR=$(BOARD_BENCH_VERILOG_DIR)/include
 
-SIMULATOR=vsim
+COMMON_BENCH_DIR=$(PROJECT_ROOT)
+COMMON_BENCH_VERILOG_DIR=$(COMMON_BENCH_DIR)/verilog
+COMMON_BENCH_VERILOG_INCLUDE_DIR=$(COMMON_BENCH_VERILOG_DIR)/include
 
-RTL_VERILOG_INCLUDE_DIR =$(BOARD_RTL_DIR)
+# Top level files for DUT and testbench
+DUT_TOP=$(BOARD_RTL_VERILOG_DIR)/$(DESIGN_NAME)_top/$(DESIGN_NAME)_top.v
+BENCH_TOP=$(BOARD_BENCH_VERILOG_DIR)/$(DESIGN_NAME)_testbench.v
 
+# Software tests we'll run
 
-include $(ORPSOC_ROOT)/sim/bin/Makefile
+# Need this for individual test variables to not break
+TEST ?= or1200-simple
 
+TESTS ?= or1200-simple or1200-cbasic or1200-dctest or1200-float or1200-mmu or1200-basic or1200-except or1200-tick or1200-ticksyscall uart-simple
 
-ifeq ($(VCD), 1)
-VOPT_ARGS=+acc=rnp
+# Gets turned into verilog `define
+SIM_TYPE=RTL
+
+# Main defines file is from board include path
+PROJECT_VERILOG_DEFINES=$(BOARD_RTL_VERILOG_INCLUDE_DIR)/$(DESIGN_NAME)-defines.v
+
+# Detect technology to use for the simulation
+DESIGN_DEFINES=$(shell cat $(PROJECT_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
+
+# Rule to look at what defines are being extracted from main file
+print-defines:
+	@echo echo; echo "\t### Design defines ###"; echo;
+	@echo "\tParsing "$(PROJECT_VERILOG_DEFINES)" and exporting:"
+	@echo $(DESIGN_DEFINES)
+
+print-tests:
+	@echo; echo; echo "\t### Software tests to be run ###"; echo;
+	@echo $(TESTS)
+	@echo
+
+# Simulation directories
+SIM_DIR ?=$(BOARD_DIR)/sim
+RTL_SIM_DIR=$(SIM_DIR)
+RTL_SIM_RUN_DIR=$(RTL_SIM_DIR)/run
+RTL_SIM_BIN_DIR=$(RTL_SIM_DIR)/bin
+RTL_SIM_RESULTS_DIR=$(RTL_SIM_DIR)/out
+
+# Testbench paths
+BOARD_BENCH_DIR=$(BOARD_DIR)/bench
+BOARD_BENCH_VERILOG_DIR=$(BOARD_BENCH_DIR)/verilog
+COMMON_BENCH_DIR=$(PROJECT_ROOT)/bench
+COMMON_BENCH_VERILOG_DIR=$(COMMON_BENCH_DIR)/verilog
+
+#BENCH_VHDL_DIR=$(BENCH_DIR)/vhdl
+# No SystemC or Verilator support for this build
+#BENCH_SYSC_DIR=$(BENCH_DIR)/sysc
+#BENCH_SYSC_SRC_DIR=$(BENCH_SYSC_DIR)/src
+#BENCH_SYSC_INCLUDE_DIR=$(BENCH_SYSC_DIR)/include
+
+# Backend directories
+# This one is the board build's backend dir.
+BOARD_BACKEND_DIR=$(BOARD_DIR)/backend
+BOARD_BACKEND_VERILOG_DIR=$(BOARD_BACKEND_DIR)/rtl/verilog
+TECHNOLOGY_BACKEND_DIR=$(BOARD_DIR)/../backend
+# This path is for the technology library
+TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
+
+# Synthesis directory for board
+BOARD_SYN_DIR=$(BOARD_DIR)/syn/synplify
+BOARD_SYN_OUT_DIR=$(BOARD_SYN_DIR)/out
+
+# System software dir
+COMMON_SW_DIR=$(PROJECT_ROOT)/sw
+BOARD_SW_DIR=$(BOARD_DIR)/sw
+
+# BootROM code, which generates a verilog array select values
+BOOTROM_FILE=bootrom.v
+BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
+BOOTROM_SRC=$(shell ls $(BOOTROM_SW_DIR)/* | grep -v $(BOOTROM_FILE))
+BOOTROM_VERILOG=$(BOOTROM_SW_DIR)/$(BOOTROM_FILE)
+
+bootrom: $(BOOTROM_VERILOG)
+
+$(BOOTROM_VERILOG): $(BOOTROM_SRC)
+	$(Q)echo; echo "\t### Generating bootup ROM ###"; echo
+	$(Q)$(MAKE) -C $(BOOTROM_SW_DIR) $(BOOTROM_FILE)
+
+# Suffix of file to check after each test for the string
+TEST_OUT_FILE_SUFFIX=-general.log
+TEST_OK_STRING=8000000d
+
+# Dynamically generated verilog file defining configuration for various things
+# Rule actually generating this is found in definesgen.inc file.
+TEST_DEFINES_VLG=test-defines.v
+# Set V=1 when calling make to enable verbose output
+# mainly for debugging purposes.
+ifeq ($(V), 1)
+Q=
+QUIET=
+else
+Q ?=@
+QUIET=-quiet
 endif
 
+# Modelsim variables
+MGC_VSIM=vsim
+MGC_VLOG_COMP=vlog
+MGC_VHDL_COMP=vcom
+MODELSIM=modelsim
 
-# Here we re-define the modelsim compilation variable, changing include dirs 
-# so we use the includes/defines from the board's rtl path instead of the 
-# normal orpsocv2 bench path.
+# Default simulator is Modelsim here as we're using the ProASIC3 
+# libraries which are not compilable with Icarus.
+# Set SIMULATOR=modelsim to use Modelsim (Default)
+# Set SIMULATOR=ncverilog to use Cadence's NC-Verilog - TODO
+# Set SIMULATOR=icarus to use Icarus Verilog (Not supported for this board)
+
+SIMULATOR ?= $(MODELSIM)
+
+#
+# Modelsim-specific settings
+#
+VOPT_ARGS=$(QUIET) -suppress 2241
+# If VCD dump is desired, tell Modelsim not to optimise
+# away everything.
+ifeq ($(VCD), 1)
+#VOPT_ARGS=-voptargs="+acc=rnp"
+VOPT_ARGS=+acc=rnpqv
+endif
+# VSIM commands
+# Suppressed warnings - 3009: Failed to open $readmemh() file
+# Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
+# Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
+VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+# Modelsim VPI settings
+ifeq ($(VPI), 1)
+VPI_LIBS=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
+VSIM_ARGS += -pli $(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
+endif
+# Rule to make the VPI library for modelsim
+$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB): $(VPI_SRCS)
+	$(MAKE) -C $(VPI_SRC_C_DIR) $(MODELTECH_VPILIB)
+
+#
+# Verilog DUT source variables
+#
+
+# First consider any modules we'll use gatelevel descriptions of.
+# These will have to be set on the command line
+GATELEVEL_MODULES ?=
+
+# First we get a list of modules in the RTL path of the board's path.
+# Next we check which modules not in the board's RTL path are in the root RTL
+# path (modules which can be commonly instantiated, but over which board 
+# build-specific versions take precedence.)
+
+# Paths under board/***/rtl/verilog we wish to exclude when getting modules
+BOARD_VERILOG_MODULES_EXCLUDE= include $(GATELEVEL_MODULES)
+BOARD_VERILOG_MODULES_DIR_LIST=$(shell ls $(BOARD_RTL_VERILOG_DIR))
+# Apply exclude to list of modules
+BOARD_RTL_VERILOG_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_VERILOG_MODULES_DIR_LIST))
+
+# Rule for debugging this script
+print-board-modules:
+	@echo echo; echo "\t### Board verilog modules ###"; echo
+	@echo $(BOARD_RTL_VERILOG_MODULES)
+
+# Now get list of modules that we don't have a version of in the board path
+COMMON_VERILOG_MODULES_EXCLUDE= include
+COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_RTL_VERILOG_MODULES)
+COMMON_VERILOG_MODULES_EXCLUDE += $(GATELEVEL_MODULES)
+
+COMMON_RTL_VERILOG_MODULES_DIR_LIST=$(shell ls $(COMMON_RTL_VERILOG_DIR))
+COMMON_RTL_VERILOG_MODULES=$(filter-out $(COMMON_VERILOG_MODULES_EXCLUDE), $(COMMON_RTL_VERILOG_MODULES_DIR_LIST))
 
 
-# Modelsim testench compilation - we change this from the standard makefile
-# to change:
-# 1) The include directory (should be the board RTL path, not the main RTL path)
-# 2) Change the define for the name of the top testbench (board dependent)
-# 3) Add the board's testbench paths
-# 4) Add the various extra memory models we use (maybe should just use a script for this instead? TODO!)
-VSIM_COMPILE_TB = vlog $(BENCH_VERILOG_DIR)/or1200_monitor.v $(BENCH_TOP_VERILOG_DIR)/$(RTL_TESTBENCH_TOP).v
-VSIM_COMPILE_TB += +incdir+$(BENCH_VERILOG_DIR) +incdir+$(BENCH_TOP_VERILOG_DIR) +incdir+$(BOARD_RTL_DIR) +incdir+$(XILINX_VERILOG_SRC)  
-VSIM_COMPILE_TB += +define+TEST_DEFINE_FILE  
-VSIM_COMPILE_TB += +define+OR1200_TOP=$(RTL_TESTBENCH_TOP).dut.i_or1k.i_or1200_top 
-VSIM_COMPILE_TB += +define+TESTBENCH_DEFINES=\"$(RTL_TESTBENCH_TOP)_defines.v\"
-VSIM_COMPILE_TB += -y $(BENCH_VERILOG_DIR) -y $(BOARD_BENCH_DIR) +libext+.v
-VSIM_COMPILE_TB += $(EXTRA_BENCH_DEFINES)
+# Add these to exclude their RTL directories from being included in scripts
 
-VOPT_STEP=vopt -quiet $(VOPT_ARGS) glbl $(RTL_TESTBENCH_TOP) -L $(MGC_ORPSOC_LIB) -o testbench
-SIM_COMMANDRUN= $(VSIM_COMPILE_TB); $(VOPT_STEP); $(VSIM) -c -quiet +nowarnTFMPC -L $(MGC_ORPSOC_LIB)  -do "run -all; exit" testbench
 
-# Re-define the command-file generation rule - we add a few extra things to 
-# our scripts to tell the simulator where the Xilinx tools, other set of 
-# includes, etc.
-$(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE): $(SIM_BIN_DIR)/$(SIM_COMMANDFILE)
-	$(Q)sed < $(SIM_BIN_DIR)/$(SIM_COMMANDFILE) > $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) \
-		-e s!\$$BENCH_DIR!$(BENCH_VERILOG_DIR)!              \
-		-e s!\$$RTL_DIR!$(RTL_VERILOG_DIR)!                  \
-		-e s!\$$BOARD_BENCH_DIR!$(BOARD_BENCH_DIR)!          \
-		-e s!\$$BOARD_RTL_DIR!$(BOARD_RTL_DIR)!              \
-		-e s!\$$BACKEND_DIR!$(BACKEND_DIR)!                  \
-		-e s!\$$XILINX_VERILOG_SRC!$(XILINX_VERILOG_SRC)!    \
-		-e \\!^//.*\$$!d -e \\!^\$$!d ; \
-	echo "+define+TEST_DEFINE_FILE=\"test_define.v\"" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
-	if [ ! -z $$VCD ]; \
-		then echo "+define+VCD" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
-		if [ $(SIMULATOR) = $(NCVERILOG) ]; \
-			then echo "+access+r" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
-		fi; \
-	fi; \
-	if [ ! -z $$UART_PRINTF ]; \
-		then echo "+define+UART_PRINTF" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
-	fi; \
-	if [ $(SIMULATOR) = $(NCVERILOG) ]; \
-		then echo "+nocopyright" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
-		echo "+nowarn+MACRDF" >> $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE); \
+
+# Rule for debugging this script
+print-common-modules-exclude:
+	@echo echo; echo "\t### Common verilog modules being excluded due to board versions ###"; echo
+	@echo "$(COMMON_VERILOG_MODULES_EXCLUDE)"
+
+print-common-modules:
+	@echo echo; echo "\t###  Verilog modules from common RTL dir ###"; echo
+	@echo $(COMMON_RTL_VERILOG_MODULES)
+
+# List of verilog source files (only .v files!)
+# Board RTL modules first
+RTL_VERILOG_SRC=$(shell for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then ls $(BOARD_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
+# Common RTL module source
+RTL_VERILOG_SRC +=$(shell for module in $(COMMON_RTL_VERILOG_MODULES); do if [ -d $(COMMON_RTL_VERILOG_DIR)/$$module ]; then ls $(COMMON_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
+
+# List of verilog includes from board RTL path - only for rule sensitivity
+RTL_VERILOG_INCLUDES=$(shell ls $(BOARD_RTL_VERILOG_INCLUDE_DIR)/*.*)
+
+print-verilog-src:
+	@echo echo; echo "\t### Verilog source ###"; echo
+	@echo $(RTL_VERILOG_SRC)
+
+# Rules to make RTL we might need
+# Expects modules, if they need making, to have their top verilog file to
+# correspond to their module name, and the directory should have a make file
+# and rule which works for this command.
+# Add name of module to this list, currently only does verilog ones.
+# Rule 'rtl' is called just before generating DUT modelsim compilation script
+RTL_TO_CHECK=
+rtl:
+	$(Q)for module in $(RTL_TO_CHECK); do \
+		$(MAKE) -C $(RTL_VERILOG_DIR)/$$module $$module.v; \
+	done
+
+#
+# VHDL DUT source variables
+#
+# VHDL modules
+#RTL_VHDL_MODULES=$(shell ls $(RTL_VHDL_DIR))
+# VHDL sources
+#RTL_VHDL_SRC=$(shell for module in $(RTL_VHDL_MODULES); do if [ -d $(RTL_VHDL_DIR)/$$module ]; then ls $(RTL_VHDL_DIR)/$$module/*.vhd; fi; done)
+#print-vhdl-src:
+#	@echo echo; echo "\t### VHDL modules and source ###"; echo
+#	@echo "modules: "; echo $(RTL_VHDL_MODULES); echo
+#	@echo "source: "$(RTL_VHDL_SRC)
+
+#
+# Testbench source
+#
+BOARD_BENCH_VERILOG_SRC=$(shell ls $(BOARD_BENCH_VERILOG_DIR)/*.v | grep -v $(DESIGN_NAME)_testbench )
+BOARD_BENCH_VERILOG_SRC_FILES=$(notdir $(BOARD_BENCH_VERILOG_SRC))
+
+# Now only take the source from the common path that we don't already have in
+# our board's
+COMMON_BENCH_VERILOG_DIR_LS=$(shell ls $(COMMON_BENCH_VERILOG_DIR)/*.v)
+COMMON_BENCH_VERILOG_SRC_FILES=$(notdir $(COMMON_BENCH_VERILOG_DIR_LS))
+COMMON_BENCH_VERILOG_SRC_FILTERED=$(filter-out $(BOARD_BENCH_VERILOG_SRC_FILES) $(DESIGN_NAME)_testbench.v,$(COMMON_BENCH_VERILOG_SRC_FILES))
+COMMON_BENCH_VERILOG_SRC=$(addprefix $(COMMON_BENCH_VERILOG_DIR)/, $(COMMON_BENCH_VERILOG_SRC_FILTERED))
+
+print-board-bench-src:
+	$(Q)echo "\tBoard bench verilog source"; \
+	echo $(BOARD_BENCH_VERILOG_SRC)
+
+print-common-bench-src:
+	$(Q)echo "\Common bench verilog source"; \
+	echo $(COMMON_BENCH_VERILOG_SRC)
+
+# Testbench source subdirectory detection (exclude include, we always use 
+# board bench include directory!)
+BOARD_BENCH_VERILOG_SUBDIRS=$(shell cd $(BOARD_BENCH_VERILOG_DIR) && ls -d */ | grep -v include)
+COMMON_BENCH_VERILOG_SUBDIRS=$(shell cd $(COMMON_BENCH_VERILOG_DIR) && ls -d */ | grep -v include)
+
+# Get rid of ones we have a copy of locally
+COMMON_BENCH_VERILOG_SUBDIRS_EXCLUDE_BOARDS=$(filter-out $(BOARD_BENCH_VERILOG_SUBDIRS),$(COMMON_BENCH_VERILOG_SUBDIRS))
+
+# Construct list of paths we will want to include
+BENCH_VERILOG_SUBDIRS=$(addprefix $(COMMON_BENCH_VERILOG_DIR)/,$(COMMON_BENCH_VERILOG_SUBDIRS_EXCLUDE_BOARDS))
+BENCH_VERILOG_SUBDIRS += $(addprefix $(BOARD_BENCH_VERILOG_DIR)/,$(BOARD_BENCH_VERILOG_SUBDIRS))
+
+# Finally, add include path from local bench path
+BENCH_VERILOG_SUBDIRS += $(BOARD_BENCH_VERILOG_DIR)/include
+
+print-board-bench-subdirs:
+	$(Q)echo "\tBoard bench subdirectories"; \
+	echo $(BOARD_BENCH_VERILOG_SUBDIRS)
+
+print-common-bench-subdirs:
+	$(Q)echo "\tCommon bench subdirectories"; \
+	echo $(COMMON_BENCH_VERILOG_SUBDIRS)
+
+print-bench-subdirs:
+	$(Q)echo "\tBench subdirectories"; \
+	echo $(BENCH_VERILOG_SUBDIRS)
+
+
+# Backend technology library files
+# We don't do this for the board backend stuff - that should all be properly 
+# named, and so we only need to pass the "-y" option for that path.
+BOARD_BACKEND_VERILOG_SRC=$(shell ls $(BOARD_BACKEND_VERILOG_DIR)/*.v )
+
+#
+# Compile script generation rules:
+#
+
+# Modelsim library compilation rules
+#	$(Q)echo "-y " $(BOARD_BACKEND_VERILOG_DIR) >> $@;
+# DUT compile script
+modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
+	$(Q)echo "+incdir+"$(BOARD_RTL_VERILOG_INCLUDE_DIR) > $@;
+	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
+	$(Q)echo "+incdir+"$(BOARD_BENCH_VERILOG_INCLUDE_DIR) >> $@;
+	$(Q)echo "+libext+.v" >> $@;
+	$(Q)for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(BOARD_RTL_VERILOG_DIR)/$$module >> $@; fi; done
+	$(Q)for module in $(COMMON_RTL_VERILOG_MODULES); do if [ -d $(COMMON_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(COMMON_RTL_VERILOG_DIR)/$$module >> $@; fi; done
+	$(Q)echo "-y "$(TECHNOLOGY_BACKEND_VERILOG_DIR)"/src/unisims" >> $@;
+	$(Q)echo "-y "$(TECHNOLOGY_BACKEND_VERILOG_DIR)"/src/XilinxCoreLib" >> $@;
+	$(Q)if [ ! -z "$$GATELEVEL_MODULES" ]; \
+		then echo "-y " $(BOARD_SYN_OUT_DIR) >> $@; \
+		echo "+libext+.vm" >> $@; \
+	fi
+	$(Q)echo >> $@
+
+modelsim_bench.scr: $(BOARD_BENCH_VERILOG_SRC) $(COMMON_BENCH_VERILOG_SRC)
+	$(Q)echo "+incdir+"$(BOARD_BENCH_VERILOG_INCLUDE_DIR) > $@;
+	$(Q)echo "+incdir+"$(COMMON_BENCH_VERILOG_INCLUDE_DIR) >> $@;
+	$(Q)for path in $(BENCH_VERILOG_SUBDIRS); do echo "+incdir+"$$path >> $@; done
+	$(Q)for path in $(BENCH_VERILOG_SUBDIRS); do echo "-y "$$path >> $@; done
+	$(Q)echo "+incdir+"$(BOARD_RTL_VERILOG_INCLUDE_DIR) >> $@;
+	$(Q)echo "+libext+.v" >> $@;
+	$(Q)echo "+incdir+"$(TECHNOLOGY_BACKEND_VERILOG_DIR)"/src" >> $@;
+	$(Q)for vsrc in $(BOARD_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
+	$(Q)for vsrc in $(COMMON_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
+	$(Q)echo >> $@
+
+# Modelsim library compilation rules
+
+# Compile DUT into "work" library
+work: modelsim_dut.scr
+	$(Q)if [ ! -e $@ ]; then vlib $@; fi
+	$(Q)echo; echo "\t### Compiling Verilog design library ###"; echo
+	$(Q)vlog $(QUIET) -f $< $(DUT_TOP)
+#	$(Q)echo; echo "\t### Compiling VHDL design library ###"; echo
+#	$(Q)vcom -93 $(QUIET) $(RTL_VHDL_SRC)
+
+# Single compile rule
+.PHONY : $(MODELSIM)
+$(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
+	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
+	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
+	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
+	$(Q)echo; echo "\t### Launching simulation ###"; echo
+	$(Q)vsim $(VSIM_ARGS) tb
+
+
+.PHONY: rtl-test
+rtl-test: clean-sim-test-sw sw clean-test-defines $(TEST_DEFINES_VLG) \
+	$(SIMULATOR)
+
+# Run an RTL test followed by checking of generated results
+rtl-test-with-check: rtl-test
+	$(Q)$(MAKE) check-test-log; \
+	if [ $$? -ne 0 ]; then \
+		echo; echo "\t### "$(TEST)" test FAIL ###"; echo; \
+	else \
+		echo; echo "\t### "$(TEST)" test OK ###"; echo; \
 	fi
 
+# Do check, don't print anything out
+rtl-test-with-check-no-print: rtl-test check-test-log
+
+# Main RTL test loop
+rtl-tests:
+	$(Q)for test in $(TESTS); do \
+		export TEST=$$test; \
+		$(MAKE) rtl-test-with-check-no-print; \
+		if [ $$? -ne 0 ]; then break; fi; \
+		echo; echo "\t### $$test test OK ###"; echo; \
+	done
 
 
-# A new set of tests for software which will run only on this board
-# eth board test doesn't quit properly for some reason
-BOARD_TESTS=boot memtest gpio
+.PHONY: check-test-log
+check-test-log:
+	$(Q)echo "#!/bin/bash" > $@
+	$(Q)echo "function check-test-log { if [ \`grep -c -i "$(TEST_OK_STRING)" "$(RTL_SIM_RESULTS_DIR)"/"$(TEST)$(TEST_OUT_FILE_SUFFIX)"\` -gt 0 ]; then return 0; else return 1; fi; }" >> $@
+	$(Q)echo "check-test-log" >> $@
+	$(Q)chmod +x $@
+	$(Q) echo; echo "\t### Checking simulation results for "$(TEST)" test ###"; echo;
+	$(Q)./$@
 
-rtl-board-tests: $(SIM_RUN_DIR)/$(GENERATED_COMMANDFILE) prepare-sw prepare-rtl prepare-dirs
-	@echo
-	@echo "Beginning loop that will complete the following tests for $(BOARD) board: $(BOARD_TESTS)"
-	@echo
-	$(Q)for TEST in $(BOARD_TESTS); do \
-		echo "################################################################################"; \
-		echo; \
-		echo "\t#### Current test: $$TEST ####"; echo; \
-		echo "\t#### Compiling software ####"; echo; \
-		CURRENT_TEST_SW_DIR=$(BOARD_SW_DIR)/`echo $$TEST | cut -d "-" -f 1`; \
-		$(MAKE) -C $$CURRENT_TEST_SW_DIR clean $$TEST $(TEST_SW_MAKE_OPTS); \
-		rm -f $(SIM_RUN_DIR)/$(SIM_FLASH_MEM_FILE); \
-		rm -f $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		ln -s $$CURRENT_TEST_SW_DIR/$$TEST.vmem $(SIM_RUN_DIR)/$(SIM_SRAM_MEM_FILE); \
-		echo "\`define TEST_NAME_STRING \"$$TEST\"" > $(SIM_RUN_DIR)/test_define.v; \
-		echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
-		if [ ! -z $$VCD ]; \
-			then echo "\`define VCD" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		if [ ! -z $$UART_PRINTF ]; \
-			then echo "\`define UART_PRINTF" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		if [ -z $$NO_SIM_LOGGING ]; then \
-			echo "\`define OR1200_DISPLAY_ARCH_STATE" >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-		echo ; \
-		echo "\t#### Compiling RTL ####"; \
-		$(SIM_COMMANDCOMPILE); \
-		echo; \
-		echo "\t#### Beginning simulation ####"; \
-		time -p $(SIM_COMMANDRUN) ; \
-		if [ $$? -gt 0 ]; then exit $$?; fi; \
-		TEST_RESULT=`cat $(SIM_RESULTS_DIR)/$$TEST-general.log | grep report | grep $(SIM_SUCCESS_MESSAGE) -c`; \
-		echo; echo "\t####"; \
-		if [ $$TEST_RESULT -gt 0 ]; then \
-			echo "\t#### Test $$TEST PASSED ####";TESTS_PASSED=`expr $$TESTS_PASSED + 1`;\
-		else    echo "\t#### Test $$TEST FAILED ####";\
-		fi; \
-		echo "\t####"; echo; \
-		TESTS_PERFORMED=`expr $$TESTS_PERFORMED + 1`;\
-	done; \
-	echo "Test results: "$$TESTS_PASSED" out of "$$TESTS_PERFORMED" tests passed"; echo
+# Include the test-defines.v generation rule
+include $(PROJECT_ROOT)/sim/bin/definesgen.inc
+
+#
+# Software make rules (called recursively)
+#
+
+# Path for the current test
+# First check for a local copy of the test. If it doesn't exist then we
+# default to the software tests in the root directory
+TEST_MODULE=$(shell echo $(TEST) | cut -d "-" -f 1)
+BOARD_SW_TEST_DIR=$(BOARD_SW_DIR)/tests/$(TEST_MODULE)/sim
+COMMON_SW_TEST_DIR=$(COMMON_SW_DIR)/tests/$(TEST_MODULE)/sim
+# Do this by testing for the file's existence 
+SW_TEST_DIR=$(shell if [ -e $(BOARD_SW_TEST_DIR)/$(TEST).[cS] ]; then echo $(BOARD_SW_TEST_DIR); else echo $(COMMON_SW_TEST_DIR); fi)
+
+print-test-sw-dir:
+	@echo; echo "\tTest software is in the following path"; echo;
+	@echo $(BOARD_SW_DIR); echo;
+	@echo $(BOARD_SW_TEST_DIR); echo;
+	@echo $(SW_TEST_DIR); echo;
+
+print-sw-tests:
+	$(Q) $(MAKE) -C $(COMMON_SW_DIR)/lib print-sw-tests
+	$(Q) $(MAKE) -C $(COMMON_SW_DIR)/lib print-sw-tests-subdirs
 
 
-SYN_SIM_COMMANDCOMPILE=if [ ! -e work ]; then vlib work; vlib $(MGC_ORPSOC_LIB); vlog -work $(MGC_ORPSOC_LIB) +libext+.v -y $(XILINX_VERILOG_SRC) +incdir+$(XILINX_VERILOG_SRC) -y $(XILINX_VERILOG_SRC)/unisims +incdir+$(XILINX_VERILOG_SRC)/unisims -y $(XILINX_VERILOG_SRC)/XilinxCoreLib +incdir+$(XILINX_VERILOG_SRC)/XilinxCoreLib $(BOARD_SYN_DIR)/$(BOARD).v $(BOARD_RTL_DIR)/ml501_ddr2_wb_if_cache.v ; fi
-syn-board-test:  prepare-dirs $(BOARD_SYN_DIR)/$(BOARD).v
-	$(Q)echo "\`define TEST_NAME_STRING \"ml501-post-synthesis\"" > $(SIM_RUN_DIR)/test_define.v; \
-	echo "\`define POST_SYNTHESIS_SIM" >> $(SIM_RUN_DIR)/test_define.v; \
+# Name of the image the RAM model will attempt to load via Verilog $readmemh
+# system function.
 
-	echo "\`define TEST_RESULTS_DIR \"$(SIM_RESULTS_DIR)/\" " >> $(SIM_RUN_DIR)/test_define.v; \
-	if [ ! -z $$VCD ]; \
-		then echo "\`define VCD" >> $(SIM_RUN_DIR)/test_define.v; \
-		if [ ! -z $$VCD_DEPTH ]; \
-			then echo "\`define VCD_DEPTH "$(VCD_DEPTH) >> $(SIM_RUN_DIR)/test_define.v; \
-		fi; \
-	fi; \
-	if [ ! -z $$UART_PRINTF ]; \
-		then echo "\`define UART_PRINTF" >> $(SIM_RUN_DIR)/test_define.v; \
-	fi; \
-	echo "\t#### Compiling RTL ####"; \
-	$(SYN_SIM_COMMANDCOMPILE); \
-	echo; \
-	echo "\t#### Beginning simulation ####"; \
-	time -p $(SIM_COMMANDRUN) ; \
-	echo
+# Set PRELOAD_RAM=1 to preload the system memory - be sure the bootROM program
+# chosen in board.h is the one booting from the reset vector.
+ifeq ($(PRELOAD_RAM), 1)
+SIM_SW_IMAGE ?=sram.vmem
+else
+SIM_SW_IMAGE ?=flash.in
+endif
+
+.PHONY : sw
+sw: $(SIM_SW_IMAGE)
+
+
+flash.in: $(SW_TEST_DIR)/$(TEST).flashin
+	$(Q)if [ -L $@ ]; then unlink $@; fi
+	$(Q)ln -s $< $@
+
+sram.vmem: $(SW_TEST_DIR)/$(TEST).vmem
+	$(Q)if [ -L $@ ]; then unlink $@; fi
+	$(Q)ln -s $< $@
+
+.PHONY: $(SW_TEST_DIR)/$(TEST).flashin
+$(SW_TEST_DIR)/$(TEST).flashin:
+	$(Q) echo; echo "\t### Compiling software ###"; echo;
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).flashin
+
+.PHONY: $(SW_TEST_DIR)/$(TEST).vmem
+$(SW_TEST_DIR)/$(TEST).vmem:
+	$(Q) echo; echo "\t### Compiling software ###"; echo;
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).vmem
+
+# Create test software disassembly
+
+sw-dis: $(SW_TEST_DIR)/$(TEST).dis
+	$(Q)cp -v $< .
+
+$(SW_TEST_DIR)/$(TEST).dis:
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).dis
+
+#
+# Cleaning rules
+#
+clean: clean-sim clean-sim-test-sw clean-bootrom clean-out clean-sw
+
+clean-sim:
+	$(Q) echo; echo "\t### Cleaning simulation run directory ###"; echo;
+	$(Q)rm -rf *.* lib_* work transcript check-test-log
+# No VPI support for now.	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
+
+clean-bootrom:
+	$(MAKE) -C $(BOOTROM_SW_DIR) clean
+
+clean-out:
+	$(Q)rm -rf $(RTL_SIM_RESULTS_DIR)/*.*
+
+clean-test-defines:
+	$(Q)rm -f $(TEST_DEFINES_VLG)
+
+clean-sim-test-sw:
+	$(Q)if [ -e $(SIM_SW_IMAGE) ]; then unlink $(SIM_SW_IMAGE); fi
+
+clean-sw:
+	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
+	$(Q) $(MAKE) -C $(COMMON_SW_DIR)/lib clean-all
+
+clean-rtl:
+	$(Q) echo; echo "\t### Cleaning generated verilog RTL ###"; echo;
+	for module in $(RTL_TO_CHECK); do \
+		$(MAKE) -C $(RTL_VERILOG_DIR)/$$module clean; \
+	done
+
+# Removes any checked out RTL
+distclean: clean
+	$(Q) echo; echo "\t### Cleaning generated verilog RTL ###"; echo;
+	$(Q)for module in $(RTL_TO_CHECK); do \
+		$(MAKE) -C $(RTL_VERILOG_DIR)/$$module distclean; \
+	done
