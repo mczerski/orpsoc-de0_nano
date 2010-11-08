@@ -16,10 +16,17 @@
 // file, which is compiled and converted into Verilog for inclusion at 
 // synthesis time. See bootloader/bootloader.S for details on each option.
 
-//#define BOOTROM_SPI_FLASH
-#define BOOTROM_GOTO_RESET
+#define BOOTROM_SPI_FLASH
+//#define BOOTROM_GOTO_RESET
 //#define BOOTROM_LOOP_AT_ZERO
 //#define BOOTROM_LOOP_IN_ROM
+
+// Address bootloader should start from in FLASH
+#define BOOTROM_ADDR_BYTE2 0x1c
+#define BOOTROM_ADDR_BYTE1 0x00
+#define BOOTROM_ADDR_BYTE0 0x00
+// Causes SPI bootloader to loop if SPI didn't give correct size of image
+#define SPI_RETRY_IF_INSANE_SIZEWORD
 
 //
 // Defines for each core (memory map base, OR1200 interrupt line number, etc.)

@@ -53,4 +53,4 @@ for(ram_ptr = 0 ; ram_ptr < 4096 ; ram_ptr = ram_ptr + 1)
      
   end // for (ram_ptr = 0 ; ram_ptr < ...
 $display("(%t) * DDR2 RAM %1d preloaded",$time, i);
-end // initial begin
+

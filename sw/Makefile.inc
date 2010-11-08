@@ -116,9 +116,10 @@ MARCH_FLAGS ?=-mhard-mul -mhard-div -msoft-float
 
 OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
 		$(INCLUDE_FLAGS) \
-		-I$(SW_ROOT)/lib/include
+		-I$(SW_ROOT)/lib/include \
+		
 
-OR32_LDFLAGS ?=-lgcc -T$(CPU_DRIVER)/link.ld -e 256
+OR32_LDFLAGS ?=-L$(SW_ROOT)/lib -lorpsoc -lgcc -T$(CPU_DRIVER)/link.ld -e 256 
 OR32_ARFLAGS ?=-r
 # RTL_VERILOG_INCLUDE_DIR *MUST* be set!
 # Backup one - default, but may be wrong!
@@ -132,7 +133,9 @@ OR1200_PROCESSED_VERILOG_DEFINES=$(SW_ROOT)/lib/include/or1200-defines.h
 
 PROCESSED_DEFINES=$(DESIGN_PROCESSED_VERILOG_DEFINES) $(OR1200_PROCESSED_VERILOG_DEFINES) 
 
-ELF_DEPENDS+= $(SUPPORT_LIBS)
+# Mother makefile can set this if extra things are needed to be built and
+# compild with a certain app.
+ELF_DEPENDS ?=
 
 # Set V=1 when calling make to enable verbose output
 # mainly for debugging purposes.
@@ -177,16 +180,17 @@ $(OR1200_PROCESSED_VERILOG_DEFINES): $(OR1200_VERILOG_DEFINES)
 
 # Default make
 %.flashin: %.bin $(UTILS_BIN2HEX)
-	$(Q)$(UTILS_BIN2HEX) $< 1  -size_word > $@
+	$(Q)$(UTILS_BIN2HEX) $< 1  -size_word -pad $(HEX_IMAGE_PADDING) > $@
 
 %.vmem: %.bin $(UTILS_BIN2VMEM)
 	$(Q)$(UTILS_BIN2VMEM) $< > $@
 
-%.elf: %.c $(ELF_DEPENDS) $(VECTORS_OBJ)
-	$(Q)$(OR32_CC) $^ $(OR32_CFLAGS) $(OR32_LDFLAGS) -o $@
+%.elf: %.c $(VECTORS_OBJ) $(ELF_DEPENDS) $(SUPPORT_LIBS)
+	$(Q)$(OR32_CC) $< $(VECTORS_OBJ) $(ELF_DEPENDS) $(OR32_CFLAGS) \
+	$(OR32_LDFLAGS) -o $@
 
-%.elf: %.S $(ELF_DEPENDS)
-	$(Q)$(OR32_CC) $^ $(OR32_CFLAGS) $(OR32_LDFLAGS) -o $@
+%.elf: %.S $(ELF_DEPENDS) $(SUPPORT_LIBS)
+	$(Q)$(OR32_CC) $< $(ELF_DEPENDS) $(OR32_CFLAGS) $(OR32_LDFLAGS) -o $@
 
 %.o: %.S
 	$(Q)$(OR32_CC) $(OR32_CFLAGS) -c $< -o $@

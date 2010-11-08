@@ -72,14 +72,16 @@
 //`define ARBITER_IBUS_REGISTERING
 `define ARBITER_IBUS_WATCHDOG
 // Watchdog timeout: 2^(ARBITER_IBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 12
+// This has to be kind of long, as DDR2 initialisation can take a little while
+// and after reset, and if this is too short we'll always get bus error.
+`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 20
 
 // Data bus arbiter
 
 //`define ARBITER_DBUS_REGISTERING
 `define ARBITER_DBUS_WATCHDOG
 // Watchdog timeout: 2^(ARBITER_DBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 12
+`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 20
 
 // Byte bus (peripheral bus) arbiter
 // Don't really need the watchdog here - the databus will pick it up

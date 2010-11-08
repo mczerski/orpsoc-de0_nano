@@ -73,14 +73,14 @@ module orpsoc_testbench;
    tri1 i2c_scl, i2c_sda;
    
 `ifdef JTAG_DEBUG
-   wire 		     tdo_pad_o;
-   wire 		     tck_pad_i;
-   wire 		     tms_pad_i;
-   wire 		     tdi_pad_i;
+   wire tdo_pad_o;
+   wire tck_pad_i;
+   wire tms_pad_i;
+   wire tdi_pad_i;
 `endif   
 `ifdef UART0
-   wire 		     uart0_stx_pad_o;
-   wire 		     uart0_srx_pad_i;
+   wire uart0_stx_pad_o;
+   wire uart0_srx_pad_i;
 `endif
 `ifdef GPIO0
    wire [gpio0_io_width-1:0] gpio0_io;
@@ -151,16 +151,16 @@ module orpsoc_testbench;
    wire [ODT_WIDTH-1:0]      ddr2_odt_fpga;
 `endif
 `ifdef XILINX_SSRAM
-   wire sram_clk;
-   wire sram_clk_fb;
-   wire sram_adv_ld_n;
-   wire [3:0] sram_bw;
-   wire       sram_cen;
-   wire [21:1] sram_flash_addr;
-   wire [31:0] sram_flash_data;
-   wire        sram_flash_oe_n;
-   wire        sram_flash_we_n;
-   wire        sram_mode;
+   wire 		     sram_clk;
+   wire 		     sram_clk_fb;
+   wire 		     sram_adv_ld_n;
+   wire [3:0] 		     sram_bw;
+   wire 		     sram_cen;
+   wire [21:1] 		     sram_flash_addr;
+   wire [31:0] 		     sram_flash_data;
+   wire 		     sram_flash_oe_n;
+   wire 		     sram_flash_we_n;
+   wire 		     sram_mode;
 `endif
 
    orpsoc_top dut
@@ -206,9 +206,12 @@ module orpsoc_testbench;
       .uart0_srx_expheader_pad_i	(uart0_srx_pad_i),
 `endif
 `ifdef SPI0
-      .spi0_sck_o			(spi0_sck_o),
+      /*
+       via STARTUP_VIRTEX5
+       .spi0_sck_o			(spi0_sck_o),
+       .spi0_miso_i			(spi0_miso_i),
+       */
       .spi0_mosi_o			(spi0_mosi_o),
-      .spi0_miso_i			(spi0_miso_i),
       .spi0_ss_o			(spi0_ss_o),
 `endif
 `ifdef I2C0
@@ -252,11 +255,11 @@ module orpsoc_testbench;
 `ifndef SIM_QUIET
  `define CPU_ic_top or1200_ic_top
  `define CPU_dc_top or1200_dc_top
-   wire ic_en = orpsoc_testbench.dut.or1200_top0.or1200_ic_top.ic_en;
+   wire 		     ic_en = orpsoc_testbench.dut.or1200_top0.or1200_ic_top.ic_en;
    always @(posedge ic_en)
      $display("Or1200 IC enabled at %t", $time);
 
-   wire dc_en = orpsoc_testbench.dut.or1200_top0.or1200_dc_top.dc_en;
+   wire 		     dc_en = orpsoc_testbench.dut.or1200_top0.or1200_dc_top.dc_en;
    always @(posedge dc_en)
      $display("Or1200 DC enabled at %t", $time);
 `endif
@@ -281,8 +284,15 @@ module orpsoc_testbench;
 `endif //  `ifdef JTAG_DEBUG
    
 `ifdef SPI0
+   // STARTUP_VIRTEX5 module routes these out on the board.
+   // So for now just connect directly to the internals here.
+   assign spi0_sck_o = dut.spi0_sck_o;
+   assign dut.spi0_miso_i = spi0_miso_i;
+   
    // SPI flash memory - M25P16 compatible SPI protocol
-   AT26DFxxx spi0_flash
+   AT26DFxxx
+     #(.MEMSIZE(2048*1024)) // 2MB flash on ML501
+     spi0_flash
      (// Outputs
       .SO					(spi0_miso_i),
       // Inputs
@@ -291,6 +301,8 @@ module orpsoc_testbench;
       .SI					(spi0_mosi_o),
       .WPB					(1'b1)
       );
+
+   
 `endif //  `ifdef SPI0
 
 `ifdef ETH0
@@ -331,11 +343,11 @@ module orpsoc_testbench;
 `endif //  `ifdef ETH0
 
 `ifdef XILINX_SSRAM
-   wire [18:0] 	sram_a;
-   wire [3:0] 	dqp;   
+   wire [18:0] 		     sram_a;
+   wire [3:0] 		     dqp;   
    
    assign sram_a[18:0] = sram_flash_addr[19:1];   
-   wire 	sram_ce1b, sram_ce2, sram_ce3b;
+   wire 		     sram_ce1b, sram_ce2, sram_ce3b;
    assign sram_ce1b = 1'b0;
    assign sram_ce2 = 1'b1;   
    assign sram_ce3b = 1'b0;   
@@ -446,28 +458,30 @@ module orpsoc_testbench;
 
  `ifdef PRELOAD_RAM
   `include "ddr2_model_preload.v"
- `endif	    
-		 ddr2_model u_mem0
-		   (
-		    .ck        (ddr2_ck_sdram[CLK_WIDTH*i/DQS_WIDTH]),
-		    .ck_n      (ddr2_ck_n_sdram[CLK_WIDTH*i/DQS_WIDTH]),
-		    .cke       (ddr2_cke_sdram[j]),
-		    .cs_n      (ddr2_cs_n_sdram[CS_WIDTH*i/DQS_WIDTH]),
-		    .ras_n     (ddr2_ras_n_sdram),
-		    .cas_n     (ddr2_cas_n_sdram),
-		    .we_n      (ddr2_we_n_sdram),
-		    .dm_rdqs   (ddr2_dm_sdram[(2*(i+1))-1 : i*2]),
-		    .ba        (ddr2_ba_sdram),
-		    .addr      (ddr2_a_sdram),
-		    .dq        (ddr2_dq_sdram[(16*(i+1))-1 : i*16]),
-		    .dqs       (ddr2_dqs_sdram[(2*(i+1))-1 : i*2]),
-		    .dqs_n     (ddr2_dqs_n_sdram[(2*(i+1))-1 : i*2]),
-		    .rdqs_n    (),
-		    .odt       (ddr2_odt_sdram[ODT_WIDTH*i/DQS_WIDTH])
-		    );
-              end
-	 end
-      endgenerate
+ `endif
+	      end
+	    
+	    ddr2_model u_mem0
+	      (
+	       .ck        (ddr2_ck_sdram[CLK_WIDTH*i/DQS_WIDTH]),
+	       .ck_n      (ddr2_ck_n_sdram[CLK_WIDTH*i/DQS_WIDTH]),
+	       .cke       (ddr2_cke_sdram[j]),
+	       .cs_n      (ddr2_cs_n_sdram[CS_WIDTH*i/DQS_WIDTH]),
+	       .ras_n     (ddr2_ras_n_sdram),
+	       .cas_n     (ddr2_cas_n_sdram),
+	       .we_n      (ddr2_we_n_sdram),
+	       .dm_rdqs   (ddr2_dm_sdram[(2*(i+1))-1 : i*2]),
+	       .ba        (ddr2_ba_sdram),
+	       .addr      (ddr2_a_sdram),
+	       .dq        (ddr2_dq_sdram[(16*(i+1))-1 : i*16]),
+	       .dqs       (ddr2_dqs_sdram[(2*(i+1))-1 : i*2]),
+	       .dqs_n     (ddr2_dqs_n_sdram[(2*(i+1))-1 : i*2]),
+	       .rdqs_n    (),
+	       .odt       (ddr2_odt_sdram[ODT_WIDTH*i/DQS_WIDTH])
+	       );
+         end
+      end
+   endgenerate
    
 `endif
 
@@ -495,9 +509,9 @@ module orpsoc_testbench;
   `define VCD_SUFFIX   ".vcd"
  `endif
 	
-`ifndef SIM_QUIET
+ `ifndef SIM_QUIET
 	$display("* VCD in %s\n", {"../out/",`TEST_NAME_STRING,`VCD_SUFFIX});
-`endif	
+ `endif	
 	$dumpfile({"../out/",`TEST_NAME_STRING,`VCD_SUFFIX});
  `ifndef VCD_DEPTH
   `define VCD_DEPTH 0
@@ -523,9 +537,9 @@ module orpsoc_testbench;
 `ifdef END_TIME
    initial begin
       #(`END_TIME);
-`ifndef SIM_QUIET      
+ `ifndef SIM_QUIET      
       $display("* Finish simulation due to END_TIME being set at %t", $time);
-`endif      
+ `endif      
       $finish;
    end
 `endif

@@ -64,6 +64,7 @@ int main(int argc, char **argv)
 	int filename_index=1;
 	int bytes_per_line=1;
 	int bytes_per_line_index=2;
+	int padding = 0;
 	unsigned int image_size;
 
 	if(argc < 3) {
@@ -74,23 +75,50 @@ int main(int argc, char **argv)
 	  fprintf(stderr,"\tOptionally specify the option -size_word to output,\n");
 	  fprintf(stderr,"\tthe size of the image in the first 4 bytes. This is\n");
 	  fprintf(stderr,"\tused by some of the new OR1k bootloaders.\n\n");
+	  fprintf(stderr,"\tOptionally specify padding to be applied to the file,\n");
+	  fprintf(stderr,"\twith the -pad switch, followed by either decimal or\n");
+	  fprintf(stderr,"\thexademical format offset. Value is in bytes, pad\n");
+	  fprintf(stderr,"\tfill will be zeros.\n");
+	  fprintf(stderr,"\n");
 	  exit(1);
 	}
 	
-	if(argc == 4)
+
+	if (argc >= 4)
 	  {
+	    for (i = 1; i< argc; i++)
+	      {
+		if ((strcmp("-pad", argv[i]) == 0) || 
+		    (strcmp("--pad", argv[i]) == 0))
+		  {
+		    if (i+1 < argc)
+		      {
+			  if (1 == (sscanf(argv[i+1], "0x%x", &padding)))
+			    i++;
+			  else if (1 == (sscanf(argv[i+1], "%d", &padding)))
+			    i++;
+			  
+			  //fprintf(stderr,"Padding offset: 0x%x\n",padding);
+		      }
+		    
+		  }
+	      }
+	    
+	    // This will always be in argv[3]
 	    if (strcmp("-size_word", argv[3]) == 0)
 	      // We will calculate the number of bytes first
 	      write_size_word=1;
+	    
 	  }
-	
+
 	fd = fopen( argv[filename_index], "r" );
 
 	bytes_per_line = atoi(argv[bytes_per_line_index]);
 	
 	if ((bytes_per_line == 0) || (bytes_per_line > 8))
 	  {
-	    fprintf(stderr,"bytes per line incorrect or missing: %s\n",argv[bytes_per_line_index]);
+	    fprintf(stderr,"bytes per line incorrect or missing: %s\n",
+		    argv[bytes_per_line_index]);
 	    exit(1);
 	  }
 	
@@ -103,15 +131,30 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	
+	i=0;
+	
+	    // Write out padding bytes amount of zeros
+	while (padding) {
+	  printf("00");
+	  if (++i == bytes_per_line) {
+	    printf("\n");
+	    i = 0;
+	  }
+	  padding--;
+        }
+
 	if (write_size_word)
 	  {
-	    // or1200 startup method of determining size of boot image we're copying by reading out
-	    // the very first word in flash is used. Determine the length of this file
+	    // or1200 startup method of determining size of boot image we're 
+	    // copying by reading out the very first word in flash is used. 
+	    // Determine the length of this file
 	    fseek(fd, 0, SEEK_END);
 	    image_size = ftell(fd);
 	    fseek(fd,0,SEEK_SET);
 	    
-	    // Now we should have the size of the file in bytes. Let's ensure it's a word multiple
+	    // Now we should have the size of the file in bytes. Let's ensure 
+	    // it's a word multiple
 	    image_size+=3;
 	    image_size &= 0xfffffffc;
 
@@ -133,7 +176,8 @@ int main(int argc, char **argv)
 	    if(++i==bytes_per_line){ printf("\n"); i=0; }
 	  }
 
-	// Fix for the current bootloader software! Skip the first 4 bytes of application data. Hopefully it's not important. 030509 -- jb
+	// Fix for the current bootloader software! Skip the first 4 bytes of 
+	// application data. Hopefully it's not important. 030509 -- jb
 	for(i=0;i<4;i++)
 	  c=fgetc(fd);
 

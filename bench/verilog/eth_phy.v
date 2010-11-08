@@ -1306,10 +1306,12 @@ end*/
 	 smii_rx_len = len;
 	 smii_rx_go = 1;
 	 
-	 send_mii_rx_packet(preamble_data, preamble_len, sfd_data, start_addr, len, plus_drible_nibble,
-			    assert_rx_err);
+	 send_mii_rx_packet(preamble_data, preamble_len, sfd_data, start_addr, 
+			    len, plus_drible_nibble, assert_rx_err);
+`ifdef SMII0
 	 while(smii_rx_go)
 	   @(posedge smii_clk_i);
+`endif
 	 
       end
    endtask // send_rx_packet
@@ -1347,7 +1349,8 @@ end*/
 	 rx_mem_addr_in = start_addr;
 	 
 	 // send preamble
-	 for (rx_cnt = 0; (rx_cnt < (preamble_len << 1)) && (rx_cnt < 16); rx_cnt = rx_cnt + 1)
+	 for (rx_cnt = 0; (rx_cnt < (preamble_len << 1)) && (rx_cnt < 16); 
+	      rx_cnt = rx_cnt + 1)
 	   begin
               #1 mrxd_o = preamble_data[3:0];
               #1 preamble_data = preamble_data >> 4;
@@ -1373,8 +1376,9 @@ end*/
               @(posedge mrx_clk_o);
               #1;
 	      
-	      // Assert error if told to .... TODO: make this occur at random time
-	      // jb
+	      // Assert error if told to .... TODO: make this occur at random 
+	      //                                    time - JPB
+	      
 	      if (rx_cnt > 18) rx_err(assert_rx_err);
 	      
               mrxd_o = rx_mem_data_out[7:4];

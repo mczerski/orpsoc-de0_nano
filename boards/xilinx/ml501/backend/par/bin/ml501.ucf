@@ -24,10 +24,10 @@
 #------------------------------------------------------------------------------
 
 # 100MHz fixed freq clock.
-NET sys_clk_in LOC = AD8; 
-NET sys_clk_in IOSTANDARD = LVCMOS33;
-NET "sys_clk_in" TNM_NET = "sys_clk_in"; 
-TIMESPEC "TS_sys_clk_in" = PERIOD "sys_clk_in" 10 ns HIGH 50.00%; 
+#NET sys_clk_in LOC = AD8; 
+#NET sys_clk_in IOSTANDARD = LVCMOS33;
+#NET "sys_clk_in" TNM_NET = "sys_clk_in"; 
+#TIMESPEC "TS_sys_clk_in" = PERIOD "sys_clk_in" 10 ns HIGH 50.00%; 
 
 NET sys_clk_in_p LOC = E16;
 NET sys_clk_in_n LOC = E17;
@@ -35,21 +35,25 @@ NET sys_clk_in_p IOSTANDARD = LVDS_25;
 NET sys_clk_in_n IOSTANDARD = LVDS_25;
 INST *sys_clk_in_ibufds DIFF_TERM=TRUE;
 
-NET sys_rst_in LOC = T23 | IOSTANDARD = LVDCI_33;
-NET sys_rst_in PULLUP;
-NET sys_rst_in TIG;
+NET "clkgen0/sys_clk_in_200" TNM_NET = "sys_clk_in_200";
+TIMESPEC "TSSYSCLK200" = PERIOD "sys_clk_in_200" 5 ns HIGH 50 %;
+
+
+NET rst_n_pad_i LOC = T23 | IOSTANDARD = LVDCI_33;
+NET rst_n_pad_i PULLUP;
+NET rst_n_pad_i TIG;
 
 
 #------------------------------------------------------------------------------
 # User Reset pins (hook up so user can reset system from processor)
 #------------------------------------------------------------------------------
 
-NET usr_rst_out LOC = P20 | IOSTANDARD = LVCMOS25; # HDR2_62
-NET usr_rst_out PULLUP;
-NET usr_rst_out TIG;
-NET usr_rst_in LOC = P21 | IOSTANDARD = LVCMOS25; # HDR2_64
-NET usr_rst_in PULLUP;
-NET usr_rst_in TIG;
+#NET usr_rst_out LOC = P20 | IOSTANDARD = LVCMOS25; # HDR2_62
+#NET usr_rst_out PULLUP;
+#NET usr_rst_out TIG;
+#NET usr_rst_in LOC = P21 | IOSTANDARD = LVCMOS25; # HDR2_64
+#NET usr_rst_in PULLUP;
+#NET usr_rst_in TIG;
 
 #------------------------------------------------------------------------------
 # All pins for ML501
@@ -83,120 +87,120 @@ NET usr_rst_in TIG;
 # OpenCores JTAG Debug signals and User UART on EXP Header pins
 #------------------------------------------------------------------------------
 
-NET uart0_RX_expheader  LOC = F25; # HDR2_2
-NET uart0_RX_expheader TIG;
-NET uart0_RX_expheader PULLUP;
-NET uart0_RX_expheader IOSTANDARD = LVCMOS25;
+NET uart0_srx_expheader_pad_i  LOC = F25; # HDR2_2
+NET uart0_srx_expheader_pad_i TIG;
+NET uart0_srx_expheader_pad_i PULLUP;
+NET uart0_srx_expheader_pad_i IOSTANDARD = LVCMOS25;
 
-NET uart0_TX_expheader  LOC = F24; # HDR2_4
-NET uart0_TX_expheader TIG;
-NET uart0_TX_expheader PULLUP;
-NET uart0_TX_expheader IOSTANDARD = LVCMOS25;
+NET uart0_stx_expheader_pad_o  LOC = F24; # HDR2_4
+NET uart0_stx_expheader_pad_o TIG;
+NET uart0_stx_expheader_pad_o PULLUP;
+NET uart0_stx_expheader_pad_o IOSTANDARD = LVCMOS25;
 
-NET dbg_tdo_pad_o  LOC = E26; # HDR2_6
-NET dbg_tdi_pad_i  LOC = E25; # HDR2_8
-NET dbg_tms_pad_i  LOC = G22; # HDR2_10
-NET dbg_tck_pad_i  LOC = G21; # HDR2_12
+NET tdo_pad_o  LOC = E26; # HDR2_6
+NET tdi_pad_i  LOC = E25; # HDR2_8
+NET tms_pad_i  LOC = G22; # HDR2_10
+NET tck_pad_i  LOC = G21; # HDR2_12
 
-NET dbg_tdo_pad_o  TIG; NET dbg_tdo_pad_o  PULLUP; NET dbg_tdo_pad_o  IOSTANDARD = LVCMOS25;
-NET dbg_tdi_pad_i  TIG; NET dbg_tdi_pad_i  PULLUP; NET dbg_tdi_pad_i  IOSTANDARD = LVCMOS25;
-NET dbg_tms_pad_i  TIG; NET dbg_tms_pad_i  PULLUP; NET dbg_tms_pad_i  IOSTANDARD = LVCMOS25;
-NET dbg_tck_pad_i  TIG; NET dbg_tck_pad_i  PULLUP; NET dbg_tck_pad_i  IOSTANDARD = LVCMOS25;
+NET tdo_pad_o  TIG; NET tdo_pad_o  PULLUP; NET tdo_pad_o  IOSTANDARD = LVCMOS25;
+NET tdi_pad_i  TIG; NET tdi_pad_i  PULLUP; NET tdi_pad_i  IOSTANDARD = LVCMOS25;
+NET tms_pad_i  TIG; NET tms_pad_i  PULLUP; NET tms_pad_i  IOSTANDARD = LVCMOS25;
+NET tck_pad_i  TIG; NET tck_pad_i  PULLUP; NET tck_pad_i  IOSTANDARD = LVCMOS25;
 # Overide the following mapping error: 
 # ERROR:Place:645 - A clock IOB clock component is not placed at an optimal clock
 # IOB site.
-NET "dbg_tck_pad_i" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "tck_pad_i" CLOCK_DEDICATED_ROUTE = FALSE;
 
 #////////////////////////////////////////////////////////////////////////////
 #// Buttons, LEDs, Piezo, and DIP Switches 
 #////////////////////////////////////////////////////////////////////////////
 
 # GPLED
-NET gpio<0>  LOC = E11; #GPLED7 (Rightmost - LSB)
-NET gpio<1>  LOC = E10; #GPLED6
-NET gpio<2>  LOC = E15; #GPLED5
-NET gpio<3>  LOC = D15; #GPLED4
-NET gpio<4> LOC = F12; #GPLED3
-NET gpio<5> LOC = E12; #GPLED2
-NET gpio<6> LOC = D14; #GPLED1
-NET gpio<7> LOC = E13; #GPLED0 (Leftmost - MSB)
+NET gpio0_io<0>  LOC = E11; #GPLED7 (Rightmost - LSB)
+NET gpio0_io<1>  LOC = E10; #GPLED6
+NET gpio0_io<2>  LOC = E15; #GPLED5
+NET gpio0_io<3>  LOC = D15; #GPLED4
+NET gpio0_io<4> LOC = F12; #GPLED3
+NET gpio0_io<5> LOC = E12; #GPLED2
+NET gpio0_io<6> LOC = D14; #GPLED1
+NET gpio0_io<7> LOC = E13; #GPLED0 (Leftmost - MSB)
 
-NET gpio<0>  IOSTANDARD = LVCMOS25;
-NET gpio<1>  IOSTANDARD = LVCMOS25;
-NET gpio<2>  IOSTANDARD = LVCMOS25;
-NET gpio<3>  IOSTANDARD = LVCMOS25;
-NET gpio<4>  IOSTANDARD = LVCMOS25;
-NET gpio<5>  IOSTANDARD = LVCMOS25;
-NET gpio<6>  IOSTANDARD = LVCMOS25;
-NET gpio<7>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<0>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<1>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<2>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<3>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<4>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<5>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<6>  IOSTANDARD = LVCMOS25;
+NET gpio0_io<7>  IOSTANDARD = LVCMOS25;
 
 # North-East-South-West-Center LEDs
-NET gpio<8>  LOC = T22;  # C LED
-NET gpio<9>  LOC = AA18; # W LED
-NET gpio<10>  LOC = AA8;  # S LED
-NET gpio<11>  LOC = Y18;  # E LED
-NET gpio<12>  LOC = Y8;   # N LED
-NET gpio<8> IOSTANDARD = LVCMOS33;
-NET gpio<9> IOSTANDARD = LVCMOS33;
-NET gpio<10> IOSTANDARD = LVCMOS33;
-NET gpio<11> IOSTANDARD = LVCMOS33;
-NET gpio<12> IOSTANDARD = LVCMOS33;
+NET gpio0_io<8>  LOC = T22;  # C LED
+NET gpio0_io<9>  LOC = AA18; # W LED
+NET gpio0_io<10>  LOC = AA8;  # S LED
+NET gpio0_io<11>  LOC = Y18;  # E LED
+NET gpio0_io<12>  LOC = Y8;   # N LED
+NET gpio0_io<8> IOSTANDARD = LVCMOS33;
+NET gpio0_io<9> IOSTANDARD = LVCMOS33;
+NET gpio0_io<10> IOSTANDARD = LVCMOS33;
+NET gpio0_io<11> IOSTANDARD = LVCMOS33;
+NET gpio0_io<12> IOSTANDARD = LVCMOS33;
 
 # North-East-South-West-Center Buttons
-NET gpio<13>  LOC = B21; # C Button
-NET gpio<14> LOC = C21; # W Button
-NET gpio<15> LOC = B22; # S Button
-NET gpio<16> LOC = A23; # E Button
-NET gpio<17> LOC = A22; # N Button
-NET gpio<13>  IOSTANDARD = LVCMOS33;
-NET gpio<14> IOSTANDARD = LVCMOS33;
-NET gpio<15> IOSTANDARD = LVCMOS33;
-NET gpio<16> IOSTANDARD = LVCMOS33;
-NET gpio<17> IOSTANDARD = LVCMOS33;
+NET gpio0_io<13>  LOC = B21; # C Button
+NET gpio0_io<14> LOC = C21; # W Button
+NET gpio0_io<15> LOC = B22; # S Button
+NET gpio0_io<16> LOC = A23; # E Button
+NET gpio0_io<17> LOC = A22; # N Button
+NET gpio0_io<13>  IOSTANDARD = LVCMOS33;
+NET gpio0_io<14> IOSTANDARD = LVCMOS33;
+NET gpio0_io<15> IOSTANDARD = LVCMOS33;
+NET gpio0_io<16> IOSTANDARD = LVCMOS33;
+NET gpio0_io<17> IOSTANDARD = LVCMOS33;
 
 # Dip Switches 1-8
-NET gpio<18> LOC = T7; # DIP SW 8
-NET gpio<19> LOC = U7; # DIP SW 7
-NET gpio<20> LOC = U5; # DIP SW 6
-NET gpio<21> LOC = U6; # DIP SW 5
-NET gpio<22> LOC = T5; # DIP SW 4
-NET gpio<23> LOC = T4; # DIP SW 3
-NET gpio<24> LOC = V3; # DIP SW 2
-NET gpio<25> LOC = U4; # DIP SW 1
-NET gpio<18> IOSTANDARD = LVCMOS18;
-NET gpio<19> IOSTANDARD = LVCMOS18;
-NET gpio<20> IOSTANDARD = LVCMOS18;
-NET gpio<21> IOSTANDARD = LVCMOS18;
-NET gpio<22> IOSTANDARD = LVCMOS18;
-NET gpio<23> IOSTANDARD = LVCMOS18;
-NET gpio<24> IOSTANDARD = LVCMOS18;
-NET gpio<25> IOSTANDARD = LVCMOS18;
+NET gpio0_io<18> LOC = T7; # DIP SW 8
+NET gpio0_io<19> LOC = U7; # DIP SW 7
+NET gpio0_io<20> LOC = U5; # DIP SW 6
+NET gpio0_io<21> LOC = U6; # DIP SW 5
+NET gpio0_io<22> LOC = T5; # DIP SW 4
+NET gpio0_io<23> LOC = T4; # DIP SW 3
+#NET gpio0_io<24> LOC = V3; # DIP SW 2
+#NET gpio0_io<25> LOC = U4; # DIP SW 1
+NET gpio0_io<18> IOSTANDARD = LVCMOS18;
+NET gpio0_io<19> IOSTANDARD = LVCMOS18;
+NET gpio0_io<20> IOSTANDARD = LVCMOS18;
+NET gpio0_io<21> IOSTANDARD = LVCMOS18;
+NET gpio0_io<22> IOSTANDARD = LVCMOS18;
+NET gpio0_io<23> IOSTANDARD = LVCMOS18;
+#NET gpio0_io<24> IOSTANDARD = LVCMOS18;
+#NET gpio0_io<25> IOSTANDARD = LVCMOS18;
 
 #SMA Connectors
-#NET gpio<22> LOC = F10; # SMA_IN_N
-#NET gpio<23> LOC = F9;  # SMA_IN_P
-#NET gpio<24> LOC = F19; # SMA_OUT_N
-#NET gpio<25> LOC = E18; # SMA_OUT_P
-#NET gpio<26> LOC = AD8; # USERCLK
-#NET gpio<22> IOSTANDARD = LVCMOS25;
-#NET gpio<23> IOSTANDARD = LVCMOS25;
-#NET gpio<24> IOSTANDARD = LVCMOS25;
-#NET gpio<25> IOSTANDARD = LVCMOS25;
-#NET gpio<26> IOSTANDARD = LVCMOS33;
+#NET gpio0_io<22> LOC = F10; # SMA_IN_N
+#NET gpio0_io<23> LOC = F9;  # SMA_IN_P
+#NET gpio0_io<24> LOC = F19; # SMA_OUT_N
+#NET gpio0_io<25> LOC = E18; # SMA_OUT_P
+#NET gpio0_io<26> LOC = AD8; # USERCLK
+#NET gpio0_io<22> IOSTANDARD = LVCMOS25;
+#NET gpio0_io<23> IOSTANDARD = LVCMOS25;
+#NET gpio0_io<24> IOSTANDARD = LVCMOS25;
+#NET gpio0_io<25> IOSTANDARD = LVCMOS25;
+#NET gpio0_io<26> IOSTANDARD = LVCMOS33;
 
-NET "gpio<*>" PULLDOWN;
-NET "gpio<*>" TIG;
-NET "gpio<*>" SLEW = SLOW;
-NET "gpio<*>" DRIVE = 2;
+NET "gpio0_io<*>" PULLDOWN;
+NET "gpio0_io<*>" TIG;
+NET "gpio0_io<*>" SLEW = SLOW;
+NET "gpio0_io<*>" DRIVE = 2;
 
-#NET "gpio<22>" SLEW = FAST;
-#NET "gpio<22>" DRIVE = 12;
-#NET "gpio<23>" SLEW = FAST;
-#NET "gpio<23>" DRIVE = 12;
-#NET "gpio<24>" SLEW = FAST;
-#NET "gpio<24>" DRIVE = 12;
-#NET "gpio<25>" SLEW = FAST;
-#NET "gpio<25>" DRIVE = 12;
+#NET "gpio0_io<22>" SLEW = FAST;
+#NET "gpio0_io<22>" DRIVE = 12;
+#NET "gpio0_io<23>" SLEW = FAST;
+#NET "gpio0_io<23>" DRIVE = 12;
+#NET "gpio0_io<24>" SLEW = FAST;
+#NET "gpio0_io<24>" DRIVE = 12;
+#NET "gpio0_io<25>" SLEW = FAST;
+#NET "gpio0_io<25>" DRIVE = 12;
 
 ## #NET  "gpio2_d_out<*>" TIG;
 ## #NET  "gpio2_t_out<*>" TIG;
@@ -238,27 +242,43 @@ NET "gpio<*>" DRIVE = 2;
 ## # IO Pad Location Constraints / Properties for IIC Controller
 ## #------------------------------------------------------------------------------
 
-## NET iic_scl    LOC = R20;
-## NET iic_sda    LOC = T20;
-## NET iic_scl    SLEW = SLOW;
-## NET iic_scl    DRIVE = 6;
-## NET iic_scl    TIG;
-## NET iic_scl    IOSTANDARD = LVCMOS33;
-## NET iic_sda    SLEW = SLOW;
-## NET iic_sda    DRIVE = 6;
-## NET iic_sda    TIG;
-## NET iic_sda    IOSTANDARD = LVCMOS33;
+# General I2C bus
 
-## NET ddr2_iic_scl  LOC = Y7;
-## NET ddr2_iic_sda  LOC = AA7;
-## NET ddr2_iic_scl  SLEW = SLOW;
-## NET ddr2_iic_scl  DRIVE = 6;
-## NET ddr2_iic_scl  TIG;
-## NET ddr2_iic_scl  IOSTANDARD = LVCMOS18;
-## NET ddr2_iic_sda  SLEW = SLOW;
-## NET ddr2_iic_sda  DRIVE = 6;
-## NET ddr2_iic_sda  TIG;
-## NET ddr2_iic_sda  IOSTANDARD = LVCMOS18;
+NET i2c0_scl_io    LOC = R20;
+NET i2c0_sda_io    LOC = T20;
+NET i2c0_scl_io    SLEW = SLOW;
+NET i2c0_scl_io    DRIVE = 6;
+NET i2c0_scl_io    TIG;
+NET i2c0_scl_io    IOSTANDARD = LVCMOS33;
+NET i2c0_sda_io    SLEW = SLOW;
+NET i2c0_sda_io    DRIVE = 6;
+NET i2c0_sda_io    TIG;
+NET i2c0_sda_io    IOSTANDARD = LVCMOS33;
+
+# DDR2 I2C bus
+
+NET i2c1_scl_io  LOC = Y7;
+NET i2c1_sda_io  LOC = AA7;
+NET i2c1_scl_io  SLEW = SLOW;
+NET i2c1_scl_io  DRIVE = 6;
+NET i2c1_scl_io  TIG;
+NET i2c1_scl_io  IOSTANDARD = LVCMOS18;
+NET i2c1_sda_io  SLEW = SLOW;
+NET i2c1_sda_io  DRIVE = 6;
+NET i2c1_sda_io  TIG;
+NET i2c1_sda_io  IOSTANDARD = LVCMOS18;
+
+## #------------------------------------------------------------------------------
+## # IO Pad Locations Constraints for SPI memory
+## #------------------------------------------------------------------------------
+
+NET spi0_mosi_o  LOC = AA9  | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
+NET spi0_ss_o<0>  	 LOC = AC14 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
+# These go through the STARTUP_VIRTEX5 block - don't worry about assigning them
+# here.
+#NET spi0_miso_i  LOC = K11 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
+
+#NET spi0_sck_o   LOC = J10 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
 
 ## #------------------------------------------------------------------------------
 ## # IO Pad Location Constraints / Properties for System ACE MPU / USB
@@ -685,14 +705,14 @@ NET "*/u_phy_io/gen_dqs*.u_iob_dqs/en_dqs_sync" MAXDELAY = 850 ps;
 # time allowed for logic to settle in calibration/initialization FSM
 ###############################################################################
 ## DDR2 clock domain nets
-NET "*/ml501_ddr2_wb_if0/ddr2_read_done" TNM_NET = "DDR2_READ_DONE_GRP";
-NET "*/ml501_ddr2_wb_if0/ddr2_write_done" TNM_NET = "DDR2_WRITE_DONE_GRP";
-NET "*/ml501_ddr2_wb_if0/do_writeback_ddr2_shifter*" TNM_NET = "DDR2_WRITEBACK_SHIFTER";
+NET "*/xilinx_ddr2_if0/ddr2_read_done" TNM_NET = "DDR2_READ_DONE_GRP";
+NET "*/xilinx_ddr2_if0/ddr2_write_done" TNM_NET = "DDR2_WRITE_DONE_GRP";
+NET "*/xilinx_ddr2_if0/do_writeback_ddr2_shifter*" TNM_NET = "DDR2_WRITEBACK_SHIFTER";
 
 TIMEGRP "DDR2_MC_REGS" = "DDR2_READ_DONE_GRP" "DDR2_WRITE_DONE_GRP" "DDR2_WRITEBACK_SHIFTER";
 ## System bus (wishbone) domain nets
-NET "*/ml501_ddr2_wb_if0/do_writeback*" TNM_NET = "WB_DO_WRITEBACK";
-NET "*/ml501_ddr2_wb_if0/do_readfrom*" TNM_NET = "WB_DO_READFROM";
+NET "*/xilinx_ddr2_if0/do_writeback*" TNM_NET = "WB_DO_WRITEBACK";
+NET "*/xilinx_ddr2_if0/do_readfrom*" TNM_NET = "WB_DO_READFROM";
 
 TIMEGRP "WB_MC_REGS" = "WB_DO_WRITEBACK" "WB_DO_READFROM";
 
@@ -727,12 +747,12 @@ TIMESPEC "TS_DQ_CE" = FROM "TNM_DQ_CE_IDDR" TO "TNM_DQS_FLOPS" 2.5 ns;
 #NET uart_TX IOSTANDARD = LVCMOS33;
 #NET uart_TX TIG;
 
-NET uart0_RX LOC = AC7;
-NET uart0_RX IOSTANDARD = LVCMOS33;
-NET uart0_RX TIG;
-NET uart0_TX LOC = AD14;
-NET uart0_TX IOSTANDARD = LVCMOS33;
-NET uart0_TX TIG;
+NET uart0_srx_pad_i LOC = AC7;
+NET uart0_srx_pad_i IOSTANDARD = LVCMOS33;
+NET uart0_srx_pad_i TIG;
+NET uart0_stx_pad_o LOC = AD14;
+NET uart0_stx_pad_o IOSTANDARD = LVCMOS33;
+NET uart0_stx_pad_o TIG;
 
 ## #------------------------------------------------------------------------------
 ## # IO Pad Location Constraints / Properties for SRAM
@@ -873,55 +893,55 @@ NET uart0_TX TIG;
 ## # IO Pad Location Constraints / Properties for Ethernet
 ## #------------------------------------------------------------------------------
 
-NET phy_col        LOC = G20 | IOSTANDARD = LVCMOS25;
-NET phy_crs        LOC = H22 | IOSTANDARD = LVCMOS25;
-NET phy_dv         LOC = J19 | IOSTANDARD = LVCMOS25;
-NET phy_rx_clk     LOC = F14 | IOSTANDARD = LVCMOS25;
-NET phy_rx_data<3> LOC = E22 | IOSTANDARD = LVCMOS25;
-NET phy_rx_data<2> LOC = E20 | IOSTANDARD = LVCMOS25;
-NET phy_rx_data<1> LOC = E21 | IOSTANDARD = LVCMOS25;
-NET phy_rx_data<0> LOC = F20 | IOSTANDARD = LVCMOS25;
+NET eth0_col        LOC = G20 | IOSTANDARD = LVCMOS25;
+NET eth0_crs        LOC = H22 | IOSTANDARD = LVCMOS25;
+NET eth0_dv         LOC = J19 | IOSTANDARD = LVCMOS25;
+NET eth0_rx_clk     LOC = F14 | IOSTANDARD = LVCMOS25;
+NET eth0_rx_data<3> LOC = E22 | IOSTANDARD = LVCMOS25;
+NET eth0_rx_data<2> LOC = E20 | IOSTANDARD = LVCMOS25;
+NET eth0_rx_data<1> LOC = E21 | IOSTANDARD = LVCMOS25;
+NET eth0_rx_data<0> LOC = F20 | IOSTANDARD = LVCMOS25;
 
-NET phy_rx_er      LOC = H19 | IOSTANDARD = LVCMOS25;
-NET phy_tx_clk     LOC = D13 | IOSTANDARD = LVCMOS25;
-#NET phy_mii_int_n  LOC = F17 | IOSTANDARD = LVCMOS25;
-NET phy_rst_n      LOC = F8  | IOSTANDARD = LVCMOS25; # PHY_RESET pin on phy
-NET phy_tx_data<3> LOC = B25 | IOSTANDARD = LVDCI_33;
-NET phy_tx_data<2> LOC = C24 | IOSTANDARD = LVDCI_33;
-NET phy_tx_data<1> LOC = D24 | IOSTANDARD = LVDCI_33;
-NET phy_tx_data<0> LOC = C23 | IOSTANDARD = LVDCI_33;
-NET phy_tx_en      LOC = B24 | IOSTANDARD = LVDCI_33;
-NET phy_tx_er      LOC = A24 | IOSTANDARD = LVDCI_33;
+NET eth0_rx_er      LOC = H19 | IOSTANDARD = LVCMOS25;
+NET eth0_tx_clk     LOC = D13 | IOSTANDARD = LVCMOS25;
+#NET eth0_mii_int_n  LOC = F17 | IOSTANDARD = LVCMOS25;
+NET eth0_rst_n_o      LOC = F8  | IOSTANDARD = LVCMOS25 | PULLUP; # PHY_RESET pin on phy
+NET eth0_tx_data<3> LOC = B25 | IOSTANDARD = LVDCI_33;
+NET eth0_tx_data<2> LOC = C24 | IOSTANDARD = LVDCI_33;
+NET eth0_tx_data<1> LOC = D24 | IOSTANDARD = LVDCI_33;
+NET eth0_tx_data<0> LOC = C23 | IOSTANDARD = LVDCI_33;
+NET eth0_tx_en      LOC = B24 | IOSTANDARD = LVDCI_33;
+NET eth0_tx_er      LOC = A24 | IOSTANDARD = LVDCI_33;
 
 ## PHY Serial Management Interface pins
-NET phy_smi_clk    LOC = F18 | IOSTANDARD = LVCMOS25;
-NET phy_smi_data   LOC = E8  | IOSTANDARD = LVCMOS25;
+NET eth0_mdc_pad_o    LOC = F18 | IOSTANDARD = LVCMOS25;
+NET eth0_md_pad_io   LOC = E8  | IOSTANDARD = LVCMOS25;
 
 ## NET phy_mii_int_n  PULLUP;
 
 ## NET phy_mii_int_n  TIG;
-NET phy_rst_n      TIG;
+NET eth0_rst_n_o      TIG;
 
 ## # Timing Constraints (these are recommended in documentation and
 ## # are unaltered except for the TIG)
-#NET "phy_rx_clk" TNM_NET = "RXCLK_GRP";
-NET "phy_rx_clk_BUFGP" TNM_NET = "RXCLK_GRP";
-#NET "phy_tx_clk" TNM_NET = "TXCLK_GRP";
-NET "phy_tx_clk_BUFGP" TNM_NET = "TXCLK_GRP";
+#NET "eth0_rx_clk" TNM_NET = "RXCLK_GRP";
+NET "eth0_rx_clk_BUFGP" TNM_NET = "RXCLK_GRP";
+#NET "eth0_tx_clk" TNM_NET = "TXCLK_GRP";
+NET "eth0_tx_clk_BUFGP" TNM_NET = "TXCLK_GRP";
 TIMESPEC "TSTXOUT" = FROM "TXCLK_GRP" TO "PADS" 10 ns;
 TIMESPEC "TSRXIN" = FROM "PADS" TO "RXCLK_GRP" 6 ns;
 
-NET "phy_rx_data<3>" IOBDELAY=NONE;
-NET "phy_rx_data<2>" IOBDELAY=NONE;
-NET "phy_rx_data<1>" IOBDELAY=NONE;
-NET "phy_rx_data<0>" IOBDELAY=NONE;
-NET "phy_dv" IOBDELAY=NONE;
-NET "phy_rx_er" IOBDELAY=NONE;
-NET "phy_crs" IOBDELAY=NONE;
-NET "phy_col" IOBDELAY=NONE;
+NET "eth0_rx_data<3>" IOBDELAY=NONE;
+NET "eth0_rx_data<2>" IOBDELAY=NONE;
+NET "eth0_rx_data<1>" IOBDELAY=NONE;
+NET "eth0_rx_data<0>" IOBDELAY=NONE;
+NET "eth0_dv" IOBDELAY=NONE;
+NET "eth0_rx_er" IOBDELAY=NONE;
+NET "eth0_crs" IOBDELAY=NONE;
+NET "eth0_col" IOBDELAY=NONE;
 
 ## # Timing ignores (to specify unconstrained paths)
-NET "dcm0_clkdv" TNM_NET = "sys_clk"; # Wishbone clock
+#FIXME? NET "*clkgen0/wb_clk_o" TNM_NET = "sys_clk"; # Wishbone clock
 TIMESPEC "TS_PHYTX_OPB" = FROM "TXCLK_GRP" TO "sys_clk" TIG;
 TIMESPEC "TS_OPB_PHYTX" = FROM "sys_clk" TO "TXCLK_GRP" TIG;
 TIMESPEC "TS_PHYRX_OPB" = FROM "RXCLK_GRP" TO "sys_clk" TIG;

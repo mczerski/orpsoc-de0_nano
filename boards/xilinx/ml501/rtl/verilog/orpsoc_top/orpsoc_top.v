@@ -55,7 +55,7 @@ module orpsoc_top
     uart0_srx_expheader_pad_i, uart0_stx_expheader_pad_o,
 `endif
 `ifdef SPI0
-    spi0_sck_o, spi0_mosi_o, spi0_miso_i, spi0_ss_o,
+    spi0_mosi_o, spi0_ss_o,/* spi0_sck_o, spi0_miso_i,via STARTUP_VIRTEX5*/
 `endif    
 `ifdef I2C0
     i2c0_sda_io, i2c0_scl_io,
@@ -133,10 +133,12 @@ module orpsoc_top
    output 	 uart0_stx_expheader_pad_o;
 `endif
 `ifdef SPI0
-   output 	 spi0_sck_o;
    output 	 spi0_mosi_o;
-   output [spi0_ss_width-1:0] spi0_ss_o;
+  output [spi0_ss_width-1:0] spi0_ss_o;
+   /* via STARTUP_VIRTEX5
+   output 		     spi0_sck_o;
    input 		      spi0_miso_i;
+    */
 `endif
 `ifdef I2C0
    inout 		      i2c0_sda_io, i2c0_scl_io;
@@ -1227,7 +1229,7 @@ module orpsoc_top
    assign wbs_d_uart0_rty_o = 0;
 
    // Two UART lines coming to single one (ensure they go high when unconnected)
-   assign uart_srx = uart0_srx_pad_i & uart0_srx_expheader_pad_i;
+   assign uart0_srx = uart0_srx_pad_i & uart0_srx_expheader_pad_i;
    assign uart0_stx_pad_o = uart0_stx;
    assign uart0_stx_expheader_pad_o = uart0_stx;
    
@@ -1315,6 +1317,23 @@ module orpsoc_top
       );
 
    defparam spi0.slave_select_width = spi0_ss_width;
+
+   // SPI clock and MISO lines must go through STARTUP_VIRTEX5 block.
+   STARTUP_VIRTEX5 startup_virtex5
+     (
+      .CFGCLK(),
+      .CFGMCLK(),
+      .DINSPI(spi0_miso_i),
+      .EOS(),
+      .TCKSPI(),
+      .CLK(),
+      .GSR(1'b0),
+      .GTS(1'b0),
+      .USRCCLKO(spi0_sck_o),
+      .USRCCLKTS(1'b0),
+      .USRDONEO(),
+      .USRDONETS()
+      );
    
    ////////////////////////////////////////////////////////////////////////   
 `else // !`ifdef SPI0

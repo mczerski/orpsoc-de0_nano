@@ -79,7 +79,7 @@ spi_core_set_int_count(int core, char cnt)
   REG8((spi_base_adr[core] + SIMPLESPI_SPER)) = sper;
   
 }
-// slave_sel_dec is decoded (so asserted bit in right place)
+// No decode on slave select lines, so assert correct bit to select slave
 void 
 spi_core_slave_select(int core, char slave_sel_dec)
 {  

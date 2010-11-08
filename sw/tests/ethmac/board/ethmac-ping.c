@@ -61,10 +61,14 @@ static int next_tx_buf_num;
 #define OUR_IP_BYTES 0xc0,0xa8,0x1,0x2 // 192.168.1.2
 #define OUR_IP_LONG 0xc0a80102
 
+//#define OUR_IP_BYTES 0xac,0x1e,0x0,0x2 // 172.30.0.2
+//#define OUR_IP_LONG 0xac1e0002
+
 static char our_ip[4] = {OUR_IP_BYTES};
 
 //#define DEST_IP_BYTES 0xc0,0xa8,0x64,0x69 // 192 .168.100.105
 #define DEST_IP_BYTES 0xc0,0xa8,0x01,0x08 // 192 .168.1.8
+//#define DEST_IP_BYTES 0xac,0x1e,0x0,0x01 // 172.30.0.1
 
 /* Functions in this file */
 void ethmac_setup(void);
@@ -128,7 +132,6 @@ struct oeth_private {
   
   //	struct net_device_stats stats;
 };
-
 
 void oeth_printregs(void)
 {
@@ -257,7 +260,7 @@ void scan_ethphy(unsigned int phynum)
   
   regs->miitx_data = 0;
  
-  for (regnum=0;regnum<29;regnum++)
+  for (regnum=0;regnum<32;regnum++)
     {
       printf("scan_ethphy%d: r%x ",phynum, regnum);
 	  
@@ -1895,12 +1898,18 @@ int main ()
 	tx_packet((void*) ping_packet, 98);
       if (c == 'S')
 	tx_packet((void*)big_ping_packet, 1514);
-      if (c == 'h')
+if (c == 'h')
 	scan_ethphys();
       if (c == 'i')
 	ethphy_init();
       if (c == 'P')
-	print_packet_contents = print_packet_contents ? 0 : 1;
+	{
+	  print_packet_contents = print_packet_contents ? 0 : 1;
+	  if (print_packet_contents)
+	    printf("Enabling packet dumping\n");
+	  else
+	    printf("Packet dumping disabled\n");
+	}
       if (c == 'p')
 	oeth_printregs();
       if (c == '0')
@@ -1909,21 +1918,52 @@ int main ()
 	scan_ethphy(1);
       if (c == '7')
 	{
-	  scan_ethphy(7);
-	  ethphy_print_status(7);
+	  //scan_ethphy(7);
+	  //ethphy_print_status(7);
+	  printf("ext_sr 0x%x\n",eth_mii_read(0x7, 0x1b));
 	}
       if (c == 'r')
-	ethphy_reset(0);
+	{
+	  ethphy_reset(7);
+	  printf("PHY reset\n");
+	}
       if (c == 'R')
-	oeth_reset_tx_bd_pointer();
+	{
+	  //oeth_reset_tx_bd_pointer();
+	  ethmac_setup();
+	  printf("MAC reset\n");
+	}
       if (c == 'n')
-	ethphy_reneg(0);
+	ethphy_reneg(7);
       if (c == 'N')
-	ethphy_set_autoneg(0);
+	ethphy_set_autoneg(7);
       if (c == 'm')
 	ethmac_togglehugen();
       if (c == 't')
 	ethphy_set_10mbit(0);
+      if (c == 'w')
+	{
+	  // Play with HWCFG mode of Alaska 88e1111 Phy
+	  c = uart_getc(DEFAULT_UART);
+	  short newvalue;
+	  // c is an ascii char, let's convert it to actual hex value
+	  if (c >= 'A' && c <= 'F')
+	    newvalue = c - (65 - 10);
+	  else if (c >= 'a' && c <= 'f')
+	    newvalue  = c - (99 - 10);
+	  else if (c >= '0' && c <= '9')
+	    newvalue  = c - 48;
+
+	  // Take this value and or it into the bottom bit (supposedly ext_sr)
+#define MII_M1111_PHY_EXT_SR		0x1b
+	  short ext_sr;
+	  ext_sr = eth_mii_read(0x7, MII_M1111_PHY_EXT_SR);
+#define MII_M1111_HWCFG_MODE_MASK		0xf	  
+	  ext_sr &= ~MII_M1111_HWCFG_MODE_MASK;
+	  ext_sr |= (short) newvalue;
+	  eth_mii_write(0x7, MII_M1111_PHY_EXT_SR, ext_sr);
+	  printf("ext_sr updated to - 0x%x\n",eth_mii_read(0x7, MII_M1111_PHY_EXT_SR));
+	}
       if ( c == 'b' )
 	{
 	  printf("\n\t---\n");

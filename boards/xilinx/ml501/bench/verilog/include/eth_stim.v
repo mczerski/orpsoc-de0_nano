@@ -451,6 +451,137 @@ initial
    
 
 
+   
+`ifdef XILINX_DDR2
+   // Gets word from correct bank
+   task get_32bitword_from_xilinx_ddr2;
+      input [31:0] addr;
+      output [31:0] insn;
+      reg [16*8-1:0] ddr2_array_line0,ddr2_array_line1,ddr2_array_line2,
+		     ddr2_array_line3;
+      integer 	     word_in_line_num;      
+      begin
+	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 
+	// 16 words total
+	 gen_cs[0].gen[0].u_mem0.memory_read(addr[28:27],addr[26:13],
+					     {addr[12:6],3'd0},
+					     ddr2_array_line0);
+	 gen_cs[0].gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],
+					     {addr[12:6],3'd0},
+					     ddr2_array_line1);
+	 gen_cs[0].gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],
+					     {addr[12:6],3'd0},
+					     ddr2_array_line2);
+	 gen_cs[0].gen[3].u_mem0.memory_read(addr[28:27],addr[26:13],
+					     {addr[12:6],3'd0},
+					     ddr2_array_line3);
+	 case (addr[5:2])
+	   4'h0:
+	     begin
+		insn[15:0] = ddr2_array_line0[15:0];
+		insn[31:16] = ddr2_array_line1[15:0];
+	     end
+	   4'h1:
+	     begin
+		insn[15:0] = ddr2_array_line2[15:0];
+		insn[31:16] = ddr2_array_line3[15:0];
+	     end
+	   4'h2:
+	     begin
+		insn[15:0] = ddr2_array_line0[31:16];
+		insn[31:16] = ddr2_array_line1[31:16];
+	     end
+	   4'h3:
+	     begin
+		insn[15:0] = ddr2_array_line2[31:16];
+		insn[31:16] = ddr2_array_line3[31:16];
+	     end
+	   4'h4:
+	     begin
+		insn[15:0] = ddr2_array_line0[47:32];
+		insn[31:16] = ddr2_array_line1[47:32];
+	     end
+	   4'h5:
+	     begin
+		insn[15:0] = ddr2_array_line2[47:32];
+		insn[31:16] = ddr2_array_line3[47:32];
+	     end
+	   4'h6:
+	     begin
+		insn[15:0] = ddr2_array_line0[63:48];
+		insn[31:16] = ddr2_array_line1[63:48];
+	     end
+	   4'h7:
+	     begin
+		insn[15:0] = ddr2_array_line2[63:48];
+		insn[31:16] = ddr2_array_line3[63:48];
+	     end
+	   4'h8:
+	     begin
+		insn[15:0] = ddr2_array_line0[79:64];
+		insn[31:16] = ddr2_array_line1[79:64];
+	     end
+	   4'h9:
+	     begin
+		insn[15:0] = ddr2_array_line2[79:64];
+		insn[31:16] = ddr2_array_line3[79:64];
+	     end
+	   4'ha:
+	     begin
+		insn[15:0] = ddr2_array_line0[95:80];
+		insn[31:16] = ddr2_array_line1[95:80];
+	     end
+	   4'hb:
+	     begin
+		insn[15:0] = ddr2_array_line2[95:80];
+		insn[31:16] = ddr2_array_line3[95:80];
+	     end
+	   4'hc:
+	     begin
+		insn[15:0] = ddr2_array_line0[111:96];
+		insn[31:16] = ddr2_array_line1[111:96];
+	     end
+	   4'hd:
+	     begin
+		insn[15:0] = ddr2_array_line2[111:96];
+		insn[31:16] = ddr2_array_line3[111:96];
+	     end
+	   4'he:
+	     begin
+		insn[15:0] = ddr2_array_line0[127:112];
+		insn[31:16] = ddr2_array_line1[127:112];
+	     end
+	   4'hf:
+	     begin
+		insn[15:0] = ddr2_array_line2[127:112];
+		insn[31:16] = ddr2_array_line3[127:112];
+	     end	   
+	 endcase // case (addr[5:2])
+      end
+   endtask
+   
+   task get_byte_from_xilinx_ddr2;
+      input [31:0] addr;
+      output [7:0] data_byte;
+      reg [31:0]   word;
+      begin
+	 get_32bitword_from_xilinx_ddr2(addr, word);
+	 case (addr[1:0])
+	   2'b00:
+	     data_byte = word[31:24];
+	   2'b01:
+	     data_byte = word[23:16];
+	   2'b10:
+	     data_byte = word[15:8];
+	   2'b11:
+	     data_byte = word[7:0];
+	 endcase // case (addr[1:0])
+      end
+   endtask // get_byte_from_xilinx_ddr2
+
+`endif   
+
+
    //
    // Check packet TX'd by MAC was good
    // 
@@ -496,12 +627,28 @@ initial
 	 
 	 // Variable we'll use for index in the PHY's TX buffer
 	 buffer = 0; // Start of TX data
-`ifdef VERSATILE_SDRAM
+
 	 for (i=0;i<tx_len_bd;i=i+1)
 	   begin
 	      //$display("Checking address in tx bd 0x%0h",txpnt_sdram);
+	      sdram_byte = 8'hx;
 	      
-	      sdram0.get_byte(txpnt_sdram,sdram_byte);
+`ifdef VERSATILE_SDRAM	      
+	      sdram0.get_byte(txpnt_sdram,sdram_byte);      
+`endif
+`ifdef XILINX_DDR2
+	      get_byte_from_xilinx_ddr2(txpnt_sdram, sdram_byte);
+`endif	      
+	      if (sdram_byte === 8'hx)
+		begin
+		   $display(" * Error: sdram_byte was %x", sdram_byte);
+		   
+		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+		   $display(" * RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
+			    tx_bd_addr, txpnt_wb);
+		   $finish;
+		end
+
 
 	      phy_byte = eth_phy0.tx_mem[buffer];
 	      // Debugging output
@@ -519,12 +666,6 @@ initial
 	      
 	   end // for (i=0;i<tx_len_bd;i=i+1)
 	 
-`else
-	 $display("SET ME UP TO LOOK IN ANOTHER MEMORY!");
-	 $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-		  tx_bd_addr, txpnt_wb);
-	 $finish;
-`endif // !`ifdef VERSATILE_SDRAM
 	 if (failure)
 	   begin
 	      #100
@@ -1002,21 +1143,30 @@ initial
 	 
 	 rxpnt_wb = {14'd0,rx_bd_addr[17:0]};
 	 rxpnt_sdram = rx_bd_addr[24:0];
-	 	 	 
-`ifdef VERSATILE_SDRAM
-	 // We'll look inside the SDRAM array
-	 // Hard coded for the SDRAM buffer area to be from the halfway mark in
-	 // memory (so starting in Bank2)
-	 // We'll be passed the offset from the beginning of the buffer area
-	 // in rxpnt_wb. This value will be in bytes.
-	 
+	 	 	
+ 
 	 //$display("RAM pointer for BD is 0x%h, SDRAM addr is 0x%h", rx_bd_addr, rxpnt_sdram);
 
 
 	 for (i=0;i<len;i=i+1)
 	   begin
 
-	      sdram0.get_byte(rxpnt_sdram,sdram_byte);	      
+	      sdram_byte = 8'hx;
+`ifdef VERSATILE_SDRAM	      
+	      sdram0.get_byte(rxpnt_sdram,sdram_byte);      
+`endif
+`ifdef XILINX_DDR2
+	      get_byte_from_xilinx_ddr2(rxpnt_sdram, sdram_byte);
+`endif	      
+	      if (sdram_byte === 8'hx)
+		begin
+		   $display(" * Error:");
+		   
+		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+		   $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
+			    rx_bd_addr, rxpnt_wb);
+		   $finish;
+		end
 
 	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];//phy_rx_mem[buffer]; //eth_phy0.rx_mem[buffer];
 
@@ -1034,15 +1184,6 @@ initial
 	      rxpnt_sdram = rxpnt_sdram+1;
 	      
 	   end // for (i=0;i<len;i=i+2)
-`else
-
-	 $display("SET ME UP TO LOOK IN ANOTHER MEMORY!");
-	 $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-		  rx_bd_addr, rxpnt_wb);
-	 $finish;
-	 
-	 
-`endif // !`ifdef VERSATILE_SDRAM
 
 	 if (failure)
 	   begin

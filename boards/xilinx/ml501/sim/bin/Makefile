@@ -144,15 +144,15 @@ BOARD_SW_DIR=$(BOARD_DIR)/sw
 
 # BootROM code, which generates a verilog array select values
 BOOTROM_FILE=bootrom.v
-BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
-BOOTROM_SRC=$(shell ls $(BOOTROM_SW_DIR)/* | grep -v $(BOOTROM_FILE))
-BOOTROM_VERILOG=$(BOOTROM_SW_DIR)/$(BOOTROM_FILE)
+BOARD_BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
+BOOTROM_SRC=$(shell ls $(BOARD_BOOTROM_SW_DIR)/* | grep -v $(BOOTROM_FILE))
+BOOTROM_VERILOG=$(BOARD_BOOTROM_SW_DIR)/$(BOOTROM_FILE)
 
 bootrom: $(BOOTROM_VERILOG)
 
 $(BOOTROM_VERILOG): $(BOOTROM_SRC)
 	$(Q)echo; echo "\t### Generating bootup ROM ###"; echo
-	$(Q)$(MAKE) -C $(BOOTROM_SW_DIR) $(BOOTROM_FILE)
+	$(Q)$(MAKE) -C $(BOARD_BOOTROM_SW_DIR) $(BOOTROM_FILE)
 
 # Suffix of file to check after each test for the string
 TEST_OUT_FILE_SUFFIX=-general.log
@@ -161,6 +161,7 @@ TEST_OK_STRING=8000000d
 # Dynamically generated verilog file defining configuration for various things
 # Rule actually generating this is found in definesgen.inc file.
 TEST_DEFINES_VLG=test-defines.v
+.PHONY: $(TEST_DEFINES_VLG)
 # Set V=1 when calling make to enable verbose output
 # mainly for debugging purposes.
 ifeq ($(V), 1)
@@ -355,7 +356,7 @@ BOARD_BACKEND_VERILOG_SRC=$(shell ls $(BOARD_BACKEND_VERILOG_DIR)/*.v )
 # DUT compile script
 modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
 	$(Q)echo "+incdir+"$(BOARD_RTL_VERILOG_INCLUDE_DIR) > $@;
-	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
+	$(Q)echo "+incdir+"$(BOARD_BOOTROM_SW_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOARD_BENCH_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
 	$(Q)for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(BOARD_RTL_VERILOG_DIR)/$$module >> $@; fi; done
@@ -473,6 +474,9 @@ else
 SIM_SW_IMAGE ?=flash.in
 endif
 
+# Amount to pad the image we'll load into the SPI flash
+HEX_IMAGE_PADDING ?=0x1c0000
+
 .PHONY : sw
 sw: $(SIM_SW_IMAGE)
 
@@ -488,7 +492,8 @@ sram.vmem: $(SW_TEST_DIR)/$(TEST).vmem
 .PHONY: $(SW_TEST_DIR)/$(TEST).flashin
 $(SW_TEST_DIR)/$(TEST).flashin:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
-	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).flashin
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).flashin \
+		HEX_IMAGE_PADDING=$(HEX_IMAGE_PADDING)
 
 .PHONY: $(SW_TEST_DIR)/$(TEST).vmem
 $(SW_TEST_DIR)/$(TEST).vmem:
@@ -514,7 +519,7 @@ clean-sim:
 # No VPI support for now.	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
 
 clean-bootrom:
-	$(MAKE) -C $(BOOTROM_SW_DIR) clean
+	$(MAKE) -C $(BOARD_BOOTROM_SW_DIR) clean
 
 clean-out:
 	$(Q)rm -rf $(RTL_SIM_RESULTS_DIR)/*.*

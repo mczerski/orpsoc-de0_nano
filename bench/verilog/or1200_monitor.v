@@ -35,11 +35,21 @@
 `include "or1200_defines.v"
 `include "orpsoc-testbench-defines.v"
 `include "test-defines.v"
-				 
+
+//
+// Top of TB
+//
+`define TB_TOP orpsoc_testbench
+			 
+//
+// Top of DUT
+//
+`define DUT_TOP `TB_TOP.dut
+			 
 //
 // Top of OR1200 inside test bench
 //
-`define OR1200_TOP orpsoc_testbench.dut.or1200_top0
+`define OR1200_TOP `DUT_TOP.or1200_top0
 
 //
 // Define to enable lookup file generation
@@ -70,6 +80,12 @@
  `define OR1200_MONITOR_SPRS
  `define OR1200_MONITOR_LOOKUP
 `endif
+
+//
+// Memory coherence checking (double check instruction in fetch stage against
+// what is in memory.)
+//
+//`define MEM_COHERENCE_CHECK
 
 //
 // Top of OR1200 inside test bench
@@ -438,8 +454,19 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
      end
 
 
+`ifdef RAM_WB
+ `define RAM_WB_TOP `DUT_TOP.wb_ram_b3_0
+   task get_insn_from_wb_ram;
+      input [31:0] addr;
+      output [31:0] insn;
+      begin
+	 insn = `RAM_WB_TOP.mem[addr[31:2]];
+      end
+   endtask // get_insn_from_wb_ram
+`endif
+   
 `ifdef VERSATILE_SDRAM
- `define SDRAM_TOP orpsoc_testbench.sdram0
+ `define SDRAM_TOP `TB_TOP.sdram0
    // Bit selects to define the bank
    // 32 MB part with 4 banks
  `define SDRAM_BANK_SEL_BITS 24:23
@@ -465,15 +492,17 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 `endif //  `ifdef VERSATILE_SDRAM
 
 `ifdef XILINX_DDR2
- `define DDR2_TOP orpsoc_testbench.gen_cs[0]
+ `define DDR2_TOP `TB_TOP.gen_cs[0]
    // Gets instruction word from correct bank
    task get_insn_from_xilinx_ddr2;
       input [31:0] addr;
       output [31:0] insn;
-      reg [16*8-1:0] ddr2_array_line0,ddr2_array_line1,ddr2_array_line2,ddr2_array_line3;
+      reg [16*8-1:0] ddr2_array_line0,ddr2_array_line1,ddr2_array_line2,
+		     ddr2_array_line3;
       integer 	     word_in_line_num;      
       begin
-	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 16 words total
+	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 
+	// 16 words total
 	 `DDR2_TOP.gen[0].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line0);
 	 `DDR2_TOP.gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line1);
 	 `DDR2_TOP.gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line2);
@@ -578,7 +607,11 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 `ifdef XILINX_DDR2
 	   4'h0:
 	     get_insn_from_xilinx_ddr2(id_pc, insn);
-`endif	   
+`endif
+`ifdef RAM_WB
+	   4'h0:
+	     get_insn_from_wb_ram(id_pc, insn);
+`endif	   	   
 	   4'hf:
 	     // Flash isn't stored in a memory, it's an FSM so just skip/ignore
 	     insn = `OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_insn;
@@ -596,16 +629,16 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
    reg [31:0] last_addr = 0;
    reg [31:0] last_mem_word;
 
-//`define TRIGGER_FOR_CHECK (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_void === 1'b0)
-   // Disabled:
-`define TRIGGER_FOR_CHECK 0
+`ifdef MEM_COHERENCE_CHECK
+ `define MEM_COHERENCE_TRIGGER (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_void === 1'b0)
+
 `define INSN_TO_CHECK `OR1200_TOP.`CPU_cpu.`CPU_ctrl.id_insn
 `define PC_TO_CHECK `OR1200_TOP.`CPU_cpu.`CPU_except.id_pc
    
    // Check instruction in decode stage is what is in the RAM
    always @(posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
      begin
-	if (`TRIGGER_FOR_CHECK)
+	if (`MEM_COHERENCE_TRIGGER)
 	  begin
 	     // Check if it's a new PC - will also get triggered if the
 	     // instruction has changed since we last checked it
@@ -631,7 +664,8 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 	  end
      end // always @ (posedge `OR1200_TOP.`CPU_cpu.`CPU_ctrl.clk)
       
-
+`endif //  `ifdef MEM_COHERENCE_CHECK
+  
 
    /////////////////////////////////////////////////////////////////////////
    // Instruction decode task
