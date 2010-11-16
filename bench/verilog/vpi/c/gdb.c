@@ -2804,7 +2804,13 @@ rsp_write_reg (struct rsp_buf *p_buf)
 static void
 rsp_query (struct rsp_buf *p_buf)
 {
-  if (0 == strcmp ("qC", p_buf->data))
+  if (0 == strcmp ("qAttached", p_buf->data))
+    {
+      /* We are always attaching to an existing process with the bare metal
+	 embedded system. */
+      put_str_packet ("1");
+    }
+  else if (0 == strcmp ("qC", p_buf->data))
     {
       /* Return the current thread ID (unsigned hex). A null response
 	 indicates to use the previously selected thread. Since we do not
@@ -2883,6 +2889,11 @@ rsp_query (struct rsp_buf *p_buf)
 	       'R', 'u', 'n', 'n', 'a', 'b', 'l', 'e', 0);
       p_buf->len = strlen (p_buf->data);
       put_packet (p_buf);
+    }
+  else if (0 == strncmp ("qTStatus", p_buf->data, strlen ("qTStatus")))  
+    {
+      /* We don't support tracing, so return empty packet. */
+      put_str_packet ("");
     }
   else if (0 == strncmp ("qXfer:", p_buf->data, strlen ("qXfer:")))
     {

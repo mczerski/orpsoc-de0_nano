@@ -240,6 +240,8 @@ macloop:
 
 	l.movhi	r3, 0x8000
 	l.ori 	r3, r3, 0x000d
+	l.nop 	0x2
+	l.ori 	r3, r0, 0
 	l.nop 	0x1
 
 fail:

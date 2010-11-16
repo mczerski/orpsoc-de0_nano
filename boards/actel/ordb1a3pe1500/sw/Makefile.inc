@@ -18,8 +18,8 @@ RTL_VERILOG_INCLUDE_DIR=$(BOARD_PATH)/rtl/verilog/include
 # This doesn't work! :-( Need to figure out way to set these and have them
 # carry through to things like the liborpsoc driver modules etc.
 #MARCH_FLAGS =-mhard-mul -mhard-div -msoft-float
-#MARCH_FLAGS =-mhard-mul -msoft-div -msoft-float
-#export MARCH_FLAGS
+MARCH_FLAGS =-mhard-mul -msoft-div -msoft-float
+export MARCH_FLAGS
 
 # Finally include the main software include file
 

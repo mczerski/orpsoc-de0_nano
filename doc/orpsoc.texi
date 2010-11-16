@@ -71,11 +71,11 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 
 @cindex introduction to this @value{ORPSOC}
 
-@value{ORPSOC} is intended to be a reference implementation of processors in the OpenRISC family. It provides a smallest-possible reference system, primarily for testing of the processors, and systems intended to be synthesized and run on physical hardware (boards.) The simple reference system contains just enough to test the processor's functionality, whereas the board targeted builds will include many additional peripherals.
+@value{ORPSOC} is intended to be a reference implementation of processors in the OpenRISC family. It provides a smallest-possible reference system, primarily for testing of the processors. It also provides systems intended to be synthesized and run on physical hardware.
 
-The reference design will contain a minimal set of resources to create an OpenRISC-based SoC. It is expected the board builds will contain their own set of peripheral modules and software, and still draw upon the resources available in the reference implementation. It is hoped that, with this structure, the project can serve dual roles; to be a development platform for OpenRISC family processors, and to provide a platform for development of complex OpenRISC-based systems on chip.
+The reference system is the least complex implementation and consists of just enough to test the processor's functionality. The board-targeted builds include many additional peripherals.
 
-This document, the user guide, focuses on getting the various designs in @value{ORPSOC} up and running. For matters relating to development of a board port, see the development guide included with this documentation.
+The next section in this document outlines the organisation and structure of the project. The section ``@emph{Getting Started}'' goes through getting the project source and setting up any necessary tools. Each following section outlines a particular implementation of an OpenRISC-based system, beginning with the reference system. Each implementation section has an overview of the structure of the project (which probably won't vary much between the implementations), a section on setting up the required tools, running simulation, and if applicable, backend and debugging steps. There may be additional sections on modifying or customising each implementation system.
 
 @c ****************************************************************************
 @c Project Organisation
@@ -96,45 +96,69 @@ This document, the user guide, focuses on getting the various designs in @value{
 @node Organisation Overview
 @section Organisation Overview
 
-The @value{ORPSOC} project is intended for dual uses. One is to act as a development platform for OpenRISC processors, as well as development of complex OpenRISC-based SoCs. Organising a single project to satisfy these requirements can lead to some confusion. This section is intended to make the organisation of the project clear.
+The @value{ORPSOC} project is intended to serve dual purposes. One is to act as a development platform for OpenRISC processors, and as a development platform of OpenRISC-based SoCs targeted at specific hardware. 
 
-In essence, the reference implementation based in the root of the project contains enough to get a simple OpenRISC-based SoC together, the board builds are intended to implement fully-featured systems. The project is organised in such a way that the board builds can use both the reference implementation's RTL and software, as well as its own set of RTL and software. The reference implementation, however, cannot use any board's modules, software or scripts.
+Organising a single project to satisfy these requirements can lead to some confusion. This section is intended to make the organisation of the project clear.
+
+The reference implementation based in the root (base directory) of the project contains enough componenets to create a simple OpenRISC-based SoC. Each board build is intended to implement as fully-featured a system as possible, depending on the targeted hardware. 
+
+The project is organised in such a way that each board build can use both the reference implementation's RTL modules and software, as well as its own set of RTL and software. The reference implementation is limited to what is available in the RTL and software directories in the root of the project, and is not technology dependent.
 
 The following sections outline the organisation of the software, RTL, and board designs.
 
 @node Software Organisation 
 @section Software
 
-The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor) and a few custom tools for manipulation of binary software images.
+The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor.) Thre is also a path, @code{sw/utils} containing custom tools, intended to be run on the host, for manipulation of binary software images.
 
-Driver software, implementing access functions for hardware modules, are found under @code{sw/drivers}. There is the concept of a CPU library, providing CPU-specific functions, which can be changed to support different versions of OpenRISC processors. There is also a minimal support library under the @code{sw/lib} path. Both drivers and support library are compiled together to create a library called @code{liborpsoc} which is placed in @code{sw/lib}.
+Driver software, implementing access functions for hardware modules, are found under @code{sw/drivers}. 
+
+There is a minimal support library under the @code{sw/lib} path. Both drivers and support library are compiled together to create a library called @code{liborpsoc} which is placed in @code{sw/lib}.
+
+All CPU-related functions are made available through the file @code{cpu-utils.h} which is located in @code{sw/lib/include} and depending on the CPU being used, can be used to switch between different CPU driver functions. All CPU drivers are under the @code{sw/drivers} path.
 
 Test software is found under @code{sw/tests}. Typically, each is for a specific module, or for a particular capability (eg. tests for the UART capability are under @code{sw/tests/uart}, rather than @code{sw/tests/uart16550} which.) There are no specific rules here.
 
-Under each test directory are two directories, @code{board} and @code{sim}, containing the test software targeted at each. Code for simulation will produce less printfs and perhaps not run as long as tests intended to run at full speed on target.
+Under each test directory are two directories, @code{board} and @code{sim}, containing appropriate test software. Code for simulation will produce less printfs and aim to execute within realistic timeframes for RTL simulation. Board targeted test software is obviously written with the opposite considerations in mind.
 
-There are for naming software tests, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
+@node Software Test Naming
+
+The rules for naming software tests are important to adhere to, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
 
 @node RTL Organisation 
 @section RTL
 
 The HDL code layout conforms to those outlined in the OpenCores.org coding guidelines. http://cdn.opencores.org/downloads/opencores_coding_guidelines.pdf
 
-Beyond that, there are some rules for the naming in modules. The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...}.
+There are, however, some naming restrictions for this project. 
+
+The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...}.
+
+This will avoid confusion and help the scripts locate modules.
+
+@subsection Verilog HDL
+
+All RTL included in the project at this point is Verilog HDL, although it would be fine to add VHDL to a board build.
 
 @node Testbench Organisation 
 @section Testbench
 
-For each design in @value{ORPSOC} there will be a testbench instantiating the top level, and any peripherals (at least, as many as there are models for.)
+For each design in @value{ORPSOC} there will be a testbench instantiating the top level, and any required peripherals.
 
-Despite this being far from a thorough verification platform, it is considered useful to be able to perform enough simulation to ensure that the fundamental system is correctly assembled and can communicate with the peripherals. However, this is not intended as a platform for peripheral development (although, it very well could be) the board designs are not expected to have thorough peripheral tests. They are expected to have just enough to prove that basic functionality.
+Despite this being far from a thorough verification platform, it is considered useful to be able to perform enough simulation to ensure that the fundamental system is correctly assembled and can communicate with the peripherals. 
 
 @node Organisation of Reference And Board Designs
 @section Reference And Board Designs
 
 The goal of the reference design is to provide an environment to develop and test OpenRISC processors (also, potentially, basic components.) The goal of the various board-targeted designs is to provide ready-to-go implementations for hardware.
 
-Typically, a board-targeted design will wish to reuse common components (processor, debug interface, Wishbone arbiters, UART etc.) The project has been configured to allow a board build to use either modules available in the ``common'' RTL path (@code{rtl/verilog/}) as well as those in their ``local'' RTL path (something like @code{boards/vendor/boardname/rtl/verilog}). In the event that some particular modification to a module in the common RTL set is desired for a particular board build, that module can simply be copied into the board's ``local'' RTL path and the scripts will that version instead of the common one.
+@subsection Module Selection
+
+Typically, a board-targeted design will wish to reuse common components (processor, debug interface, Wishbone arbiters, UART etc.) 
+
+The project has been configured so a board build will use modules in the ``common'' RTL path (@code{rtl/verilog/}) @emph{unless} there is a copy in the board's ``local'' RTL path ( @code{boards/vendor/boardname/rtl/verilog}). 
+
+For example, in the event that modification to a module in the common RTL set is required for it to function correctly in a board build, it's advisable to copy that module to the board's @emph{local} RTL path and modify it there. Simulation and backend scripts should then use this board-specific version instead of the one in the common RTL path.
 
 
 
@@ -153,13 +177,12 @@ Typically, a board-targeted design will wish to reuse common components (process
 @end menu
 
 @node Getting Started Supported Platforms
-@section Supported Platforms
-@cindex platforms supported by the @value{ORPSOC} project
+@section Supported Host Platforms
+@cindex host platforms supported by the @value{ORPSOC} project
 
 At present the majority of  @value{ORPSOC}'s development occurs with tools that run under the GNU/Linux operating system. All of the tools required to run the basic implementation are free, open source, and easily installable in any modern GNU/Linux distribution.
 
-Unless indicated otherwise, support for the project under Cygwin on Microsoft Windows platforms is not a given.
-
+Unless indicated otherwise, support for the project under Cygwin on Microsoft Windows platforms cannot be assumed.
 
 @node Getting Started Obtaining Project Source
 @section Obtaining Project Source
@@ -223,7 +246,7 @@ Anyone implementing their own board port is encouraged to document, as best they
 @node Reference Design Overview
 @subsection Overview
 
-The reference design included in @value{ORPSOC} is intended to be the minimal implementation (or thereabouts) of a SoC required to exercise an OpenRISC processor. In this regard, very little apart from the processor, memory, debug interface and interconnect modules are instantiated.
+The reference design included in @value{ORPSOC} is intended to be the minimal implementation (or thereabouts) of a SoC required to exercise an OpenRISC processor. Very little apart from the processor, memory, debug interface and interconnect modules are instantiated.
 
 The primary role for this design is to implement a system that an OpenRISC processor can be instantiated in for for development purposes. The automated testing mechanism, capable of compiling, executing and checking software on the design, is used as a method of regression testing for the processor as it is developed. After features are added or modified in the processor, new software tests can be added to the existing suite, checking for the expected functionality and ensuring legacy behavior is also unchanged.
 
@@ -604,7 +627,7 @@ To run the default set of regression tests for the build, run the following comm
 @kbd{make rtl-tests}
 @end example
 
-The same set of options for RTL tests available in the reference design should available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
+The same set of options for RTL tests available in the reference design should be available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
 
 Options specific to the ORDB1A3PE1500 build.
 
@@ -940,6 +963,9 @@ The Verilog RTL specific to this board is under @code{rtl/verilog} in the board 
 
 Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
 
+@node ML501 XILINX_PATH
+@subsubsection ML501 XILINX_PATH
+
 Be sure to set the environment variable @code{XILINX_PATH} to the path of the ISE path on the host machine. This can be done with something like @kbd{export XILINX_PATH=/software/xilinx_11.1/ISE} and additionally a symbolic link to the Verilog simulation library sources will be required - see the simulation section on this. Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
 
 If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
@@ -988,20 +1014,9 @@ or_debug_proxy, ORPmon
 @subsection Simulating
 @cindex simulating ML501 
 
-@node ML501 Xilinx Source Directory
-@subsubsection Setup Link To Xilinx Simulation Library Directory
+Ensure the @code{XILINX_PATH} environment variable is set correcetly. @xref{ML501 XILINX_PATH} for information.
 
-The Xilinx simulation library is too big to include in this project, and is installed with ISE, which is required to run this project. The simplest way to get access to it is to create a @emph{symbolic link} to it.
-
-A link must be made in the board's @code{backend/rtl} path to ISE's @code{verilog} path.
-
-If the @code{XILINX_PATH} environment variable is set, this is very easy to do in the board's @code{backend/rtl} path:
-
-@example
-@kbd{ln -s $XILINX_PATH/verilog verilog}
-@end example
-
-Note that if this path is not set, simulations will be unable to compile.
+Note that if this path is not set, simulations will not compile.
 
 @subsubheading Run RTL Regression Test
 
@@ -1011,7 +1026,7 @@ To run the default set of regression tests for the build, run the following comm
 @kbd{make rtl-tests}
 @end example
 
-The same set of options for RTL tests available in the reference design should available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
+The same set of options for RTL tests available in the reference design should be available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
 
 Options specific to the ML501 build.
 

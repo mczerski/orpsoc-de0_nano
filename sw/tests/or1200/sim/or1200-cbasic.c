@@ -195,7 +195,8 @@ int main()
 
 	// gives us 8000000d (goooood)
 	report(result3+0x3474E142);
-	//exit(result3-0x6cdd401e);
-	exit(result3+0x3474E142);
-	
+	if (result3+0x3474E142 == 0x8000000d)
+	  exit(0);
+	else
+	  exit(1);
 }

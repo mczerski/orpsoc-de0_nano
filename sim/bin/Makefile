@@ -314,7 +314,7 @@ $(ICARUS): $(ICARUS_SIM_EXE) $(ICARUS_VPI_LIB)
 
 
 .PHONY: rtl-test
-rtl-test: clean-sim-test-sw sw clean-test-defines $(TEST_DEFINES_VLG) \
+rtl-test: clean-sim-test-sw sw-vmem clean-test-defines $(TEST_DEFINES_VLG) \
 	$(SIMULATOR)
 
 # Run an RTL test followed by checking of generated results
@@ -361,14 +361,14 @@ include ../bin/definesgen.inc
 # Path for the current test
 TEST_SW_DIR=$(SW_DIR)/tests/$(shell echo $(TEST) | cut -d "-" -f 1)/sim
 
-# Name of the image the RAM model will attempt to load via Verilog $readmemh
-# system function.
+# This SHOULD be a VMEM file. sram.vmem is the name of the image the ram models
+# attempt to load.
 SIM_SW_IMAGE ?=sram.vmem
 
-.PHONY : sw
-sw: $(SIM_SW_IMAGE)
+.PHONY : sw-vmem sw-elf
+sw-vmem: $(SIM_SW_IMAGE)
 
-sram.vmem: $(TEST_SW_DIR)/$(TEST).vmem
+$(SIM_SW_IMAGE): $(TEST_SW_DIR)/$(TEST).vmem
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)ln -s $< $@
 
@@ -376,6 +376,15 @@ sram.vmem: $(TEST_SW_DIR)/$(TEST).vmem
 $(TEST_SW_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
 	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).vmem
+
+# Compile ELF and copy it here
+sw-elf: $(TEST_SW_DIR)/$(TEST).elf
+	$(Q)cp -v $< .
+
+$(TEST_SW_DIR)/$(TEST).elf:
+	$(Q) echo; echo "\t### Compiling software ###"; echo;
+	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).elf
+
 
 # Rule to force generation of the processed orpsoc-defines.h file
 processed-verilog-headers-in-c-for-vlt:
@@ -622,7 +631,7 @@ $(VLT_MODEL_LINKS):
 # Verilator model test rules
 ################################################################################
 
-vlt-test: build-vlt clean-sim-test-sw sw
+vlt-test: build-vlt clean-sim-test-sw sw-vmem
 	$(SIM_VLT_DIR)/$(VLT_EXE) $(TEST)
 
 vlt-tests:
@@ -676,3 +685,28 @@ lint-vlt: $(SIM_VLT_DIR) rtl $(DUMMY_FILES_FOR_VLT) $(SIM_VLT_DIR)/$(VLT_SCRIPT)
 	$(Q)echo; echo "\tLinting design with Verilator"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
 	verilator -language 1364-2001 --top-module orpsoc_top --lint-only -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
+
+################################################################################
+# Architectural simulator test rules
+################################################################################
+
+ARCH_SIM_EXE ?=or32-elf-sim
+ARCH_SIM_CFG ?= ../bin/or1ksim-orpsocv2.cfg
+ARCH_SIM_OPTS ?= -q
+
+.PHONY: rtl-test
+sim-test: clean-sim-test-sw sw-elf 
+	$(Q)$(ARCH_SIM_EXE) $(ARCH_SIM_OPTS) -f $(ARCH_SIM_CFG) $(TEST).elf > \
+	$(RTL_SIM_RESULTS_DIR)/$(TEST)$(TEST_OUT_FILE_SUFFIX)
+
+# Run tests in simulation, check output
+sim-test-with-check: sim-test check-test-log
+
+# Main architectural simulations test loop
+sim-tests:
+	$(Q)for test in $(TESTS); do \
+		export TEST=$$test; \
+		$(MAKE) sim-test-with-check; \
+		if [ $$? -ne 0 ]; then break; fi; \
+		echo; echo "\t### $$test test OK ###"; echo; \
+	done

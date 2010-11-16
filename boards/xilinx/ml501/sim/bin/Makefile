@@ -1,6 +1,6 @@
 ######################################################################
 ####                                                              ####
-####  ORPSoCv2 Testbenches Makefile                               ####
+####  ORPSoCv2 Xilinx simulation Makefile                         ####
 ####                                                              ####
 ####  Description                                                 ####
 ####  ORPSoCv2 Testbenches Makefile, containing rules for         ####
@@ -107,6 +107,18 @@ print-tests:
 	@echo $(TESTS)
 	@echo
 
+# Backend tool path
+# Check that the XILINX_PATH variable is set
+ifeq ($(XILINX_PATH),)
+$(error XILINX_PATH environment variable not set. Set it and rerun)
+endif
+XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/settings32.sh
+XILINX_SETTINGS_SCRIPT_EXISTS=$(shell if [ -e $(XILINX_SETTINGS_SCRIPT) ]; then echo 1; else echo 0; fi)
+ifeq ($(XILINX_SETTINGS_SCRIPT_EXISTS),0)
+$(error XILINX_PATH variable not set correctly. Cannot find $$XILINX_PATH/settings32.sh)
+endif
+
+
 # Simulation directories
 SIM_DIR ?=$(BOARD_DIR)/sim
 RTL_SIM_DIR=$(SIM_DIR)
@@ -132,7 +144,9 @@ BOARD_BACKEND_DIR=$(BOARD_DIR)/backend
 BOARD_BACKEND_VERILOG_DIR=$(BOARD_BACKEND_DIR)/rtl/verilog
 TECHNOLOGY_BACKEND_DIR=$(BOARD_DIR)/../backend
 # This path is for the technology library
-TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
+#TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
+# Depends on the XILINX_PATH variable - we check above if it's set properly.
+TECHNOLOGY_BACKEND_VERILOG_DIR=$(XILINX_PATH)/verilog
 
 # Synthesis directory for board
 BOARD_SYN_DIR=$(BOARD_DIR)/syn/synplify

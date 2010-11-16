@@ -1095,8 +1095,9 @@ _T7:	l.mtspr r0,r8,0x1234   /* Should be 0x00000000a */
 	l.add	r3,r8,r3	/* Should be 0xdeaddead */
 
 	l.movhi r4, 0x5ead
-	l.ori r4, r4, 0xdea0
-	l.sub r3, r3, r4 /* Should now be 0x8000000d */
-
-	l.nop 0x1 /* Exit simulation */
+	l.ori 	r4, r4, 0xdea0
+	l.sub 	r3, r3, r4 /* Should now be 0x8000000d */
+	l.nop	0x2
+	l.ori 	r3, r0, 0 /* Clear R3 */
+	l.nop 	0x1 /* Exit simulation */
 

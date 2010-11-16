@@ -29,11 +29,12 @@ main()
 {
 
   // Check data cache is present and enabled
-  if (!(mfspr(SPR_UPR)& SPR_UPR_DCP))
-    return 0x8000000d;
-  
-  if (!(mfspr(SPR_SR) & SPR_SR_DCE))
-    return 0x8000000d;
+  if (!(mfspr(SPR_UPR)& SPR_UPR_DCP) | !(mfspr(SPR_SR) & SPR_SR_DCE))
+    {
+      // Not really a pass, but not really a fail, either.
+      report(0x8000000d);
+      return 0;
+    }
 
   volatile char* ptr = (volatile char*) 0xe00000;
   int i;
@@ -150,7 +151,9 @@ main()
 
   report(next_rand());
 
-  return 0x8000000d;
+  report(0x8000000d);
+
+  exit(0);
 }
 
   

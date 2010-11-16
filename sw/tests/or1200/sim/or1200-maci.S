@@ -125,4 +125,8 @@ _main:
 	l.mfspr	r3,r0,SPR_MACLO
 	l.nop 	0x2
 	l.nop
-	l.nop 0x1
+	l.movhi r3, hi(0x8000000d)
+	l.ori 	r3, r3, lo(0x8000000d)
+	l.nop 	0x2
+	l.ori 	r3, r0, 0	
+	l.nop 	0x1

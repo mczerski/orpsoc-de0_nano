@@ -31,7 +31,7 @@ Contributor Julius Baxter <julius.baxter@orsoc.se>
 #include <stdarg.h>
 #include <stdio.h>
 								 */
-#include "or32-utils.h" // OR1k support C library
+#include "cpu-utils.h" // OR1k support C library
 #include "milieu.h"
 #include "printf.h"
 #include "fail.h"

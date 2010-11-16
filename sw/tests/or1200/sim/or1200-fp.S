@@ -2614,7 +2614,7 @@ _exit:
 
 	l.movhi	r3,hi(ALL_DONE)
 	l.ori   r3,r3,lo(ALL_DONE)
-	l.nop	NOP_REPORT		/* Should be 0xdeaddead */
+	l.nop	NOP_REPORT
 
 	l.addi	r3,r0,0
 	l.nop	NOP_EXIT

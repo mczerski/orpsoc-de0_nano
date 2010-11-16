@@ -94,16 +94,20 @@ _start:
 	l.nop
 	l.movhi r3, hi(0x8000000d)
 	l.ori 	r3, r3, lo(0x8000000d)
-	/* Try writing to r9 during delay slot... */
+	/* Setup some code at address 0x0 */
 	l.movhi r4, hi(0x15000000) /* standard l.nop */
+	l.ori 	r5, r4, 0x2 /* l.nop that will report value in r3 */
+	l.sw	0x0(r0), r5 /* Write "l.nop 0x2" to 0x0 */
+	l.movhi	r6, hi(0xa8600000) /*Assemble register with l.ori r3,r0,0 */
+	l.sw	0x4(r0), r6 /* Write "l.ori r3,r0,0" to 0x4*/
 	l.ori 	r5, r4, 0x1 /* l.nop that will exit simulation */
-	l.sw	0(r0), 	r4 /* Write l.nop to 0x0 */
-	l.sw	4(r0), 	r4 /* Write l.nop to 0x4 */
-	l.sw	8(r0), 	r5 /* Write l.nop 0x1 to 0x9 */
-	l.sw	12(r0), r4 /* Write l.nop to 0xc */
+	l.sw	0x8(r0), r5 /* Write l.nop 0x1 to 0x8 */
+	l.sw	0xc(r0), r0 /* Write "l.j 0" to address 0xc */
+	l.sw	0x10(r0), r4 /* Write l.nop to 0xc */
 	l.nop
+	/* Try writing to r9 during delay slot... */
 	l.jal 	_testjalfunc
-	l.or 	r9, r0, r0 /* Clear r9 */
+	l.or 	r9, r0, r0 /* Clear r9 - cause jump to 0 on return */
 	l.nop 	1
 
 

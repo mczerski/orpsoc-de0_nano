@@ -39,6 +39,8 @@ int main()
   if (*int_ptr != 0x45388615)
     exit(3);
   
-  exit(0x8000000d);
+  report(0x8000000d);
+
+  exit(0);
   
 }

@@ -514,8 +514,10 @@ _illegal1:
 	l.movhi r5, hi(0x44004800) /* Put "l.jr r9" instruction in r5 */
 	l.ori 	r5, r5, lo(0x44004800)
 	l.sw 	0x0(r0), r5 /* Write "l.j r9" to address 0x0 in RAM */	
-	l.movhi r5, 0xff00 /* Put an illegal instruction in r5 */
-	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */	
+	l.movhi r5, 0xee00 /* Put an illegal instruction in r5 */
+	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */
+	l.movhi r5, 0x1500 /* l.nop after illegal instruction */
+	l.sw 	0x8(r0), r5   /* Write nop to RAM addr 0x8 */
 	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */
 	/* Call 0x4, illegal opcode instruction */
 	l.ori 	r6, r0, 0x4

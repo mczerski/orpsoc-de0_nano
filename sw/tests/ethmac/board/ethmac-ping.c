@@ -100,8 +100,8 @@ int print_packet_contents;
 
 /* Buffer number (must be 2^n) 
 */
-#define OETH_RXBD_NUM		32
-#define OETH_TXBD_NUM		32
+#define OETH_RXBD_NUM		64
+#define OETH_TXBD_NUM		64
 #define OETH_RXBD_NUM_MASK	(OETH_RXBD_NUM-1)
 #define OETH_TXBD_NUM_MASK	(OETH_TXBD_NUM-1)
 
@@ -1790,9 +1790,10 @@ oeth_rx(void)
 	}
 	
 	if (bad) {
+	  printf("RXE: 0x%x\n",rx_bdp[i].len_status & OETH_RX_BD_STATS);
 	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS;
 	  rx_bdp[i].len_status |= OETH_RX_BD_EMPTY;
-
+	  bad = 0;
 	  continue;
 	}
 	else {
@@ -1844,6 +1845,9 @@ oeth_tx(void)
 	  tx_bd[i].len_status &= ~OETH_TX_BD_IRQ;
 
 	  /* Probably good to check for TX errors here */
+	  // Check if either carrier sense lost or colission indicated
+	  if (tx_bd[i].len_status & OETH_TX_BD_STATS)
+	    printf("TXER: 0x%x\n",(tx_bd[i].len_status & OETH_TX_BD_STATS));
 	  
 	  if (print_packet_contents)
 	    printf("T%d",i);

@@ -1532,6 +1532,5 @@ int main (void)
   printf("Tests completed\n");
   report (0xdeaddead);
   report (0x8000000d);
-  exit (0x8000000d);
-  return 0;
+  exit (0);
 }

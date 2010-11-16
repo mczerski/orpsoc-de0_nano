@@ -962,7 +962,14 @@ GdbServerSC::rspWriteReg ()
 void
 GdbServerSC::rspQuery ()
 {
-  if (0 == strcmp ("qC", pkt->data))
+  if (0 == strcmp ("qAttached", pkt->data))
+    {
+      // We are always attaching to an existing process with the bare metal
+      // embedded system. 
+      pkt->packStr ("1");
+      rsp->putPkt (pkt);
+    }
+  else if (0 == strcmp ("qC", pkt->data))
     {
       // Return the current thread ID (unsigned hex). A null response
       // indicates to use the previously selected thread. We use the constant
@@ -1051,6 +1058,12 @@ GdbServerSC::rspQuery ()
       sprintf (pkt->data, "%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 	       'R', 'u', 'n', 'n', 'a', 'b', 'l', 'e', 0);
       pkt->setLen (strlen (pkt->data));
+      rsp->putPkt (pkt);
+    }
+  else if (0 == strncmp ("qTStatus", pkt->data, strlen ("qTstatus")))
+    {
+      // We don't support tracing, return empty packet
+      pkt->packStr ("");
       rsp->putPkt (pkt);
     }
   else if (0 == strncmp ("qXfer:", pkt->data, strlen ("qXfer:")))

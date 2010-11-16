@@ -110,9 +110,9 @@ DRIVER_OBJ=compiled.o
 # Hardware integer arith, soft float
 MARCH_FLAGS ?=-mhard-mul -mhard-div -msoft-float
 # FPGA default - only hardware multiply
-#MACH_FLAGS ?=-mhard-mul -msoft-div -msoft-float
+#MARCH_FLAGS ?=-mhard-mul -msoft-div -msoft-float
 # All software div, mul and FPU
-#MACH_FLAGS ?=-msoft-mul -msoft-div -msoft-float
+#MARCH_FLAGS ?=-msoft-mul -msoft-div -msoft-float
 
 OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
 		$(INCLUDE_FLAGS) \

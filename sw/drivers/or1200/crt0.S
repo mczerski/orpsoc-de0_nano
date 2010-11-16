@@ -18,7 +18,7 @@ symbol:
 
 	// Really goes to configurable interrupt handler
 #define UNHANDLED_EXCEPTION            \
-	l.addi  r1, r1, -128;          \
+	l.addi  r1, r1, -256;          \
 	l.sw    4(r1), r3;             \
 	l.sw    8(r1), r4;             \
 	l.mfspr r3,r0,SPR_NPC;          \
@@ -71,7 +71,7 @@ symbol:
 	//UNHANDLED_EXCEPTION
 	/* Simply load timer_ticks variable and increment */
 	.extern timer_ticks
-	l.addi 	r1, r1, -8
+	l.addi 	r1, r1, -136
 	l.sw 	0(r1), r25	
 	l.sw 	4(r1), r26
 	l.movhi r25, hi(timer_ticks)
@@ -84,7 +84,7 @@ symbol:
 	l.mtspr r0, r25, SPR_TTMR 		/* Reset timer */
 	l.lwz 	r25, 0(r1)
 	l.lwz	r26, 4(r1)
-	l.addi 	r1, r1, 8
+	l.addi 	r1, r1, 136
 	l.rfe
 
 /* ---[ 0x600: Aligment exception ]-------------------------------------- */
@@ -391,7 +391,7 @@ default_exception_handler:
 	l.lwz    r31, 0x74(r1)
 	l.lwz    r32, 0x78(r1)
 
-	l.addi  r1, r1, 128
+	l.addi  r1, r1, 256
 
 	l.rfe
 	l.nop
