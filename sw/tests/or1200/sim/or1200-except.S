@@ -513,37 +513,37 @@ _illegal1:
 	l.nop
 	l.movhi r5, hi(0x44004800) /* Put "l.jr r9" instruction in r5 */
 	l.ori 	r5, r5, lo(0x44004800)
-	l.sw 	0x0(r0), r5 /* Write "l.j r9" to address 0x0 in RAM */	
-	l.movhi r5, 0xee00 /* Put an illegal instruction in r5 */
-	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */
-	l.movhi r5, 0x1500 /* l.nop after illegal instruction */
-	l.sw 	0x8(r0), r5   /* Write nop to RAM addr 0x8 */
+	l.sw 	0x0(r0), r5 	/* Write "l.j r9" to address 0x0 in RAM */	
+	l.movhi r5, 0xee00 	/* Put an illegal instruction in r5 */
+	l.sw 	0x4(r0), r5   	/* Write illegal instruction to RAM addr 0x4 */
+	l.movhi r5, 0x1500 	/* l.nop after illegal instruction */
+	l.sw 	0x8(r0), r5   	/* Write nop to RAM addr 0x8 */
 	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */
-	/* Call 0x4, illegal opcode instruction */
+	/* Jump to 0x4 - illegal opcode instruction */
 	l.ori 	r6, r0, 0x4
-	l.jalr 	r6 /* Jump to address 0x4, landing on an illegal instruction */
-	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
-	l.nop /* Should return here */	
+	l.jalr 	r6 		/* Jump to address 0x4, land on illegal insn */
+	l.addi 	r12,r12,1 	/* Increment 2nd exception counter */
+	l.nop 			/* Should return here */	
 	l.nop
 
 	/* Test in delay slot */
 	
-	l.movhi r5, 0xff00 /* Put an illegal instruction in r5 */
-	l.sw 	0x4(r0), r5   /* Write illegal instruction to RAM addr 0x4 */
+	l.movhi r5, 0xee00 	/* Put an illegal instruction in r5 */
+	l.sw 	0x4(r0), r5   	/* Write illegal instruction to RAM addr 0x4 */
 	l.mtspr r0,r0,SPR_ICBIR /* Invalidate line 0 of cache */	
 	l.jalr 	r0 /* Jump to address 0, will be a jump back but with an illegal
 	             dslot instruction which will befixed by handler */
-	l.addi 	r12,r12,1 /* Increment 2nd exception counter */
-	l.nop /* Should return here */
+	l.addi 	r12,r12,1 	/* Increment 2nd exception counter */
+	l.nop 			/* Should return here */
 
 	/* Check 1st and 2nd exception counters are equal */
-	l.sfeq	r11,r12			/* Should be equal */
+	l.sfeq	r11,r12		/* Should be equal */
 	l.bf 	1f
 	l.nop
 	l.or 	r3, r12, r12
-	l.nop 	2 /* Report expected exception count */
+	l.nop 	2 		/* Report expected exception count */
 	l.or 	r3, r11, r11
-	l.nop 	2 /* Report actual exception count */
+	l.nop 	2 		/* Report actual exception count */
 	l.nop 	1
 1:	l.nop
 	l.nop

@@ -233,12 +233,11 @@ always @(posedge clk or `OR1200_RST_EVENT rst)
 // Tag comparison
 //
 // During line invalidate, ensure it stays the same
-//   /* TODO - do this properly! */
 always @(tag or saved_addr or tag_v) begin
 	  if ((tag != saved_addr[31:`OR1200_ICTAGL]) | !tag_v)
-	    tagcomp_miss = (ic_inv | ic_inv_q) ? tagcomp_miss : 1'b1;
+	    tagcomp_miss = 1'b1;
 	  else
-	    tagcomp_miss = (ic_inv | ic_inv_q) ? tagcomp_miss : 1'b0;
+	    tagcomp_miss = 1'b0;
 end
 
 //

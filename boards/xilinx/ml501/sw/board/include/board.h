@@ -2,12 +2,6 @@
 #define _BOARD_H_
 
 #define IN_CLK  	      50000000 // Hz
-//#define IN_CLK  	      32000000 // Hz
-//#define IN_CLK  	      30000000 // HZ
-//#define IN_CLK  	      24000000 // HZ
-//#define IN_CLK  	      20000000 // HZ
-//#define IN_CLK  	      18000000 // HZ
-//#define IN_CLK  	      16000000 // HZ
 
 //
 // ROM bootloader
@@ -22,6 +16,7 @@
 //#define BOOTROM_LOOP_IN_ROM
 
 // Address bootloader should start from in FLASH
+// Last 256KB of 2MB flash - offset 0x1c0000 (2MB-256KB)
 #define BOOTROM_ADDR_BYTE2 0x1c
 #define BOOTROM_ADDR_BYTE1 0x00
 #define BOOTROM_ADDR_BYTE0 0x00
