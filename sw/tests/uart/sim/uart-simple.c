@@ -22,7 +22,9 @@ int main()
 {
 
   hello_from_uart(0);
+
+  report(0x8000000d);
   
-  exit(0x8000000d);
+  exit(0);
 
 }

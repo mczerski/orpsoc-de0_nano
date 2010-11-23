@@ -3,7 +3,7 @@
  *
  * Tests UART and interrupt routines servicing them.
  *
- * Relies on testbench having uart0's lines in loopback (rx = tx)
+ * Relies on UART 0 receiving external stimulus.
  *
  * Julius Baxter, julius.baxter@orsoc.se
  *
@@ -14,6 +14,7 @@
 #include "spr-defs.h"
 #include "board.h"
 #include "uart.h"
+#include "printf.h"
 #include "int.h"
 #include "orpsoc-defines.h"
 
@@ -23,13 +24,47 @@
 # error
 #endif
 
+
+#define UART_TX_BUF_MAX 256
 struct uart_tx_ctrl
 {
-  char *bufptr;
-  int busy;
+  char buf[UART_TX_BUF_MAX]; /* 256byte buffer to print */
+  int buf_count;
+  int tx_count;
 };
 
 volatile struct uart_tx_ctrl uart0_tx_ctrl;
+
+
+/* Reset buffer counter */
+void uart0_tx_buffer_init(void)
+{
+  uart0_tx_ctrl.buf_count = 0;
+  uart0_tx_ctrl.tx_count = 0;
+}
+
+/* Add characters to be transmitted */
+void uart0_tx_buffer_add(int numchars, char* buf)
+{
+  // If we're not currently transmitting, ie. nothign in the buffer, then
+  // we should transmit after this.
+  int start_tx = (numchars && !uart0_tx_ctrl.buf_count);
+  while(numchars)
+    {
+      /* Not good if this gets used outside of interrupt. */
+      uart0_tx_ctrl.buf[uart0_tx_ctrl.buf_count%UART_TX_BUF_MAX] = *buf++;
+      uart0_tx_ctrl.buf_count++;
+      numchars--;
+    }
+  
+  if (start_tx)
+    {
+      uart_txint_enable(0);
+      uart_putc_noblock(0, uart0_tx_ctrl.buf[uart0_tx_ctrl.tx_count%UART_TX_BUF_MAX]);
+      uart0_tx_ctrl.tx_count++;
+    }
+}
+
 
 void uart_int_handler(void* corenum);
 
@@ -48,15 +83,21 @@ void uart_int_handler(void* corenum)
     {
       // Was potentially also a timeout. Do we care?
       
-      // Data received. Pull all from the FIFO buffer, here we just report it
-      // and throw it away
+      // Data received. Pull from the fifo and echo back.
       char rxchar;
       while (uart_check_for_char(core))
 	{
+	  
 	  rxchar = uart_getc(core);
 	  report(0xff & rxchar);
+	  //printf("RX char: %c\n",rxchar);
+	  uart0_tx_buffer_add(1, &rxchar);
+
 	  if (rxchar == 0x2a) // Exit simulation when RX char is '*'
-	    exit(0x8000000d);
+	    {
+	      report(0x8000000d);
+	      exit(0);
+	    }
 	}
     }
   else if ( (iir & UART_IIR_THRI) ==  UART_IIR_THRI)
@@ -65,15 +106,14 @@ void uart_int_handler(void* corenum)
       // and enabled the interrupt.
       // Put next thing to be transmitted into buffer, check if it's
       // the last, if so, disable interrupts.
-      if (uart0_tx_ctrl.bufptr[0] == 0) // EOL, disable interrupt after this char
+      if (uart0_tx_ctrl.buf_count == uart0_tx_ctrl.tx_count)
 	{
 	  uart_txint_disable(core);
-	  uart0_tx_ctrl.busy = 0;
 	}
       else // Transmit this byte
 	{
-	  uart_putc_noblock(core, uart0_tx_ctrl.bufptr[0]);
-	  uart0_tx_ctrl.bufptr++;
+	  uart_putc_noblock(0, uart0_tx_ctrl.buf[uart0_tx_ctrl.tx_count%UART_TX_BUF_MAX]);
+	  uart0_tx_ctrl.tx_count++;
 	}
     }
   else if ( (iir & UART_IIR_MSI) == UART_IIR_MSI )
@@ -83,20 +123,10 @@ void uart_int_handler(void* corenum)
     }
 }
 
-
-void uart0_tx_buffer(char* buf)
-{
-  while (uart0_tx_ctrl.busy); // Wait until we can transmit more
-  uart0_tx_ctrl.bufptr = buf;
-  uart0_tx_ctrl.busy = 1;
-  uart_txint_enable(0);
-}
-
 int main()
 {
   int uart0_core = 0;
   int uart1_core = 1;
-  uart0_tx_ctrl.busy = 0;
   
   /* Set up interrupt handler */
   int_init();
@@ -111,33 +141,14 @@ int main()
   mtspr (SPR_SR, mfspr (SPR_SR) | SPR_SR_IEE);
   
   uart_init(uart0_core);
-  //uart_init(uart1_core);
   
-  //uart_rxint_enable(uart1_core);
   uart_rxint_enable(uart0_core);
-  
-  char* teststring = "\n\tHello world from UART 0\n\0";
 
-  uart0_tx_buffer(teststring);
+  uart0_tx_buffer_init();
 
-  // Do other things while we transmit
-  float f1, f2, f3; int i;
-  f1 = 0.2382; f2 = 4342.65; f3=0;
-  for(i=0;i<32;i++) f3 += f1*f3 + f2;
+  printf("\n\tUART interrupt test.\n");
+  printf("\n\tType to see characters echoed\n");
 
-  report(f3);
-  report(0x4aaaaa1f);
-  
-  char* done_calculating = "\tDone with the number crunching!\n\0";
-
-  uart0_tx_buffer(done_calculating);
-  
-  // Character '*', which will be received in the interrupt handler and cause
-  // the simulation to exit.
-  char* finish = "*\n\0";
-  
-  uart0_tx_buffer(finish);
-  
   while(1); // will exit in the rx interrupt routine
 
 }

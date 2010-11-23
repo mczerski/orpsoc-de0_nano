@@ -696,6 +696,7 @@ ARCH_SIM_OPTS ?= -q
 
 .PHONY: rtl-test
 sim-test: clean-sim-test-sw sw-elf 
+	$(Q)echo; echo "\t### Launching simulation ###"; echo
 	$(Q)$(ARCH_SIM_EXE) $(ARCH_SIM_OPTS) -f $(ARCH_SIM_CFG) $(TEST).elf > \
 	$(RTL_SIM_RESULTS_DIR)/$(TEST)$(TEST_OUT_FILE_SUFFIX)
 
