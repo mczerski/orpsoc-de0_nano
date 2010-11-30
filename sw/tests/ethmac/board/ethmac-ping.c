@@ -70,6 +70,8 @@ static char our_ip[4] = {OUR_IP_BYTES};
 #define DEST_IP_BYTES 0xc0,0xa8,0x01,0x08 // 192 .168.1.8
 //#define DEST_IP_BYTES 0xac,0x1e,0x0,0x01 // 172.30.0.1
 
+#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x01,0xff // 192 .168.1.255
+
 /* Functions in this file */
 void ethmac_setup(void);
 void oeth_printregs(void);
@@ -863,10 +865,7 @@ void ethmac_setup(void)
     OETH_INT_MASK_BUSY 	|
     OETH_INT_MASK_TXC	|
     OETH_INT_MASK_RXC;
-#ifndef RTLSIM  
-  printf("\nafter config\n\n");
-  oeth_printregs();
-#endif
+
   // Buffer setup stuff
   volatile oeth_bd *tx_bd, *rx_bd;
   int i,j,k;
@@ -1132,9 +1131,9 @@ char broadcast_ping_packet[] =  {
   0x00,
   0x40,
   0x01,
-  0xee,0xf5,
+  0xb5,0x8f,
   OUR_IP_BYTES, /* Source IP */
-  0xc0,0xa8,0x64,0xff, /* Dest. IP */
+  BCAST_DEST_IP_BYTES, /* Dest. IP */
   /* ICMP Message body */
   0x08,0x00,0x7d,0x65,0xa7,0x20,0x00,0x01,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
   15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
@@ -1900,13 +1899,13 @@ int main ()
 
       if (c == 's')
 	tx_packet((void*) ping_packet, 98);
-      if (c == 'S')
+      else if (c == 'S')
 	tx_packet((void*)big_ping_packet, 1514);
-if (c == 'h')
+      else if (c == 'h')
 	scan_ethphys();
-      if (c == 'i')
+      else if (c == 'i')
 	ethphy_init();
-      if (c == 'P')
+      else if (c == 'P')
 	{
 	  print_packet_contents = print_packet_contents ? 0 : 1;
 	  if (print_packet_contents)
@@ -1914,38 +1913,38 @@ if (c == 'h')
 	  else
 	    printf("Packet dumping disabled\n");
 	}
-      if (c == 'p')
+      else if (c == 'p')
 	oeth_printregs();
-      if (c == '0')
+      else if (c == '0')
 	scan_ethphy(0);
-      if (c == '1')
+      else if (c == '1')
 	scan_ethphy(1);
-      if (c == '7')
+      else if (c == '7')
 	{
 	  //scan_ethphy(7);
 	  //ethphy_print_status(7);
 	  printf("ext_sr 0x%x\n",eth_mii_read(0x7, 0x1b));
 	}
-      if (c == 'r')
+      else if (c == 'r')
 	{
 	  ethphy_reset(7);
 	  printf("PHY reset\n");
 	}
-      if (c == 'R')
+      else if (c == 'R')
 	{
 	  //oeth_reset_tx_bd_pointer();
 	  ethmac_setup();
 	  printf("MAC reset\n");
 	}
-      if (c == 'n')
+      else if (c == 'n')
 	ethphy_reneg(7);
-      if (c == 'N')
+      else if (c == 'N')
 	ethphy_set_autoneg(7);
-      if (c == 'm')
+      else if (c == 'm')
 	ethmac_togglehugen();
-      if (c == 't')
+      else if (c == 't')
 	ethphy_set_10mbit(0);
-      if (c == 'w')
+      else if (c == 'w')
 	{
 	  // Play with HWCFG mode of Alaska 88e1111 Phy
 	  c = uart_getc(DEFAULT_UART);
@@ -1968,11 +1967,16 @@ if (c == 'h')
 	  eth_mii_write(0x7, MII_M1111_PHY_EXT_SR, ext_sr);
 	  printf("ext_sr updated to - 0x%x\n",eth_mii_read(0x7, MII_M1111_PHY_EXT_SR));
 	}
-      if ( c == 'b' )
+      else if ( c == 'b' )
 	{
 	  printf("\n\t---\n");
 	  oeth_dump_bds();
 	  printf("\t---\n");
+	}
+      
+      else if ( c == 'B' )
+	{
+	  tx_packet((void*) broadcast_ping_packet, 298);
 	}
 
     }

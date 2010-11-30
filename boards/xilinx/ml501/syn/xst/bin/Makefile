@@ -40,7 +40,8 @@ CUR_DIR=$(shell pwd)
 BOARD_DIR ?=$(CUR_DIR)/../../..
 PROJECT_ROOT=$(BOARD_DIR)/../../..
 
-DESIGN_NAME=orpsoc
+DESIGN_NAME ?=orpsoc
+RTL_TOP ?=$(DESIGN_NAME)_top
 
 SYN_DIR=$(BOARD_DIR)/syn/xst
 SYN_RUN_DIR=$(SYN_DIR)/run
@@ -220,7 +221,7 @@ $(XST_FILE):
 	$(Q)echo "run" >> $@
 	$(Q)echo "-ifn "$(PRJ_FILE) >> $@
 	$(Q)echo "-ifmt mixed" >> $@
-	$(Q)echo "-top "$(DESIGN_NAME)"_top" >> $@
+	$(Q)echo "-top "$(RTL_TOP) >> $@
 	$(Q)echo "-ofmt NGC" >> $@
 	$(Q)echo "-ofn "$(NGC_FILE) >> $@
 	$(Q)echo "-p "$(FPGA_PART) >> $@

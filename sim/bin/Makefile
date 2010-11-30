@@ -392,6 +392,15 @@ processed-verilog-headers-in-c-for-vlt:
 # Now copy the file into the Verilated model build path
 	$(Q)cp $(SW_DIR)/lib/include/orpsoc-defines.h $(SIM_VLT_DIR)
 
+# Create test software disassembly
+
+sw-dis: $(TEST_SW_DIR)/$(TEST).dis
+	$(Q)cp -v $< .
+
+$(TEST_SW_DIR)/$(TEST).dis:
+	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).dis
+
+
 #
 # Cleaning rules
 #

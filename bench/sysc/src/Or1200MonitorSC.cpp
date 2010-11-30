@@ -71,9 +71,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
   insn_count = insn_count_rst = 0;
   cycle_count = cycle_count_rst = 0;
 
-  exit_perf_summary_enabled = true; // Simulation exit performance summary is 
-                                    // on by default. Turn off with "-q" on the 
-                                    // cmd line
+  quiet = false;
   monitor_for_crash = false;
   lookslikewevecrashed_count = crash_monitor_buffer_head = 0;
 
@@ -130,7 +128,7 @@ Or1200MonitorSC::Or1200MonitorSC (sc_core::sc_module_name   name,
 	  else if ((strcmp(argv[i], "-q")==0) ||
 		   (strcmp(argv[i], "--quiet")==0))
 	    {
-	      exit_perf_summary_enabled = false;
+	      quiet = true;
 	    }
 	  else if ((strcmp(argv[i], "-p")==0) ||
 		   (strcmp(argv[i], "--profile")==0))
@@ -427,10 +425,13 @@ Or1200MonitorSC::checkInstruction()
 	{
 	case NOP_EXIT:
 	  r3 = accessor->getGpr (3);
-	  ts = sc_time_stamp().to_seconds() * 1000000000.0;
-	  std::cout << std::fixed << std::setprecision (2) << ts;
-	  std::cout << " ns: Exiting (" << r3 << ")" << std::endl;
-	  perfSummary();
+	  if (!quiet)
+	    {
+	      ts = sc_time_stamp().to_seconds() * 1000000000.0;
+	      std::cout << std::fixed << std::setprecision (2) << ts;
+	      std::cout << " ns: Exiting (" << r3 << ")" << std::endl;
+	      perfSummary();
+	    }
 	  if (logging_enabled) statusFile.close();
 	  if (profiling_enabled) profileFile.close();
 	  if (bus_trans_log_enabled) busTransLog.close();
@@ -440,41 +441,57 @@ Or1200MonitorSC::checkInstruction()
 	  break;
 
 	case NOP_REPORT:
-	  ts = sc_time_stamp().to_seconds() * 1000000000.0;
-	  r3 = accessor->getGpr (3);
-	  std::cout << std::fixed << std::setprecision (2) << ts;
-	  std::cout << " ns: report (" << hex << r3 << ")" << std::endl;
+	  if (!quiet)
+	    {
+	      ts = sc_time_stamp().to_seconds() * 1000000000.0;
+	      r3 = accessor->getGpr (3);
+	      std::cout << std::fixed << std::setprecision (2) << ts;
+	      std::cout << " ns: report (" << hex << r3 << ")" << std::endl;
+	    }
 	  break;
 
 	case NOP_PRINTF:
-	  ts = sc_time_stamp().to_seconds() * 1000000000.0;
-	  std::cout << std::fixed << std::setprecision (2) << ts;
-	  std::cout << " ns: printf: ";
-	  simPrintf(accessor->getGpr (4), accessor->getGpr (3));
+	      ts = sc_time_stamp().to_seconds() * 1000000000.0;
+	      std::cout << std::fixed << std::setprecision (2) << ts;
+	      std::cout << " ns: printf: ";
+	      simPrintf(accessor->getGpr (4), accessor->getGpr (3));
 	  break;
 
 	case NOP_PUTC:
-	  r3 = accessor->getGpr (3);
-	  std::cout << (char)r3 << std::flush;
-	  break;
+	      r3 = accessor->getGpr (3);
+	      std::cout << (char)r3 << std::flush;
+	    break;
+
 	case NOP_CNT_RESET:
-	  std::cout << "****************** counters reset ******************" << endl;
-	  std::cout << "since last reset: cycles " << cycle_count - cycle_count_rst << ", insn #" << insn_count - insn_count_rst << endl;
-	  std::cout << "****************** counters reset ******************" << endl;
-	  cycle_count_rst = cycle_count;
-	  insn_count_rst = insn_count;
-	  /* 3 separate counters we'll use for various things */
+	  if (!quiet)
+	    {
+	      std::cout << "****************** counters reset ******************" << endl;
+	      std::cout << "since last reset: cycles " << cycle_count - cycle_count_rst << ", insn #" << insn_count - insn_count_rst << endl;
+	      std::cout << "****************** counters reset ******************" << endl;
+	      cycle_count_rst = cycle_count;
+	      insn_count_rst = insn_count;
+	      /* 3 separate counters we'll use for various things */
+	    }
 	case NOP_CNT_RESET1: 
-	  std::cout << "**** counter1 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_1 << " resetting ********" << endl;
-	  cycles_1 = cycle_count;
+	  if (!quiet)
+	    {
+	      std::cout << "**** counter1 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_1 << " resetting ********" << endl;
+	      cycles_1 = cycle_count;
+	    }
 	  break;
 	case NOP_CNT_RESET2: 
-	  std::cout << "**** counter2 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_2 << " resetting ********" << endl;
-	  cycles_2 = cycle_count;
+	  if (!quiet)
+	    {
+	      std::cout << "**** counter2 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_2 << " resetting ********" << endl;
+	      cycles_2 = cycle_count;
+	    }
 	  break;
 	case NOP_CNT_RESET3: 
-	  std::cout << "**** counter3 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_3 << " resetting ********" << endl;
-	  cycles_3 = cycle_count;
+	  if (!quiet)
+	    {
+	      std::cout << "**** counter3 cycles: " << std::setfill('0') << std::setw(10) << cycle_count - cycles_3 << " resetting ********" << endl;
+	      cycles_3 = cycle_count;
+	    }
 	  break;
 	default:
 	  break;
@@ -786,7 +803,7 @@ Or1200MonitorSC::displayStateBinary()
 void 
 Or1200MonitorSC::perfSummary()
 {
-  if (exit_perf_summary_enabled) 
+  if (!quiet) 
     {
       double ts;
       ts = sc_time_stamp().to_seconds() * 1000000000.0;

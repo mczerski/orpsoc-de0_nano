@@ -360,32 +360,31 @@
 // Implement multiply-and-accumulate
 //
 // By default MAC is implemented. To
-// implement MAC, multiplier needs to be
+// implement MAC, multiplier (non-serial) needs to be
 // implemented.
 //
-`define OR1200_MAC_IMPLEMENTED
+//`define OR1200_MAC_IMPLEMENTED
 
 //
 // Implement optional l.div/l.divu instructions
 //
 // By default divide instructions are not implemented
-// to save area and increase clock frequency. or32 C/C++
-// compiler can use soft library for division.
+// to save area.
 //
-// To implement divide, both multiplier and MAC needs to be implemented.
 //
 `define OR1200_DIV_IMPLEMENTED
 
 //
-// Low power, slower multiplier
+// Serial multiplier.
 //
-// Select between low-power (larger) multiplier
-// and faster multiplier. The actual difference
-// is only AND logic that prevents distribution
-// of operands into the multiplier when instruction
-// in execution is not multiply instruction
+`define OR1200_MULT_SERIAL
+
 //
-//`define OR1200_LOWPWR_MULT
+// Serial divider.
+// Uncomment to use a serial divider, otherwise will
+// be a generic parallel implementation.
+//
+`define OR1200_DIV_SERIAL
 
 //
 // Implement HW Single Precision FPU
@@ -464,8 +463,8 @@
 `define OR1200_ALUOP_SHROT	4'd8
 `define OR1200_ALUOP_DIV	4'd9
 `define OR1200_ALUOP_DIVU	4'd10
-/* Order not specifically defined. */
-`define OR1200_ALUOP_IMM	4'd11
+`define OR1200_ALUOP_MULU	4'd11
+/* Values sent to ALU from decode unit - not strictly defined by ISA */ 
 `define OR1200_ALUOP_MOVHI	4'd12
 `define OR1200_ALUOP_COMP	4'd13
 `define OR1200_ALUOP_MTSR	4'd14

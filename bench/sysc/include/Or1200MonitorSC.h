@@ -117,7 +117,7 @@ private:
   bool logfile_name_provided;
   bool logging_regs;
   bool binary_log_format;
-  bool exit_perf_summary_enabled;
+  bool quiet;
   bool monitor_for_crash;
   int lookslikewevecrashed_count, crash_monitor_buffer_head;
 #define CRASH_MONITOR_BUFFER_SIZE 32
