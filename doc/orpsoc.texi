@@ -607,7 +607,7 @@ Synthesis: Synopsys Synplify (included in Actel Libero Suite)
 Backend: Actel Designer (included in Actel Libero Suite)
 Programming: Actel FlashPRO (included in Actel Libero Suite)
 
-This has been developed with Libero v8.6 for Linux.
+This has been tested with with Libero v8.6 and v9.0sp1 under Ubuntu Linux.
 
 @node ORDB1A3PE1500 Debug Tools
 @subsubsection Debug Tools
@@ -737,12 +737,12 @@ Place and route is run from the board's @code{backend/par/run} path with the fol
 
 This will create a @code{.adb} file in the same path.
 
-All steps, up to programming file generation are done here. This is mainly a licensing thing (free licenses for Libero under Linux @emph{do not} allow programming file generation - they do, however, under Windows.)
+All steps, up to and including programming file generation are done here. FPGA device programming must be done using the programming FlashPro tool under Windows if using a free license.
 
 @node ORDB1A3PE1500 Place and route options
 @subsubsection Options
 
-Most of the design's parameters are determined by processing the @code{orpsoc-defines.v} file and determining, for example, the frequency of the clocks entering the design.
+Most of the design's parameters are determined by processing the @code{orpsoc-defines.v} file and extracting, for example, the frequency of the clocks entering the design.
 
 The following can be passed as environment variables when running @kbd{make all}.
 
@@ -1001,7 +1001,7 @@ Synthesis: XST (from Xilinx ISE)
 Backend: ngdbuild/map/par/bitgen/promgen, etc. (from Xilinx ISE)
 Programming: iMPACT (from Xilinx ISE)
 
-This has been developed with Xilinx ISE 11.1 under Linux.
+This has been tested with Xilinx ISE 11.1 under Ubuntu Linux.
 
 
 @node ML501 Debug Tools

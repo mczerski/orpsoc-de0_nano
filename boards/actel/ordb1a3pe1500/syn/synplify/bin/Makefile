@@ -112,7 +112,7 @@ SYN_SCRIPT 		?=synplify.prj 	# We will generate this
 SYN_LOG 		?=syn.log	
 SYN_TOOL 		?=synplify_pro	# Name of the executable to call
 # Options passed after the executable.
-SYN_LICENSE_OPTS	?=-licensetype synplifypro_acteloem
+SYN_LICENSE_OPTS	?=-licensetype synplifypro_actel
 SYN_TOOL_OPTS 		?=$(SYN_SCRIPT) $(SYN_LICENSE_OPTS) -batch -log $(SYN_LOG)
 
 

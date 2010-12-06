@@ -122,15 +122,6 @@ parameter rom0_wb_adr = 4'hf;
 parameter wbs_i_mc0_data_width = 32;   
 parameter wbs_d_mc0_data_width = 32;
 
-// Memory sizing for synthesis (small)
-parameter sdram_ba_width = 2;
-// For 8MB part, mt16lc4m16a2
-parameter sdram_row_width = 12;
-parameter sdram_col_width = 8;
-// For 32MB part, mt16lc4m16a2
-//parameter sdram_row_width = 13;
-//parameter sdram_col_width = 9;
-
 // ETH0 defines
 parameter eth0_wb_adr = 8'h92;
 parameter wbs_d_eth0_data_width = 32;
@@ -138,9 +129,9 @@ parameter wbs_d_eth0_addr_width = 12;
 parameter wbm_eth0_data_width = 32;
 parameter wbm_eth0_addr_width = 32;
 
-// Memory sizing for synthesis (small)
-parameter internal_sram_mem_span = 32'h0080_0000;
-parameter internal_sram_adr_width_for_span = 23;   
+// Memory sizing for wb_ram (simulation only)
+parameter internal_sram_mem_span = 32'h0080_0000; // 8MB
+parameter internal_sram_adr_width_for_span = 23;  // log2(8192*1024)
 
 //////////////////////////////////////////////////////
 //                                                  //

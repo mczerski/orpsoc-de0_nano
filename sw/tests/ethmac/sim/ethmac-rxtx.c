@@ -59,7 +59,7 @@ static void oeth_rx(void);
 static void oeth_tx(void);
 
 /* Let the ethernet packets use a space beginning here for buffering */
-#define ETH_BUFF_BASE 0x01000000
+#define ETH_BUFF_BASE 0x200000;
 
 
 #define RXBUFF_PREALLOC	1

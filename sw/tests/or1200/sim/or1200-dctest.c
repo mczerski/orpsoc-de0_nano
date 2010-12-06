@@ -14,7 +14,8 @@
 #define LOOPS 64
 #define WORD_STRIDE 8
 
-
+// Memory area to test at
+#define TEST_BASE 0x600000 /* 6MB */
 
 unsigned long int my_lfsr;
 
@@ -36,7 +37,7 @@ main()
       return 0;
     }
 
-  volatile char* ptr = (volatile char*) 0xe00000;
+  volatile char* ptr = (volatile char*) TEST_BASE;
   int i;
 
   ptr[0] = 0xab;
@@ -98,7 +99,7 @@ main()
 
   // init LFSR
   my_lfsr = RAND_LFSR_SEED;
-  volatile unsigned long int *lptr = (volatile unsigned long int*) 0xa00000;
+  volatile unsigned long int *lptr = (volatile unsigned long int*) TEST_BASE;
   for(i=0;i<LOOPS;i++)
     {
       lptr[(i*WORD_STRIDE)-1] = next_rand();

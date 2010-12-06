@@ -69,7 +69,8 @@ module eth_wishbone
    PerPacketPad, 
 
    //RX
-   MRxClk, RxData, RxValid, RxStartFrm, RxEndFrm, RxAbort, RxStatusWriteLatched_sync2, 
+   MRxClk, RxData, RxValid, RxStartFrm, RxEndFrm, RxAbort, 
+   RxStatusWriteLatched_sync2, 
   
    // Register
    r_TxEn, r_RxEn, r_TxBDNum, r_RxFlow, r_PassAll, 
@@ -79,11 +80,13 @@ module eth_wishbone
   
    // Rx Status
    InvalidSymbol, LatchedCrcError, RxLateCollision, ShortFrame, DribbleNibble,
-   ReceivedPacketTooBig, RxLength, LoadRxStatus, ReceivedPacketGood, AddressMiss, 
+   ReceivedPacketTooBig, RxLength, LoadRxStatus, ReceivedPacketGood, 
+   AddressMiss, 
    ReceivedPauseFrm, 
   
    // Tx Status
-   RetryCntLatched, RetryLimit, LateCollLatched, DeferLatched, RstDeferLatched, CarrierSenseLost
+   RetryCntLatched, RetryLimit, LateCollLatched, DeferLatched, RstDeferLatched,
+   CarrierSenseLost
 
    // Bist
 `ifdef ETH_BIST
@@ -101,10 +104,6 @@ module eth_wishbone
 
 
    );
-
-
-   //parameter Tp = 1;
-   parameter Tp = 0;
 
 
    // WISHBONE common
@@ -261,10 +260,10 @@ module eth_wishbone
    reg 				       TxAbortPacket;
    reg 				       TxAbortPacket_NotCleared;
    reg 				       RxBDReady;
-   reg 				       RxBDOK;
+   reg 				       RxBDOK/* synthesis syn_allow_retiming=0*/;
    reg 				       TxBDReady;
 
-   reg 				       RxBDRead;
+   reg 				       RxBDRead ;
 
    reg [31:0] 			       TxDataLatched;
    reg [1:0] 			       TxByteCnt;
@@ -340,8 +339,8 @@ module eth_wishbone
    reg [8:0] 			       RxStatusInLatched;
 
    reg 				       WbEn, WbEn_q;
-   reg 				       RxEn, RxEn_q;
-   reg 				       TxEn, TxEn_q;
+   reg 				       RxEn, RxEn_q /* synthesis syn_allow_retiming=0; syn_noprune=1; syn_keep=1 */;
+   reg 				       TxEn, TxEn_q /* synthesis syn_allow_retiming=0; syn_noprune=1; syn_keep=1 */;
    reg 				       r_TxEn_q;
    reg 				       r_RxEn_q;
 
@@ -358,7 +357,7 @@ module eth_wishbone
    reg 				       RxEn_needed;
 
    wire 			       StartRxPointerRead;
-   reg 				       RxPointerRead;
+   reg 				       RxPointerRead/* synthesis syn_allow_retiming=0*/;
 
    // RX shift ending signals
    reg ShiftEnded_rck;
@@ -376,11 +375,68 @@ module eth_wishbone
    reg 	rx_wb_last_writes;
 
    
-`ifdef TXBD_POLL
-   reg [31:0] 			       TxBDReadySamples; // -- jb
-   wire 			       TxBDNotReady; // -- jb
-`endif   
+   reg 	StartOccured;
+   reg 	TxStartFrm_sync1;
+   reg 	TxStartFrm_sync2;
+   reg 	TxStartFrm_syncb1;
+   reg 	TxStartFrm_syncb2;
 
+   
+   wire TxFifoClear;
+   wire TxBufferAlmostFull;
+   wire TxBufferFull;
+   wire TxBufferEmpty;
+   wire TxBufferAlmostEmpty;
+   wire SetReadTxDataFromMemory;
+   reg 	BlockReadTxDataFromMemory/* synthesis syn_allow_retiming=0*/;
+
+   reg tx_burst_en;
+   reg rx_burst_en;
+   reg [`ETH_BURST_CNT_WIDTH-1:0] tx_burst_cnt;
+   
+   wire 			  ReadTxDataFromMemory_2;
+   wire 			  tx_burst;
+
+   wire [31:0] 			  TxData_wb;
+   wire 			  ReadTxDataFromFifo_wb;
+
+   wire [`ETH_TX_FIFO_CNT_WIDTH-1:0] txfifo_cnt;
+   wire [`ETH_RX_FIFO_CNT_WIDTH-1:0] rxfifo_cnt;
+
+   reg [`ETH_BURST_CNT_WIDTH-1:0]    rx_burst_cnt;
+
+   wire 			     rx_burst;
+   wire 			     enough_data_in_rxfifo_for_burst;
+   wire 			     enough_data_in_rxfifo_for_burst_plus1;
+
+   reg ReadTxDataFromMemory/* synthesis syn_allow_retiming=0*/;
+   wire WriteRxDataToMemory;
+   reg WriteRxDataToMemory_r ;
+   
+   reg 	MasterWbTX;
+   reg 	MasterWbRX;
+
+   reg [29:0] m_wb_adr_o;
+   reg        m_wb_cyc_o;
+   reg [3:0]  m_wb_sel_o;
+   reg        m_wb_we_o;
+
+   wire       TxLengthEq0;
+   wire       TxLengthLt4;
+
+   reg 	      BlockingIncrementTxPointer;
+   reg [31:2] TxPointerMSB;
+   reg [1:0]  TxPointerLSB;
+   reg [1:0]  TxPointerLSB_rst;
+   reg [31:2] RxPointerMSB;
+   reg [1:0]  RxPointerLSB_rst;
+
+   wire       RxBurstAcc;
+   wire       RxWordAcc;
+   wire       RxHalfAcc;
+   wire       RxByteAcc;
+
+   
 `ifdef ETH_WISHBONE_B3
  `ifndef BURST_4BEAT   
    assign m_wb_bte_o = 2'b00;    // Linear burst
@@ -408,7 +464,7 @@ module eth_wishbone
       .oe      (ram_oe), 
       .addr    (ram_addr), 
       .di      (ram_di), 
-      .do      (ram_do)
+      .dato    (ram_do)
 `ifdef ETH_BIST
       ,
       .mbist_si_i       (mbist_si_i),
@@ -448,11 +504,12 @@ module eth_wishbone
 	     ram_addr <= 8'h0;
 	     ram_di <= 32'h0;
 	     BDRead <= 1'b0;
-	     BDWrite <= 1'b0;
+	     BDWrite <= 0;	     
 	  end
 	else
 	  begin
 	     // Switching between three stages depends on enable signals
+	     /* verilator lint_off CASEINCOMPLETE */ // JB
 	     case ({WbEn_q, RxEn_q, TxEn_q, RxEn_needed, TxEn_needed})  // synopsys parallel_case
                5'b100_10, 5'b100_11 :
 		 begin
@@ -516,7 +573,8 @@ module eth_wishbone
 		    BDWrite <= BDCs[3:0] & {4{WB_WE_I}};
 		    BDRead <= (|BDCs) & ~WB_WE_I;
 		 end
-	     endcase
+	     endcase //case ({WbEn_q, RxEn_q, TxEn_q, RxEn_needed, TxEn_needed})
+	     /* verilator lint_on CASEINCOMPLETE */
 	  end
      end
 
@@ -572,30 +630,6 @@ module eth_wishbone
 	    if(ResetTxBDReady)
 	      TxBDReady <= 1'b0;
      end
-
-`ifdef TXBD_POLL
-   // Register TxBDReady 4 times, when all are low we know this one is not 
-   // good to transmit
-   always @(posedge WB_CLK_I or posedge Reset) // -- jb
-     begin 
-	if (Reset) TxBDReadySamples <= 32'hffffffff;
-	else begin 
-	   if (r_TxEn) 
-	     begin
-		if (TxBDNotReady)
-		  TxBDReadySamples <= 32'hffffffff;
-		else
-		  TxBDReadySamples[31:0] <= {TxBDReadySamples[30:0],TxBDReady};
-	     end
-	   else
-	     TxBDReadySamples <= 32'hffffffff;
-	end // else: !if(Reset)
-     end // always @ (posedge WB_CLK_I or posedge Reset)
-   // When all low, this goes high -- jb
-   assign TxBDNotReady = ~(|TxBDReadySamples); 
-
-   
-`endif
 
    // Reading the Tx buffer descriptor
    assign StartTxBDRead = (TxRetryPacket_NotCleared | TxStatusWrite) & 
@@ -711,9 +745,6 @@ module eth_wishbone
 	    TxStatus <= ram_do[14:11];
      end
 
-   reg ReadTxDataFromMemory;
-   wire WriteRxDataToMemory;
-   reg WriteRxDataToMemory_r;
 
    // Register WriteRxDataToMemory in Wishbone clock domain
    // so it doesn't get out of sync with burst capability indication signals
@@ -722,29 +753,7 @@ module eth_wishbone
        WriteRxDataToMemory_r <= 0;
      else
        WriteRxDataToMemory_r <= WriteRxDataToMemory;
-   
-   reg 	MasterWbTX;
-   reg 	MasterWbRX;
 
-   reg [29:0] m_wb_adr_o;
-   reg        m_wb_cyc_o;
-   reg [3:0]  m_wb_sel_o;
-   reg        m_wb_we_o;
-
-   wire       TxLengthEq0;
-   wire       TxLengthLt4;
-
-   reg 	      BlockingIncrementTxPointer;
-   reg [31:2] TxPointerMSB;
-   reg [1:0]  TxPointerLSB;
-   reg [1:0]  TxPointerLSB_rst;
-   reg [31:2] RxPointerMSB;
-   reg [1:0]  RxPointerLSB_rst;
-
-   wire       RxBurstAcc;
-   wire       RxWordAcc;
-   wire       RxHalfAcc;
-   wire       RxByteAcc;
 
    //Latching length from the buffer descriptor;
    always @ (posedge WB_CLK_I or posedge Reset)
@@ -761,19 +770,19 @@ module eth_wishbone
 		   TxLength <= 16'h0;
 		 else
 		   if(TxPointerLSB_rst==2'h0)
-		     TxLength <= TxLength - 3'h4;    // Length is subtracted at
+		     TxLength <= TxLength - 16'd4;    // Length is subtracted at
 		                                     // the data request
 		   else
 		     if(TxPointerLSB_rst==2'h1)
-		       TxLength <= TxLength - 3'h3;    // Length is subtracted 
+		       TxLength <= TxLength - 16'd3;    // Length is subtracted 
 		                                       // at the data request
 		     else
 		       if(TxPointerLSB_rst==2'h2)
-			 TxLength <= TxLength - 3'h2;    // Length is subtracted
+			 TxLength <= TxLength - 16'd2;   // Length is subtracted
 		                                         // at the data request
 		       else
 			 if(TxPointerLSB_rst==2'h3)
-			   TxLength <= TxLength - 3'h1;  // Length is subtracted
+			   TxLength <= TxLength - 16'd1; // Length is subtracted
 		                                         // at the data request
 	      end
      end
@@ -809,7 +818,7 @@ module eth_wishbone
 	  else
 	    if(IncrTxPointer & ~BlockingIncrementTxPointer)
 	      // TxPointer is word-aligned
-	      TxPointerMSB <= TxPointerMSB + 1'b1;
+	      TxPointerMSB <= TxPointerMSB + 1;
      end
 
 
@@ -862,14 +871,6 @@ module eth_wishbone
      end
 
 
-   wire TxBufferAlmostFull;
-   wire TxBufferFull;
-   wire TxBufferEmpty;
-   wire TxBufferAlmostEmpty;
-   wire SetReadTxDataFromMemory;
-
-   reg 	BlockReadTxDataFromMemory;
-
    assign SetReadTxDataFromMemory = TxEn & TxEn_q & TxPointerRead;
 
    always @ (posedge WB_CLK_I or posedge Reset)
@@ -883,17 +884,6 @@ module eth_wishbone
 	    if(SetReadTxDataFromMemory)
 	      ReadTxDataFromMemory <= 1'b1;
      end
-
-   reg tx_burst_en;
-   reg rx_burst_en;
-   reg [`ETH_BURST_CNT_WIDTH-1:0] tx_burst_cnt;
-   
-   wire 			  ReadTxDataFromMemory_2;
-   wire 			  tx_burst;
-   
-
-   wire [31:0] 			  TxData_wb;
-   wire 			  ReadTxDataFromFifo_wb;
 
    assign ReadTxDataFromMemory_2 = ReadTxDataFromMemory & 
 				   ~BlockReadTxDataFromMemory | (|tx_burst_cnt);
@@ -915,17 +905,9 @@ module eth_wishbone
 	      BlockReadTxDataFromMemory <= 1'b0;
      end
 
-`define TX_BURST_EN_CONDITION (txfifo_cnt<(`ETH_TX_FIFO_DEPTH-`ETH_BURST_LENGTH) & (TxLength>(`ETH_BURST_LENGTH*4+4)))
+`define TX_BURST_EN_CONDITION ({1'b0,txfifo_cnt}<(`ETH_TX_FIFO_DEPTH-`ETH_BURST_LENGTH) & (TxLength>(`ETH_BURST_LENGTH*4+4)))
    
-   assign MasterAccessFinished = m_wb_ack_i | m_wb_err_i;
-   wire [`ETH_TX_FIFO_CNT_WIDTH-1:0] txfifo_cnt;
-   wire [`ETH_RX_FIFO_CNT_WIDTH-1:0] rxfifo_cnt;
-
-   reg [`ETH_BURST_CNT_WIDTH-1:0]    rx_burst_cnt;
-
-   wire 			     rx_burst;
-   wire 			     enough_data_in_rxfifo_for_burst;
-   wire 			     enough_data_in_rxfifo_for_burst_plus1;
+   assign MasterAccessFinished = m_wb_ack_i | m_wb_err_i;   
 
    // Enabling master wishbone access to the memory for two devices TX and RX.
    always @ (posedge WB_CLK_I or posedge Reset)
@@ -954,7 +936,7 @@ module eth_wishbone
 	else
 	  begin
 	     // Switching between two stages depends on enable signals
-	     casex ({MasterWbTX,
+	     casez ({MasterWbTX,
 		     MasterWbRX,
 		     ReadTxDataFromMemory_2,
 		     WriteRxDataToMemory_r,
@@ -964,9 +946,9 @@ module eth_wishbone
 		     rx_burst})  // synopsys parallel_case
 	       
                8'b00_10_00_10, // Idle and MRB needed
-	       8'b10_1x_10_1x, // MRB continues
+	       8'b10_1?_10_1?, // MRB continues
 	       8'b10_10_01_10, // Clear (previously MR) and MRB needed
-	       8'b01_1x_01_1x: // Clear (previously MW) and MRB needed
+	       8'b01_1?_01_1?: // Clear (previously MW) and MRB needed
 		   begin
 		      MasterWbTX <= 1'b1;  // tx burst
 		      MasterWbRX <= 1'b0;
@@ -979,7 +961,7 @@ module eth_wishbone
 		      if(tx_burst_cnt==0)
 			m_wb_adr_o <= TxPointerMSB;
 		      else
-			m_wb_adr_o <= m_wb_adr_o+1'b1;
+			m_wb_adr_o <= m_wb_adr_o + 1;
 
 		      if(tx_burst_cnt==(`ETH_BURST_LENGTH-1))
 			begin
@@ -999,10 +981,10 @@ module eth_wishbone
 			end
 		   end // case: 8'b00_10_00_10,...
 `ifdef ETH_RX_BURST_EN	
-         8'b00_x1_00_x1,             // Idle and MWB needed
-         8'b01_x1_10_x1,             // MWB continues
+         8'b00_?1_00_?1,             // Idle and MWB needed
+         8'b01_?1_10_?1,             // MWB continues
          8'b01_01_01_01,             // Clear (previously MW) and MWB needed
-         8'b10_x1_01_x1 :            // Clear (previously MR) and MWB needed
+         8'b10_?1_01_?1 :            // Clear (previously MR) and MWB needed
            begin
               MasterWbTX <= 1'b0;  // rx burst
               MasterWbRX <= 1'b1;
@@ -1011,12 +993,12 @@ module eth_wishbone
               m_wb_sel_o <= RxByteSel;
               IncrTxPointer<= 1'b0;
               cyc_cleared<= 1'b0;
-              rx_burst_cnt <= rx_burst_cnt+3'h1;
+              rx_burst_cnt <= rx_burst_cnt+3'd1;
 
               if(rx_burst_cnt==0)
 		m_wb_adr_o <= RxPointerMSB;
               else
-		m_wb_adr_o <= m_wb_adr_o+1'b1;
+		m_wb_adr_o <= m_wb_adr_o + 1;
 
               if(rx_burst_cnt==(`ETH_BURST_LENGTH-1))
 		begin
@@ -1036,8 +1018,8 @@ module eth_wishbone
 		end
            end // case: 8'b00_x1_00_x1,...
 `endif //  `ifdef ETH_RX_BURST_EN
-               8'b00_x1_00_x0 ,//idle and MW is needed (data write to rx buffer)
-	       8'b01_x1_00_x0 :// Sometimes gets caught changing states - JB
+               8'b00_?1_00_?0 ,//idle and MW is needed (data write to rx buffer)
+	       8'b01_?1_00_?0 :// Sometimes gets caught changing states - JB
 		   begin
 		      MasterWbTX <= 1'b0;
 		      MasterWbRX <= !RxBufferEmpty;
@@ -1096,7 +1078,7 @@ module eth_wishbone
 `endif	     
 		 end
                8'b10_10_01_00,// MR and MR is needed (data read from tx buffer)
-	       8'b01_1x_01_0x  :// MW and MR is needed (data read from tx 
+	       8'b01_1?_01_0?  :// MW and MR is needed (data read from tx 
 		                  // buffer)
 		   begin
 		      MasterWbTX <= 1'b1; // Only switch to TX here
@@ -1132,7 +1114,7 @@ module eth_wishbone
 		      
 		   end
                8'b01_01_01_00,// MW and MW needed (data write to rx buffer)
-	       8'b10_x1_01_x0 ://MR and MW is needed (data write to rx buffer)
+	       8'b10_?1_01_?0 ://MR and MW is needed (data write to rx buffer)
 		   begin
 		      MasterWbTX <= 1'b0;
 		      MasterWbRX <= !RxBufferEmpty;
@@ -1163,11 +1145,11 @@ module eth_wishbone
 		   end
                8'b01_01_10_00,// MW and MW needed (cycle is cleared between 
 		              // previous and next access)
-	       8'b01_1x_10_x0,// MW and MW or MR or MRB needed (cycle is 
+	       8'b01_1?_10_?0,// MW and MW or MR or MRB needed (cycle is 
 		              // cleared between previous and next access)
 	       8'b10_10_10_00,// MR and MR needed (cycle is cleared between 
 		              // previous  and next access)
-	       8'b10_x1_10_0x :// MR and MR or MW or MWB (cycle is cleared 
+	       8'b10_?1_10_0? :// MR and MR or MW or MWB (cycle is cleared 
 		               // between previous and next access)
 		   begin
 		      m_wb_cyc_o <= 1'b0;// whatever and master read or write is
@@ -1190,9 +1172,9 @@ module eth_wishbone
 		      m_wb_cti_o <= 3'b0;
 `endif
 		   end
-               8'bxx_00_10_00,// whatever and no master read or write is needed
+               8'b??_00_10_00,// whatever and no master read or write is needed
 		              // (ack or err comes finishing previous access)
-		 8'bxx_00_01_00 : // Between cyc_cleared request was cleared
+		 8'b??_00_01_00 : // Between cyc_cleared request was cleared
 		   begin
 		      MasterWbTX <= 1'b0;
 		      MasterWbRX <= 1'b0;
@@ -1244,9 +1226,6 @@ module eth_wishbone
 	  end
      end
 
-
-   wire TxFifoClear;
-
    assign TxFifoClear = (TxAbortPacket | TxRetryPacket | StartTxPointerRead);
    
    eth_fifo 
@@ -1271,16 +1250,8 @@ module eth_wishbone
        .cnt(txfifo_cnt)
        );
 
-
-   reg 	StartOccured;
-   reg 	TxStartFrm_sync1;
-   reg 	TxStartFrm_sync2;
-   reg 	TxStartFrm_syncb1;
-   reg 	TxStartFrm_syncb2;
-
-
-
-   // Start: Generation of the TxStartFrm_wb which is then synchronized to the MTxClk
+   // Start: Generation of the TxStartFrm_wb which is then synchronized to the 
+   // MTxClk
    always @ (posedge WB_CLK_I or posedge Reset)
      begin
 	if(Reset)
@@ -1421,13 +1392,10 @@ module eth_wishbone
 
 
    // Temporary Tx and Rx buffer descriptor address
-`ifdef TXBD_POLL
-   assign TempTxBDAddress[7:1] = {7{ (TxStatusWrite|TxBDNotReady)     & ~WrapTxStatusBit}}   & (TxBDAddress + 1'b1) ; // Tx BD increment or wrap (last BD) -- jb
-`else    
-   assign TempTxBDAddress[7:1] = {7{ TxStatusWrite     & ~WrapTxStatusBit}}   & (TxBDAddress + 1'b1) ; // Tx BD increment or wrap (last BD)
-`endif
+   assign TempTxBDAddress[7:1] = {7{ TxStatusWrite     & ~WrapTxStatusBit}}   & (TxBDAddress + 1) ; // Tx BD increment or wrap (last BD)
+
    assign TempRxBDAddress[7:1] = {7{ WrapRxStatusBit}} & (r_TxBDNum[6:0])     | // Using first Rx BD
-				 {7{~WrapRxStatusBit}} & (RxBDAddress + 1'b1) ; // Using next Rx BD (incremenrement address)
+				 {7{~WrapRxStatusBit}} & (RxBDAddress + 1) ; // Using next Rx BD (incremenrement address)
 
 
    // Latching Tx buffer descriptor address
@@ -1437,12 +1405,8 @@ module eth_wishbone
 	  TxBDAddress <= 7'h0;
 	else if (r_TxEn & (~r_TxEn_q))
 	  TxBDAddress <= 7'h0;
-`ifdef TXBD_POLL
-	else if (TxStatusWrite | TxBDNotReady)  // -- jb
-`else    
-	  else if (TxStatusWrite)
-`endif      
-	    TxBDAddress <= TempTxBDAddress;
+	else if (TxStatusWrite)
+	  TxBDAddress <= TempTxBDAddress;
      end
 
 
@@ -1966,7 +1930,7 @@ module eth_wishbone
        rx_just_read_bd <= (RxEn & RxEn_q & RxBDRead);
 
    // Signal to indicate we've checked and the RxBD we want to use is not free
-   reg rx_waiting_for_bd_to_become_free;
+   reg rx_waiting_for_bd_to_become_free/*syn_allow_retiming=0; syn_keep=1; syn_preserve=1*/;
    always @ (posedge WB_CLK_I or posedge Reset)
      if(Reset)
        rx_waiting_for_bd_to_become_free <= 0;
@@ -2034,7 +1998,7 @@ module eth_wishbone
 	    if(MasterWbRX & m_wb_ack_i)
 	      // Word access  (always word access. m_wb_sel_o are used for 
 	      // selecting bytes)
-	      RxPointerMSB <= RxPointerMSB + 1'b1; 
+	      RxPointerMSB <= RxPointerMSB + 1; 
      end
 
 
@@ -2131,7 +2095,7 @@ module eth_wishbone
 	      endcase
 	    else
 	      if(RxValid & RxEnableWindow /*& RxReady*/ | LastByteIn)
-		RxByteCnt <= RxByteCnt + 1'b1;
+		RxByteCnt <= RxByteCnt + 1;
      end
 
 
@@ -2150,7 +2114,7 @@ module eth_wishbone
 	    endcase
 	  else
 	    if(RxValid & ~LastByteIn & ~RxStartFrm & RxEnableWindow)
-	      RxValidBytes <= RxValidBytes + 1'b1;
+	      RxValidBytes <= RxValidBytes + 1;
      end
 
 
@@ -2211,11 +2175,11 @@ module eth_wishbone
 
 
    // Indicating start of the reception process
-   assign SetWriteRxDataToFifo = (RxValid &/* RxReady &*/ ~RxStartFrm & 
-				  RxEnableWindow & (&RxByteCnt)) | 
-				 (RxValid &/* RxReady &*/  RxStartFrm & 
-				  (&RxPointerLSB_rst))           | 
-				 (ShiftWillEnd & LastByteIn & (&RxByteCnt));
+   assign SetWriteRxDataToFifo = (RxValid & ~RxStartFrm & 
+				  RxEnableWindow & (&RxByteCnt))
+				 /*| (RxValid & RxStartFrm &
+				  (&RxPointerLSB_rst)) */
+                                 |(ShiftWillEnd & LastByteIn & (&RxByteCnt));
 
    always @ (posedge MRxClk or posedge Reset)
      begin
@@ -2263,8 +2227,8 @@ module eth_wishbone
 				 ~WriteRxDataToFifoSync3;
    // Receive fifo selection register - JB
    reg [3:0] rx_shift_ended_wb_shr;   
-   reg 	     rx_ethside_fifo_sel;
-   reg 	     rx_wbside_fifo_sel;
+   reg 	     rx_ethside_fifo_sel /* synthesis syn_allow_retiming=0; syn_noprune=1; syn_keep=1 */;
+   reg 	     rx_wbside_fifo_sel /* synthesis syn_allow_retiming=0; syn_noprune=1; syn_keep=1 */;
 
    // Shift in this - our detection of end of data RX
    always @(posedge WB_CLK_I)
@@ -2454,10 +2418,9 @@ module eth_wishbone
    assign enough_data_in_rxfifo_for_burst_plus1 = rxfifo_cnt>(`ETH_BURST_LENGTH - 1);
    // While receiving, don't flog the bus too hard, only write out when
    // we can burst. But when finishing keep going until we've emptied the fifo
-   assign write_rx_data_to_memory_go = 
-				       RxEnableWindow & (rx_wbside_fifo_sel == rx_ethside_fifo_sel) ? 
-				       (rxfifo_cnt>(`ETH_BURST_LENGTH)+2) | 
-				       (|rx_burst_cnt) : ~RxBufferEmpty;
+   assign write_rx_data_to_memory_go 
+     = RxEnableWindow & (rx_wbside_fifo_sel == rx_ethside_fifo_sel) ? 
+       (rxfifo_cnt>(`ETH_BURST_LENGTH) + 2) | (|rx_burst_cnt) : ~RxBufferEmpty;
    
 `else
    assign enough_data_in_rxfifo_for_burst = rxfifo_cnt>=`ETH_BURST_LENGTH;
@@ -2465,7 +2428,8 @@ module eth_wishbone
    assign write_rx_data_to_memory_go = ~RxBufferEmpty;
 `endif // !`ifdef ETH_RX_BURST_EN
    
-   assign WriteRxDataToMemory = write_rx_data_to_memory_go & !write_rx_data_to_memory_wait;
+   assign WriteRxDataToMemory = write_rx_data_to_memory_go & 
+				!write_rx_data_to_memory_wait;
    
    assign rx_burst = rx_burst_en & WriteRxDataToMemory;
 
@@ -2814,11 +2778,9 @@ module eth_wishbone
 `ifdef WISHBONE_DEBUG
    // Top byte, burst progress counters
    assign dbg_dat0[31] = 0;   
-   assign dbg_dat0[30] = 0;        
-   assign dbg_dat0[29:28] = rx_burst_cnt;
+   assign dbg_dat0[30:28] = rx_burst_cnt;
    assign dbg_dat0[27] = 0;   
-   assign dbg_dat0[26] = 0;     
-   assign dbg_dat0[25:24] = tx_burst_cnt;
+   assign dbg_dat0[26:24] = tx_burst_cnt;
    
    // Third byte
    assign dbg_dat0[23] = 0;   

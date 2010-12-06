@@ -464,10 +464,10 @@ initial
       reg [24:0]   txpnt_sdram; // Index in array of shorts for data in SDRAM 
                                 // part
       reg [21:0]   buffer;
-      reg [7:0]    sdram_byte;
+      reg [7:0]    destram_byte;
       reg [31:0]   tx_len_bd;
       
-      integer 	   i;
+      integer 	   i,j;
       integer 	   failure;
       begin
 	 failure = 0;
@@ -496,20 +496,46 @@ initial
 	 
 	 // Variable we'll use for index in the PHY's TX buffer
 	 buffer = 0; // Start of TX data
-`ifdef VERSATILE_SDRAM
+`ifdef RAM_WB
 	 for (i=0;i<tx_len_bd;i=i+1)
 	   begin
 	      //$display("Checking address in tx bd 0x%0h",txpnt_sdram);
 	      
-	      sdram0.get_byte(txpnt_sdram,sdram_byte);
+	      destram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(txpnt_sdram);
+	      
+	      phy_byte = eth_phy0.tx_mem[buffer];
+		   
+	      // Debugging output
+	      //$display("txpnt_sdram = 0x%h, destram_byte = 0x%h, buffer = 0x%h,
+	      //phy_byte = 0x%h", txpnt_sdram,  destram_byte, buffer, phy_byte);
+	      
+	      if (phy_byte !== destram_byte)
+		begin
+		   `TIME;		  
+		   $display("*E Wrong byte (%d) of TX packet! ram = %h, phy = %h",buffer, destram_byte, phy_byte);
+		   failure = 1;
+		end
+	      
+	      buffer = buffer + 1;
+	      
+	      txpnt_sdram = txpnt_sdram+1;
+	      
+	   end // for (i=0;i<tx_len_bd;i=i+1)
+`else	 
+ `ifdef VERSATILE_SDRAM
+	 for (i=0;i<tx_len_bd;i=i+1)
+	   begin
+	      //$display("Checking address in tx bd 0x%0h",txpnt_sdram);
+	      
+	      sdram0.get_byte(txpnt_sdram,destram_byte);
 
 	      phy_byte = eth_phy0.tx_mem[buffer];
 	      // Debugging output
-	      //$display("txpnt_sdram = 0x%h, sdram_byte = 0x%h, buffer = 0x%h, phy_byte = 0x%h", txpnt_sdram,  sdram_byte, buffer, phy_byte);
-	      if (phy_byte !== sdram_byte)
+	      //$display("txpnt_sdram = 0x%h, destram_byte = 0x%h, buffer = 0x%h, phy_byte = 0x%h", txpnt_sdram,  destram_byte, buffer, phy_byte);
+	      if (phy_byte !== destram_byte)
 		begin
 		   `TIME;		  
-		   $display("*E Wrong byte (%d) of TX packet! ram = %h, phy = %h",buffer, sdram_byte, phy_byte);
+		   $display("*E Wrong byte (%d) of TX packet! ram = %h, phy = %h",buffer, destram_byte, phy_byte);
 		   failure = 1;
 		end
 	      
@@ -519,12 +545,15 @@ initial
 	      
 	   end // for (i=0;i<tx_len_bd;i=i+1)
 	 
-`else
-	 $display("SET ME UP TO LOOK IN ANOTHER MEMORY!");
+ `else // !`ifdef VERSATILE_SDRAM
+
+	 $display("eth_stim.v: CANNOT INSPECT RAM. PLEASE CONFIGURE CORRECTLY");
 	 $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
 		  tx_bd_addr, txpnt_wb);
 	 $finish;
-`endif // !`ifdef VERSATILE_SDRAM
+ `endif // !`ifdef VERSATILE_SDRAM
+`endif // !`ifdef RAM_WB	 
+	   
 	 if (failure)
 	   begin
 	      #100
@@ -963,8 +992,7 @@ initial
       reg [31:0]   rxpnt_wb; // Pointer in array to where data should be
       reg [24:0]   rxpnt_sdram; // byte address from CPU in RAM
       reg [15:0]   sdram_short;
-      reg [7:0]    sdram_byte;
-      //reg [7:0]    phy_rx_mem [0:2000];
+      reg [7:0]    destram_byte;
       
       integer 	   i;
       integer 	   failure;
@@ -1002,8 +1030,31 @@ initial
 	 
 	 rxpnt_wb = {14'd0,rx_bd_addr[17:0]};
 	 rxpnt_sdram = rx_bd_addr[24:0];
-	 	 	 
-`ifdef VERSATILE_SDRAM
+	 
+	 
+`ifdef RAM_WB
+	 for (i=0;i<len;i=i+1)
+	   begin
+
+	      destram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(rxpnt_sdram);
+
+	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];
+
+	      if (phy_byte !== destram_byte)
+		begin
+		   $display("*E Wrong byte (%5d) of RX packet %5d! phy = %h, ram = %h",
+			    i, eth_rx_num_packets_checked, phy_byte, destram_byte);
+		   failure = 1;
+		end
+
+	      eth_rx_sent_circbuf_read_ptr = (eth_rx_sent_circbuf_read_ptr+1)& 
+					     eth_rx_sent_circbuf_size_mask;
+
+	      rxpnt_sdram = rxpnt_sdram+1;
+	      
+	   end
+`else	 	 	 
+ `ifdef VERSATILE_SDRAM
 	 // We'll look inside the SDRAM array
 	 // Hard coded for the SDRAM buffer area to be from the halfway mark in
 	 // memory (so starting in Bank2)
@@ -1016,15 +1067,15 @@ initial
 	 for (i=0;i<len;i=i+1)
 	   begin
 
-	      sdram0.get_byte(rxpnt_sdram,sdram_byte);	      
+	      sdram0.get_byte(rxpnt_sdram,destram_byte);	      
 
 	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];//phy_rx_mem[buffer]; //eth_phy0.rx_mem[buffer];
 
-	      if (phy_byte !== sdram_byte)
+	      if (phy_byte !== destram_byte)
 		begin
 //		   `TIME;		  
 		   $display("*E Wrong byte (%5d) of RX packet %5d! phy = %h, ram = %h",
-			    i, eth_rx_num_packets_checked, phy_byte, sdram_byte);
+			    i, eth_rx_num_packets_checked, phy_byte, destram_byte);
 		   failure = 1;
 		end
 
@@ -1034,15 +1085,17 @@ initial
 	      rxpnt_sdram = rxpnt_sdram+1;
 	      
 	   end // for (i=0;i<len;i=i+2)
-`else
+ `else
 
-	 $display("SET ME UP TO LOOK IN ANOTHER MEMORY!");
+	 $display("eth_stim.v: CANNOT INSPECT RAM. PLEASE CONFIGURE CORRECTLY");
 	 $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
 		  rx_bd_addr, rxpnt_wb);
 	 $finish;
 	 
 	 
-`endif // !`ifdef VERSATILE_SDRAM
+ `endif // !`ifdef VERSATILE_SDRAM
+`endif // !`ifdef RAM_WB
+	 
 
 	 if (failure)
 	   begin

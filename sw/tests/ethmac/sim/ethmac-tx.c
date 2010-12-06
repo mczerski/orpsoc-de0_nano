@@ -58,7 +58,7 @@ static void oeth_rx(void);
 static void oeth_tx(void);
 
 /* Let the ethernet packets use a space beginning here for buffering */
-#define ETH_BUFF_BASE 0x01000000
+#define ETH_BUFF_BASE 0x200000;
 
 #define RXBUFF_PREALLOC	1
 #define TXBUFF_PREALLOC	1
@@ -330,18 +330,6 @@ void tx_packet(void* data, int length)
   else
     tx_bd->len_status &= ~OETH_TX_BD_PAD;
   
-#ifdef _ETH_RXTX_DATA_H_
-  // Set the address pointer to the place
-  // in memory where the data is and transmit from there
-  
-  tx_bd->addr = (char*) &tx_data_array[tx_data_pointer&~(0x3)];
-
-  tx_data_pointer += length;
-  if (tx_data_pointer > (255*1024))
-    tx_data_pointer = 0;
-  
-
-#else
   if (data){
     //Copy the data into the transmit buffer, byte at a time 
     char* data_p = (char*) data;
@@ -351,7 +339,6 @@ void tx_packet(void* data, int length)
 	data_b[i] = data_p[i];
       }
   }
-#endif    
 
   /* Set the length of the packet's data in the buffer descriptor */
   tx_bd->len_status = (tx_bd->len_status & 0x0000ffff) | 
@@ -534,8 +521,6 @@ fill_and_tx_packet(int size)
   // If it's in use - wait
   while ((tx_bd->len_status & OETH_TX_BD_IRQ));
 
-#ifndef _ETH_RXTX_DATA_H_  
-  
   // Use rand() function to generate data for transmission
   // Assumption: ethernet buffer descriptors are 4byte aligned
   char* data_b = (char*) tx_bd->addr;
@@ -555,7 +540,6 @@ fill_and_tx_packet(int size)
     {
       data_b[i] = rand()&0xff;
     }
-#endif
 
    tx_packet((void*)0, size);
 }
@@ -564,10 +548,6 @@ int
 main ()
 {
   int i;
-
-#ifdef _ETH_RXTX_DATA_H_
-  tx_data_pointer = 0;  
-#endif
 
   /* Initialise handler vector */
   int_init();

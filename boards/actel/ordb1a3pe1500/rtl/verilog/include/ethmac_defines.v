@@ -191,23 +191,23 @@
 `define ETH_TX_1KBYTE_FIFO     // 1024 byte TX buffer - uncomment this
 
 `ifdef  ETH_TX_FULL_PACKET_FIFO
- `define ETH_TX_FIFO_CNT_WIDTH  11
+ `define ETH_TX_FIFO_CNT_WIDTH  9
  `define ETH_TX_FIFO_DEPTH      375
 `else
  `ifdef ETH_TX_1KBYTE_FIFO
-  `define ETH_TX_FIFO_CNT_WIDTH  9
+  `define ETH_TX_FIFO_CNT_WIDTH  8
   `define ETH_TX_FIFO_DEPTH      256
  `else
   `ifdef ETH_TX_512BYTE_FIFO
-   `define ETH_TX_FIFO_CNT_WIDTH  8
+   `define ETH_TX_FIFO_CNT_WIDTH  7
    `define ETH_TX_FIFO_DEPTH      128
   `else
    `ifdef ETH_TX_256BYTE_FIFO
-    `define ETH_TX_FIFO_CNT_WIDTH  7
+    `define ETH_TX_FIFO_CNT_WIDTH  6
     `define ETH_TX_FIFO_DEPTH      64
    `else
 // Default is 64 bytes
-    `define ETH_TX_FIFO_CNT_WIDTH  5
+    `define ETH_TX_FIFO_CNT_WIDTH  4
     `define ETH_TX_FIFO_DEPTH      16
    `endif
   `endif
@@ -217,16 +217,16 @@
 
 
 // Settings for RX FIFO
-`define ETH_RX_FIFO_CNT_WIDTH  9
+`define ETH_RX_FIFO_CNT_WIDTH  8
 `define ETH_RX_FIFO_DEPTH      256
-//`define ETH_RX_FIFO_CNT_WIDTH  8
-//`define ETH_RX_FIFO_DEPTH      128
 //`define ETH_RX_FIFO_CNT_WIDTH  7
-//`define ETH_RX_FIFO_DEPTH      64
+//`define ETH_RX_FIFO_DEPTH      128
 //`define ETH_RX_FIFO_CNT_WIDTH  6
-//`define ETH_RX_FIFO_DEPTH      32
+//`define ETH_RX_FIFO_DEPTH      64
 //`define ETH_RX_FIFO_CNT_WIDTH  5
-//`define ETH_RX_FIFO_DEPTH      16
+//`define ETH_RX_FIFO_DEPTH      32
+//`define ETH_RX_FIFO_CNT_WIDTH  4
+//`define ETH_RX_FIFO_DEPTH      1
 
 `define ETH_RX_FIFO_DATA_WIDTH 32
 

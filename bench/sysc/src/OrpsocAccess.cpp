@@ -39,13 +39,10 @@
 #include "Vorpsoc_top_or1200_rf.h"
 #include "Vorpsoc_top_or1200_dpram.h"
 // Need RAM instantiation has parameters after module name
-// Includes for wb_ram
-//#include "Vorpsoc_top_ram_wb__D20_A19_M800000.h"
-//#include "Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000.h"
-// Include for wb_ram_b3
-#include "Vorpsoc_top_wb_ram_b3__D20_A17_M800000.h"
-// Bus arbiter include - but is for old arbiter, no longer used
-//#include "Vorpsoc_top_wb_conbus_top__pi1.h"
+// Include for ram_wb
+#include "Vorpsoc_top_ram_wb__A20_D20_M800000_MB17.h"
+// Include for ram_wb_b3
+#include "Vorpsoc_top_ram_wb_b3__pi3.h"
 
 //! Constructor for the ORPSoC access class
 
@@ -63,7 +60,8 @@ OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
   rf_a        = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_rf->rf_a;
   // Assign main memory accessor objects
   // For old ram_wb: ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
-  ram_wb_sc_sw = orpsoc_top->v->wb_ram_b3_0;
+  //ram_wb_sc_sw = orpsoc_top->v->wb_ram_b3_0;
+  wishbone_ram = orpsoc_top->v->ram_wb0->ram_wb_b3_0;
 
   // Assign arbiter accessor object
   //wb_arbiter = orpsoc_top->v->wb_conbus;
@@ -200,7 +198,7 @@ OrpsocAccess::getWbInsn ()
 uint32_t
 OrpsocAccess::get_mem32 (uint32_t addr)
 {
-  return  (ram_wb_sc_sw->get_mem) (addr/4);
+  return  (wishbone_ram->get_mem) (addr/4);
 
 }	// get_mem32 ()
 
@@ -222,7 +220,7 @@ OrpsocAccess::get_mem8 (uint32_t addr)
     {
       cached_word_addr = addr;
       // Convert address to word number here
-      word = (ram_wb_sc_sw->get_mem) (addr);
+      word = (wishbone_ram->get_mem) (addr);
       cached_word = word;
     }
   else
@@ -255,7 +253,7 @@ OrpsocAccess::get_mem8 (uint32_t addr)
 void
 OrpsocAccess::set_mem32 (uint32_t addr, uint32_t data)
 {
-  (ram_wb_sc_sw->set_mem) (addr/4, data);
+  (wishbone_ram->set_mem) (addr/4, data);
 
 }	// set_mem32 ()
 
@@ -264,7 +262,7 @@ OrpsocAccess::set_mem32 (uint32_t addr, uint32_t data)
 void
 OrpsocAccess::do_ram_readmemh (void)
 {
-  (ram_wb_sc_sw->do_readmemh) ();
+  (wishbone_ram->do_readmemh) ();
 
 }	// do_ram_readmemh ()
 

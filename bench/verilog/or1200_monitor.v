@@ -455,12 +455,12 @@ always @(posedge `OR1200_TOP.dwb_clk_i)
 
 
 `ifdef RAM_WB
- `define RAM_WB_TOP `DUT_TOP.wb_ram_b3_0
+ `define RAM_WB_TOP `DUT_TOP.ram_wb0.ram_wb_b3_0
    task get_insn_from_wb_ram;
       input [31:0] addr;
       output [31:0] insn;
       begin
-	 insn = `RAM_WB_TOP.mem[addr[31:2]];
+	 insn = `RAM_WB_TOP.get_mem(addr);
       end
    endtask // get_insn_from_wb_ram
 `endif

@@ -198,6 +198,7 @@ PRJ_FILE=$(DESIGN_NAME).prj
 NGC_FILE=$(DESIGN_NAME).ngc
 NETLIST_FILE=$(DESIGN_NAME).v
 
+
 XST_PRJ_FILE_SRC_DECLARE=verilog work
 
 print-config:
@@ -282,6 +283,8 @@ $(NGC_FILE): $(PRJ_FILE) $(XST_FILE) $(XCF_FILE) $(GENERATED_DEFINES)
 	$(Q)echo; echo "\t#### Running XST ####"; echo;
 	$(Q)(. $(XILINX_SETTINGS_SCRIPT) ; xst -ifn $(XST_FILE) $(XILINX_FLAGS) $(XST_FLAGS) )
 	$(Q)echo
+
+netlist: $(NETLIST_FILE)
 
 # Netlist generation command
 $(NETLIST_FILE): $(NGC_FILE)

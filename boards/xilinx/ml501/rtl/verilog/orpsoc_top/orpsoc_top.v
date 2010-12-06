@@ -1037,8 +1037,8 @@ module orpsoc_top
       .wbm0_stb_i			(wbs_i_mc0_stb_i),
       .wbm0_dat_o			(wbs_i_mc0_dat_o),
       .wbm0_ack_o			(wbs_i_mc0_ack_o),
-      .wbm0_err_o                       (),
-      .wbm0_rty_o                       (),
+      .wbm0_err_o                       (wbs_i_mc0_err_o),
+      .wbm0_rty_o                       (wbs_i_mc0_rty_o),
       // Wishbone slave interface 1
       .wbm1_dat_i			(wbs_d_mc0_dat_i),
       .wbm1_adr_i			(wbs_d_mc0_adr_i),
@@ -1050,22 +1050,30 @@ module orpsoc_top
       .wbm1_stb_i			(wbs_d_mc0_stb_i),
       .wbm1_dat_o			(wbs_d_mc0_dat_o),
       .wbm1_ack_o			(wbs_d_mc0_ack_o),
-      .wbm1_err_o                       (),
-      .wbm1_rty_o                       (),      
+      .wbm1_err_o                       (wbs_d_mc0_err_o),
+      .wbm1_rty_o                       (wbs_d_mc0_rty_o),     
+      // Wishbone slave interface 2
+      .wbm2_dat_i			(wbm_eth0_dat_o),
+      .wbm2_adr_i			(wbm_eth0_adr_o),
+      .wbm2_sel_i			(wbm_eth0_sel_o),
+      .wbm2_cti_i			(wbm_eth0_cti_o),
+      .wbm2_bte_i			(wbm_eth0_bte_o),
+      .wbm2_we_i			(wbm_eth0_we_o ),
+      .wbm2_cyc_i			(wbm_eth0_cyc_o),
+      .wbm2_stb_i			(wbm_eth0_stb_o),
+      .wbm2_dat_o			(wbm_eth0_dat_i),
+      .wbm2_ack_o			(wbm_eth0_ack_i),
+      .wbm2_err_o                       (wbm_eth0_err_i),
+      .wbm2_rty_o                       (wbm_eth0_rty_i),       
       // Clock, reset
       .wb_clk_i				(wb_clk),
       .wb_rst_i				(wb_rst));
-
-   assign wbs_i_mc0_err_o = 0;
-   assign wbs_i_mc0_rty_o = 0;
-
-   assign wbs_d_mc0_err_o = 0;
-   assign wbs_d_mc0_rty_o = 0;
    
    defparam ram_wb0.aw = wb_aw;
    defparam ram_wb0.dw = wb_dw;
-   defparam ram_wb0.mem_span = internal_sram_mem_span;   
-   defparam ram_wb0.adr_width_for_span = internal_sram_adr_width_for_span;   
+   
+   defparam ram_wb0.mem_size_bytes = (8192*1024); // 8MB
+   defparam ram_wb0.mem_adr_width = 23; // log2(8192*1024)
    ////////////////////////////////////////////////////////////////////////
 `endif //  `ifdef RAM_WB
 

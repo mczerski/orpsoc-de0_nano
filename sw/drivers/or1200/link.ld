@@ -9,12 +9,9 @@ MEMORY
 }
 
 
-/*
- * Allocate the stack to be at the top of memory, since the stack
- * grows down.
- */
-PROVIDE (stack = 128K - 4);
-PROVIDE (_stack = 128K - 4);
+/* Stack information variables */
+_min_stack      = 0x2000;   /* 8K - minimum stack space to reserve */
+
 
 SECTIONS
 {	
@@ -77,7 +74,20 @@ SECTIONS
 		__end = ALIGN(0x8);
 		ebss = .;
 		_ebss = .;
-	}
+	} > ram
+	
+	/* ensure there is enough room for stack */
+        .stack (NOLOAD): {
+                . = ALIGN(4);
+		sstack = . ;
+                _sstack = . ;                
+                . = . + _min_stack ;
+                . = ALIGN(4);
+                stack = . ;
+                _stack = . ;
+                estack = . ;
+                _estack = . ;
+        } > ram
 	
 	.stab  0 (NOLOAD) : 
 	{

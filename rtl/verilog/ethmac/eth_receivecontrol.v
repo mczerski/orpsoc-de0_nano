@@ -301,12 +301,13 @@ begin
     DlyCrcCnt <=  3'h0;
   else
   if(RxValid & ~RxEndFrm & ~DlyCrcCnt[2])
-    DlyCrcCnt <=  DlyCrcCnt + 1'b1;
+    DlyCrcCnt <=  DlyCrcCnt + 3'd1;
 end
 
              
 assign ResetByteCnt = RxEndFrm;
-assign IncrementByteCnt = RxValid & DetectionWindow & ~ByteCntEq18 & (~DlyCrcEn | DlyCrcEn & DlyCrcCnt[2]);
+assign IncrementByteCnt = RxValid & DetectionWindow & ~ByteCntEq18 & 
+			  (~DlyCrcEn | DlyCrcEn & DlyCrcCnt[2]);
 
 
 // Byte counter
@@ -319,7 +320,7 @@ begin
     ByteCnt[4:0] <=  5'h0;
   else
   if(IncrementByteCnt)
-    ByteCnt[4:0] <=  ByteCnt[4:0] + 1'b1;
+    ByteCnt[4:0] <=  ByteCnt[4:0] + 5'd1;
 end
 
 
@@ -352,7 +353,7 @@ begin
     PauseTimer[15:0] <=  LatchedTimerValue[15:0];
   else
   if(DecrementPauseTimer)
-    PauseTimer[15:0] <=  PauseTimer[15:0] - 1'b1;
+    PauseTimer[15:0] <=  PauseTimer[15:0] - 16'd1;
 end
 
 assign PauseTimerEq0 = ~(|PauseTimer[15:0]);
@@ -413,7 +414,7 @@ begin
     SlotTimer[5:0] <=  6'h0;
   else
   if(IncrementSlotTimer)
-    SlotTimer[5:0] <=  SlotTimer[5:0] + 1'b1;
+    SlotTimer[5:0] <=  SlotTimer[5:0] + 6'd1;
 end
 
 

@@ -695,117 +695,58 @@ module orpsoc_top
    // 
    ////////////////////////////////////////////////////////////////////////
 
-   parameter wb_ram_dat_width = 32;
-   parameter wb_ram_adr_width = 23;
-   //parameter ram_wb_mem_size  = 2097152; // 8MB
-   parameter wb_ram_mem_size  = 8388608; // 32MB -- for linux test
 
-   
-   // Arbiter logic for sharing the RAM between 2 masters
-   // This should probably not be in the top-level module!
-   
-   // Bus to WB B3 RAM
-   wire [wb_ram_adr_width-1:0] 		  wb_ram_adr_i;
-   wire [1:0] 				  wb_ram_bte_i;
-   wire [2:0] 				  wb_ram_cti_i;
-   wire 				  wb_ram_cyc_i;
-   wire [wb_ram_dat_width-1:0] 		  wb_ram_dat_i;
-   wire [3:0] 				  wb_ram_sel_i;
-   wire 				  wb_ram_stb_i;
-   wire 				  wb_ram_we_i;   
-   wire 				  wb_ram_ack_o;
-   wire 				  wb_ram_err_o;
-   wire 				  wb_ram_rty_o;
-   wire [wb_ram_dat_width-1:0] 		  wb_ram_dat_o;
-   
-   reg [1:0] 				  wb_ram_mast_select;
-   reg [1:0] 				  wb_ram_last_selected;
-   wire 				  wb_ram_arb_for_dbus, 
-					  wb_ram_arb_for_ibus;
-
-   // Wires allowing selection of new input
-   assign wb_ram_arb_for_dbus = (wb_ram_last_selected[1] | !wbs_i_mc0_cyc_i) & 
-				!(|wb_ram_mast_select);
-   assign wb_ram_arb_for_ibus = (wb_ram_last_selected[0] | !wbs_d_mc0_cyc_i) & 
-				!(|wb_ram_mast_select);
-   
-   // Master select logic
-   always @(posedge wb_rst or posedge wb_clk)
-     if (wb_rst)
-       wb_ram_mast_select <= 0;
-     else if ((wb_ram_mast_select[0] & !wbs_d_mc0_cyc_i) | 
-	      (wb_ram_mast_select[1] & !wbs_i_mc0_cyc_i))
-       wb_ram_mast_select <= 0;
-     else if (!(&wb_ram_mast_select) & wbs_d_mc0_cyc_i & wb_ram_arb_for_dbus)
-       wb_ram_mast_select <= 2'b01;
-     else if (!(&wb_ram_mast_select) & wbs_i_mc0_cyc_i & wb_ram_arb_for_ibus)
-       wb_ram_mast_select <= 2'b10;
-   
-   always @(posedge wb_rst or posedge wb_clk)
-     if (wb_rst)
-       wb_ram_last_selected <= 0;
-     else if (!(&wb_ram_mast_select) & wbs_d_mc0_cyc_i & wb_ram_arb_for_dbus)
-       wb_ram_last_selected <= 2'b01;
-     else if (!(&wb_ram_mast_select) & wbs_i_mc0_cyc_i & wb_ram_arb_for_ibus)
-       wb_ram_last_selected <= 2'b10;
-   
-   // Mux input signals to RAM (default to wbs_d_mc0)
-   assign wb_ram_adr_i = (wb_ram_mast_select[1]) ? 
-			 wbs_i_mc0_adr_i[wb_ram_adr_width-1:0] : 
-                         (wb_ram_mast_select[0]) ? 
-			 wbs_d_mc0_adr_i[wb_ram_adr_width-1:0] : 0;
-   assign wb_ram_bte_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_bte_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_bte_i : 0;
-   assign wb_ram_cti_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_cti_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_cti_i : 0;
-   assign wb_ram_cyc_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_cyc_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_cyc_i : 0;
-   assign wb_ram_dat_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_dat_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_dat_i : 0;
-   assign wb_ram_sel_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_sel_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_sel_i : 0;
-   assign wb_ram_stb_i = (wb_ram_mast_select[1]) ? wbs_i_mc0_stb_i : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_stb_i : 0;
-   assign wb_ram_we_i  = (wb_ram_mast_select[1]) ? wbs_i_mc0_we_i  : 
-                         (wb_ram_mast_select[0]) ? wbs_d_mc0_we_i : 0;
-
-   // Output from RAM, gate the ACK, ERR, RTY signals appropriately
-   assign wbs_d_mc0_dat_o = wb_ram_dat_o;
-   assign wbs_d_mc0_ack_o = wb_ram_ack_o & wb_ram_mast_select[0];
-   assign wbs_d_mc0_err_o = wb_ram_err_o & wb_ram_mast_select[0];
-   assign wbs_d_mc0_rty_o = wb_ram_rty_o & wb_ram_mast_select[0];
-
-   assign wbs_i_mc0_dat_o = wb_ram_dat_o;
-   assign wbs_i_mc0_ack_o = wb_ram_ack_o & wb_ram_mast_select[1];
-   assign wbs_i_mc0_err_o = wb_ram_err_o & wb_ram_mast_select[1];
-   assign wbs_i_mc0_rty_o = wb_ram_rty_o & wb_ram_mast_select[1];
-
-   
-   // Wishbone B3 RAM
-   wb_ram_b3
-     #(
-       .dw(wb_ram_dat_width),
-       .aw(wb_ram_adr_width),
-       .mem_size(wb_ram_mem_size)
-       )
-   wb_ram_b3_0
+   ram_wb ram_wb0
      (
-      // Outputs
-      .wb_ack_o                         (wb_ram_ack_o),
-      .wb_err_o                         (wb_ram_err_o),
-      .wb_rty_o                         (wb_ram_rty_o),
-      .wb_dat_o                         (wb_ram_dat_o),
-      // Inputs
-      .wb_adr_i                         (wb_ram_adr_i),
-      .wb_bte_i                         (wb_ram_bte_i),
-      .wb_cti_i                         (wb_ram_cti_i),
-      .wb_cyc_i                         (wb_ram_cyc_i),
-      .wb_dat_i                         (wb_ram_dat_i),
-      .wb_sel_i                         (wb_ram_sel_i),
-      .wb_stb_i                         (wb_ram_stb_i),
-      .wb_we_i                          (wb_ram_we_i),
-      .wb_clk_i                         (wb_clk),
-      .wb_rst_i                         (wb_rst));
+      // Wishbone slave interface 0
+      .wbm0_dat_i			(wbs_i_mc0_dat_i),
+      .wbm0_adr_i			(wbs_i_mc0_adr_i),
+      .wbm0_sel_i			(wbs_i_mc0_sel_i),
+      .wbm0_cti_i			(wbs_i_mc0_cti_i),
+      .wbm0_bte_i			(wbs_i_mc0_bte_i),
+      .wbm0_we_i			(wbs_i_mc0_we_i ),
+      .wbm0_cyc_i			(wbs_i_mc0_cyc_i),
+      .wbm0_stb_i			(wbs_i_mc0_stb_i),
+      .wbm0_dat_o			(wbs_i_mc0_dat_o),
+      .wbm0_ack_o			(wbs_i_mc0_ack_o),
+      .wbm0_err_o                       (wbs_i_mc0_err_o),
+      .wbm0_rty_o                       (wbs_i_mc0_rty_o),
+      // Wishbone slave interface 1
+      .wbm1_dat_i			(wbs_d_mc0_dat_i),
+      .wbm1_adr_i			(wbs_d_mc0_adr_i),
+      .wbm1_sel_i			(wbs_d_mc0_sel_i),
+      .wbm1_cti_i			(wbs_d_mc0_cti_i),
+      .wbm1_bte_i			(wbs_d_mc0_bte_i),
+      .wbm1_we_i			(wbs_d_mc0_we_i ),
+      .wbm1_cyc_i			(wbs_d_mc0_cyc_i),
+      .wbm1_stb_i			(wbs_d_mc0_stb_i),
+      .wbm1_dat_o			(wbs_d_mc0_dat_o),
+      .wbm1_ack_o			(wbs_d_mc0_ack_o),
+      .wbm1_err_o                       (wbs_d_mc0_err_o),
+      .wbm1_rty_o                       (wbs_d_mc0_rty_o),
+      // Wishbone slave interface 2
+      .wbm2_dat_i			(0),
+      .wbm2_adr_i			(0),
+      .wbm2_sel_i			(0),
+      .wbm2_cti_i			(0),
+      .wbm2_bte_i			(0),
+      .wbm2_we_i			(0),
+      .wbm2_cyc_i			(0),
+      .wbm2_stb_i			(0),
+      .wbm2_dat_o			(),
+      .wbm2_ack_o			(),
+      .wbm2_err_o                       (),
+      .wbm2_rty_o                       (),
+      // Clock, reset
+      .wb_clk_i				(wb_clk),
+      .wb_rst_i				(wb_rst));
+
+   defparam ram_wb0.aw = wb_aw;
+   defparam ram_wb0.dw = wb_dw;
+
+   defparam ram_wb0.mem_size_bytes = (8192*1024); // 8MB
+   defparam ram_wb0.mem_adr_width = 23; // log2(8192*1024)
+   
    
    ////////////////////////////////////////////////////////////////////////
 `endif   

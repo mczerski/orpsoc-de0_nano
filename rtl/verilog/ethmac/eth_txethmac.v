@@ -341,7 +341,7 @@ begin
         RetryCnt[3:0] <=  4'h0;
       else
       if(StateJam & NibCntEq7 & ColWindow & (RandomEq0 | NoBckof) | StateBackOff & RandomEqByteCnt)
-        RetryCnt[3:0] <=  RetryCnt[3:0] + 1'b1;
+        RetryCnt[3:0] <=  RetryCnt[3:0] + 1;
     end
 end
 

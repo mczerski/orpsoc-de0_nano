@@ -76,7 +76,7 @@ parameter eth_stim_num_rx_only_num_packets = 500; // Set to 0 for continuous RX
 parameter eth_stim_num_rx_only_packet_size = 512;
 parameter eth_stim_num_rx_only_packet_size_change = 2'b01;  // 2'b01: Increment
 parameter eth_stim_num_rx_only_packet_size_change_amount = 1;
-parameter eth_stim_num_rx_only_IPG = 800000; // ns
+parameter eth_stim_num_rx_only_IPG = 800000000; // ns
 
 // Do call/response test
 reg eth_stim_do_rx_reponse_to_tx;
@@ -632,7 +632,9 @@ initial
 	   begin
 	      //$display("Checking address in tx bd 0x%0h",txpnt_sdram);
 	      sdram_byte = 8'hx;
-	      
+`ifdef RAM_WB
+	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(txpnt_sdram);      
+`endif	      
 `ifdef VERSATILE_SDRAM	      
 	      sdram0.get_byte(txpnt_sdram,sdram_byte);      
 `endif
@@ -1152,9 +1154,12 @@ initial
 	   begin
 
 	      sdram_byte = 8'hx;
+`ifdef RAM_WB
+	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(rxpnt_sdram);      
+`endif	      	      
 `ifdef VERSATILE_SDRAM	      
 	      sdram0.get_byte(rxpnt_sdram,sdram_byte);      
-`endif
+`endif	      
 `ifdef XILINX_DDR2
 	      get_byte_from_xilinx_ddr2(rxpnt_sdram, sdram_byte);
 `endif	      

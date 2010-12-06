@@ -104,6 +104,8 @@ module xilinx_ddr2_if (
     input [31:0]       wb_adr_i,
     input 	       wb_stb_i,
     input 	       wb_cyc_i,
+    input [2:0]        wb_cti_i,
+    input [1:0]        wb_bte_i,
     input 	       wb_we_i,
     input [3:0]        wb_sel_i,
     input [31:0]       wb_dat_i,
@@ -198,7 +200,6 @@ module xilinx_ddr2_if (
    wire 			rd_data_valid;
    wire [(APPDATA_WIDTH)-1:0] 	rd_data_fifo_out;
    wire 			phy_init_done;
-   
    
    assign cache_hit = (cached_addr ==  wb_adr_i[31:6]) & cached_addr_valid;
    
@@ -366,7 +367,8 @@ module xilinx_ddr2_if (
    always @(posedge ddr2_clk)
      if (ddr2_rst)
        ddr2_read_done <= 0;
-     else if (!rd_data_valid & rd_data_valid_r) // Detect read data valid falling edge
+   // Detect read data valid falling edge
+     else if (!rd_data_valid & rd_data_valid_r)       
        ddr2_read_done <= 1;
      else if (!(|ddr2_clk_phase) & !do_readfrom) // Read WB domain
        ddr2_read_done <= 0;

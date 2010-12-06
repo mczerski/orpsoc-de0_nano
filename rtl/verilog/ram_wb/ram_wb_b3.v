@@ -1,6 +1,3 @@
-//`define NONBLOCK_ASSIGN <= #1
-`define NONBLOCK_ASSIGN <= 
-
 module ram_wb_b3(
 		 wb_adr_i, wb_bte_i, wb_cti_i, wb_cyc_i, wb_dat_i, wb_sel_i,
 		 wb_stb_i, wb_we_i,
@@ -30,18 +27,18 @@ module ram_wb_b3(
    input 		wb_rst_i;
 
    // Memory parameters
-   //parameter mem_span = 32'h0000_0400;
-   parameter mem_span = 32'h0000_5000;
-//   parameter adr_width_for_span = 11; //(log2(mem_span));
-   parameter adr_width_for_span = 15; //(log2(mem_span));
+   parameter mem_size_bytes = 32'h0000_5000; // 20KBytes
+   parameter mem_adr_width = 15; //(log2(mem_size_bytes));
+   
    parameter bytes_per_dw = (dw/8);
    parameter adr_width_for_num_word_bytes = 2; //(log2(bytes_per_dw))
-   parameter mem_words = (mem_span/bytes_per_dw);   
+   parameter mem_words = (mem_size_bytes/bytes_per_dw);   
 
    // synthesis attribute ram_style of mem is block
    reg [dw-1:0] 	mem [ 0 : mem_words-1 ] /* synthesis ram_style = no_rw_check */;
-   
-   reg [(adr_width_for_span-2)-1:0] adr;
+
+   // Register to address internal memory array
+   reg [(mem_adr_width-adr_width_for_num_word_bytes)-1:0] adr;
    
    wire [31:0] 			   wr_data;
 
@@ -51,11 +48,14 @@ module ram_wb_b3(
    wire 			   wb_b3_trans_start, wb_b3_trans_stop;
    
    // Register to use for counting the addresses when doing burst accesses
-   reg [adr_width_for_span-1-2:0]  burst_adr_counter;
+   reg [mem_adr_width-adr_width_for_num_word_bytes-1:0]  burst_adr_counter;
    reg [2:0] 			   wb_cti_i_r;
    reg [1:0] 			   wb_bte_i_r;
    wire 			   using_burst_adr;
    wire 			   burst_access_wrong_wb_adr;
+
+   // Wire to indicate addressing error
+   wire 			   addr_err;   
    
    
    // Logic to detect if there's a burst access going on
@@ -67,11 +67,11 @@ module ram_wb_b3(
    
    always @(posedge wb_clk_i)
      if (wb_rst_i)
-       wb_b3_trans `NONBLOCK_ASSIGN 0;
+       wb_b3_trans <= 0;
      else if (wb_b3_trans_start)
-       wb_b3_trans `NONBLOCK_ASSIGN 1;
+       wb_b3_trans <= 1;
      else if (wb_b3_trans_stop)
-       wb_b3_trans `NONBLOCK_ASSIGN 0;
+       wb_b3_trans <= 0;
 
    // Burst address generation logic
    always @(/*AUTOSENSE*/wb_ack_o or wb_b3_trans or wb_b3_trans_start
@@ -80,40 +80,40 @@ module ram_wb_b3(
        // Kick off burst_adr_counter, this assumes 4-byte words when getting
        // address off incoming Wishbone bus address! 
        // So if dw is no longer 4 bytes, change this!
-       burst_adr_counter <= wb_adr_i[adr_width_for_span-1:2];
+       burst_adr_counter = wb_adr_i[mem_adr_width-1:2];
      else if ((wb_cti_i_r == 3'b010) & wb_ack_o & wb_b3_trans)
        // Incrementing burst
        begin
 	  if (wb_bte_i_r == 2'b00) // Linear burst
-	    burst_adr_counter <= adr + 1;
+	    burst_adr_counter = adr + 1;
 	  if (wb_bte_i_r == 2'b01) // 4-beat wrap burst
-	    burst_adr_counter[1:0] <= adr[1:0] + 1;
+	    burst_adr_counter[1:0] = adr[1:0] + 1;
 	  if (wb_bte_i_r == 2'b10) // 8-beat wrap burst
-	    burst_adr_counter[2:0] <= adr[2:0] + 1;
+	    burst_adr_counter[2:0] = adr[2:0] + 1;
 	  if (wb_bte_i_r == 2'b11) // 16-beat wrap burst
-	    burst_adr_counter[3:0] <= adr[3:0] + 1;
+	    burst_adr_counter[3:0] = adr[3:0] + 1;
        end // if ((wb_cti_i_r == 3'b010) & wb_ack_o_r)
 
-
    always @(posedge wb_clk_i)
-     wb_bte_i_r `NONBLOCK_ASSIGN wb_bte_i;
+     wb_bte_i_r <= wb_bte_i;
 
    // Register it locally
    always @(posedge wb_clk_i)
-     wb_cti_i_r `NONBLOCK_ASSIGN wb_cti_i;
+     wb_cti_i_r <= wb_cti_i;
 
    assign using_burst_adr = wb_b3_trans;
    
-   assign burst_access_wrong_wb_adr = (using_burst_adr & (adr != wb_adr_i[adr_width_for_span-1:2]));
+   assign burst_access_wrong_wb_adr = (using_burst_adr & 
+				       (adr != wb_adr_i[mem_adr_width-1:2]));
 
    // Address registering logic
    always@(posedge wb_clk_i)
      if(wb_rst_i)
-       adr `NONBLOCK_ASSIGN 0;
+       adr <= 0;
      else if (using_burst_adr)
-       adr `NONBLOCK_ASSIGN burst_adr_counter;
+       adr <= burst_adr_counter;
      else if (wb_cyc_i & wb_stb_i)
-       adr `NONBLOCK_ASSIGN wb_adr_i[adr_width_for_span-1:2];
+       adr <= wb_adr_i[mem_adr_width-1:2];
        
    parameter memory_file = "sram.vmem";
 
@@ -139,7 +139,7 @@ module ram_wb_b3(
    always @ (posedge wb_clk_i)
      begin
 	if (ram_we)
-	  mem[adr] `NONBLOCK_ASSIGN wr_data;
+	  mem[adr] <= wr_data;
      end
    
    // Ack Logic
@@ -149,41 +149,106 @@ module ram_wb_b3(
    
    always @ (posedge wb_clk_i)
      if (wb_rst_i)
-       wb_ack_o_r `NONBLOCK_ASSIGN 1'b0;
+       wb_ack_o_r <= 1'b0;
      else if (wb_cyc_i) // We have bus
        begin
-	  if (wb_cti_i == 3'b000)
+	  if (addr_err & wb_stb_i)
+	    begin
+	       wb_ack_o_r <= 1;
+	    end
+	  else if (wb_cti_i == 3'b000)
 	    begin
 	       // Classic cycle acks
 	       if (wb_stb_i)
 		 begin
 		    if (!wb_ack_o_r)
-		      wb_ack_o_r `NONBLOCK_ASSIGN 1;
+		      wb_ack_o_r <= 1;
 		    else
-		      wb_ack_o_r `NONBLOCK_ASSIGN 0;
+		      wb_ack_o_r <= 0;
 		 end
 	    end // if (wb_cti_i == 3'b000)
 	  else if ((wb_cti_i == 3'b001) | (wb_cti_i == 3'b010))
 	    begin
 	       // Increment/constant address bursts
 	       if (wb_stb_i)
-		 wb_ack_o_r `NONBLOCK_ASSIGN 1;
+		 wb_ack_o_r <= 1;
 	       else
-		 wb_ack_o_r `NONBLOCK_ASSIGN 0;
+		 wb_ack_o_r <= 0;
 	    end
 	  else if (wb_cti_i == 3'b111)
 	    begin
 	       // End of cycle
 	       if (!wb_ack_o_r)
-		 wb_ack_o_r `NONBLOCK_ASSIGN wb_stb_i;
+		 wb_ack_o_r <= wb_stb_i;
 	       else
-		 wb_ack_o_r `NONBLOCK_ASSIGN 0;
+		 wb_ack_o_r <= 0;
 	    end
        end // if (wb_cyc_i)
      else
-       wb_ack_o_r `NONBLOCK_ASSIGN 0;
+       wb_ack_o_r <= 0;
+
+
+   //
+   // Error signal generation
+   //
    
-   assign wb_err_o = wb_ack_o & (burst_access_wrong_wb_adr); // OR in other errors here
+   // Error when out of bounds of memory - skip top byte of address in case
+   // this is mapped somewhere other than 0x00.
+   assign addr_err  = wb_cyc_i & wb_stb_i & (|wb_adr_i[aw-1-8:mem_adr_width]);  
+   
+   // OR in other errors here...
+   assign wb_err_o = wb_ack_o & (burst_access_wrong_wb_adr | addr_err);
+
+`ifdef verilator
+   
+   task do_readmemh;
+      // verilator public
+      $readmemh(memory_file, mem);
+   endtask // do_readmemh
+   
+`else
+   
+   initial
+     begin
+	$readmemh(memory_file, mem);
+     end
+   
+`endif // !`ifdef verilator
+
+   
+   
+   //
+   // Access functions
+   //
+   
+   // Function to access RAM (for use by Verilator).
+   function [31:0] get_mem;
+      // verilator public
+      input [aw-1:0] 		addr;
+      get_mem = mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]];
+   endfunction // get_mem
+
+   // Function to access RAM (for use by Verilator).
+   function [7:0] get_byte;
+      // verilator public
+      input [aw-1:0] 		addr;
+      reg [31:0] 		temp_word;   
+      begin
+	 temp_word = mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]];
+	 // Big endian mapping.
+	 get_byte = (addr[1:0]==2'b00) ? temp_word[31:24] :
+		    (addr[1:0]==2'b01) ? temp_word[23:16] :
+		    (addr[1:0]==2'b10) ? temp_word[15:8] : temp_word[7:0];
+	 end
+   endfunction // get_mem
+
+   // Function to write RAM (for use by Verilator).
+   function set_mem;
+      // verilator public
+      input [aw-1:0] 		addr;
+      input [dw-1:0] 		data;
+      mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]] = data;
+   endfunction // set_mem
    
 endmodule // ram_wb_b3
 

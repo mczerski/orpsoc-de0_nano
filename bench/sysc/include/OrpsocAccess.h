@@ -41,7 +41,8 @@ class Vorpsoc_top_or1200_dpram;
 // Main memory access class - will change if main memory size or other 
 // parameters change
 //Old ram_wbclass: class Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000;
-class Vorpsoc_top_wb_ram_b3__D20_A17_M800000;
+//class Vorpsoc_top_wb_ram_b3__D20_A17_M800000;
+class Vorpsoc_top_ram_wb_b3__pi3;
 // SoC Arbiter class - will also change if any modifications to bus architecture
 //class Vorpsoc_top_wb_conbus_top__pi1;
 
@@ -109,7 +110,8 @@ private:
   Vorpsoc_top_or1200_except	*or1200_except;
   Vorpsoc_top_or1200_sprs	*or1200_sprs;
   Vorpsoc_top_or1200_dpram	*rf_a;
-  /*Vorpsoc_top_ram_wb_sc_sw*//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000*/ Vorpsoc_top_wb_ram_b3__D20_A17_M800000 *ram_wb_sc_sw;
+  /*Vorpsoc_top_ram_wb_sc_sw*//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000*/ /*Vorpsoc_top_wb_ram_b3__D20_A17_M800000 *ram_wb_sc_sw;*/
+  Vorpsoc_top_ram_wb_b3__pi3 *wishbone_ram;
   // Arbiter
   //Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
 

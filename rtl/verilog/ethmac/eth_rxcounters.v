@@ -39,57 +39,17 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//
-// CVS Revision History
-//
-// $Log: not supported by cvs2svn $
-// Revision 1.5  2002/02/15 11:13:29  mohor
-// Format of the file changed a bit.
-//
-// Revision 1.4  2002/02/14 20:19:41  billditt
-// Modified for Address Checking,
-// addition of eth_addrcheck.v
-//
-// Revision 1.3  2002/01/23 10:28:16  mohor
-// Link in the header changed.
-//
-// Revision 1.2  2001/10/19 08:43:51  mohor
-// eth_timescale.v changed to timescale.v This is done because of the
-// simulation of the few cores in a one joined project.
-//
-// Revision 1.1  2001/08/06 14:44:29  mohor
-// A define FPGA added to select between Artisan RAM (for ASIC) and Block Ram (For Virtex).
-// Include files fixed to contain no path.
-// File names and module names changed ta have a eth_ prologue in the name.
-// File eth_timescale.v is used to define timescale
-// All pin names on the top module are changed to contain _I, _O or _OE at the end.
-// Bidirectional signal MDIO is changed to three signals (Mdc_O, Mdi_I, Mdo_O
-// and Mdo_OE. The bidirectional signal must be created on the top level. This
-// is done due to the ASIC tools.
-//
-// Revision 1.1  2001/07/30 21:23:42  mohor
-// Directory structure changed. Files checked and joind together.
-//
-// Revision 1.1  2001/06/27 21:26:19  mohor
-// Initial release of the RxEthMAC module.
-//
-//
-//
-//
-//
-//
-
 
 `include "timescale.v"
 
 
-module eth_rxcounters (MRxClk, Reset, MRxDV, StateIdle, StateSFD, StateData, StateDrop, StatePreamble, 
-                       MRxDEqD, DlyCrcEn, DlyCrcCnt, Transmitting, MaxFL, r_IFG, HugEn, IFGCounterEq24, 
-                       ByteCntEq0, ByteCntEq1, ByteCntEq2,ByteCntEq3,ByteCntEq4,ByteCntEq5, ByteCntEq6,
-                       ByteCntEq7, ByteCntGreat2, ByteCntSmall7, ByteCntMaxFrame, ByteCntOut
-                      );
-
-parameter Tp = 1;
+module eth_rxcounters 
+  (
+   MRxClk, Reset, MRxDV, StateIdle, StateSFD, StateData, StateDrop, StatePreamble, 
+   MRxDEqD, DlyCrcEn, DlyCrcCnt, Transmitting, MaxFL, r_IFG, HugEn, IFGCounterEq24, 
+   ByteCntEq0, ByteCntEq1, ByteCntEq2,ByteCntEq3,ByteCntEq4,ByteCntEq5, ByteCntEq6,
+   ByteCntEq7, ByteCntGreat2, ByteCntSmall7, ByteCntMaxFrame, ByteCntOut
+   );
 
 input         MRxClk;
 input         Reset;
@@ -146,30 +106,30 @@ assign IncrementByteCounter = ~ResetByteCounter & MRxDV &
 always @ (posedge MRxClk or posedge Reset)
 begin
   if(Reset)
-    ByteCnt[15:0] <=  16'h0;
+    ByteCnt[15:0] <=  16'd0;
   else
     begin
       if(ResetByteCounter)
-        ByteCnt[15:0] <=  16'h0;
+        ByteCnt[15:0] <=  16'd0;
       else
       if(IncrementByteCounter)
-        ByteCnt[15:0] <=  ByteCnt[15:0] + 1'b1;
+        ByteCnt[15:0] <=  ByteCnt[15:0] + 16'd1;
      end
 end
 
-assign ByteCntDelayed = ByteCnt + 3'h4;
-assign ByteCntOut = DlyCrcEn? ByteCntDelayed : ByteCnt;
+assign ByteCntDelayed = ByteCnt + 16'd4;
+assign ByteCntOut = DlyCrcEn ? ByteCntDelayed : ByteCnt;
 
-assign ByteCntEq0       = ByteCnt == 16'h0;
-assign ByteCntEq1       = ByteCnt == 16'h1;
-assign ByteCntEq2       = ByteCnt == 16'h2; 
-assign ByteCntEq3       = ByteCnt == 16'h3; 
-assign ByteCntEq4       = ByteCnt == 16'h4; 
-assign ByteCntEq5       = ByteCnt == 16'h5; 
-assign ByteCntEq6       = ByteCnt == 16'h6;
-assign ByteCntEq7       = ByteCnt == 16'h7;
-assign ByteCntGreat2    = ByteCnt >  16'h2;
-assign ByteCntSmall7    = ByteCnt <  16'h7;
+assign ByteCntEq0       = ByteCnt == 16'd0;
+assign ByteCntEq1       = ByteCnt == 16'd1;
+assign ByteCntEq2       = ByteCnt == 16'd2; 
+assign ByteCntEq3       = ByteCnt == 16'd3; 
+assign ByteCntEq4       = ByteCnt == 16'd4; 
+assign ByteCntEq5       = ByteCnt == 16'd5; 
+assign ByteCntEq6       = ByteCnt == 16'd6;
+assign ByteCntEq7       = ByteCnt == 16'd7;
+assign ByteCntGreat2    = ByteCnt >  16'd2;
+assign ByteCntSmall7    = ByteCnt <  16'd7;
 assign ByteCntMax       = ByteCnt == 16'hffff;
 assign ByteCntMaxFrame  = ByteCnt == MaxFL[15:0] & ~HugEn;
 
@@ -188,7 +148,7 @@ begin
         IFGCounter[4:0] <=  5'h0;
       else
       if(IncrementIFGCounter)
-        IFGCounter[4:0] <=  IFGCounter[4:0] + 1'b1; 
+        IFGCounter[4:0] <=  IFGCounter[4:0] + 5'd1; 
     end
 end
 
@@ -210,7 +170,7 @@ begin
         DlyCrcCnt[3:0] <=  4'h1;
       else
       if(DlyCrcEn & (|DlyCrcCnt[3:0]))
-        DlyCrcCnt[3:0] <=  DlyCrcCnt[3:0] + 1'b1;
+        DlyCrcCnt[3:0] <=  DlyCrcCnt[3:0] + 4'd1;
     end
 end
 

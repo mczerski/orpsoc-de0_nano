@@ -1427,7 +1427,7 @@ int main (void)
   start_text_addr = (unsigned long*)&_stext;
   end_text_addr = (unsigned long*)&_endtext;
   end_data_addr = (unsigned long*)&_stack;
-
+  end_data_addr += 4;
 
 #ifndef TLB_BOTTOM_TEST_PAGE_HARDSET
   TLB_TEXT_SET_NB =  TLB_DATA_SET_NB = (end_data_addr+PAGE_SIZE) / PAGE_SIZE;

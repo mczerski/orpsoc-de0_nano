@@ -181,6 +181,8 @@ module xilinx_ddr2
       .wb_ack_o				(wbs_ram_ack_o),
       .wb_adr_i				(wbs_ram_adr_i[31:0]),
       .wb_stb_i				(wbs_ram_stb_i),
+      .wb_cti_i				(wbs_ram_cti_i),
+      .wb_bte_i				(wbs_ram_bte_i),
       .wb_cyc_i				(wbs_ram_cyc_i),
       .wb_we_i				(wbs_ram_we_i),
       .wb_sel_i				(wbs_ram_sel_i[3:0]),

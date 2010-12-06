@@ -53,6 +53,7 @@ TCL_SCRIPT_START=start.tcl
 TCL_SCRIPT_COMPILE=compile.tcl
 TCL_SCRIPT_PAR=par.tcl
 TCL_SCRIPT_CREATE_COMPILE_PAR=create-compile-par.tcl
+TCL_SCRIPT_CREATE_COMPILE_PAR_BITGEN=create-compile-par-bitgen.tcl
 TCL_SCRIPT_REPORT=report.tcl
 TCL_SCRIPT_BITGEN=bitgen.tcl
 # Generate these every time
@@ -120,7 +121,7 @@ endif
 TIME_CMD=time -p
 
 # Rule for everything from, potentially, synthesis up to PAR
-all: print-config print-defines create-compile-par
+all: print-config print-defines create-compile-par-bitgen
 
 # Not possible to do programming file generation under Linux
 # not with the free  tools
@@ -130,6 +131,9 @@ bitgen: $(TCL_SCRIPT_BITGEN)
 # Leave this with no pre-reqs so we can call it seperately
 create-compile-par: sdc-file pdc-file $(PROJ_EDF_FILE) $(TCL_SCRIPT_CREATE_COMPILE_PAR)
 	$(TIME_CMD) $(VENDOR_TCL_SHELL) $(TCL_SCRIPT_CREATE_COMPILE_PAR)
+
+create-compile-par-bitgen: sdc-file pdc-file $(PROJ_EDF_FILE) $(TCL_SCRIPT_CREATE_COMPILE_PAR_BITGEN)
+	$(TIME_CMD) $(VENDOR_TCL_SHELL) $(TCL_SCRIPT_CREATE_COMPILE_PAR_BITGEN)
 
 par: $(TCL_SCRIPT_PAR)
 	$(TIME_CMD) $(VENDOR_TCL_SHELL) $<
@@ -220,6 +224,17 @@ $(TCL_SCRIPT_CREATE_COMPILE_PAR):
 	TCL_FILE=$@ $(MAKE) dump-actel-create-project-tcl
 	TCL_FILE=$@ $(MAKE) dump-actel-compile-project-tcl
 	TCL_FILE=$@ $(MAKE) dump-actel-par-project-tcl
+	$(Q)echo "\"">> $@
+	$(Q)echo >> $@
+
+# Do project creation, compile and PAR in one single run of the tool
+$(TCL_SCRIPT_CREATE_COMPILE_PAR_BITGEN):
+	TCL_FILE=$@ $(MAKE) tcl-common
+	$(Q)echo "run_designer \"Create compile and PAR and generate programming file\" \" " >> $@
+	TCL_FILE=$@ $(MAKE) dump-actel-create-project-tcl
+	TCL_FILE=$@ $(MAKE) dump-actel-compile-project-tcl
+	TCL_FILE=$@ $(MAKE) dump-actel-par-project-tcl
+	TCL_FILE=$@ $(MAKE) dump-actel-bitgen-project-tcl
 	$(Q)echo "\"">> $@
 	$(Q)echo >> $@
 

@@ -58,7 +58,7 @@ static void oeth_tx(void);
 unsigned short calculate_checksum(char* dats, unsigned int len) ;
 
 /* Let the ethernet packets use a space beginning here for buffering */
-#define ETH_BUFF_BASE 0x01000000
+#define ETH_BUFF_BASE 0x200000;
 
 #define RXBUFF_PREALLOC	1
 #define TXBUFF_PREALLOC	1
@@ -443,6 +443,7 @@ main ()
   rx_done = 0;
   
   ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX in MODER */
+  
 
   
 #define NUM_PRIMES_TO_CHECK 1000

@@ -10,8 +10,8 @@
 // file, which is compiled and converted into Verilog for inclusion at 
 // synthesis time. See bootloader/bootloader.S for details on each option.
 
-#define BOOTROM_SPI_FLASH
-//#define BOOTROM_GOTO_RESET
+//#define BOOTROM_SPI_FLASH
+#define BOOTROM_GOTO_RESET
 //#define BOOTROM_LOOP_AT_ZERO
 //#define BOOTROM_LOOP_IN_ROM
 
