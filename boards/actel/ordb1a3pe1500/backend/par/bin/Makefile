@@ -158,14 +158,14 @@ clean:
 	rm -rf *.rpt *.log *~ *.tcl *.lok *.tmp *.dtf $(SDC_FILE) $(PDC_FILE) *.adb
 
 clean-syn:
-	$(MAKE) -C $(SYN_PATH)/run clean-all
+	$(MAKE) -C $(SYN_PATH)/run distclean
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
-	$(MAKE) -C $(SW_PATH)/lib clean-all
+	$(MAKE) -C $(SW_PATH)/lib distclean
 
 
-clean-all: clean-sw clean-syn clean
+distclean: clean-sw clean-syn clean
 
 STEP_NAME=$(shell echo $(TCL_FILE) | cut -d '.' -f 1)
 

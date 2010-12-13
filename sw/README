@@ -78,7 +78,7 @@ To test building an executable, go into one of the test directories and run
 
        	      	      	  	Cleaning
 
-To clean the software, run "make clean-all" in sw/lib.
+To clean the software, run "make distclean" in sw/lib.
 
 
 

@@ -711,7 +711,7 @@ The following is a list of some considerations before synthesis.
 
 If the bootROM module is being used to provide the processor with a program at startup, check that board software include file, in the board's @code{sw/board/include} path, is selecting the correct bootROM program.
 
-Do a @kbd{make clean-all} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
+Do a @kbd{make distclean} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
 
 
 @item Clean away old leftovers
@@ -1075,7 +1075,7 @@ The following is a list of some considerations before synthesis.
 
 If the bootROM module is being used to provide the processor with a program at startup (reset address in processor's define file is set to @code{0xf0000100} or similar), check that board software include file, in the board's @code{sw/board/include} path, is selecting the correct bootROM program.
 
-Do a @kbd{make clean-all} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
+Do a @kbd{make distclean} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
 
 
 @item Clean away old leftovers

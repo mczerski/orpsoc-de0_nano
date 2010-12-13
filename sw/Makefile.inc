@@ -117,7 +117,6 @@ MARCH_FLAGS ?=-mhard-mul -mhard-div -msoft-float
 OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
 		$(INCLUDE_FLAGS) \
 		-I$(SW_ROOT)/lib/include \
-		
 
 OR32_LDFLAGS ?=-L$(SW_ROOT)/lib -lorpsoc -lgcc -T$(CPU_DRIVER)/link.ld -e 256 
 OR32_ARFLAGS ?=-r
@@ -237,7 +236,7 @@ print-sw-tests-subdirs:
 	$(Q)echo $(SW_TESTS_SUBDIRS); echo
 
 # This relies on the local clean rule of each makefile
-clean-all: clean
+distclean: clean
 	$(Q)for testssubdir in $(SW_TESTS_SUBDIRS); do $(MAKE) -C $$testssubdir clean; done
 	$(Q)for dir in $(SW_DRIVER_PATHS); do $(MAKE) -C $$dir clean; done
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done

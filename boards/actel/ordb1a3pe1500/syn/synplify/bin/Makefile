@@ -309,10 +309,10 @@ $(EDIF_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(EDIF_FILE)
 $(VLOG_NETLIST_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(VLOG_NETLIST_FILE)
 	cp $^ $@
 
-clean-all: clean-sw clean clean-edifs
+distclean: clean-sw clean clean-edifs
 
 clean-sw:
-	$(MAKE) -C $(PROJECT_ROOT)/sw/lib clean-all
+	$(MAKE) -C $(PROJECT_ROOT)/sw/lib distclean
 
 clean: clean-build
 

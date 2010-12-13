@@ -297,9 +297,9 @@ clean:
 	$(Q)rm -rf *.* xst
 
 clean-sw:
-	$(MAKE) -C $(PROJECT_ROOT)/sw/lib clean-all
+	$(MAKE) -C $(PROJECT_ROOT)/sw/lib distclean
 
-clean-all: clean-sw clean
+distclean: clean-sw clean
 
 
 .PRECIOUS : $(NGC_FILE) $(XST_FILE) $(XCF_FILE)

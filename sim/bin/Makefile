@@ -430,7 +430,7 @@ clean-sim-test-sw:
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
-	$(Q) $(MAKE) -C $(SW_DIR)/lib clean-all
+	$(Q) $(MAKE) -C $(SW_DIR)/lib distclean
 
 clean-rtl:
 	$(Q) echo; echo "\t### Cleaning generated verilog RTL ###"; echo;

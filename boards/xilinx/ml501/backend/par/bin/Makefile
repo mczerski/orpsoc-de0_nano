@@ -188,8 +188,8 @@ clean:
 	$(Q)rm -rf *.*
 
 clean-syn:
-	$(Q)$(MAKE) -C $(SYN_RUN_DIR) clean-all
+	$(Q)$(MAKE) -C $(SYN_RUN_DIR) distclean
 
-clean-all: clean-syn clean
+distclean: clean-syn clean
 
 .PRECIOUS : $(PARRED_NCD) $(MAPPED_NCD) $(NGC_FILE) $(NGD_FILE) $(BIT_FILE) $(BIT_FILE_FOR_SPI)

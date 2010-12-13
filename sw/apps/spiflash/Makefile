@@ -52,4 +52,4 @@ $(PROGRAMMINGFILE_DATA): $(PROGRAMMINGFILE_SWBIN)
 clean:
 	$(Q)rm -f *.elf *.bin *.vmem *.flashin *.dis $(PROGRAMMINGFILE_SWBIN) $(PROGRAMMINGFILE_DATA)
 
-#clean-all: clean
+#distclean: clean
