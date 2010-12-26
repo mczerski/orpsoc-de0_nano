@@ -76,6 +76,11 @@
 //`define OR1200_MONITOR_EXEC_LOG_DISASSEMBLY
 
 //
+// Enable verbose report l.nops (to both general log file and stdout)
+//
+`define OR1200_MONITOR_VERBOSE_NOPS
+
+//
 // Enable monitoring of control and execution flow (experimental)
 //
 //`define OR1200_SYSTEM_CHECKER
@@ -450,6 +455,9 @@ module or1200_monitor;
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0001) begin
 	   get_gpr(3, r3);
 	   $fdisplay(fgeneral, "%t: l.nop exit (%h)", $time, r3);
+`ifdef OR1200_MONITOR_VERBOSE_NOPS
+	   $display("%t: l.nop exit (%h)", $time, r3);
+`endif	   
 	   $finish;
 	end
 	// debug if test (l.nop 10)
@@ -460,6 +468,9 @@ module or1200_monitor;
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0002) begin 
 	   get_gpr(3, r3);
 	   $fdisplay(fgeneral, "%t: l.nop report (%h)", $time, r3);
+`ifdef OR1200_MONITOR_VERBOSE_NOPS
+	   $display("%t: l.nop report (%h)", $time, r3);
+`endif
 	end
 	// simulation printfs (l.nop 3)
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0003) begin 
