@@ -38,7 +38,14 @@ Now, the spiflash-program.elf program should be compiled, and the environment
 variable PROGRAMMINGFILE should be set to point to myapp.bin, the binary 
 version of the program we are to load into the flash memory.
 
-# make spiflash-program.elf PROGRAMMINGFILE=/path/to/myapp.bin
+To ensure the correct settings for UART and other peripherals are picked up 
+ensure the BOARD_PATH variable is set correctly, too.
+
+# make spiflash-program.elf PROGRAMMINGFILE=/path/to/myapp.bin \
+  BOARD_PATH=`pwd`/../../../actel/ordb1a3pe1500
+
+It's advisable to do a "make distclean" first, to clear out any previously 
+compiled software for other boards.
 
 The steps to embed the size of the program in the binary and then link it 
 into the final executable are all done automatically by the Makefile.
@@ -48,6 +55,7 @@ small prompt should come up, pressing 'h' will explain the options, 'p' will
 do the programming (and verification of the image) and 'v' will verify the 
 image again.
 
+Warning:
 Note that in the flash on the ORSoC dev board, there appears to be 3 pages, 
 either pages 130-132 or pages 180-182 which do not provide reliable data when
 read from. The cause of this is unknown. If this is a big problem, be sure that

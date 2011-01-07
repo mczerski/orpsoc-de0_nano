@@ -31,7 +31,7 @@ ELF_DEPENDS +=$(PROGRAMMINGFILE_DATA)
 
 include $(SW_ROOT)/Makefile.inc
 
-OR32_LDFLAGS = -lgcc -Tspiflash-program.ld -e 256
+OR32_LDFLAGS = -L$(SW_ROOT)/lib -lorpsoc -lgcc -Tspiflash-program.ld -e 256
 
 $(SW_ROOT)/utils/bin2binsizeword:
 	$(Q)$(MAKE) -C $(SW_ROOT)/utils bin2binsizeword
