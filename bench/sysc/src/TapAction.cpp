@@ -32,8 +32,7 @@
 
 #include "TapAction.h"
 
-class  sc_event;
-
+class sc_event;
 
 //! Constructor
 
@@ -42,25 +41,21 @@ class  sc_event;
 
 //! @param _actionType  The action type
 
-TapAction::TapAction (sc_core::sc_event *_doneEvent) :
-  doneEvent (_doneEvent),
-  resetCounter (0)
+TapAction::TapAction(sc_core::sc_event * _doneEvent):
+doneEvent(_doneEvent), resetCounter(0)
 {
 
-}	// TapAction ()
-
+}				// TapAction ()
 
 //! Accessor to get the SystemC completion event
 
 //! @return  The SystemC completion event
 
-sc_core::sc_event *
-TapAction::getDoneEvent ()
+sc_core::sc_event * TapAction::getDoneEvent()
 {
-  return  doneEvent;
+	return doneEvent;
 
-}	// getDoneEvent ()
-
+}				// getDoneEvent ()
 
 //! Function to check the TAP is in a consistent state, optionally with a
 //! warning.
@@ -82,38 +77,30 @@ TapAction::getDoneEvent ()
 
 //! @return  TRUE if the TAP state machine was already in a consistent state.
 
-bool
-TapAction::checkResetDone (TapStateMachine *tapStateMachine,
-			   bool            &tms,
-			   bool             warn)
+bool TapAction::checkResetDone(TapStateMachine * tapStateMachine,
+			       bool & tms, bool warn)
 {
-  // Nothing more to do if we are consistent
-  if (tapStateMachine->getResetDone ())
-    {
-      return  true;
-    }
+	// Nothing more to do if we are consistent
+	if (tapStateMachine->getResetDone()) {
+		return true;
+	}
+	// Need to reset. If requested and this is the first cycle of reset, give a
+	// warning.
+	if (warn && (0 == resetCounter)) {
+		std::cerr << "JTAG TAP state inconsistent: resetting" <<
+		    std::endl;
+	}
+	// Drive towards reset
+	resetCounter++;
+	tms = 1;
 
-  // Need to reset. If requested and this is the first cycle of reset, give a
-  // warning.
-  if (warn && (0 == resetCounter))
-    {
-      std::cerr << "JTAG TAP state inconsistent: resetting" << std::endl;
-    }
-
-  // Drive towards reset
-  resetCounter++;
-  tms = 1;
-
-  // If we have got to the end of the reset sequence we can clear the
-  // tapStateMachine and report we are consistent. However we will not return
-  // true until the next call.
-  if (tapStateMachine->TAP_RESET_CYCLES == resetCounter)
-    {
-      tapStateMachine->setResetDone (true);
-      resetCounter = 0;				// Ready for next time
-    }
-  else
-    {
-      return false;
-    }
-}	// checkResetDone ()
+	// If we have got to the end of the reset sequence we can clear the
+	// tapStateMachine and report we are consistent. However we will not return
+	// true until the next call.
+	if (tapStateMachine->TAP_RESET_CYCLES == resetCounter) {
+		tapStateMachine->setResetDone(true);
+		resetCounter = 0;	// Ready for next time
+	} else {
+		return false;
+	}
+}				// checkResetDone ()

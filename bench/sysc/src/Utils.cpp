@@ -28,7 +28,6 @@
 
 #include "Utils.h"
 
-
 //-----------------------------------------------------------------------------
 //!Utility to give the value of a hex char
 
@@ -39,45 +38,41 @@
 //! @return  The value of the hex character, or -1 if the character is
 //!          invalid.
 //-----------------------------------------------------------------------------
-uint8_t
-Utils::char2Hex (int  c)
+uint8_t Utils::char2Hex(int c)
 {
-  return  ((c >= 'a') && (c <= 'f')) ? c - 'a' + 10 :
-          ((c >= '0') && (c <= '9')) ? c - '0' :
-          ((c >= 'A') && (c <= 'F')) ? c - 'A' + 10 : -1;
+	return ((c >= 'a') && (c <= 'f')) ? c - 'a' + 10 :
+	    ((c >= '0') && (c <= '9')) ? c - '0' :
+	    ((c >= 'A') && (c <= 'F')) ? c - 'A' + 10 : -1;
 
-}	// char2Hex ()
-
+}				// char2Hex ()
 
 //-----------------------------------------------------------------------------
 //! Utility mapping a value to hex character
 
 //! @param[in] d  A hexadecimal digit. Any non-hex digit returns a NULL char
 //-----------------------------------------------------------------------------
-const char
-Utils::hex2Char (uint8_t  d)
+const char Utils::hex2Char(uint8_t d)
 {
-  static const char map [] = "0123456789abcdef"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-                             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+	static const char map[] = "0123456789abcdef"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-  return  map[d];
+	return map[d];
 
-}	// hex2Char ()
-
+}				// hex2Char ()
 
 //-----------------------------------------------------------------------------
 //! Convert a register to a hex digit string
@@ -89,20 +84,16 @@ Utils::hex2Char (uint8_t  d)
 //! @param[in]  val  The value to convert
 //! @param[out] buf  The buffer for the text string
 //-----------------------------------------------------------------------------
-void
-Utils::reg2Hex (uint32_t  val,
-		char     *buf)
+void Utils::reg2Hex(uint32_t val, char *buf)
 {
-  for (int  n = 7; n >= 0; n--)
-    {
-      buf[n] = hex2Char (val & 0xf);
-      val /= 16;
-    }
+	for (int n = 7; n >= 0; n--) {
+		buf[n] = hex2Char(val & 0xf);
+		val /= 16;
+	}
 
-  buf[8] = 0;			// Useful to terminate as string
+	buf[8] = 0;		// Useful to terminate as string
 
-}	// reg2hex ()
-
+}				// reg2hex ()
 
 //-----------------------------------------------------------------------------
 //! Convert a hex digit string to a register value
@@ -114,20 +105,17 @@ Utils::reg2Hex (uint32_t  val,
 
 //! @return  The value to convert
 //-----------------------------------------------------------------------------
-uint32_t
-Utils::hex2Reg (char *buf)
+uint32_t Utils::hex2Reg(char *buf)
 {
-  uint32_t  val = 0;	// The result
+	uint32_t val = 0;	// The result
 
-  for (int  n = 0; n < 8; n++)
-    {
-      val = val * 16 + char2Hex (buf[n]);
-    }
+	for (int n = 0; n < 8; n++) {
+		val = val * 16 + char2Hex(buf[n]);
+	}
 
-  return val;
+	return val;
 
-}	// hex2reg ()
-
+}				// hex2reg ()
 
 //-----------------------------------------------------------------------------
 //! Convert an ASCII character string to pairs of hex digits
@@ -137,25 +125,21 @@ Utils::hex2Reg (char *buf)
 //! @param[out] dest  Buffer to store the hex digit pairs (null terminated)
 //! @param[in]  src   The ASCII string (null terminated)                      */
 //-----------------------------------------------------------------------------
-void
-Utils::ascii2Hex (char *dest,
-		  char *src)
+void Utils::ascii2Hex(char *dest, char *src)
 {
-  int  i;
+	int i;
 
-  // Step through converting the source string
-  for (i = 0; src[i] != '\0'; i++)
-    {
-      char  ch = src[i];
+	// Step through converting the source string
+	for (i = 0; src[i] != '\0'; i++) {
+		char ch = src[i];
 
-      dest[i * 2]     = hex2Char(ch >> 4 & 0xf);
-      dest[i * 2 + 1] = hex2Char(ch      & 0xf);
-    }
+		dest[i * 2] = hex2Char(ch >> 4 & 0xf);
+		dest[i * 2 + 1] = hex2Char(ch & 0xf);
+	}
 
-  dest[i * 2] = '\0';
-	
-}	// ascii2hex ()
+	dest[i * 2] = '\0';
 
+}				// ascii2hex ()
 
 //-----------------------------------------------------------------------------
 //! Convert pairs of hex digits to an ASCII character string
@@ -165,23 +149,19 @@ Utils::ascii2Hex (char *dest,
 //! @param[out] dest  The ASCII string (null terminated)
 //! @param[in]  src   Buffer holding the hex digit pairs (null terminated)
 //-----------------------------------------------------------------------------
-void
-Utils::hex2Ascii (char *dest,
-		  char *src)
+void Utils::hex2Ascii(char *dest, char *src)
 {
-  int  i;
+	int i;
 
-  // Step through convering the source hex digit pairs
-  for (i = 0; src[i * 2] != '\0' && src[i * 2 + 1] != '\0'; i++)
-    {
-      dest[i] = ((char2Hex (src[i * 2]) & 0xf) << 4) |
-	         (char2Hex (src[i * 2 + 1]) & 0xf);
-    }
+	// Step through convering the source hex digit pairs
+	for (i = 0; src[i * 2] != '\0' && src[i * 2 + 1] != '\0'; i++) {
+		dest[i] = ((char2Hex(src[i * 2]) & 0xf) << 4) |
+		    (char2Hex(src[i * 2 + 1]) & 0xf);
+	}
 
-  dest[i] = '\0';
+	dest[i] = '\0';
 
-}	// hex2ascii ()
-
+}				// hex2ascii ()
 
 //-----------------------------------------------------------------------------
 //! "Unescape" RSP binary data
@@ -195,34 +175,27 @@ Utils::hex2Ascii (char *dest,
 
 //! @return  The number of bytes AFTER conversion
 //-----------------------------------------------------------------------------
-int
-Utils::rspUnescape (char *buf,
-		    int   len)
+int Utils::rspUnescape(char *buf, int len)
 {
-  int  fromOffset = 0;		// Offset to source char
-  int  toOffset   = 0;		// Offset to dest char
+	int fromOffset = 0;	// Offset to source char
+	int toOffset = 0;	// Offset to dest char
 
-  while (fromOffset < len)
-    {
-      // Is it escaped
-      if ( '}' == buf[fromOffset])
-	{
-	  fromOffset++;
-	  buf[toOffset] = buf[fromOffset] ^ 0x20;
+	while (fromOffset < len) {
+		// Is it escaped
+		if ('}' == buf[fromOffset]) {
+			fromOffset++;
+			buf[toOffset] = buf[fromOffset] ^ 0x20;
+		} else {
+			buf[toOffset] = buf[fromOffset];
+		}
+
+		fromOffset++;
+		toOffset++;
 	}
-      else
-	{
-	  buf[toOffset] = buf[fromOffset];
-	}
 
-      fromOffset++;
-      toOffset++;
-    }
+	return toOffset;
 
-  return  toOffset;
-
-}	// rspUnescape () */
-
+}				// rspUnescape () */
 
 //-----------------------------------------------------------------------------
 //! Convert 32-bit value from host to target endianness
@@ -234,29 +207,27 @@ Utils::rspUnescape (char *buf,
 
 //! @return  The value in target endianness
 //-----------------------------------------------------------------------------
-uint32_t
-Utils::htotl (uint32_t hostVal)
+uint32_t Utils::htotl(uint32_t hostVal)
 {
-  uint8_t  targetBytes[4];
+	uint8_t targetBytes[4];
 
 #ifdef TARGET_BIG_ENDIAN
-  targetBytes[0] = hostVal / 256 / 256 / 256;
-  targetBytes[1] = hostVal / 256 / 256;
-  targetBytes[2] = hostVal / 256;
-  targetBytes[3] = hostVal;
+	targetBytes[0] = hostVal / 256 / 256 / 256;
+	targetBytes[1] = hostVal / 256 / 256;
+	targetBytes[2] = hostVal / 256;
+	targetBytes[3] = hostVal;
 #elif defined TARGET_LITTLE_ENDIAN
-  targetBytes[0] = hostVal;
-  targetBytes[1] = hostVal / 256;
-  targetBytes[2] = hostVal / 256 / 256;
-  targetBytes[3] = hostVal / 256 / 256 / 256;
+	targetBytes[0] = hostVal;
+	targetBytes[1] = hostVal / 256;
+	targetBytes[2] = hostVal / 256 / 256;
+	targetBytes[3] = hostVal / 256 / 256 / 256;
 #else
 #error Must specify TARGET_BIG_ENDIAN or TARGET_LITTLE_ENDIAN
 #endif
 
-  return *((uint32_t *)targetBytes);
+	return *((uint32_t *) targetBytes);
 
-}	// htotl ()
-
+}				// htotl ()
 
 //-----------------------------------------------------------------------------
 //! Convert 32-bit value from target to host endianness
@@ -268,26 +239,25 @@ Utils::htotl (uint32_t hostVal)
 
 //! @return  The value in target endianness
 //-----------------------------------------------------------------------------
-uint32_t
-Utils::ttohl (uint32_t targetVal)
+uint32_t Utils::ttohl(uint32_t targetVal)
 {
-  uint8_t *targetBytes = (uint8_t *)(&targetVal);
-  uint32_t hostVal;
+	uint8_t *targetBytes = (uint8_t *) (&targetVal);
+	uint32_t hostVal;
 
 #ifdef TARGET_BIG_ENDIAN
-  hostVal =                 targetBytes[0];
-  hostVal = hostVal * 256 + targetBytes[1];
-  hostVal = hostVal * 256 + targetBytes[2];
-  hostVal = hostVal * 256 + targetBytes[3];
+	hostVal = targetBytes[0];
+	hostVal = hostVal * 256 + targetBytes[1];
+	hostVal = hostVal * 256 + targetBytes[2];
+	hostVal = hostVal * 256 + targetBytes[3];
 #elif defined TARGET_LITTLE_ENDIAN
-  hostVal =                 targetBytes[3];
-  hostVal = hostVal * 256 + targetBytes[2];
-  hostVal = hostVal * 256 + targetBytes[1];
-  hostVal = hostVal * 256 + targetBytes[0];
+	hostVal = targetBytes[3];
+	hostVal = hostVal * 256 + targetBytes[2];
+	hostVal = hostVal * 256 + targetBytes[1];
+	hostVal = hostVal * 256 + targetBytes[0];
 #else
-  #error Must specify TARGET_BIG_ENDIAN or TARGET_LITTLE_ENDIAN
+#error Must specify TARGET_BIG_ENDIAN or TARGET_LITTLE_ENDIAN
 #endif
 
-  return  hostVal;
+	return hostVal;
 
-}	// ttohl ()
+}				// ttohl ()

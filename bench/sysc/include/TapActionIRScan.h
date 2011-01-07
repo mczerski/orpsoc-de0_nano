@@ -28,7 +28,6 @@
 
 // $Id$
 
-
 #ifndef TAP_ACTION_IR_SCAN__H
 #define TAP_ACTION_IR_SCAN__H
 
@@ -36,7 +35,6 @@
 
 #include "TapAction.h"
 #include "TapStateMachine.h"
-
 
 //! Class to represent a TAP IR-Scan action.
 
@@ -46,50 +44,43 @@
 //! example uses 5 bits. 32-bits seems more than enough for the largest
 //! applications.
 
-class TapActionIRScan
-  : public TapAction
-{
+class TapActionIRScan:public TapAction {
 public:
 
-  // Constructor
-  TapActionIRScan (sc_core::sc_event *_doneEvent,
-		   uint32_t           _iRegIn,
-		   int                _iRegSize);
+	// Constructor
+	TapActionIRScan(sc_core::sc_event * _doneEvent,
+			uint32_t _iRegIn, int _iRegSize);
 
-  // Get the shifted out value
-  uint32_t  getIRegOut ();
-
+	// Get the shifted out value
+	uint32_t getIRegOut();
 
 protected:
 
-  // Process the action for IR-Scan
-  bool  process (TapStateMachine *tapStateMachine,
-		 bool            &tdi,
-		 bool             tdo,
-		 bool            &tms);
-
+	// Process the action for IR-Scan
+	 bool process(TapStateMachine * tapStateMachine,
+		      bool & tdi, bool tdo, bool & tms);
 
 private:
 
-  //! The value being shifted in
-  uint32_t  iRegIn;
+	//! The value being shifted in
+	 uint32_t iRegIn;
 
-  //! The number of bits to shift
-  int       iRegSize;
+	//! The number of bits to shift
+	int iRegSize;
 
-  //! The value shifted out
-  uint32_t  iRegOut;
+	//! The value shifted out
+	uint32_t iRegOut;
 
-  //! The number of bits shifted so far
-  int       bitsShifted;
+	//! The number of bits shifted so far
+	int bitsShifted;
 
-  //! Where we are in the IR-scan process
-  enum {
-    SHIFT_IR_PREPARING,
-    SHIFT_IR_SHIFTING,
-    SHIFT_IR_UPDATING
-  } iRScanState;
+	//! Where we are in the IR-scan process
+	enum {
+		SHIFT_IR_PREPARING,
+		SHIFT_IR_SHIFTING,
+		SHIFT_IR_UPDATING
+	} iRScanState;
 
-};	// TapActionIRScan
+};				// TapActionIRScan
 
-#endif	// TAP_ACTION_IR_SCAN__H
+#endif // TAP_ACTION_IR_SCAN__H

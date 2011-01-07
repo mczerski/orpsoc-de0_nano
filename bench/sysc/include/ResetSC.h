@@ -31,34 +31,30 @@
 
 #include "systemc"
 
-
 //! Provide a SystemC reset signal at startup
 
 //! The reset signal is driven for a specified number of cycles after
 //! creation. For convenience synchronous versions of the reset signal are
 //! provided in both active high and active low formats.
 
-class ResetSC
-  : public sc_core::sc_module
-{
+class ResetSC:public sc_core::sc_module {
 public:
 
-  // Constructor
-  ResetSC (sc_core::sc_module_name  name,
-	   int                      _resetCounter = 5);
+	// Constructor
+	ResetSC(sc_core::sc_module_name name, int _resetCounter = 5);
 
-  // Method to drive the reset
-  void  driveReset();
+	// Method to drive the reset
+	void driveReset();
 
-  // The ports
-  sc_core::sc_in<bool>   clk;
-  sc_core::sc_out<bool>  rst;		// Active high reset
-  sc_core::sc_out<bool>  rstn;		// Active low reset
+	// The ports
+	sc_core::sc_in < bool > clk;
+	sc_core::sc_out < bool > rst;	// Active high reset
+	sc_core::sc_out < bool > rstn;	// Active low reset
 
 private:
 
-  int  resetCounter;
+	int resetCounter;
 
-};	// ResetSC ()
+};				// ResetSC ()
 
-#endif	// RESET_SC__H
+#endif // RESET_SC__H

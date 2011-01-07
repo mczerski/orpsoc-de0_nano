@@ -28,42 +28,34 @@
 
 // $Id$
 
-
 #ifndef TAP_RESET_ACTION__H
 #define TAP_RESET_ACTION__H
 
 #include "TapAction.h"
 #include "TapStateMachine.h"
 
-
 //! Class to represent a TAP reset action.
 
 //! This can be very simple, since it reuses the parent class method to do the
 //! reset.
 
-class TapActionReset
-  : public TapAction
-{
+class TapActionReset:public TapAction {
 public:
 
-  // Constructor
-  TapActionReset (sc_core::sc_event *_doneEvent);
-
+	// Constructor
+	TapActionReset(sc_core::sc_event * _doneEvent);
 
 protected:
 
-  // Process the action for reset
-  bool  process (TapStateMachine *tapStateMachine,
-		 bool            &tdi,
-		 bool             tdo,
-		 bool            &tms);
-
+	// Process the action for reset
+	bool process(TapStateMachine * tapStateMachine,
+		     bool & tdi, bool tdo, bool & tms);
 
 private:
 
-  //!< Flag to mark first call to process method
-  bool  firstTime;
+	//!< Flag to mark first call to process method
+	bool firstTime;
 
-};	// TapActionReset
+};				// TapActionReset
 
-#endif	// TAP_RESET_ACTION__H
+#endif // TAP_RESET_ACTION__H

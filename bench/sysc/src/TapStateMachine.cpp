@@ -39,13 +39,11 @@
 //! the hardware until it has been through a TAP reset sequence. This is
 //! reflected in the ::tapResetDone flag.
 
-TapStateMachine::TapStateMachine () :
-  state (TAP_TEST_LOGIC_RESET),
-  resetDone (false)
+TapStateMachine::TapStateMachine():
+state(TAP_TEST_LOGIC_RESET), resetDone(false)
 {
 
-}	// TapStateMachine ()
-
+}				// TapStateMachine ()
 
 //! Accessor to get the current TAP state
 
@@ -53,13 +51,11 @@ TapStateMachine::TapStateMachine () :
 //! reset sequence.
 
 //! @return  The current TAP state
-TapState
-TapStateMachine::getState ()
+TapState TapStateMachine::getState()
 {
-  return  state;
+	return state;
 
-}	// getState ()
-
+}				// getState ()
 
 //! Accessor to get the current TAP reset state.
 
@@ -67,13 +63,11 @@ TapStateMachine::getState ()
 //! state.
 
 //! @return  The current TAP reset state
-bool
-TapStateMachine::getResetDone ()
+bool TapStateMachine::getResetDone()
 {
-  return  resetDone;
+	return resetDone;
 
-}	// getResetDone ()
-
+}				// getResetDone ()
 
 //! Accessor to set the current TAP reset state.
 
@@ -81,60 +75,58 @@ TapStateMachine::getResetDone ()
 //! state.
 
 //! @param[in]  The desired TAP reset state
-void
-TapStateMachine::setResetDone (bool _resetDone)
+void TapStateMachine::setResetDone(bool _resetDone)
 {
-  resetDone = _resetDone;
+	resetDone = _resetDone;
 
-}	// setResetDone ()
-
+}				// setResetDone ()
 
 //! Drive the TAP state machine
 
 //! @param tms       The JTAG TMS pin
-void
-TapStateMachine::nextState (bool  tms)
+void TapStateMachine::nextState(bool tms)
 {
-  static const TapState mapHigh[TAP_SIZE] = {	// When TMS = 1/true	      
-    TAP_TEST_LOGIC_RESET,		// from TAP_TEST_LOGIC_RESET  
-    TAP_SELECT_DR_SCAN,			// from TAP_RUN_TEST_IDLE     
-    TAP_SELECT_IR_SCAN,			// from TAP_SELECT_DR_SCAN    
-    TAP_EXIT1_DR,			// from TAP_CAPTURE_DR	      
-    TAP_EXIT1_DR,			// from TAP_SHIFT_DR	      
-    TAP_UPDATE_DR,			// from TAP_EXIT1_DR	      
-    TAP_EXIT2_DR,			// from TAP_PAUSE_DR	      
-    TAP_UPDATE_DR,			// from TAP_EXIT2_DR	      
-    TAP_SELECT_DR_SCAN,			// from TAP_UPDATE_DR	      
-    TAP_TEST_LOGIC_RESET,		// from TAP_SELECT_IR_SCAN    
-    TAP_EXIT1_IR,			// from TAP_CAPTURE_IR	      
-    TAP_EXIT1_IR,			// from TAP_SHIFT_IR	      
-    TAP_UPDATE_IR,			// from TAP_EXIT1_IR	      
-    TAP_EXIT2_IR,			// from TAP_PAUSE_IR	      
-    TAP_UPDATE_IR,			// from TAP_EXIT2_IR	      
-    TAP_SELECT_DR_SCAN};		// from TAP_UPDATE_IR	      
+	static const TapState mapHigh[TAP_SIZE] = {	// When TMS = 1/true          
+		TAP_TEST_LOGIC_RESET,	// from TAP_TEST_LOGIC_RESET  
+		TAP_SELECT_DR_SCAN,	// from TAP_RUN_TEST_IDLE     
+		TAP_SELECT_IR_SCAN,	// from TAP_SELECT_DR_SCAN    
+		TAP_EXIT1_DR,	// from TAP_CAPTURE_DR        
+		TAP_EXIT1_DR,	// from TAP_SHIFT_DR          
+		TAP_UPDATE_DR,	// from TAP_EXIT1_DR          
+		TAP_EXIT2_DR,	// from TAP_PAUSE_DR          
+		TAP_UPDATE_DR,	// from TAP_EXIT2_DR          
+		TAP_SELECT_DR_SCAN,	// from TAP_UPDATE_DR         
+		TAP_TEST_LOGIC_RESET,	// from TAP_SELECT_IR_SCAN    
+		TAP_EXIT1_IR,	// from TAP_CAPTURE_IR        
+		TAP_EXIT1_IR,	// from TAP_SHIFT_IR          
+		TAP_UPDATE_IR,	// from TAP_EXIT1_IR          
+		TAP_EXIT2_IR,	// from TAP_PAUSE_IR          
+		TAP_UPDATE_IR,	// from TAP_EXIT2_IR          
+		TAP_SELECT_DR_SCAN
+	};			// from TAP_UPDATE_IR         
 
-  static const TapState mapLow[TAP_SIZE] = {	// When TMS = 0/false
-    TAP_RUN_TEST_IDLE,			// from TAP_TEST_LOGIC_RESET
-    TAP_RUN_TEST_IDLE,			// from TAP_RUN_TEST_IDLE   
-    TAP_CAPTURE_DR,			// from TAP_SELECT_DR_SCAN  
-    TAP_SHIFT_DR,			// from TAP_CAPTURE_DR	    
-    TAP_SHIFT_DR,			// from TAP_SHIFT_DR	    
-    TAP_PAUSE_DR,			// from TAP_EXIT1_DR	    
-    TAP_PAUSE_DR,			// from TAP_PAUSE_DR	    
-    TAP_SHIFT_DR,			// from TAP_EXIT2_DR	    
-    TAP_RUN_TEST_IDLE,			// from TAP_UPDATE_DR	    
-    TAP_CAPTURE_IR,			// from TAP_SELECT_IR_SCAN  
-    TAP_SHIFT_IR,			// from TAP_CAPTURE_IR	    
-    TAP_SHIFT_IR,			// from TAP_SHIFT_IR	    
-    TAP_PAUSE_IR,			// from TAP_EXIT1_IR	    
-    TAP_PAUSE_IR,			// from TAP_PAUSE_IR	    
-    TAP_SHIFT_IR,			// from TAP_EXIT2_IR	    
-    TAP_RUN_TEST_IDLE };		// from TAP_UPDATE_IR	      
+	static const TapState mapLow[TAP_SIZE] = {	// When TMS = 0/false
+		TAP_RUN_TEST_IDLE,	// from TAP_TEST_LOGIC_RESET
+		TAP_RUN_TEST_IDLE,	// from TAP_RUN_TEST_IDLE   
+		TAP_CAPTURE_DR,	// from TAP_SELECT_DR_SCAN  
+		TAP_SHIFT_DR,	// from TAP_CAPTURE_DR      
+		TAP_SHIFT_DR,	// from TAP_SHIFT_DR        
+		TAP_PAUSE_DR,	// from TAP_EXIT1_DR        
+		TAP_PAUSE_DR,	// from TAP_PAUSE_DR        
+		TAP_SHIFT_DR,	// from TAP_EXIT2_DR        
+		TAP_RUN_TEST_IDLE,	// from TAP_UPDATE_DR       
+		TAP_CAPTURE_IR,	// from TAP_SELECT_IR_SCAN  
+		TAP_SHIFT_IR,	// from TAP_CAPTURE_IR      
+		TAP_SHIFT_IR,	// from TAP_SHIFT_IR        
+		TAP_PAUSE_IR,	// from TAP_EXIT1_IR        
+		TAP_PAUSE_IR,	// from TAP_PAUSE_IR        
+		TAP_SHIFT_IR,	// from TAP_EXIT2_IR        
+		TAP_RUN_TEST_IDLE
+	};			// from TAP_UPDATE_IR         
 
-  state = tms ? mapHigh[state] : mapLow[state];
+	state = tms ? mapHigh[state] : mapLow[state];
 
-}	// nextState()
-
+}				// nextState()
 
 //! Determine if we are in a particular TAP state
 
@@ -146,35 +138,34 @@ TapStateMachine::nextState (bool  tms)
 //!                     to loop).
 
 //! @return  True if we are already in the target state
-bool
-TapStateMachine::targetState (TapState  target,
-			      bool     &tms)
+bool TapStateMachine::targetState(TapState target, bool & tms)
 {
-  // Map of the value of TMS which moves the state machine from the the state
-  // in the row (first) to the state in the column (second)
-  static const bool map[TAP_SIZE][TAP_SIZE] = {
-  //  T  R  S  C  S  E  P  E  U  S  C  S  E  P  E  U 
-  //  L  T  D  D  D  1  D  2  D  I  I  I  1  I  2  I
-  //  R  I  R  R  R  D  R  D  R  R  R  R  I  R  I  R
-  //        S        R     R     S        R     R
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },  // map[TLR][x]
-    { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[RTI][x]
-    { 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 },  // map[SDRS][x]
-    { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[CDR][x]
-    { 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[SDR][x]
-    { 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[E1DR][x]
-    { 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[PDR][x]
-    { 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[E2DR][x]
-    { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },  // map[UDR][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 },  // map[SIRS][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },  // map[CIR][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },  // map[SIR][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1 },  // map[E1IR][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1 },  // map[PIR][x]
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1 },  // map[E2IR][x]
-    { 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }}; // map[UIR][x]
+	// Map of the value of TMS which moves the state machine from the the state
+	// in the row (first) to the state in the column (second)
+	static const bool map[TAP_SIZE][TAP_SIZE] = {
+		//  T  R  S  C  S  E  P  E  U  S  C  S  E  P  E  U 
+		//  L  T  D  D  D  1  D  2  D  I  I  I  1  I  2  I
+		//  R  I  R  R  R  D  R  D  R  R  R  R  I  R  I  R
+		//        S        R     R     S        R     R
+		{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},	// map[TLR][x]
+		{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},	// map[RTI][x]
+		{1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1},	// map[SDRS][x]
+		{1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},	// map[CDR][x]
+		{1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},	// map[SDR][x]
+		{1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},	// map[E1DR][x]
+		{1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1},	// map[PDR][x]
+		{1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1},	// map[E2DR][x]
+		{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},	// map[UDR][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0},	// map[SIRS][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},	// map[CIR][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},	// map[SIR][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1},	// map[E1IR][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1},	// map[PIR][x]
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1},	// map[E2IR][x]
+		{1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+	};			// map[UIR][x]
 
-  tms = map[state][target];
-  return state == target;
+	tms = map[state][target];
+	return state == target;
 
-}	// targetState()
+}				// targetState()

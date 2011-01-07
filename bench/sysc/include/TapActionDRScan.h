@@ -28,7 +28,6 @@
 
 // $Id$
 
-
 #ifndef TAP_ACTION_DR_SCAN__H
 #define TAP_ACTION_DR_SCAN__H
 
@@ -36,7 +35,6 @@
 
 #include "TapAction.h"
 #include "TapStateMachine.h"
-
 
 //! Class to represent a TAP DR-Scan action.
 
@@ -47,93 +45,83 @@
 //! The SystemC classes for large unsigned ints are fabulously inefficient in
 //! the reference implementation, so are not used here.
 
-class TapActionDRScan
-  : public TapAction
-{
+class TapActionDRScan:public TapAction {
 public:
 
-  // Constructors and destructor
-  TapActionDRScan (sc_core::sc_event *_doneEvent,
-		   uint64_t           _dRegInArray[],
-		   int                _dRegSize);
-  TapActionDRScan (sc_core::sc_event *_doneEvent,
-		   uint64_t           _dRegIn,
-		   int                _dRegSize);
-  TapActionDRScan (sc_core::sc_event *_doneEvent,
-		   uint64_t           _dRegInArray[],
-		   int                _dRegSize,
-		   int                _goToPauseState,
-		   int                _bitsBeforePauseState);
-  TapActionDRScan (sc_core::sc_event *_doneEvent,
-		   uint64_t           _dRegIn,
-		   int                _dRegSize,
-		   int                _goToPauseState,
-		   int                _bitsBeforePauseState);
-  ~TapActionDRScan ();
+	// Constructors and destructor
+	TapActionDRScan(sc_core::sc_event * _doneEvent,
+			uint64_t _dRegInArray[], int _dRegSize);
+	 TapActionDRScan(sc_core::sc_event * _doneEvent,
+			 uint64_t _dRegIn, int _dRegSize);
+	 TapActionDRScan(sc_core::sc_event * _doneEvent,
+			 uint64_t _dRegInArray[],
+			 int _dRegSize,
+			 int _goToPauseState, int _bitsBeforePauseState);
+	 TapActionDRScan(sc_core::sc_event * _doneEvent,
+			 uint64_t _dRegIn,
+			 int _dRegSize,
+			 int _goToPauseState, int _bitsBeforePauseState);
+	~TapActionDRScan();
 
-  // Get the shifted out value
-  void      getDRegOut (uint64_t  dRegArray[]);
-  uint64_t  getDRegOut ();
-
+	// Get the shifted out value
+	void getDRegOut(uint64_t dRegArray[]);
+	uint64_t getDRegOut();
 
 protected:
 
-  // Process the action for IR-Scan
-  bool  process (TapStateMachine *tapStateMachine,
-		 bool            &tdi,
-		 bool             tdo,
-		 bool            &tms);
-
+	// Process the action for IR-Scan
+	 bool process(TapStateMachine * tapStateMachine,
+		      bool & tdi, bool tdo, bool & tms);
 
 private:
 
-  //! Number of bits in the data register
-  int  dRegBitSize;
+	//! Number of bits in the data register
+	int dRegBitSize;
 
-  //! Number of uint64_t words in the data register
-  int  dRegWordSize;
+	//! Number of uint64_t words in the data register
+	int dRegWordSize;
 
-  //! Mask for top word in multi-word register
-  uint64_t  topMask;
+	//! Mask for top word in multi-word register
+	uint64_t topMask;
 
-  //! The value being shifted in
-  uint64_t *dRegInArray;
+	//! The value being shifted in
+	uint64_t *dRegInArray;
 
-  //! The value being shifted in (small version optimization)
-  uint64_t  dRegIn;
+	//! The value being shifted in (small version optimization)
+	uint64_t dRegIn;
 
-  //! The value shifted out
-  uint64_t *dRegOutArray;
+	//! The value shifted out
+	uint64_t *dRegOutArray;
 
-  //! The value being shifted out (small version optimization)
-  uint64_t  dRegOut;
+	//! The value being shifted out (small version optimization)
+	uint64_t dRegOut;
 
-  //! Should we go to PAUSE state and poll tdo during operation?
-  int goToPauseState;
+	//! Should we go to PAUSE state and poll tdo during operation?
+	int goToPauseState;
 
-  //! Number of bits to shift before going to PAUSE state and polling tdo
-  int bitsBeforePause;
+	//! Number of bits to shift before going to PAUSE state and polling tdo
+	int bitsBeforePause;
 
-  int pauseStateCount;
+	int pauseStateCount;
 
-  //! Bits shifted so far
-  int  bitsShifted;
+	//! Bits shifted so far
+	int bitsShifted;
 
-  //! Where we are in the Shift-DR process
-  enum {
-    SHIFT_DR_PREPARING,
-    SHIFT_DR_SHIFTING,
-    SHIFT_DR_SHIFTING_BEFORE_PAUSE,
-    SHIFT_DR_SHIFTING_PAUSE,
-    SHIFT_DR_EXIT2,
-    SHIFT_DR_SHIFTING_AFTER_PAUSE,
-    SHIFT_DR_UPDATING
-  } dRScanState;
+	//! Where we are in the Shift-DR process
+	enum {
+		SHIFT_DR_PREPARING,
+		SHIFT_DR_SHIFTING,
+		SHIFT_DR_SHIFTING_BEFORE_PAUSE,
+		SHIFT_DR_SHIFTING_PAUSE,
+		SHIFT_DR_EXIT2,
+		SHIFT_DR_SHIFTING_AFTER_PAUSE,
+		SHIFT_DR_UPDATING
+	} dRScanState;
 
-  // Utilities to shift the bottom bit out and top bit in
-  bool  shiftDRegOut ();
-  void  shiftDRegIn (bool  bitIn);
+	// Utilities to shift the bottom bit out and top bit in
+	bool shiftDRegOut();
+	void shiftDRegIn(bool bitIn);
 
-};	// TapActionDRScan
+};				// TapActionDRScan
 
-#endif	// TAP_ACTION_DR_SCAN__H
+#endif // TAP_ACTION_DR_SCAN__H

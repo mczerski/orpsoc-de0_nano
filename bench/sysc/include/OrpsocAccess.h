@@ -26,7 +26,6 @@
 
 // $Id: OrpsocAccess.h 303 2009-02-16 11:20:17Z jeremy $
 
-
 #ifndef ORPSOC_ACCESS__H
 #define ORPSOC_ACCESS__H
 
@@ -46,75 +45,73 @@ class Vorpsoc_top_ram_wb_b3__pi3;
 // SoC Arbiter class - will also change if any modifications to bus architecture
 //class Vorpsoc_top_wb_conbus_top__pi1;
 
-
 //! Access functions to the Verilator model
 
 //! This class encapsulates access to the Verilator model, allowing other
 //! Classes to access model state, without needing to be built within the
 //! Verilator environment.
-class OrpsocAccess
-{
+class OrpsocAccess {
 public:
 
-  // Constructor
-  OrpsocAccess (Vorpsoc_top *orpsoc_top);
+	// Constructor
+	OrpsocAccess(Vorpsoc_top * orpsoc_top);
 
-  // Accessor functions
-  bool      getExFreeze ();
-  bool      getWbFreeze ();
-  uint32_t  getWbInsn ();
-  uint32_t  getIdInsn ();
-  uint32_t  getExInsn ();
-  uint32_t  getWbPC ();
-  uint32_t  getIdPC ();
-  uint32_t  getExPC ();
-  bool  getExceptFlushpipe ();
-  bool  getExDslot ();
-  uint32_t getExceptType();
-  // Get a specific GPR from the register file
-  uint32_t  getGpr (uint32_t regNum);
-  //SPR accessessors
-  uint32_t  getSprSr ();
-  uint32_t  getSprEpcr ();
-  uint32_t  getSprEear ();
-  uint32_t  getSprEsr ();
+	// Accessor functions
+	bool getExFreeze();
+	bool getWbFreeze();
+	uint32_t getWbInsn();
+	uint32_t getIdInsn();
+	uint32_t getExInsn();
+	uint32_t getWbPC();
+	uint32_t getIdPC();
+	uint32_t getExPC();
+	bool getExceptFlushpipe();
+	bool getExDslot();
+	uint32_t getExceptType();
+	// Get a specific GPR from the register file
+	uint32_t getGpr(uint32_t regNum);
+	void setGpr(uint32_t regNum, uint32_t value);
+	//SPR accessessors
+	uint32_t getSprSr();
+	uint32_t getSprEpcr();
+	uint32_t getSprEear();
+	uint32_t getSprEsr();
 
-  // Wishbone SRAM accessor functions
-  uint32_t  get_mem32 (uint32_t addr);
-  uint8_t   get_mem8 (uint32_t addr);
+	// Wishbone SRAM accessor functions
+	uint32_t get_mem32(uint32_t addr);
+	uint8_t get_mem8(uint32_t addr);
 
-  void  set_mem32 (uint32_t addr, uint32_t data);
-  // Trigger a $readmemh for the RAM array
-  void  do_ram_readmemh (void);
-  /*
-  // Arbiter access functions
-  uint8_t getWbArbGrant ();
-  // Master Signal Access functions
-  uint32_t  getWbArbMastDatI (uint32_t mast_num);
-  uint32_t  getWbArbMastDatO (uint32_t mast_num);
-  uint32_t  getWbArbMastAdrI (uint32_t mast_num);
-  uint8_t  getWbArbMastSelI (uint32_t mast_num);
-  uint8_t getWbArbMastSlaveSelDecoded (uint32_t mast_num);
-  bool  getWbArbMastWeI (uint32_t mast_num);
-  bool  getWbArbMastCycI (uint32_t mast_num);
-  bool  getWbArbMastStbI (uint32_t mast_num);
-  bool  getWbArbMastAckO (uint32_t mast_num);
-  bool  getWbArbMastErrO (uint32_t mast_num);
-  */
-
+	void set_mem32(uint32_t addr, uint32_t data);
+	// Trigger a $readmemh for the RAM array
+	void do_ram_readmemh(void);
+	/*
+	   // Arbiter access functions
+	   uint8_t getWbArbGrant ();
+	   // Master Signal Access functions
+	   uint32_t  getWbArbMastDatI (uint32_t mast_num);
+	   uint32_t  getWbArbMastDatO (uint32_t mast_num);
+	   uint32_t  getWbArbMastAdrI (uint32_t mast_num);
+	   uint8_t  getWbArbMastSelI (uint32_t mast_num);
+	   uint8_t getWbArbMastSlaveSelDecoded (uint32_t mast_num);
+	   bool  getWbArbMastWeI (uint32_t mast_num);
+	   bool  getWbArbMastCycI (uint32_t mast_num);
+	   bool  getWbArbMastStbI (uint32_t mast_num);
+	   bool  getWbArbMastAckO (uint32_t mast_num);
+	   bool  getWbArbMastErrO (uint32_t mast_num);
+	 */
 
 private:
 
-  // Pointers to modules with accessor functions
-  Vorpsoc_top_or1200_ctrl	*or1200_ctrl;
-  Vorpsoc_top_or1200_except	*or1200_except;
-  Vorpsoc_top_or1200_sprs	*or1200_sprs;
-  Vorpsoc_top_or1200_dpram	*rf_a;
-  /*Vorpsoc_top_ram_wb_sc_sw*//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000*/ /*Vorpsoc_top_wb_ram_b3__D20_A17_M800000 *ram_wb_sc_sw;*/
-  Vorpsoc_top_ram_wb_b3__pi3 *wishbone_ram;
-  // Arbiter
-  //Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
+	// Pointers to modules with accessor functions
+	 Vorpsoc_top_or1200_ctrl * or1200_ctrl;
+	Vorpsoc_top_or1200_except *or1200_except;
+	Vorpsoc_top_or1200_sprs *or1200_sprs;
+	Vorpsoc_top_or1200_dpram *rf_a;
+	/*Vorpsoc_top_ram_wb_sc_sw *//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000 *//*Vorpsoc_top_wb_ram_b3__D20_A17_M800000 *ram_wb_sc_sw; */
+	Vorpsoc_top_ram_wb_b3__pi3 *wishbone_ram;
+	// Arbiter
+	//Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
 
-};	// OrpsocAccess ()
+};				// OrpsocAccess ()
 
-#endif	// ORPSOC_ACCESS__H
+#endif // ORPSOC_ACCESS__H

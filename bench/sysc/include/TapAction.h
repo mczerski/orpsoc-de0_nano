@@ -28,26 +28,20 @@
 
 // $Id$
 
-
 #ifndef TAP_ACTION__H
 #define TAP_ACTION__H
 
 #include "TapStateMachine.h"
 
-namespace sc_core
-{
-class  sc_event;
+namespace sc_core {
+	class sc_event;
 }
-
-
-//! Enumeration of all the TAP actions supported.
-
+//! Enumeration of all the TAP actions supported. 
 enum TapActionType {
-  TAP_ACTION_RESET    = 0,
-  TAP_ACTION_SHIFT_DR = 1,
-  TAP_ACTION_SHIFT_IR = 2
+	TAP_ACTION_RESET = 0,
+	TAP_ACTION_SHIFT_DR = 1,
+	TAP_ACTION_SHIFT_IR = 2
 };
-
 
 //! Abstract class to represent a TAP action.
 
@@ -58,42 +52,36 @@ enum TapActionType {
 //! completion. Since we are not a SystemC class, we don't do the notification
 //! ourselves.
 
-class TapAction
-{
+class TapAction {
 public:
 
-  friend class  JtagSC;
+	friend class JtagSC;
 
-  // Constructor
-  TapAction (sc_core::sc_event *_doneEvent);
-
+	// Constructor
+	TapAction(sc_core::sc_event * _doneEvent);
 
 protected:
 
-  // Accessor for the SystemC event to notify completion
-  sc_core::sc_event *getDoneEvent ();
+	// Accessor for the SystemC event to notify completion
+	sc_core::sc_event * getDoneEvent();
 
-  // Process the action. Pure virtual, so must be implemented by subclasses.
-  virtual bool  process (TapStateMachine *tapStateMachine,
-			 bool            &tdi,
-			 bool             tdo,
-			 bool            &tms) = 0;
+	// Process the action. Pure virtual, so must be implemented by subclasses.
+	virtual bool process(TapStateMachine * tapStateMachine,
+			     bool & tdi, bool tdo, bool & tms) = 0;
 
-  // Function to drive the TAP to a consistent state, optionally with a
-  // warning.
-  bool  checkResetDone (TapStateMachine *tapStateMachine,
-			bool            &tms,
-			bool             warn = false);
-
+	// Function to drive the TAP to a consistent state, optionally with a
+	// warning.
+	bool checkResetDone(TapStateMachine * tapStateMachine,
+			    bool & tms, bool warn = false);
 
 private:
 
-  //! The associated SystemC event to mark completion
-  sc_core::sc_event *doneEvent;
+	//! The associated SystemC event to mark completion
+	 sc_core::sc_event * doneEvent;
 
-  //! Counter for the reset process
-  int  resetCounter;
+	//! Counter for the reset process
+	int resetCounter;
 
-};	// TapAction ()
+};				// TapAction ()
 
-#endif	// TAP_ACTION__H
+#endif // TAP_ACTION__H

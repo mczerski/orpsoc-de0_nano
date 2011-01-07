@@ -28,10 +28,8 @@
 
 // $Id$
 
-
 #include "TapActionIRScan.h"
 #include "TapStateMachine.h"
-
 
 //! Constructor
 
@@ -43,19 +41,14 @@
 //! @param[in] _iRegIn    The register to shift in.
 //! @param[in] _iRegSize  Size in bits of the register to shift in.
 
-TapActionIRScan::TapActionIRScan (sc_core::sc_event *_doneEvent,
-				  uint32_t           _iRegIn,
-				  int                _iRegSize) :
-  TapAction (_doneEvent),
-  iRegIn (_iRegIn),
-  iRegSize (_iRegSize),
-  iRegOut (0),
-  bitsShifted (0),
-  iRScanState (SHIFT_IR_PREPARING)
+TapActionIRScan::TapActionIRScan(sc_core::sc_event * _doneEvent,
+				 uint32_t _iRegIn,
+				 int _iRegSize):TapAction(_doneEvent),
+iRegIn(_iRegIn),
+iRegSize(_iRegSize), iRegOut(0), bitsShifted(0), iRScanState(SHIFT_IR_PREPARING)
 {
 
-}	// TapActionIRScan ()
-
+}				// TapActionIRScan ()
 
 //! Process the Shift-IR action
 
@@ -75,104 +68,83 @@ TapActionIRScan::TapActionIRScan (sc_core::sc_event *_doneEvent,
 
 //! @return  True if the action is complete
 
-bool
-TapActionIRScan::process (TapStateMachine *tapStateMachine,
-			  bool            &tdi,
-			  bool             tdo,
-			  bool            &tms)
+bool TapActionIRScan::process(TapStateMachine * tapStateMachine,
+			      bool & tdi, bool tdo, bool & tms)
 {
-  // Ensure we are in a consistent state. If not then we'll have moved towards
-  // it and can return with the given tms
-  if (!checkResetDone (tapStateMachine, tms, true))
-    {
-      return false;
-    }
-
-  // We are consistent, so work through the IR-Scan process
-  switch (iRScanState)
-    {
-    case SHIFT_IR_PREPARING:
-
-      // Are we in the Shift-IR state yet?
-      if (!tapStateMachine->targetState (TAP_SHIFT_IR, tms))
-	{
-	  return  false;		// Not there. Accept the TMS value
+	// Ensure we are in a consistent state. If not then we'll have moved towards
+	// it and can return with the given tms
+	if (!checkResetDone(tapStateMachine, tms, true)) {
+		return false;
 	}
-      else
-	{
-	  iRScanState = SHIFT_IR_SHIFTING;	// Drop through
-	}
+	// We are consistent, so work through the IR-Scan process
+	switch (iRScanState) {
+	case SHIFT_IR_PREPARING:
 
-    case SHIFT_IR_SHIFTING:
-
-      // Are we still shifting stuff?
-      if (bitsShifted < iRegSize)
-	{
-	  // We are in the Shift-IR state. Another bit about to be done, so
-	  // increment the count
-	  bitsShifted++;
-
-	  // Shift out the TDI value from the bottom of the register
-	  tdi       = iRegIn & 1;
-	  iRegIn >>= 1;
-
-	  // Record the TDO value. This is always a cycle late, so we ignore
-	  // it the first time. The value shifts in from the top.
-	  if (bitsShifted > 1)
-	    {
-	      iRegOut >>= 1;		// Move all the existing bits right
-	      
-	      if (tdo)			// OR any new bit in
-		{
-		  uint32_t tmpBit = 1 << (iRegSize - 1);
-		  iRegOut |= tmpBit;
+		// Are we in the Shift-IR state yet?
+		if (!tapStateMachine->targetState(TAP_SHIFT_IR, tms)) {
+			return false;	// Not there. Accept the TMS value
+		} else {
+			iRScanState = SHIFT_IR_SHIFTING;	// Drop through
 		}
-	    }
 
-	  // TMS is 0 to keep us here UNLESS this is the last bit, in which
-	  // case it is 1 to move us into Exit1-IR.
-	  tms = (bitsShifted == iRegSize);
+	case SHIFT_IR_SHIFTING:
 
-	  return false;
+		// Are we still shifting stuff?
+		if (bitsShifted < iRegSize) {
+			// We are in the Shift-IR state. Another bit about to be done, so
+			// increment the count
+			bitsShifted++;
+
+			// Shift out the TDI value from the bottom of the register
+			tdi = iRegIn & 1;
+			iRegIn >>= 1;
+
+			// Record the TDO value. This is always a cycle late, so we ignore
+			// it the first time. The value shifts in from the top.
+			if (bitsShifted > 1) {
+				iRegOut >>= 1;	// Move all the existing bits right
+
+				if (tdo)	// OR any new bit in
+				{
+					uint32_t tmpBit = 1 << (iRegSize - 1);
+					iRegOut |= tmpBit;
+				}
+			}
+			// TMS is 0 to keep us here UNLESS this is the last bit, in which
+			// case it is 1 to move us into Exit1-IR.
+			tms = (bitsShifted == iRegSize);
+
+			return false;
+		} else {
+			// Capture the last TDO bit
+			iRegOut >>= 1;	// Move all the existing bits right
+
+			if (tdo)	// OR any new bit in
+			{
+				uint32_t tmpBit = 1 << (iRegSize - 1);
+				iRegOut |= tmpBit;
+			}
+
+			iRScanState = SHIFT_IR_UPDATING;	// Drop through
+		}
+
+	case SHIFT_IR_UPDATING:
+
+		// Are we still trying to update?
+		if (!tapStateMachine->targetState(TAP_UPDATE_IR, tms)) {
+			return false;	// Not there. Accept the TMS value
+		} else {
+			return true;	// All done
+		}
 	}
-      else
-	{
-	  // Capture the last TDO bit
-	  iRegOut >>= 1;		// Move all the existing bits right
-
-	  if (tdo)			// OR any new bit in
-	    {
-	      uint32_t tmpBit = 1 << (iRegSize - 1);
-	      iRegOut |= tmpBit;
-	    }
-
-	  iRScanState = SHIFT_IR_UPDATING;	// Drop through
-	}
-
-    case SHIFT_IR_UPDATING:
-
-      // Are we still trying to update?
-      if (!tapStateMachine->targetState (TAP_UPDATE_IR, tms))
-	{
-	  return  false;		// Not there. Accept the TMS value
-	}
-      else
-	{
-	  return  true;			// All done
-	}
-    }
-}	// process ()
-
+}				// process ()
 
 //! Get the shifted out register
 
 //! @return  The value of the shifted our register
 
-uint32_t
-TapActionIRScan::getIRegOut ()
+uint32_t TapActionIRScan::getIRegOut()
 {
-  return  iRegOut;
+	return iRegOut;
 
-}	// getIRegOut ()
-
-
+}				// getIRegOut ()

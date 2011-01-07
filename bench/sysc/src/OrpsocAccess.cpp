@@ -51,220 +51,198 @@
 
 //! @param[in] orpsoc  The SystemC Verilated ORPSoC instance
 
-OrpsocAccess::OrpsocAccess (Vorpsoc_top *orpsoc_top)
+OrpsocAccess::OrpsocAccess(Vorpsoc_top * orpsoc_top)
 {
-  // Assign processor accessor objects
-  or1200_ctrl = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_ctrl;
-  or1200_except = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_except;
-  or1200_sprs = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_sprs;
-  rf_a        = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_rf->rf_a;
-  // Assign main memory accessor objects
-  // For old ram_wb: ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
-  //ram_wb_sc_sw = orpsoc_top->v->wb_ram_b3_0;
-  wishbone_ram = orpsoc_top->v->ram_wb0->ram_wb_b3_0;
+	// Assign processor accessor objects
+	or1200_ctrl = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_ctrl;
+	or1200_except = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_except;
+	or1200_sprs = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_sprs;
+	rf_a = orpsoc_top->v->or1200_top0->or1200_cpu->or1200_rf->rf_a;
+	// Assign main memory accessor objects
+	// For old ram_wb: ram_wb_sc_sw = orpsoc_top->v->ram_wb0->ram0;
+	//ram_wb_sc_sw = orpsoc_top->v->wb_ram_b3_0;
+	wishbone_ram = orpsoc_top->v->ram_wb0->ram_wb_b3_0;
 
-  // Assign arbiter accessor object
-  //wb_arbiter = orpsoc_top->v->wb_conbus;
+	// Assign arbiter accessor object
+	//wb_arbiter = orpsoc_top->v->wb_conbus;
 
-}	// OrpsocAccess ()
+}				// OrpsocAccess ()
 
 //! Access for the ex_freeze signal
 
 //! @return  The value of the or1200_ctrl.ex_freeze signal
 
-bool
-OrpsocAccess::getExFreeze ()
+bool OrpsocAccess::getExFreeze()
 {
-  return  or1200_ctrl->ex_freeze;
+	return or1200_ctrl->ex_freeze;
 
-}	// getExFreeze ()
+}				// getExFreeze ()
 
 //! Access for the wb_freeze signal
 
 //! @return  The value of the or1200_ctrl.wb_freeze signal
 
-bool
-OrpsocAccess::getWbFreeze ()
+bool OrpsocAccess::getWbFreeze()
 {
-  return  or1200_ctrl->wb_freeze;
+	return or1200_ctrl->wb_freeze;
 
-}	// getWbFreeze ()
+}				// getWbFreeze ()
 
 //! Access for the except_flushpipe signal
 
 //! @return  The value of the or1200_except.except_flushpipe signal
 
-bool
-OrpsocAccess::getExceptFlushpipe ()
+bool OrpsocAccess::getExceptFlushpipe()
 {
-  return  or1200_except->except_flushpipe;
+	return or1200_except->except_flushpipe;
 
-}	// getExceptFlushpipe ()
+}				// getExceptFlushpipe ()
 
 //! Access for the ex_dslot signal
 
 //! @return  The value of the or1200_except.ex_dslot signalfac
 
-bool
-OrpsocAccess::getExDslot ()
+bool OrpsocAccess::getExDslot()
 {
-  return  or1200_except->ex_dslot;
+	return or1200_except->ex_dslot;
 
-}	// getExDslot ()
+}				// getExDslot ()
 
 //! Access for the except_type value
 
 //! @return  The value of the or1200_except.except_type register
 
-uint32_t
-OrpsocAccess::getExceptType ()
+uint32_t OrpsocAccess::getExceptType()
 {
-  return  (or1200_except->get_except_type) ();
+	return (or1200_except->get_except_type) ();
 
-}	// getExceptType ()
-
+}				// getExceptType ()
 
 //! Access for the id_pc register
 
 //! @return  The value of the or1200_except.id_pc register
 
-uint32_t
-OrpsocAccess::getIdPC ()
+uint32_t OrpsocAccess::getIdPC()
 {
-  return  (or1200_except->get_id_pc) ();
+	return (or1200_except->get_id_pc) ();
 
-}	// getIdPC ()
+}				// getIdPC ()
 
 //! Access for the ex_pc register
 
 //! @return  The value of the or1200_except.id_ex register
 
-uint32_t
-OrpsocAccess::getExPC ()
+uint32_t OrpsocAccess::getExPC()
 {
-  return  (or1200_except->get_ex_pc) ();
+	return (or1200_except->get_ex_pc) ();
 
-}	// getExPC ()
+}				// getExPC ()
 
 //! Access for the wb_pc register
 
 //! @return  The value of the or1200_except.wb_pc register
 
-uint32_t
-OrpsocAccess::getWbPC ()
+uint32_t OrpsocAccess::getWbPC()
 {
-  return  (or1200_except->get_wb_pc) ();
+	return (or1200_except->get_wb_pc) ();
 
-}	// getWbPC ()
+}				// getWbPC ()
 
 //! Access for the id_insn register
 
 //! @return  The value of the or1200_ctrl.wb_insn register
 
-uint32_t
-OrpsocAccess::getIdInsn ()
+uint32_t OrpsocAccess::getIdInsn()
 {
-  return  (or1200_ctrl->get_id_insn) ();
+	return (or1200_ctrl->get_id_insn) ();
 
-}	// getIdInsn ()
+}				// getIdInsn ()
 
 //! Access for the ex_insn register
 
 //! @return  The value of the or1200_ctrl.ex_insn register
 
-uint32_t
-OrpsocAccess::getExInsn ()
+uint32_t OrpsocAccess::getExInsn()
 {
-  return  (or1200_ctrl->get_ex_insn) ();
+	return (or1200_ctrl->get_ex_insn) ();
 
-}	// getExInsn ()
-
+}				// getExInsn ()
 
 //! Access for the wb_insn register
 
 //! @return  The value of the or1200_ctrl.wb_insn register
 
-uint32_t
-OrpsocAccess::getWbInsn ()
+uint32_t OrpsocAccess::getWbInsn()
 {
-  return  (or1200_ctrl->get_wb_insn) ();
+	return (or1200_ctrl->get_wb_insn) ();
 
-}	// getWbInsn ()
+}				// getWbInsn ()
 
 //! Access the Wishbone SRAM memory
 
 //! @return  The value of the 32-bit memory word at addr
 
-uint32_t
-OrpsocAccess::get_mem32 (uint32_t addr)
+uint32_t OrpsocAccess::get_mem32(uint32_t addr)
 {
-  return  (wishbone_ram->get_mem) (addr/4);
+	return (wishbone_ram->get_mem32) (addr / 4);
 
-}	// get_mem32 ()
-
+}				// get_mem32 ()
 
 //! Access a byte from the Wishbone SRAM memory
 
 //! @return  The value of the memory byte at addr
 
-uint8_t
-OrpsocAccess::get_mem8 (uint32_t addr)
+uint8_t OrpsocAccess::get_mem8(uint32_t addr)
 {
 
-  uint32_t word;
-  static uint32_t cached_word;
-  static uint32_t cached_word_addr = 0xffffffff;
-  int sel = addr & 0x3; // Remember which byte we want
-  addr = addr / 4;
-  if (addr != cached_word_addr)
-    {
-      cached_word_addr = addr;
-      // Convert address to word number here
-      word = (wishbone_ram->get_mem) (addr);
-      cached_word = word;
-    }
-  else
-    word = cached_word;
+	uint32_t word;
+	static uint32_t cached_word;
+	static uint32_t cached_word_addr = 0xffffffff;
+	int sel = addr & 0x3;	// Remember which byte we want
+	addr = addr / 4;
+	if (addr != cached_word_addr) {
+		cached_word_addr = addr;
+		// Convert address to word number here
+		word = (wishbone_ram->get_mem8) (addr);
+		cached_word = word;
+	} else
+		word = cached_word;
 
-  switch(sel)
-    {
-      /* Big endian word expected */
-    case 0:
-      return ((word >> 24) & 0xff);
-      break;
-    case 1:
-      return ((word >> 16) & 0xff);
-      break;
-    case 2:
-      return ((word >> 8) & 0xff);
-      break;
-    case 3:
-      return ((word >> 0) & 0xff);
-      break;
-    default:
-      return 0;
-    }
+	switch (sel) {
+		/* Big endian word expected */
+	case 0:
+		return ((word >> 24) & 0xff);
+		break;
+	case 1:
+		return ((word >> 16) & 0xff);
+		break;
+	case 2:
+		return ((word >> 8) & 0xff);
+		break;
+	case 3:
+		return ((word >> 0) & 0xff);
+		break;
+	default:
+		return 0;
+	}
 
-}	// get_mem8 ()
-
+}				// get_mem8 ()
 
 //! Write value to the Wishbone SRAM memory
 
-void
-OrpsocAccess::set_mem32 (uint32_t addr, uint32_t data)
+void OrpsocAccess::set_mem32(uint32_t addr, uint32_t data)
 {
-  (wishbone_ram->set_mem) (addr/4, data);
+	(wishbone_ram->set_mem32) (addr / 4, data);
 
-}	// set_mem32 ()
+}				// set_mem32 ()
 
 //! Trigger the $readmemh() system call
 
-void
-OrpsocAccess::do_ram_readmemh (void)
+void OrpsocAccess::do_ram_readmemh(void)
 {
-  (wishbone_ram->do_readmemh) ();
+	(wishbone_ram->do_readmemh) ();
 
-}	// do_ram_readmemh ()
+}				// do_ram_readmemh ()
 
 //! Access for the OR1200 GPRs
 
@@ -274,57 +252,64 @@ OrpsocAccess::do_ram_readmemh (void)
 
 //! @return            The value of the GPR
 
-uint32_t
-OrpsocAccess::getGpr (uint32_t  regNum)
+uint32_t OrpsocAccess::getGpr(uint32_t regNum)
 {
-  return  (rf_a->get_gpr) (regNum);
+	return (rf_a->get_gpr) (regNum);
 
-}	// getGpr ()
+}				// getGpr ()
 
+//! Access for the OR1200 GPRs
+
+//! These are extracted from memory using the Verilog function
+
+//! @param[in] regNum  The GPR whose value is wanted
+//! @param[in] value   The value of GPR to write
+
+void OrpsocAccess::setGpr(uint32_t regNum, uint32_t value)
+{
+	(rf_a->set_gpr) (regNum, value);
+
+}				// getGpr ()
 
 //! Access for the sr register
 
 //! @return  The value of the or1200_sprs.sr register
 
-uint32_t
-OrpsocAccess::getSprSr ()
+uint32_t OrpsocAccess::getSprSr()
 {
-  return  (or1200_sprs->get_sr) ();
+	return (or1200_sprs->get_sr) ();
 
-}	// getSprSr ()
+}				// getSprSr ()
 
 //! Access for the epcr register
 
 //! @return  The value of the or1200_sprs.epcr register
 
-uint32_t
-OrpsocAccess::getSprEpcr ()
+uint32_t OrpsocAccess::getSprEpcr()
 {
-  return  (or1200_sprs->get_epcr) ();
+	return (or1200_sprs->get_epcr) ();
 
-}	// getSprEpcr ()
+}				// getSprEpcr ()
 
 //! Access for the eear register
 
 //! @return  The value of the or1200_sprs.eear register
 
-uint32_t
-OrpsocAccess::getSprEear ()
+uint32_t OrpsocAccess::getSprEear()
 {
-  return  (or1200_sprs->get_eear) ();
+	return (or1200_sprs->get_eear) ();
 
-}	// getSprEear ()
+}				// getSprEear ()
 
 //! Access for the esr register
 
 //! @return  The value of the or1200_sprs.esr register
 
-uint32_t
-OrpsocAccess::getSprEsr ()
+uint32_t OrpsocAccess::getSprEsr()
 {
-  return  (or1200_sprs->get_esr) ();
+	return (or1200_sprs->get_esr) ();
 
-}	// getSprEsr ()
+}				// getSprEsr ()
 
 /*
 //! Access for the arbiter's grant signal
@@ -337,7 +322,6 @@ OrpsocAccess::getWbArbGrant ()
   return  (wb_arbiter->get_gnt) ();
 
 }	// getWbArbGrant ()
-
 
 //! Arbiter master[mast_num] access functions
 
@@ -373,7 +357,6 @@ OrpsocAccess::getWbArbMastAdrI (uint32_t mast_num)
   return  (wb_arbiter->get_m_adr_i) (mast_num);
 
 }	// getWbArbMastAdrI ()
-
 
 //! Access for the arbiter's master[mast_num] select signal
 

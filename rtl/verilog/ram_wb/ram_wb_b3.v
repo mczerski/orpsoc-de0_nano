@@ -35,7 +35,7 @@ module ram_wb_b3(
    parameter mem_words = (mem_size_bytes/bytes_per_dw);   
 
    // synthesis attribute ram_style of mem is block
-   reg [dw-1:0] 	mem [ 0 : mem_words-1 ] /* synthesis ram_style = no_rw_check */;
+   reg [dw-1:0] 	mem [ 0 : mem_words-1 ]   /* verilator public */ /* synthesis ram_style = no_rw_check */;
 
    // Register to address internal memory array
    reg [(mem_adr_width-adr_width_for_num_word_bytes)-1:0] adr;
@@ -114,13 +114,29 @@ module ram_wb_b3(
        adr <= burst_adr_counter;
      else if (wb_cyc_i & wb_stb_i)
        adr <= wb_adr_i[mem_adr_width-1:2];
-       
+
+   /* Memory initialisation.
+    If not Verilator model, always do load, otherwise only load when called
+    from SystemC testbench.
+    */
+
    parameter memory_file = "sram.vmem";
 
+`ifdef verilator
+   
+   task do_readmemh;
+      // verilator public
+      $readmemh(memory_file, mem);
+   endtask // do_readmemh
+   
+`else
+   
    initial
      begin
 	$readmemh(memory_file, mem);
      end
+   
+`endif // !`ifdef verilator
 
    assign wb_rty_o = 0;
 
@@ -199,56 +215,38 @@ module ram_wb_b3(
    // OR in other errors here...
    assign wb_err_o = wb_ack_o & (burst_access_wrong_wb_adr | addr_err);
 
-`ifdef verilator
-   
-   task do_readmemh;
-      // verilator public
-      $readmemh(memory_file, mem);
-   endtask // do_readmemh
-   
-`else
-   
-   initial
-     begin
-	$readmemh(memory_file, mem);
-     end
-   
-`endif // !`ifdef verilator
-
-   
-   
    //
    // Access functions
    //
    
    // Function to access RAM (for use by Verilator).
-   function [31:0] get_mem;
+   function [31:0] get_mem32;
       // verilator public
       input [aw-1:0] 		addr;
-      get_mem = mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]];
-   endfunction // get_mem
+      get_mem32 = mem[addr];
+   endfunction // get_mem32   
 
    // Function to access RAM (for use by Verilator).
-   function [7:0] get_byte;
+   function [7:0] get_mem8;
       // verilator public
       input [aw-1:0] 		addr;
-      reg [31:0] 		temp_word;   
+            reg [31:0] 		temp_word;
       begin
-	 temp_word = mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]];
+	 temp_word = mem[{addr[aw-1:2],2'd0}];
 	 // Big endian mapping.
-	 get_byte = (addr[1:0]==2'b00) ? temp_word[31:24] :
+	 get_mem8 = (addr[1:0]==2'b00) ? temp_word[31:24] :
 		    (addr[1:0]==2'b01) ? temp_word[23:16] :
 		    (addr[1:0]==2'b10) ? temp_word[15:8] : temp_word[7:0];
 	 end
-   endfunction // get_mem
+   endfunction // get_mem8   
 
    // Function to write RAM (for use by Verilator).
-   function set_mem;
+   function set_mem32;
       // verilator public
       input [aw-1:0] 		addr;
       input [dw-1:0] 		data;
-      mem[addr[mem_adr_width-1:adr_width_for_num_word_bytes]] = data;
-   endfunction // set_mem
+      mem[addr] = data;
+   endfunction // set_mem32   
    
 endmodule // ram_wb_b3
 

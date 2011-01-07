@@ -60,14 +60,8 @@
 #include "cpu-utils.h"
 #include "spr-defs.h"
 #include "board.h"
-// Uncomment uart.h include for UART output
-//#include "uart.h"
-//#include "printf.h"
-
-// Uncomment the following to completely remove all printfs, or comment them
-// out to enable printf()s, but slows down RTL simulation a lot.
-#undef printf
-#define printf(a, ...)
+#include "uart.h"
+#include "printf.h"
 
 #include "or1200-defines.h"
 
@@ -85,7 +79,7 @@
 
 
 // Reduce the number of sets tested
-#define SHORT_TEST
+//#define SHORT_TEST
 
 // Set this to 1 to enable the DMMU tests
 #define DO_DMMU_TESTS 1
@@ -1447,7 +1441,6 @@ int main (void)
   
   /* Register sys call handler */
   add_handler(0xc, sys_call_handler);
-  // Skip all DTLB tests for now while we tweak itlb ones...
 
 #if DO_DMMU_TESTS==1
 

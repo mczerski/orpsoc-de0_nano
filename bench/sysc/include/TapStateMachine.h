@@ -33,50 +33,46 @@
 //! Last entry is not a state, but a marker of the number of states. Useful
 //! for state transition matrices.
 enum TapState {
-  TAP_TEST_LOGIC_RESET =  0,
-  TAP_RUN_TEST_IDLE    =  1,
-  TAP_SELECT_DR_SCAN   =  2,
-  TAP_CAPTURE_DR       =  3,
-  TAP_SHIFT_DR         =  4,
-  TAP_EXIT1_DR         =  5,
-  TAP_PAUSE_DR         =  6,
-  TAP_EXIT2_DR         =  7,
-  TAP_UPDATE_DR        =  8,
-  TAP_SELECT_IR_SCAN   =  9,
-  TAP_CAPTURE_IR       = 10,
-  TAP_SHIFT_IR         = 11,
-  TAP_EXIT1_IR         = 12,
-  TAP_PAUSE_IR         = 13,
-  TAP_EXIT2_IR         = 14,
-  TAP_UPDATE_IR        = 15,
-  TAP_SIZE             = 16
-
-};	// enum TapState
-
+	TAP_TEST_LOGIC_RESET = 0,
+	TAP_RUN_TEST_IDLE = 1,
+	TAP_SELECT_DR_SCAN = 2,
+	TAP_CAPTURE_DR = 3,
+	TAP_SHIFT_DR = 4,
+	TAP_EXIT1_DR = 5,
+	TAP_PAUSE_DR = 6,
+	TAP_EXIT2_DR = 7,
+	TAP_UPDATE_DR = 8,
+	TAP_SELECT_IR_SCAN = 9,
+	TAP_CAPTURE_IR = 10,
+	TAP_SHIFT_IR = 11,
+	TAP_EXIT1_IR = 12,
+	TAP_PAUSE_IR = 13,
+	TAP_EXIT2_IR = 14,
+	TAP_UPDATE_IR = 15,
+	TAP_SIZE = 16
+};				// enum TapState
 
 //! Textual representation of all the TAP states.
 
 //! Provided for debugging purposes
 static const char *tapStateNames[TAP_SIZE] = {
-  "Test-Logic-Reset",
-  "Run-Test/Idle",
-  "Select-DR-Scan",
-  "Capture-DR",
-  "Shift-DR",
-  "Exit1-DR",
-  "Pause-DR",
-  "Exit2-DR",
-  "Update-DR",
-  "Select-IR-Scan",
-  "Capture-IR",
-  "Shift-IR",
-  "Exit1-IR",
-  "Pause-IR",
-  "Exit2-IR",
-  "Update-IR"
-
-};	// tapStateNames
-
+	"Test-Logic-Reset",
+	"Run-Test/Idle",
+	"Select-DR-Scan",
+	"Capture-DR",
+	"Shift-DR",
+	"Exit1-DR",
+	"Pause-DR",
+	"Exit2-DR",
+	"Update-DR",
+	"Select-IR-Scan",
+	"Capture-IR",
+	"Shift-IR",
+	"Exit1-IR",
+	"Pause-IR",
+	"Exit2-IR",
+	"Update-IR"
+};				// tapStateNames
 
 //! TAP state machine
 
@@ -95,52 +91,47 @@ static const char *tapStateNames[TAP_SIZE] = {
 //! For convenience of users, this class provides a flag (resetDone::),
 //! with accessors by which reset state can be recorded.
 
-
-class TapStateMachine
-{
+class TapStateMachine {
 public:
 
-  friend class  JtagSC;
-  friend class  TapAction;
-  friend class  TapActionDRScan;
-  friend class  TapActionIRScan;
-  friend class  TapActionReset;
-
+	friend class JtagSC;
+	friend class TapAction;
+	friend class TapActionDRScan;
+	friend class TapActionIRScan;
+	friend class TapActionReset;
 
 protected:
 
-  //! The number of cycles of TMS=1 required to force reset
-  static const int TAP_RESET_CYCLES = 5;
+	//! The number of cycles of TMS=1 required to force reset
+	static const int TAP_RESET_CYCLES = 5;
 
-  // Constructor
-  TapStateMachine();
+	// Constructor
+	 TapStateMachine();
 
-  // Accessor for TAP state
-  TapState  getState ();
+	// Accessor for TAP state
+	TapState getState();
 
-  // Accessors for TAP reset state
-  bool  getResetDone ();
-  void  setResetDone (bool  _resetState);
+	// Accessors for TAP reset state
+	bool getResetDone();
+	void setResetDone(bool _resetState);
 
-  // Drive the TAP state machine
-  void  nextState (bool tms);
+	// Drive the TAP state machine
+	void nextState(bool tms);
 
-  // Determine if we are in a particular target state
-  bool  targetState (TapState  target,
-		     bool     &tms);
+	// Determine if we are in a particular target state
+	bool targetState(TapState target, bool & tms);
 
 private:
 
-  //! The current TAP state
-  TapState  state;
+	//! The current TAP state
+	 TapState state;
 
-  //! True if the TAP state machine has been through a reset.
+	//! True if the TAP state machine has been through a reset.
 
-  //! The state can be sure to match that of the target. Responsibility of
-  //! user classes to set this.
-  bool  resetDone;
+	//! The state can be sure to match that of the target. Responsibility of
+	//! user classes to set this.
+	bool resetDone;
 
-};	// class TapStateMachine
+};				// class TapStateMachine
 
-
-#endif	// TAP_STATE_MACHINE__H
+#endif // TAP_STATE_MACHINE__H

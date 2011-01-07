@@ -31,7 +31,6 @@
 
 #include "SprCache.h"
 
-
 //-----------------------------------------------------------------------------
 //! Constructor
 
@@ -40,45 +39,42 @@
 //! @param[in] _tableSize  The desire hash table size. A prime number is
 //!                         recommended.
 //-----------------------------------------------------------------------------
-SprCache::SprCache (int _tableSize) :
-  tableSize (_tableSize)
+SprCache::SprCache(int _tableSize):
+tableSize(_tableSize)
 {
-  sprIsValid = new bool [tableSize];
-  sprKeyNum  = new uint16_t [tableSize];
-  sprValue   = new uint32_t [tableSize];
+	sprIsValid = new bool[tableSize];
+	sprKeyNum = new uint16_t[tableSize];
+	sprValue = new uint32_t[tableSize];
 
-  clear ();
+	clear();
 
-}	// SprCache ()
-
+}				// SprCache ()
 
 //-----------------------------------------------------------------------------
 //! Destructor
 
 //! Free up the tables
 //-----------------------------------------------------------------------------
-SprCache::~SprCache ()
+SprCache::~SprCache()
 {
-  delete [] sprValue;
-  delete [] sprKeyNum;
-  delete [] sprIsValid;
+	delete[]sprValue;
+	delete[]sprKeyNum;
+	delete[]sprIsValid;
 
-}	// ~SprCache ()
-
+}				// ~SprCache ()
 
 //! Empty the hash table
 
 //! Only need to worry about the validity field
 void
-SprCache::clear ()
+ SprCache::clear()
 {
-  memset (sprIsValid, false, tableSize);
+	memset(sprIsValid, false, tableSize);
 
-  // No more than 70% full
-  maxToUse = tableSize * 7 / 10;
+	// No more than 70% full
+	maxToUse = tableSize * 7 / 10;
 
-}	// clear ()
-
+}				// clear ()
 
 //-----------------------------------------------------------------------------
 //! Write a new value into the cache
@@ -93,32 +89,26 @@ SprCache::clear ()
 //! @param[in] force  If TRUE the value will be written to the hash table,
 //!                   even if it is too full.
 //-----------------------------------------------------------------------------
-void
-SprCache::write (uint16_t  sprNum,
-		 uint32_t  value,
-		 bool      force)
+void SprCache::write(uint16_t sprNum, uint32_t value, bool force)
 {
-  if (maxToUse <= 0)
-    {
-      return;				// Table is full
-    }
+	if (maxToUse <= 0) {
+		return;		// Table is full
+	}
 
-  int  hv = sprNum % tableSize;
+	int hv = sprNum % tableSize;
 
-  // We can use the slot if either it is empty, or it is full and the key
-  // number matches.
-  while (sprIsValid[hv] && (sprKeyNum[hv] != sprNum))
-    {
-      hv = (hv + 1) % tableSize;
-    }
+	// We can use the slot if either it is empty, or it is full and the key
+	// number matches.
+	while (sprIsValid[hv] && (sprKeyNum[hv] != sprNum)) {
+		hv = (hv + 1) % tableSize;
+	}
 
-  sprIsValid[hv] = true;
-  sprKeyNum[hv]  = sprNum;
-  sprValue[hv]   = value;
-  maxToUse--;
+	sprIsValid[hv] = true;
+	sprKeyNum[hv] = sprNum;
+	sprValue[hv] = value;
+	maxToUse--;
 
-}	// write ()
-
+}				// write ()
 
 //-----------------------------------------------------------------------------
 //! Try to read a value from the cache
@@ -131,20 +121,17 @@ SprCache::write (uint16_t  sprNum,
 
 //! @return  True if the value was found in the hash table
 //-----------------------------------------------------------------------------
-bool
-SprCache::read (uint16_t  sprNum,
-		uint32_t &value)
+bool SprCache::read(uint16_t sprNum, uint32_t & value)
 {
-  int  hv = sprNum % tableSize;
+	int hv = sprNum % tableSize;
 
-  // Look for either an empty slot (we are not there) or a matching key (we
-  // are there)
-  while (sprIsValid[hv] && (sprKeyNum[hv] != sprNum))
-    {
-      hv = (hv + 1) % tableSize;
-    }
+	// Look for either an empty slot (we are not there) or a matching key (we
+	// are there)
+	while (sprIsValid[hv] && (sprKeyNum[hv] != sprNum)) {
+		hv = (hv + 1) % tableSize;
+	}
 
-  value = sprValue[hv];
-  return  sprIsValid[hv];
+	value = sprValue[hv];
+	return sprIsValid[hv];
 
-}	// read ()
+}				// read ()

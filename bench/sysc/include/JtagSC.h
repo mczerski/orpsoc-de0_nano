@@ -34,7 +34,6 @@
 #include "systemc"
 #include "TapAction.h"
 
-
 //! Default size of the FIFO queuing TAP actions
 #define DEFAULT_TAP_FIFO_SIZE  256
 
@@ -68,44 +67,40 @@
 //! the action owner of completion, through an sc_event, which is part of the
 //! ::TapAction class.
 //! 
-class JtagSC
-  : public sc_core::sc_module
-{
+class JtagSC:public sc_core::sc_module {
 public:
 
-  // The ports. Note that the naming of the low level JTAG ports is reversed,
-  // because we are driving the inputs! */
-  sc_core::sc_in<bool>   sysReset;	//!< The system reset (active high)
+	// The ports. Note that the naming of the low level JTAG ports is reversed,
+	// because we are driving the inputs! */
+	sc_core::sc_in < bool > sysReset;	//!< The system reset (active high)
 
-  sc_core::sc_in<bool>	 tck;		//!< External JTAG TCK
-  sc_core::sc_out<bool>  tdi;		//!< JTAG TDI pin
-  sc_core::sc_in<bool>   tdo;		//!< JTAG TDO pin
-  sc_core::sc_out<bool>  tms;		//!< JTAG TMS pin
-  sc_core::sc_out<bool>  trst;		//!< JTAG TRST pin
+	sc_core::sc_in < bool > tck;	//!< External JTAG TCK
+	sc_core::sc_out < bool > tdi;	//!< JTAG TDI pin
+	sc_core::sc_in < bool > tdo;	//!< JTAG TDO pin
+	sc_core::sc_out < bool > tms;	//!< JTAG TMS pin
+	sc_core::sc_out < bool > trst;	//!< JTAG TRST pin
 
-  //! JTAG action queue
-  sc_core::sc_fifo<TapAction *> *tapActionQueue;
+	//! JTAG action queue
+	sc_core::sc_fifo < TapAction * >*tapActionQueue;
 
-  // Constructor and destructor
-  JtagSC (sc_core::sc_module_name  name,
-	  int                      fifo_size = DEFAULT_TAP_FIFO_SIZE);
-  ~JtagSC ();
-
+	// Constructor and destructor
+	JtagSC(sc_core::sc_module_name name,
+	       int fifo_size = DEFAULT_TAP_FIFO_SIZE);
+	~JtagSC();
 
 protected:
 
-  // Method to process the actions
-  void  processActions();
-
+	// Method to process the actions
+	void processActions();
 
 private:
 
-  //! The TAP state machine
-  TapStateMachine *stateMachine;
+	//! The TAP state machine
+	TapStateMachine * stateMachine;
 
-  //! The next TAP action
-  TapAction *currentTapAction;
+	//! The next TAP action
+	TapAction *currentTapAction;
 
-};	// JtagSC ()
+};				// JtagSC ()
 
-#endif	// JTAG_SC__H
+#endif // JTAG_SC__H

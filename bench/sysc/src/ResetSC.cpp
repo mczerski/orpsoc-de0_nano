@@ -28,7 +28,7 @@
 
 #include "ResetSC.h"
 
-SC_HAS_PROCESS( ResetSC );
+SC_HAS_PROCESS(ResetSC);
 
 //! Constructor for the reset generator
 
@@ -36,32 +36,24 @@ SC_HAS_PROCESS( ResetSC );
 //!                      constructor.
 //! @param resetCounter  Number of cycles of reset to provide.
 
-ResetSC::ResetSC (sc_core::sc_module_name  name,
-		  int                      _resetCounter) :
-  sc_module (name),
-  resetCounter (_resetCounter)
+ResetSC::ResetSC(sc_core::sc_module_name name, int _resetCounter):
+sc_module(name), resetCounter(_resetCounter)
 {
-  SC_METHOD (driveReset);
-  sensitive << clk.neg();
-    
-}	// ResetSC ()
+	SC_METHOD(driveReset);
+	sensitive << clk.neg();
 
+}				// ResetSC ()
 
 //! Method to drive the reset port (active low). We will be called as an
 //! initialization, which can be used to drive the reset low.
-void
-ResetSC::driveReset()
+void ResetSC::driveReset()
 {
-  if (resetCounter > 0)
-    {
-      rst  = 1;
-      rstn = 0;
-      resetCounter--;
-    }
-  else
-    {
-      rst  = 0;
-      rstn = 1;
-    }
-}	// driveReset()
-
+	if (resetCounter > 0) {
+		rst = 1;
+		rstn = 0;
+		resetCounter--;
+	} else {
+		rst = 0;
+		rstn = 1;
+	}
+}				// driveReset()

@@ -31,7 +31,6 @@
 
 #include <stdint.h>
 
-
 //! Module for cacheing memory accesses by the debug unit
 
 //! Memory reads and writes through the Debug Unit via JTAG are time
@@ -46,33 +45,29 @@
 //! In the event of a clash on write, the old value is replaced by the new
 //! value.
 
-class MemCache
-{
+class MemCache {
 public:
 
-  // Constructor and destructor
-  MemCache (int  _tableSize = 1009);
-  ~MemCache ();
+	// Constructor and destructor
+	MemCache(int _tableSize = 1009);
+	~MemCache();
 
-  // Functions
-  void  clear ();
-  void  write (uint32_t  addr,
-	       uint32_t  value);
-  bool  read (uint32_t  addr,
-	      uint32_t &value);
+	// Functions
+	void clear();
+	void write(uint32_t addr, uint32_t value);
+	bool read(uint32_t addr, uint32_t & value);
 
 private:
 
-  //! The size of the hash table. A prime number is a good choice.
-  int  tableSize;
+	//! The size of the hash table. A prime number is a good choice.
+	int tableSize;
 
-  // The hash table, keyed by address. Done as three parallel vectors,
-  // allowing unambiguous clearing by use of memset for efficiency.
-  bool     *tabIsValid;
-  uint32_t *tabKeyAddr;
-  uint32_t *tabValue;
+	// The hash table, keyed by address. Done as three parallel vectors,
+	// allowing unambiguous clearing by use of memset for efficiency.
+	bool *tabIsValid;
+	uint32_t *tabKeyAddr;
+	uint32_t *tabValue;
 
+};				// MemCache ()
 
-};	// MemCache ()
-
-#endif	// MEM_CACHE__H
+#endif // MEM_CACHE__H

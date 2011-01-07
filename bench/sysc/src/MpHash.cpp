@@ -30,34 +30,30 @@
 
 #include "MpHash.h"
 
-
 //! Constructor
 
 //! Allocate the hash table
 //! @param[in] size  Number of slots in the  hash table. Defaults to
 //!                  DEFAULT_MP_HASH_SIZE.
-MpHash::MpHash (int  _size) :
-  size (_size)
+MpHash::MpHash(int _size):
+size(_size)
 {
-  // Allocate and clear the hash table
-  hashTab = new MpEntry *[size];
+	// Allocate and clear the hash table
+	hashTab = new MpEntry *[size];
 
-  for (int  i = 0; i < size; i++)
-    {
-      hashTab[i] = NULL;
-    }
-}	// MpHash ()
-
+	for (int i = 0; i < size; i++) {
+		hashTab[i] = NULL;
+	}
+}				// MpHash ()
 
 //! Destructor
 
 //! Free the hash table
-MpHash::~MpHash ()
+MpHash::~MpHash()
 {
-  delete [] hashTab;
+	delete[]hashTab;
 
-}	// ~MpHash ()
-
+}				// ~MpHash ()
 
 //! Add an entry to the hash table
 
@@ -73,34 +69,29 @@ MpHash::~MpHash ()
 //! @param[in] addr   The address of the matchpoint
 //! @para[in]  instr  The instruction to associate with the address
 void
-MpHash::add (MpType    type,
-	     uint32_t  addr,
-	     uint32_t  instr)
+ MpHash::add(MpType type, uint32_t addr, uint32_t instr)
 {
-  int      hv    = addr % size;
-  MpEntry *curr;
+	int hv = addr % size;
+	MpEntry *curr;
 
-  // See if we already have the entry
-  for(curr = hashTab[hv]; NULL != curr; curr = curr->next)
-    {
-      if ((type == curr->type) && (addr == curr->addr))
-	{
-	  return;		// We already have the entry
+	// See if we already have the entry
+	for (curr = hashTab[hv]; NULL != curr; curr = curr->next) {
+		if ((type == curr->type) && (addr == curr->addr)) {
+			return;	// We already have the entry
+		}
 	}
-    }
 
-  // Insert the new entry at the head of the chain
-  curr = new MpEntry ();
-  
-  curr->type  = type;
-  curr->addr  = addr;
-  curr->instr = instr;
-  curr->next  = hashTab[hv];
+	// Insert the new entry at the head of the chain
+	curr = new MpEntry();
 
-  hashTab[hv] = curr;
+	curr->type = type;
+	curr->addr = addr;
+	curr->instr = instr;
+	curr->next = hashTab[hv];
 
-}	// add ()
+	hashTab[hv] = curr;
 
+}				// add ()
 
 //!Look up an entry in the matchpoint hash table
 
@@ -110,25 +101,20 @@ MpHash::add (MpType    type,
 //! @param[in] addr   The address of the matchpoint
 
 //! @return  The entry found, or NULL if the entry was not found
-MpEntry *
-MpHash::lookup (MpType    type,
-		uint32_t  addr)
+MpEntry *MpHash::lookup(MpType type, uint32_t addr)
 {
-  int      hv   = addr % size;
+	int hv = addr % size;
 
-  // Search
-  for (MpEntry *curr = hashTab[hv]; NULL != curr; curr = curr->next)
-    {
-      if ((type == curr->type) && (addr == curr->addr))
-	{
-	  return  curr;		// The entry found
+	// Search
+	for (MpEntry * curr = hashTab[hv]; NULL != curr; curr = curr->next) {
+		if ((type == curr->type) && (addr == curr->addr)) {
+			return curr;	// The entry found
+		}
 	}
-    }
 
-  return  NULL;			// Not found
-      
-}	// lookup ()
+	return NULL;		// Not found
 
+}				// lookup ()
 
 //! Delete an entry from the matchpoint hash table
 
@@ -145,43 +131,34 @@ MpHash::lookup (MpType    type,
 //!                    default) then the instruction is not written back.
 
 //! @return  TRUE if an entry was found and deleted
-bool
-MpHash::remove (MpType    type,
-		uint32_t  addr,
-		uint32_t *instr)
+bool MpHash::remove(MpType type, uint32_t addr, uint32_t * instr)
 {
-  int      hv   = addr % size;
-  MpEntry *prev = NULL;
-  MpEntry *curr;
+	int hv = addr % size;
+	MpEntry *prev = NULL;
+	MpEntry *curr;
 
-  // Search
-  for (curr  = hashTab[hv]; NULL != curr; curr = curr->next)
-    {
-      if ((type == curr->type) && (addr == curr->addr))
-	{
-	  // Found - delete. Method depends on whether we are the head of
-	  // chain.
-	  if (NULL == prev)
-	    {
-	      hashTab[hv] = curr->next;
-	    }
-	  else
-	    {
-	      prev->next = curr->next;
-	    }
+	// Search
+	for (curr = hashTab[hv]; NULL != curr; curr = curr->next) {
+		if ((type == curr->type) && (addr == curr->addr)) {
+			// Found - delete. Method depends on whether we are the head of
+			// chain.
+			if (NULL == prev) {
+				hashTab[hv] = curr->next;
+			} else {
+				prev->next = curr->next;
+			}
 
-	  if (NULL != instr)
-	    {
-	      *instr = curr->instr;	// Return the found instruction
-	    }
+			if (NULL != instr) {
+				*instr = curr->instr;	// Return the found instruction
+			}
 
-	  delete curr;
-	  return true;			// Success
+			delete curr;
+			return true;	// Success
+		}
+
+		prev = curr;
 	}
 
-      prev = curr;
-    }
+	return false;		// Not found
 
-  return  false;			// Not found
-
-}	// remove ()
+}				// remove ()

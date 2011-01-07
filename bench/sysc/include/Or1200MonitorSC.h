@@ -44,50 +44,47 @@
 //! wakes up on each posedge clock to check for "special" l.nop instructions,
 //! which need processing.
 
-class Or1200MonitorSC
-  : public sc_core::sc_module
-{
+class Or1200MonitorSC:public sc_core::sc_module {
 public:
 
-  // Constructor
-  Or1200MonitorSC (sc_core::sc_module_name  name,
-		   OrpsocAccess            *_accessor,
-		   MemoryLoad              *_memoryload,
-		   int argc, 
-		   char *argv[]);
+	// Constructor
+	Or1200MonitorSC(sc_core::sc_module_name name,
+			OrpsocAccess * _accessor,
+			MemoryLoad * _memoryload, int argc, char *argv[]);
 
-  // Method to check instructions
-  void  checkInstruction();
+	// Method to check instructions
+	void checkInstruction();
 
-  // Methods to setup and output state of processor to a file
-  void displayState();
-  void displayStateBinary();
+	// Methods to setup and output state of processor to a file
+	void displayState();
+	void displayStateBinary();
 
-  // Methods to generate the call and return list during execution
-  void callLog();
+	// Methods to generate trace to stdout
+	void printTrace();
 
-  // Method to calculate performance of the sim
-  void perfSummary();
+	// Methods to generate the call and return list during execution
+	void callLog();
 
-  // Method to print out the command-line switches for this module's options  
-  void printSwitches();
+	// Method to calculate performance of the sim
+	void perfSummary();
 
-  // Method to print out the usage for each option
-  void printUsage();
-  
-  // Method to dump simulation's RAM contents at finish
-  void memdump();
+	// Method to print out the command-line switches for this module's options  
+	void printSwitches();
 
-  // Method used for monitoring and logging transactions on the system bus
-  //void busMonitor();
-  
-  // Method to do simulator assisted printf'ing
-  void simPrintf(uint32_t stackaddr, uint32_t regparam);
+	// Method to print out the usage for each option
+	void printUsage();
 
+	// Method to dump simulation's RAM contents at finish
+	void memdump();
 
+	// Method used for monitoring and logging transactions on the system bus
+	//void busMonitor();
 
-  // The ports
-  sc_in<bool>   clk;
+	// Method to do simulator assisted printf'ing
+	void simPrintf(uint32_t stackaddr, uint32_t regparam);
+
+	// The ports
+	sc_in < bool > clk;
 
 private:
 
@@ -96,54 +93,59 @@ private:
 #define DEFAULT_MEMDUMP_FILE "vorpsoc_ram.dump"
 #define DEFAULT_BUS_LOG_FILE "bus_trans.log"
 
-  // Special NOP instructions
-  static const uint32_t NOP_NOP    = 0x15000000;  //!< Normal nop instruction
-  static const uint32_t NOP_EXIT   = 0x15000001;  //!< End of simulation
-  static const uint32_t NOP_REPORT = 0x15000002;  //!< Simple report
-  static const uint32_t NOP_PRINTF = 0x15000003;  //!< Simprintf instruction
-  static const uint32_t NOP_PUTC   = 0x15000004;  //!< Putc instruction
-  static const uint32_t NOP_CNT_RESET = 0x15000005; //!< Reset statistics counters
-  static const uint32_t NOP_CNT_RESET1 = 0x15000007;	    /* Reset statistics counter 1 */
-  static const uint32_t NOP_CNT_RESET2 = 0x15000008;	    /* Reset statistics counter 2 */
-  static const uint32_t NOP_CNT_RESET3 = 0x15000009;	    /* Reset statistics counter 3 */
-  static const uint32_t NOP_MEM_STATS_RESET  = 0x15000010; //!< Reset memory statistics counters
-  static const uint32_t NOP_CNT_RESET_DIFFERENCE = 0x15000006; //!< Reset stats counters, print 
+	// Special NOP instructions
+	static const uint32_t NOP_NOP = 0;	//!< Normal nop instruction
+	static const uint32_t NOP_EXIT = 1;	//!< End of simulation
+	static const uint32_t NOP_REPORT = 2;	//!< Simple report
+	static const uint32_t NOP_PRINTF = 3;	//!< Simprintf instruction
+	static const uint32_t NOP_PUTC = 4;	//!< Putc instruction
+	static const uint32_t NOP_CNT_RESET = 5;	//!< Reset statistics counters
+	static const uint32_t NOP_GET_TICKS = 6;	//!< Get # ticks running
+	static const uint32_t NOP_GET_PS = 7;	//!< Get picosecs/cycle
 
-  // Variables for processor status output
-  ofstream statusFile;
-  ofstream profileFile;
-  bool profiling_enabled;
-  bool logging_enabled;
-  bool logfile_name_provided;
-  bool logging_regs;
-  bool binary_log_format;
-  bool quiet;
-  bool monitor_for_crash;
-  int lookslikewevecrashed_count, crash_monitor_buffer_head;
+	static const uint32_t NOP_CNT_RESET1 = 16;	/* Reset statistics counter 1 */
+	static const uint32_t NOP_CNT_RESET2 = 17;	/* Reset statistics counter 2 */
+	static const uint32_t NOP_CNT_RESET3 = 18;	/* Reset statistics counter 3 */
+	static const uint32_t NOP_MEM_STATS_RESET = 32;	//!< Reset memory statistics counters
+	static const uint32_t NOP_CNT_RESET_DIFFERENCE = 48;	//!< Reset stats counters, print 
+
+	// Variables for processor status output
+	ofstream statusFile;
+	ofstream profileFile;
+	bool profiling_enabled;
+	bool trace_enabled;
+	bool logging_enabled;
+	bool logfile_name_provided;
+	bool logging_regs;
+	bool binary_log_format;
+	bool perf_summary;
+	bool monitor_for_crash;
+	int lookslikewevecrashed_count, crash_monitor_buffer_head;
 #define CRASH_MONITOR_BUFFER_SIZE 32
-  uint32_t crash_monitor_buffer[CRASH_MONITOR_BUFFER_SIZE][2]; //PC, Insn
-  bool wait_for_stall_cmd_response;
-  unsigned long long insn_count, insn_count_rst;
-  unsigned long long cycle_count, cycle_count_rst;
-  unsigned long long cycles_1, cycles_2, cycles_3; // Cycle counters for l.nop insns
-  ofstream memdumpFile;
-  string memdumpFileName;
-  bool do_memdump;
-  int memdump_start_addr, memdump_end_addr;
-  bool bus_trans_log_enabled, bus_trans_log_name_provided, bus_trans_log_start_delay_enable;
-  sc_time bus_trans_log_start_delay;
-  enum busLogStates { BUS_LOG_IDLE, BUS_LOG_WAIT_FOR_ACK };
-  ofstream busTransLog;
+	uint32_t crash_monitor_buffer[CRASH_MONITOR_BUFFER_SIZE][2];	//PC, Insn
+	bool wait_for_stall_cmd_response;
+	unsigned long long insn_count, insn_count_rst;
+	unsigned long long cycle_count, cycle_count_rst;
+	unsigned long long cycles_1, cycles_2, cycles_3;	// Cycle counters for l.nop insns
+	ofstream memdumpFile;
+	string memdumpFileName;
+	bool do_memdump;
+	int memdump_start_addr, memdump_end_addr;
+	bool bus_trans_log_enabled, bus_trans_log_name_provided,
+	    bus_trans_log_start_delay_enable;
+	sc_time bus_trans_log_start_delay;
+	enum busLogStates { BUS_LOG_IDLE, BUS_LOG_WAIT_FOR_ACK };
+	ofstream busTransLog;
 
-  //! Time measurement variable - for calculating performance of the sim
-  clock_t start;
+	//! Time measurement variable - for calculating performance of the sim
+	clock_t start;
 
-  //! The accessor for the Orpsoc instance
-  OrpsocAccess *accessor;
+	//! The accessor for the Orpsoc instance
+	OrpsocAccess *accessor;
 
-  //! The memory loading object
-  MemoryLoad *memoryload;  
+	//! The memory loading object
+	MemoryLoad *memoryload;
 
-};	// Or1200MonitorSC ()
+};				// Or1200MonitorSC ()
 
-#endif	// OR1200_MONITOR_SC__H
+#endif // OR1200_MONITOR_SC__H

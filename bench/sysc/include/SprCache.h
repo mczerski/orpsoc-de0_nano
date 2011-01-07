@@ -31,7 +31,6 @@
 
 #include <stdint.h>
 
-
 //-----------------------------------------------------------------------------
 //! Module for cacheing SPR accesses by the debug unit
 
@@ -52,37 +51,32 @@
 //! forward to the first free slot. This works because there is no function to
 //! delete an entry - just to clear the whole table, so holes cannot appear.
 //-----------------------------------------------------------------------------
-class SprCache
-{
+class SprCache {
 public:
 
-  // Constructor and destructor
-  SprCache (int  _tableSize = 257);
-  ~SprCache ();
+	// Constructor and destructor
+	SprCache(int _tableSize = 257);
+	~SprCache();
 
-  // Functions
-  void  clear ();
-  void  write (uint16_t  sprNum,
-	       uint32_t  value,
-	       bool      force);
-  bool  read (uint16_t  sprNum,
-	      uint32_t &value);
+	// Functions
+	void clear();
+	void write(uint16_t sprNum, uint32_t value, bool force);
+	bool read(uint16_t sprNum, uint32_t & value);
 
 private:
 
-  //! The size of the hash table
-  int  tableSize;
+	//! The size of the hash table
+	int tableSize;
 
-  //! Maximum amount of cache left to use, before cacheing is rejected.
-  int  maxToUse;
+	//! Maximum amount of cache left to use, before cacheing is rejected.
+	int maxToUse;
 
-  // The cache, keyed by sprNum. Done as two parallel vectors,
-  // allowing unambiguous clearing by use of memset for efficiency.
-  bool     *sprIsValid;
-  uint16_t *sprKeyNum;
-  uint32_t *sprValue;
+	// The cache, keyed by sprNum. Done as two parallel vectors,
+	// allowing unambiguous clearing by use of memset for efficiency.
+	bool *sprIsValid;
+	uint16_t *sprKeyNum;
+	uint32_t *sprValue;
 
+};				// SprCache ()
 
-};	// SprCache ()
-
-#endif	// SPR_CACHE__H
+#endif // SPR_CACHE__H

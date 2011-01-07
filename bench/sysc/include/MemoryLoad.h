@@ -24,7 +24,6 @@
 /* Here we define some often used caharcters in assembly files.  This wil
    probably go into architecture dependent directory. */
 
-
 #ifndef MEMORYLOAD__H
 #define MEMORYLOAD__H
 
@@ -41,9 +40,9 @@
 #define PRINTF(x...)
 
 /* Basic types for openrisc */
-typedef uint32_t  oraddr_t;	/*!< Address as addressed by openrisc */
-typedef uint32_t  uorreg_t;	/*!< An unsigned register of openrisc */
-typedef int32_t   orreg_t;	/*!< A signed register of openrisc */
+typedef uint32_t oraddr_t;	/*!< Address as addressed by openrisc */
+typedef uint32_t uorreg_t;	/*!< An unsigned register of openrisc */
+typedef int32_t orreg_t;	/*!< A signed register of openrisc */
 
 /* From abstract.h */
 #define DEFAULT_MEMORY_START         0
@@ -73,8 +72,6 @@ typedef int32_t   orreg_t;	/*!< A signed register of openrisc */
 #define ULONGEST unsigned long long
 #endif /* ULONGEST */
 
-
-
 #define PRIx32 "x"
 #define PRIx16 "hx"
 #define PRIx8 "hhx"
@@ -89,115 +86,95 @@ typedef int32_t   orreg_t;	/*!< A signed register of openrisc */
 #define LE16(x) bswap_16(x)
 
 /*! Instruction queue */
-struct iqueue_entry
-{
-  int       insn_index;
-  uint32_t  insn;
-  oraddr_t  insn_addr;
+struct iqueue_entry {
+	int insn_index;
+	uint32_t insn;
+	oraddr_t insn_addr;
 };
 
 /*! Structure for holding one label per particular memory location */
-struct label_entry
-{
-  char               *name;
-  oraddr_t            addr;
-  struct label_entry *next;
+struct label_entry {
+	char *name;
+	oraddr_t addr;
+	struct label_entry *next;
 };
 
 /* from arch sim cpu/or1k/opcode/or32.h */
 #define MAX_GPRS 32
 #define PAGE_SIZE 8192
 
+class MemoryLoad {
+public:
 
+	// Constructor
+	MemoryLoad(OrpsocAccess * _accessor);
 
-class MemoryLoad
-{
- public:
-  
-  // Constructor
-  MemoryLoad(OrpsocAccess            *_accessor);
+	// Label access function
+	struct label_entry *get_label(oraddr_t addr);
 
-  // Label access function
-  struct label_entry* get_label (oraddr_t addr);
-  
-  uint32_t  loadcode (char     *filename,
-		      oraddr_t  startaddr,
-		      oraddr_t  virtphy_transl);
-  
-  
- private:
-  
-  //! The accessor for the Orpsoc instance
-  OrpsocAccess *accessor;
-  
+	uint32_t loadcode(char *filename,
+			  oraddr_t startaddr, oraddr_t virtphy_transl);
+
+private:
+
+	//! The accessor for the Orpsoc instance
+	 OrpsocAccess * accessor;
+
 #define MEMORY_LEN  0x100000000ULL
-  
-  /*!Whether to do immediate statistics. This seems to be for local debugging
-  of parse.c */
+
+	/*!Whether to do immediate statistics. This seems to be for local debugging
+	   of parse.c */
 #define IMM_STATS 0
-  
-  /*!Unused mem memory marker. It is used when allocating program and data
-  memory during parsing */
-  unsigned int  freemem;
-  
-   /*!Translation table provided by microkernel. Only used if simulating
-   microkernel. */
-  oraddr_t  transl_table;
-  
-  /*!Used to signal whether during loading of programs a translation fault
-  occured. */
-  uint32_t  transl_error;
-  
+
+	/*!Unused mem memory marker. It is used when allocating program and data
+	   memory during parsing */
+	unsigned int freemem;
+
+	/*!Translation table provided by microkernel. Only used if simulating
+	   microkernel. */
+	oraddr_t transl_table;
+
+	/*!Used to signal whether during loading of programs a translation fault
+	   occured. */
+	uint32_t transl_error;
+
 #if IMM_STATS
-  int       bcnt[33][3] = { 0 };
-  int       bsum[3]     = { 0 };
-  uint32_t  movhi       = 0;
-#endif  /* IMM_STATS */
+	int bcnt[33][3] = { 0 };
+	int bsum[3] = { 0 };
+	uint32_t movhi = 0;
+#endif /* IMM_STATS */
 
-  // A large number, for the Linux kernel (~8000 functions)
+	// A large number, for the Linux kernel (~8000 functions)
 #define LABELS_HASH_SIZE 10000
-  /* Local list of labels (symbols) */
-  struct label_entry *label_hash[LABELS_HASH_SIZE];
+	/* Local list of labels (symbols) */
+	struct label_entry *label_hash[LABELS_HASH_SIZE];
 
-  
-  /* Function prototypes for external use */
-  char     *strstrip (char       *dst,
-		      const char *src,
-		      int         n);
+	/* Function prototypes for external use */
+	char *strstrip(char *dst, const char *src, int n);
 
-  oraddr_t translate (oraddr_t  laddr,
-		      int      *breakpoint);
-     
-  
-  int bits (uint32_t val);
-  
-  void check_insn (uint32_t insn);
-  
-  void addprogram (oraddr_t  address,
-		   uint32_t  insn,
-		   int      *breakpoint);
-  
-  void readfile_coff (char  *filename,
-		      short  sections);
-  
-  void readsyms_coff (char *filename, 
-		      uint32_t symptr, 
-		      uint32_t syms);
-  
-  void readfile_elf (char *filename);
-  
-  void identifyfile (char *filename);
+	oraddr_t translate(oraddr_t laddr, int *breakpoint);
 
-  void init_labels ();
-  
-  void add_label (oraddr_t addr, char *name);
+	int bits(uint32_t val);
 
-  struct label_entry* find_label (char *name);
-  oraddr_t eval_label (char *name);
-  
+	void check_insn(uint32_t insn);
 
+	void addprogram(oraddr_t address, uint32_t insn);
 
+	void readfile_coff(char *filename, short sections);
+
+	void readsyms_coff(char *filename, uint32_t symptr, uint32_t syms);
+
+	void readfile_elf(char *filename);
+
+	void identifyfile(char *filename);
+
+	void init_labels();
+
+	void add_label(oraddr_t addr, char *name);
+
+	struct label_entry *find_label(char *name);
+	oraddr_t eval_label(char *name);
 
 };
 
-#endif	/* MEMORYLOAD__H */
+#endif /* MEMORYLOAD__H */

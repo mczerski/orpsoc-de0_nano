@@ -389,8 +389,8 @@
 //
 // Implement HW Single Precision FPU
 //
-//`define OR1200_FPU_IMPLEMENTED
-//
+`define OR1200_FPU_IMPLEMENTED
+
 
 //
 // Clock ratio RISC clock versus WB clock

@@ -30,7 +30,6 @@
 
 #include "MemCache.h"
 
-
 //! Constructor
 
 //! Allocate a closed hash table of the specified size and clear it.
@@ -38,41 +37,37 @@
 //! @param[in] _tableSize  The desire hash table size. A prime number is
 //!                         recommended.
 
-MemCache::MemCache (int  _tableSize) :
-  tableSize (_tableSize)
+MemCache::MemCache(int _tableSize):tableSize(_tableSize)
 {
-  tabIsValid = new bool [tableSize];
-  tabKeyAddr = new uint32_t [tableSize];
-  tabValue   = new uint32_t [tableSize];
+	tabIsValid = new bool[tableSize];
+	tabKeyAddr = new uint32_t[tableSize];
+	tabValue = new uint32_t[tableSize];
 
-  clear ();
+	clear();
 
-}	// MemCache ()
-
+}				// MemCache ()
 
 //! Destructor
 
 //! Free the hash table arrays
 
-MemCache::~MemCache ()
+MemCache::~MemCache()
 {
-  delete [] tabIsValid;
-  delete [] tabKeyAddr;
-  delete [] tabValue;
+	delete[]tabIsValid;
+	delete[]tabKeyAddr;
+	delete[]tabValue;
 
-}	// ~MemCache ()
-
+}				// ~MemCache ()
 
 //! Empty the hash table
 
 //! Only need to worry about the validity field
 void
-MemCache::clear ()
+ MemCache::clear()
 {
-  memset (tabIsValid, false, sizeof (tabIsValid));
+	memset(tabIsValid, false, sizeof(tabIsValid));
 
-}	// clear ()
-
+}				// clear ()
 
 //! Write a new value into the hash table
 
@@ -80,18 +75,15 @@ MemCache::clear ()
 
 //! @param[in] addr   The address being written to
 //! @param[in] value  The value to write
-void
-MemCache::write (uint32_t  addr,
-		 uint32_t  value)
+void MemCache::write(uint32_t addr, uint32_t value)
 {
-  int  keyAddr = addr % tableSize;
+	int keyAddr = addr % tableSize;
 
-  tabIsValid[keyAddr] = true;
-  tabKeyAddr[keyAddr] = addr;
-  tabValue[keyAddr]   = value;
+	tabIsValid[keyAddr] = true;
+	tabKeyAddr[keyAddr] = addr;
+	tabValue[keyAddr] = value;
 
-}	// write ()
-
+}				// write ()
 
 //! Try to read a value from the hash table
 
@@ -102,19 +94,14 @@ MemCache::write (uint32_t  addr,
 
 //! @return  True if the value was found in the hash table
 
-bool
-MemCache::read (uint32_t  addr,
-		uint32_t &value)
+bool MemCache::read(uint32_t addr, uint32_t & value)
 {
-  int  keyAddr = addr % tableSize;
-  
-  if (tabIsValid[keyAddr] & (tabKeyAddr[keyAddr] == addr))
-    {
-      value = tabValue[keyAddr];
-      return  true;
-    }
-  else
-    {
-      return  false;
-    }
-}	// read ()
+	int keyAddr = addr % tableSize;
+
+	if (tabIsValid[keyAddr] & (tabKeyAddr[keyAddr] == addr)) {
+		value = tabValue[keyAddr];
+		return true;
+	} else {
+		return false;
+	}
+}				// read ()

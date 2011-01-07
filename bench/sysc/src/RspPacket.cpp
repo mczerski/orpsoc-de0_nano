@@ -35,7 +35,6 @@
 #include "RspPacket.h"
 #include "Utils.h"
 
-
 using std::ostream;
 using std::cerr;
 using std::dec;
@@ -43,7 +42,6 @@ using std::endl;
 using std::hex;
 using std::setfill;
 using std::setw;
-
 
 //-----------------------------------------------------------------------------
 //! Constructor
@@ -53,25 +51,23 @@ using std::setw;
 //! @param[in]  _rspConnection  The RSP connection we will use
 //! @param[in]  _bufSize        Size of data buffer to allocate
 //-----------------------------------------------------------------------------
-RspPacket::RspPacket (int  _bufSize) :
-  bufSize (_bufSize)
+RspPacket::RspPacket(int _bufSize):
+bufSize(_bufSize)
 {
-  data = new char [_bufSize];
+	data = new char[_bufSize];
 
-}	// RspPacket ();
-
+}				// RspPacket ();
 
 //-----------------------------------------------------------------------------
 //! Destructor
 
 //! Give back the data buffer
 //-----------------------------------------------------------------------------
-RspPacket::~RspPacket ()
+RspPacket::~RspPacket()
 {
-  delete [] data;
+	delete[]data;
 
-}	// ~RspPacket ()
-
+}				// ~RspPacket ()
 
 //-----------------------------------------------------------------------------
 //! Pack a string into a packet.
@@ -81,64 +77,56 @@ RspPacket::~RspPacket ()
 //! @param  str  The string to copy into the data packet before sending
 //-----------------------------------------------------------------------------
 void
-RspPacket::packStr (const char *str)
+ RspPacket::packStr(const char *str)
 {
-  int  slen = strlen (str);
+	int slen = strlen(str);
 
-  // Construct the packet to send, so long as string is not too big, otherwise
-  // truncate. Add EOS at the end for convenient debug printout
-  if (slen >= bufSize)
-    {
-      cerr << "Warning: String \"" << str
-		<< "\" too large for RSP packet: truncated\n" << endl;
-      slen = bufSize - 1;
-    }
+	// Construct the packet to send, so long as string is not too big, otherwise
+	// truncate. Add EOS at the end for convenient debug printout
+	if (slen >= bufSize) {
+		cerr << "Warning: String \"" << str
+		    << "\" too large for RSP packet: truncated\n" << endl;
+		slen = bufSize - 1;
+	}
 
-  strncpy (data, str, slen);
-  data[slen] = 0;
-  len        = slen;
+	strncpy(data, str, slen);
+	data[slen] = 0;
+	len = slen;
 
-}	// packStr ()
-  
+}				// packStr ()
 
 //-----------------------------------------------------------------------------
 //! Get the data buffer size
 
 //! @return  The data buffer size
 //-----------------------------------------------------------------------------
-int
-RspPacket::getBufSize ()
+int RspPacket::getBufSize()
 {
-  return  bufSize;
+	return bufSize;
 
-}	// getBufSize ()
-
+}				// getBufSize ()
 
 //-----------------------------------------------------------------------------
 //! Get the current number of chars in the data buffer
 
 //! @return  The number of chars in the data buffer
 //-----------------------------------------------------------------------------
-int
-RspPacket::getLen ()
+int RspPacket::getLen()
 {
-  return  len;
+	return len;
 
-}	// getLen ()
-
+}				// getLen ()
 
 //-----------------------------------------------------------------------------
 //! Set the number of chars in the data buffer
 
 //! @param[in] _len  The number of chars to be set
 //-----------------------------------------------------------------------------
-void
-RspPacket::setLen (int  _len)
+void RspPacket::setLen(int _len)
 {
-  len = _len;
+	len = _len;
 
-}	// setLen ()
-
+}				// setLen ()
 
 //-----------------------------------------------------------------------------
 //! Output stream operator
@@ -146,11 +134,9 @@ RspPacket::setLen (int  _len)
 //! @param[out] s  Stream to output to
 //! @param[in]  p  Packet to output
 //-----------------------------------------------------------------------------
-ostream &
-operator<< (ostream   &s,
-	    RspPacket &p)
+ostream & operator<<(ostream & s, RspPacket & p)
 {
-  return  s << "RSP packet: " << std::dec << std::setw (3) << p.getLen()
-	    << std::setw (0) << " chars, \"" << p.data << "\"";
+	return s << "RSP packet: " << std::dec << std::setw(3) << p.getLen()
+	    << std::setw(0) << " chars, \"" << p.data << "\"";
 
-}	// operator<< ()
+}				// operator<< ()

@@ -33,53 +33,46 @@
 
 #include "Vorpsoc_top.h"
 
-
 #if VM_TRACE
 #include <SpTraceVcdC.h>
 #endif
-
 
 //! Class to drive the Verilator VCD trace interface.
 
 //! Substantive code is only implemented if trace is enabled.
 
-class TraceSC
-  : public sc_core::sc_module
-{
+class TraceSC:public sc_core::sc_module {
 public:
 
-  // Constructor and destructor
-  TraceSC (sc_core::sc_module_name  name,
-	   Vorpsoc_top        *_traceTarget,
-	   int argc,
-	   char * argv[]);
-  ~TraceSC ();
+	// Constructor and destructor
+	TraceSC(sc_core::sc_module_name name,
+		Vorpsoc_top * _traceTarget, int argc, char *argv[]);
+	~TraceSC();
 
-    // Method to drive the trace
-  void  driveTrace();
+	// Method to drive the trace
+	void driveTrace();
 
-  // VCD dump controling vars
-  int dump_start_delay, dump_stop_set;
-  int dumping_now;
-  sc_time dump_start,dump_stop;
-  
-  /* The port */
-  //sc_in<bool>   clk;
+	// VCD dump controling vars
+	int dump_start_delay, dump_stop_set;
+	int dumping_now;
+	sc_time dump_start, dump_stop;
+
+	/* The port */
+	//sc_in<bool>   clk;
 
 private:
 
-  //! The ORPSoC module we are tracing
-  Vorpsoc_top *traceTarget;
-
+	//! The ORPSoC module we are tracing
+	Vorpsoc_top * traceTarget;
 
 #if VM_TRACE
-  //! The System Perl Trace file
-  SpTraceVcdCFile *spTraceFile;
+	//! The System Perl Trace file
+	SpTraceVcdCFile *spTraceFile;
 #endif
 
-  // Set the time resolution
-  void setSpTimeResolution (sc_time  t);
+	// Set the time resolution
+	void setSpTimeResolution(sc_time t);
 
-};	// TraceSC ()
+};				// TraceSC ()
 
-#endif	// TRACE_SC__H
+#endif // TRACE_SC__H

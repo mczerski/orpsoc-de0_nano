@@ -30,30 +30,28 @@
 
 //! Handle UART I/O
 
-class UartSC
-  : public sc_core::sc_module
-{
+class UartSC:public sc_core::sc_module {
 public:
 
-  // Constructor
-  UartSC (sc_core::sc_module_name  name);
+	// Constructor
+	UartSC(sc_core::sc_module_name name);
 
-  // The ports
-  sc_in<bool>   clk;
-  sc_in<bool>   uarttx;
-  sc_out<bool>   uartrx;
+	// The ports
+	sc_in < bool > clk;
+	sc_in < bool > uarttx;
+	sc_out < bool > uartrx;
 
-  // Init function
-  void initUart (int clk_freq_hz, int uart_baud) ;
-  // Transmit (from ORPSoC) handling function
-  void checkTx();
+	// Init function
+	void initUart(int clk_freq_hz, int uart_baud);
+	// Transmit (from ORPSoC) handling function
+	void checkTx();
 
 private:
-  int clocks_per_bit;
-  uint8_t current_char;
-  int counter;
-  int bits_received;
+	int clocks_per_bit;
+	uint8_t current_char;
+	int counter;
+	int bits_received;
 
-};	// UartSC ()
+};				// UartSC ()
 
-#endif	// UART_SC__H
+#endif // UART_SC__H

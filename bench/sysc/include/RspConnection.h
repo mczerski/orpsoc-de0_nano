@@ -31,10 +31,8 @@
 
 #include "RspPacket.h"
 
-
 //! The default service to use if port number = 0 and no service specified
 #define DEFAULT_RSP_SERVICE  "or1ksim-rsp"
-
 
 //-----------------------------------------------------------------------------
 //! Class implementing the RSP connection listener
@@ -57,46 +55,44 @@
 //! back to the client. Both must be non-blocking in the SystemC sense
 //! (i.e. allow other SystemC threads to run).
 //-----------------------------------------------------------------------------
-class RspConnection
-{
+class RspConnection {
 public:
 
-  // Constructors and destructor
-  RspConnection (int         _portNum);
-  RspConnection (const char *_serviceName = DEFAULT_RSP_SERVICE);
-  ~RspConnection ();
+	// Constructors and destructor
+	RspConnection(int _portNum);
+	 RspConnection(const char *_serviceName = DEFAULT_RSP_SERVICE);
+	~RspConnection();
 
-  // Public interface: manage client connections
-  bool  rspConnect ();
-  void  rspClose ();
-  bool  isConnected ();
-  char  rspSocketPeek ();
-  
-  // Public interface: get packets from the stream and put them out
-  bool  getPkt (RspPacket *pkt);
-  bool  putPkt (RspPacket *pkt);
-  
-  int   getRspChar ();
+	// Public interface: manage client connections
+	bool rspConnect();
+	void rspClose();
+	bool isConnected();
+	char rspSocketPeek();
+
+	// Public interface: get packets from the stream and put them out
+	bool getPkt(RspPacket * pkt);
+	bool putPkt(RspPacket * pkt);
+
+	int getRspChar();
 
 private:
 
-  // Generic initializer
-  void  rspInit (int         _portNum,
-		 const char *_serviceName);
+	// Generic initializer
+	void rspInit(int _portNum, const char *_serviceName);
 
-  // Internal routines to handle individual chars  
-  bool  putRspChar (char  c);
-  //int   getRspChar ();
+	// Internal routines to handle individual chars  
+	bool putRspChar(char c);
+	//int   getRspChar ();
 
-  //! The port number to listen on
-  int  portNum;
+	//! The port number to listen on
+	int portNum;
 
-  //! The service name to listen on
-  const char *serviceName;
+	//! The service name to listen on
+	const char *serviceName;
 
-  //! The client file descriptor
-  int  clientFd;
+	//! The client file descriptor
+	int clientFd;
 
-};	// RspConnection ()
+};				// RspConnection ()
 
-#endif	// RSP_CONNECTION__H
+#endif // RSP_CONNECTION__H

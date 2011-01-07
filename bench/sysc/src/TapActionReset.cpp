@@ -28,9 +28,7 @@
 
 // $Id$
 
-
 #include "TapActionReset.h"
-
 
 //! Constructor
 
@@ -40,13 +38,11 @@
 
 //! @param[in] _doneEvent  The SystemC completion event
 
-TapActionReset::TapActionReset (sc_core::sc_event *_doneEvent) :
-  TapAction (_doneEvent),
-  firstTime (true)
+TapActionReset::TapActionReset(sc_core::sc_event * _doneEvent):
+TapAction(_doneEvent), firstTime(true)
 {
 
-}	// TapActionReset ()
-
+}				// TapActionReset ()
 
 //! Process the reset action
 
@@ -68,22 +64,17 @@ TapActionReset::TapActionReset (sc_core::sc_event *_doneEvent) :
 
 //! @return  True if the action is complete
 
-bool
-TapActionReset::process (TapStateMachine *tapStateMachine,
-			 bool            &tdi,
-			 bool             tdo,
-			 bool            &tms)
+bool TapActionReset::process(TapStateMachine * tapStateMachine,
+			     bool & tdi, bool tdo, bool & tms)
 {
-  if (firstTime)
-    {
-      tapStateMachine->setResetDone (false);
-      firstTime = false;
-    }
+	if (firstTime) {
+		tapStateMachine->setResetDone(false);
+		firstTime = false;
+	}
+	// Parent does the work (no warning message). Our result draws on the value
+	// set in the tapStateMachine, to avoid an extra cycle.
+	checkResetDone(tapStateMachine, tms, false);
 
-  // Parent does the work (no warning message). Our result draws on the value
-  // set in the tapStateMachine, to avoid an extra cycle.
-  checkResetDone (tapStateMachine, tms, false);
+	return tapStateMachine->getResetDone();
 
-  return tapStateMachine->getResetDone ();
-
-}	// process ()
+}				// process ()

@@ -28,7 +28,6 @@
 
 // $Id$
 
-
 #include "JtagSC.h"
 #include "TapActionDRScan.h"
 #include "TapAction.h"

@@ -46,6 +46,10 @@
 #ifndef ORPSOC_MAIN__H
 #define ORPSOC_MAIN__H
 
+/* Globals used by other C modules */
+extern bool gQuiet;
+extern int gSimRunning;
+
 //! The Verilog timescale unit (as SystemC timescale unit)
 #define TIMESCALE_UNIT        SC_NS
 
@@ -54,10 +58,6 @@
 
 //! CPU clock Half period in timescale units
 #define BENCH_CLK_HALFPERIOD  10
-
-//! System's internal RAM size in byes - found in rtl/verilog/orpsoc_top.v, param for ram_wb module
-//! Currently is 32MB (8M words)
-#define ORPSOC_SRAM_SIZE (8388608*4)
 
 //! Ratio of JTAG clock period to CPU clock period
 #define CLOCK_RATIO  10
@@ -82,4 +82,4 @@
 //! PPC, SR and NPC. Plus one byte for end of string marker.
 #define RSP_MAX_PKT_SIZE ((32 + 3) * 8 + 1)
 
-#endif	// ORPSOC_MAIN__H
+#endif // ORPSOC_MAIN__H
