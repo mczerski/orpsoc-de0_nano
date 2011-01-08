@@ -41,8 +41,8 @@ version of the program we are to load into the flash memory.
 To ensure the correct settings for UART and other peripherals are picked up 
 ensure the BOARD_PATH variable is set correctly, too.
 
-# make spiflash-program.elf PROGRAMMINGFILE=/path/to/myapp.bin \
-  BOARD_PATH=`pwd`/../../../actel/ordb1a3pe1500
+       make spiflash-program.elf PROGRAMMINGFILE=/path/to/myapp.bin \
+            BOARD_PATH=`pwd`/../../../boards/actel/ordb1a3pe1500
 
 It's advisable to do a "make distclean" first, to clear out any previously 
 compiled software for other boards.
