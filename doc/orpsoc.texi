@@ -8,7 +8,7 @@
 @copying
 This file documents the OpenRISC Reference Platform SoC, @value{ORPSOC}.
 
-Copyright @copyright{} 2010 OpenCores
+Copyright @copyright{} 2010,2011 OpenCores
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -62,6 +62,7 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 * Board Designs::
 * ORDB1A3PE1500::
 * ML501::
+* Software::
 * GNU Free Documentation License::  The license for this documentation
 * Index::
 @end menu
@@ -124,6 +125,8 @@ Under each test directory are two directories, @code{board} and @code{sim}, cont
 @node Software Test Naming
 
 The rules for naming software tests are important to adhere to, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
+
+@xref{Software} for further details.
 
 @node RTL Organisation 
 @section RTL
@@ -244,7 +247,7 @@ Anyone implementing their own board port is encouraged to document, as best they
 @end menu
 
 @node Reference Design Overview
-@subsection Overview
+@section Overview
 
 The reference design included in @value{ORPSOC} is intended to be the minimal implementation (or thereabouts) of a SoC required to exercise an OpenRISC processor. Very little apart from the processor, memory, debug interface and interconnect modules are instantiated.
 
@@ -257,7 +260,7 @@ The simulations begin with the desired software image preloaded in memory. For d
 The design is not intended for implementation on an FPGA or ASIC, rather purely for development and testing in simulation environments. The board targeted builds in the @value{ORPSOC} project, however, are intended for implementation on hardware.
 
 @node Reference Design Structure
-@subsection Structure
+@section Structure
 
 @menu
 * Overview::
@@ -267,14 +270,14 @@ The design is not intended for implementation on an FPGA or ASIC, rather purely 
 @end menu
 
 @node Reference Design Overview
-@subsubsection Overview
+@subsection Overview
 
 The reference design's paths are all based in the root directory of @value{ORPSOC}. This is different from the board-targeted builds, which are based in their specific board paths.
 
 As synthesis and physical implementation is not intended for the reference design there are no @code{syn} or @code{backend} paths in the root directory of @value{ORPSOC}.
 
 @node Reference Design RTL
-@subsubsection RTL
+@subsection RTL
 
 At present only Verilog HDL is included in the reference implementation of @value{ORPSOC}, as the open source tools intended to simulate the design do not support VHDL.
 
@@ -283,7 +286,7 @@ The directory structure consists of an @code{rtl} directory in the root, and a @
 A common Verilog include path, @code{rtl/verilog/include} directory is used. The Verilog HDL include files for each module should be moved here. This allows each @value{ORPSOC} implementation (board design) to maintain their own include path, and thus configure the modules for their specific implementation.
 
 @node Reference Design Software
-@subsubsection Software
+@subsection Software
 
 The software run on the reference design is found in the @value{ORPSOC} root directory, under the @code{sw} path.
 
@@ -294,7 +297,7 @@ A minimal set of drivers is built into @code{liborpsoc}, and they are found unde
 In addition to these drivers, a set of support C functions is build into @code{liborpsoc}, which are found in the @code{sw/lib} path.
 
 @node Reference Design Simulation
-@subsubsection Simulation
+@subsection Simulation
 
 The simulation of the reference design is run from the @code{sim/run} path.
 
@@ -305,7 +308,7 @@ The generated output is kept in the @code{sim/out} path, and is cleared away whe
 When the Verilator-processed cycle accurate model is built, it is done in the @code{sim/vlt} path, which is also cleaned away when @kbd{make clean} is run.
 
 @node Reference Design Tools
-@subsection Tools
+@section Tools
 
 @menu
 * Host Tools:: 
@@ -315,33 +318,33 @@ When the Verilator-processed cycle accurate model is built, it is done in the @c
 @end menu
 
 @node Reference Design Host Tools
-@subsubsection Host Tools
+@subsection Host Tools
 @cindex host tools required
 
 Standard development suite of tools: gcc, make, etc.
 
 @node Reference Design Target System Tools
-@subsubsection Target System Tools
+@subsection Target System Tools
 @cindex target system tools required
 
 OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
 
 @node Reference Design EDA Tools
-@subsubsection EDA Tools
+@subsection EDA Tools
 @cindex EDA tools required
 
 RTL simulation: Icarus Verilog (also compatible with Mentor Graphics' Modelsim)
 Cycle Accurate Simulation: Verilator, Verilog-Perl, System-Perl, SystemC
 
 @node Reference Design Debug Tools
-@subsubsection Debug Tools
+@subsection Debug Tools
 @cindex Debug tools required
 
 None. The target is purely simulation, no extra utilities are required to debug.
 
 
 @node Reference Design Simulation
-@subsection Simulation
+@section Simulation
 
 @menu
 * RTL:: 
@@ -350,12 +353,12 @@ None. The target is purely simulation, no extra utilities are required to debug.
 @end menu
 
 @node Reference Design RTL
-@subsubsection RTL
+@subsection RTL
 @cindex rtl simulation of reference design
 
 All simulations of the reference design are run from the @code{sim/run} path.
 
-@subsubheading Running RTL Regression Test
+@subheading Running RTL Regression Test
 
 The simplest way of starting a run through the regression test, using the default RTL simulator, Icarus Verilog, can be done with:
 
@@ -365,7 +368,7 @@ The simplest way of starting a run through the regression test, using the defaul
 
 This will compile the software and RTL, and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script. Other default options are that a processor execution log is generated (in @code{sim/out/@emph{testname}-executed.log}), but VCDs are not.
 
-@subsubheading Running An Individual Test
+@subheading Running An Individual Test
 
 An individual test can be run, by specifying the test name through the @code{TEST} environment variable (which must correspond to a file in @code{sw/tests/@emph{module}/sim/} where @code{@emph{module}} is the name of the module to be tested. In the following example the test @emph{or1200-basic} is run.
 
@@ -374,7 +377,7 @@ An individual test can be run, by specifying the test name through the @code{TES
 @end example
 
 @node Running A Set Of Specific Reference Design RTL Tests
-@subsubheading Running A Set Of Specific Tests
+@subheading Running A Set Of Specific Tests
 
 A specific set of tests can be run in the same fashion as the regression tests but with the actual tests to run set in the @code{TESTS} environment variable.
 
@@ -382,8 +385,31 @@ A specific set of tests can be run in the same fashion as the regression tests b
 @kbd{make rtl-tests TESTS="sdram-rows uart-simple or1200-mmu or1200-fp"}
 @end example
 
+@node Providing A Precompiled ELF Executable
+@subheading Providing A Precompiled ELF Executable
+
+It's possible to specify the path to an OR32 ELF executable to be run in simulation instead of test software. Use the @code{USER_ELF} environment variable to specify the path to the ELF to run.
+
+@example
+@kbd{make rtl-test USER_ELF=/path/to/myapp.elf}
+@end example
+
+The ELF will be converted to binary format, and then converted to a VMEM to be 
+loaded into the model for execution at runtime.
+
+@node Providing A Custom VMEM Image
+@subheading Providing A Custom VMEM Image
+
+It's possible to specify the path to a pre-existing VMEM image to be run in simulation instead of test software. Use the @code{USER_VMEM} environment variable to specify the path to the VMEM image to be run.
+
+@example
+@kbd{make rtl-test USER_VMEM=/path/to/myapp.vmem}
+@end example
+
+This VMEM file will be copied into the working directory, and renamed according to what the simulated memory expects.
+
 @node Options For Reference Design RTL Tests
-@subsubheading Options For RTL Tests
+@subheading Options For RTL Tests
 
 There are some options, which can be specified through shell environment variables when running the test.
 
@@ -412,10 +438,10 @@ Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsi
 
 
 @node Reference Design Cycle Accurate
-@subsubsection Cycle Accurate
+@subsection Cycle Accurate
 @cindex cycle accurate simulation of reference design
 
-@subsubheading Running Cycle Accurate Regression Test
+@subheading Running Cycle Accurate Regression Test
 
 The simplest way of starting a run through the regression test using the cycle accurate model can be done with:
 
@@ -425,7 +451,7 @@ The simplest way of starting a run through the regression test using the cycle a
 
 This will build the cycle accurate model and run a new simulation for each software test. Defining which tests are run is the variable @code{TESTS}, set by default in the @code{sw/bin/Makefile} script.
 
-@subsubheading Running An Individual Test
+@subheading Running An Individual Test
 
 An individual test can be run, by specifying the test name through the @code{TEST} environment variable (which must correspond to a file in @code{sw/tests/@emph{module}/sim/} where @code{@emph{module}} is the name of the module to be tested. In the following example the test @emph{or1200-basic} is run.
 
@@ -433,7 +459,7 @@ An individual test can be run, by specifying the test name through the @code{TES
 @kbd{make vlt-test TEST=or1200-basic}
 @end example
 
-@subsubheading Generating Cycle Accurate Simulator Executable
+@subheading Generating Cycle Accurate Simulator Executable
 
 The cycle accurate model is somewhat similar to the OpenRISC architectural simulator, in that it can be run as a standalone application, although it is not as configurable at runtime. The standalone application can be built with the following command from the @code{sim/run} path.
 
@@ -443,7 +469,7 @@ The cycle accurate model is somewhat similar to the OpenRISC architectural simul
 
 The resulting executable will be @emph{Vorpsoc_top} in the @code{sim/vlt} path. Run it with the @emph{-h} option for usage instructions.
 
-@subsubheading Generating Automatically Profiled Cycle Accurate Simulator Executable
+@subheading Generating Automatically Profiled Cycle Accurate Simulator Executable
 
 An automatic profiling and compilation set of commands in the script can be used to create a higher performance cycle accurate model. The following make target will first compile the cycle accurate design to generate profiling outputs, run some software, and recompile using the profiling information.
 
@@ -451,7 +477,7 @@ An automatic profiling and compilation set of commands in the script can be used
 @kbd{make prepare-vlt-profiled}
 @end example
 
-@subsubheading Cycle Accurate Model Executable Usage
+@subheading Cycle Accurate Model Executable Usage
 
 The executable generated by running any of the above commands is in the @code{sim/vlt} path. The usage options can be listed by running it with the @code{--help} switch.
 
@@ -492,24 +518,24 @@ Log processor execution trace to @var{file}
 @end table
 
 @node Reference Design Results
-@subsubsection Results
+@subsection Results
 @cindex output from simulation of reference design
 
 The following files are generated from the event driven simulation. For output options of the cycle accurate model, see the section on Cycle Accurate Model Executable Usage.
 
-@subsubheading Processor Execution Trace
+@subheading Processor Execution Trace
 
 A trace of the processor after each executed instruction is generated by both the event and cycle accurate models.
 
 In the event driven simulations, the log is created by default, and is stored in @code{sim/out} and will be named @code{@emph{test-name}-executed.log}.
 
-@subsubheading Processor SPR Access Log
+@subheading Processor SPR Access Log
 
 A list of processor special purpose registers (SPR) accesses is created when processor logging is enabled.
 
 These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-sprs.log}.
 
-@subsubheading Processor Instruction Excecution Time Log
+@subheading Processor Instruction Excecution Time Log
 
 A list of when each instruction was executed is generated when processor execution logging is enabled.
 
@@ -517,19 +543,19 @@ This is useful when debugging with VCD, and detecting at what time the problemat
 
 These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-lookup.log}.
 
-@subsubheading Processor Report Mechanism Log
+@subheading Processor Report Mechanism Log
 
 The use of the processor's report mechanism is commonplace in the test software, as it allows for the checking of intermediate values after simulation.
 
 These values are logged to a file in @code{sim/out} named @code{@emph{test-name}-general.log}. This is not optional.
 
-@subsubheading Value Change Dump (VCD)
+@subheading Value Change Dump (VCD)
 
 When VCD files are generated they are placed in the @code{sim/out} path, and are named @code{@emph{test-name}.vcd}. They should be viewable with programs like @emph{GTKWave}.
 
 
 @node Reference Design Synthesis
-@subsection Synthesis
+@section Synthesis
 
 The reference design is not intended to be synthesised, and thus no backend scripts are provided. See the sections on the board-specific builds.
 
@@ -553,7 +579,7 @@ The reference design is not intended to be synthesised, and thus no backend scri
 @end menu
 
 @node ORDB1A3PE1500 Overview
-@subsection Overview
+@section Overview
 
 The ORDB1 (ORSoC development board 1) with Actel A3PE1500 FPGA is supported by this build.
 
@@ -566,7 +592,7 @@ The port was mainly developed with the ORSoC Ethernet expansion board (OREEB1), 
 This guide will overview how to simulation, synthesize and customise the system.
 
 @node ORDB1A3PE1500 Structure
-@subsection Structure
+@section Structure
 
 Note that in this chapter the term @emph{board path} refers to the path in the project for this board port; @code{boards/actel/ordb1a3pe1500}.
 
@@ -577,7 +603,7 @@ The Verilog RTL specific to this board is under @code{rtl/verilog} in the board 
 Backend files, things such as PLLs and buffers generated by Actel's @emph{smartgen} tool, are found in the board's @code{backend/rtl/verilog} path.
 
 @node ORDB1A3PE1500 Tools
-@subsection Tools
+@section Tools
 
 @menu
 * Host Tools:: 
@@ -587,19 +613,19 @@ Backend files, things such as PLLs and buffers generated by Actel's @emph{smartg
 @end menu
 
 @node ORDB1A3PE1500 Host Tools
-@subsubsection Host Tools
+@subsection Host Tools
 @cindex host tools required ORDB1A3PE1500 
 
 Standard development suite of tools: gcc, make, etc.
 
 @node ORDB1A3PE1500 Target System Tools
-@subsubsection Target System Tools
+@subsection Target System Tools
 @cindex target system tools required ORDB1A3PE1500 
 
 OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
 
 @node ORDB1A3PE1500 EDA Tools
-@subsubsection EDA Tools
+@subsection EDA Tools
 @cindex EDA tools required ORDB1A3PE1500 
 
 RTL, gatelevel simulation: Mentor Graphics' Modelsim
@@ -610,16 +636,16 @@ Programming: Actel FlashPRO (included in Actel Libero Suite)
 This has been tested with with Libero v8.6 and v9.0sp1 under Ubuntu Linux.
 
 @node ORDB1A3PE1500 Debug Tools
-@subsubsection Debug Tools
+@subsection Debug Tools
 @cindex Debug tools required ORDB1A3PE1500 
 
 or_debug_proxy, ORPmon
 
 @node ORDB1A3PE1500 Simulating
-@subsection Simulating
+@section Simulating
 @cindex simulating ORDB1A3PE1500 
 
-@subsubheading Run RTL Regression Test
+@subheading Run RTL Regression Test
 
 To run the default set of regression tests for the build, run the following command in the board's @code{sw/run} path.
 
@@ -644,7 +670,7 @@ If the chosen bootROM program (set via a define in software header file in the b
 
 
 @node ORDB1A3PE1500 Synthesis
-@subsection Synthesis
+@section Synthesis
 
 Synthesis of the board port for the Actel technology with the Synplify tool can be run in the board's @code{syn/synplify/run} path with the following command.
 
@@ -657,7 +683,7 @@ This will create a EDIF netlist in @code{syn/synplify/out}.
 Hopefully it's all automated enough so that, as long as the design is simulating as desired, the correct set of RTL will be picked up and synthesized without any need for customising scripts for the tool.
 
 @node ORDB1A3PE1500 Synthesis Options
-@subsubsection Options
+@subsection Options
 
 The following can be passed as environment variables when running @kbd{make all}.
 
@@ -702,7 +728,7 @@ Defaults to '0' (off) but set to '1' to enable. Useful when synthesizing individ
 @end table
 
 @node ORDB1A3PE1500 Synthesis Warnings
-@subsubsection Checks
+@subsection Checks
 
 The following is a list of some considerations before synthesis.
 
@@ -727,7 +753,7 @@ If using any command line settings, they can be checked by passing them to the f
 @end itemize
 
 @node ORDB1A3PE1500 Place and Route
-@subsection Place and Route
+@section Place and Route
 
 Place and route is run from the board's @code{backend/par/run} path with the following command.
 
@@ -740,7 +766,7 @@ This will create a @code{.adb} file in the same path.
 All steps, up to and including programming file generation are done here. FPGA device programming must be done using the programming FlashPro tool under Windows if using a free license.
 
 @node ORDB1A3PE1500 Place and route options
-@subsubsection Options
+@subsection Options
 
 Most of the design's parameters are determined by processing the @code{orpsoc-defines.v} file and extracting, for example, the frequency of the clocks entering the design.
 
@@ -785,7 +811,7 @@ Defaults to @code{orsoccpuexpio.mkpinassigns}
 @end table
 
 @node ORDB1A3PE1500 Constraints
-@subsubsection Constraints
+@subsection Constraints
 
 
 A @emph{synposys design constraints} (SDC) file, and @emph{physical design constraints} (PDC) file are generated automatically by the scripts. The main Verilog defines file is parsed to detect which modules are included in the design, and generates the appropriate constraints which are embedded in the Makefile.
@@ -803,21 +829,21 @@ By default these should have support for the peripherals included with ORPSoC. D
 These can be generated and edited and then used when running place and route, they will not get replaced.
 
 @node ORDB1A3PE1500 Programming File Generation
-@subsection Programming File Generation
+@section Programming File Generation
 
 The @code{.adb} file resulting from place and route can be opened in the Actel @emph{Designer} tool and a programming file generated there.
 
 Once this programming file is created, Actel's @emph{FlashPro} can used to program the ORDB1A3PE1500 board.
 
 @node ORDB1A3PE1500 Customising
-@subsection Customising
+@section Customising
 
 The versatile nature of the ORDB1A3PE1500 means the design that goes on it must be equally versatile, if not more so.
 
 The following sections have information on how to configure the design.
 
 @node ORDB1A3PE1500 Customising Enabling Existing Modules
-@subsubsection Enabling Existing RTL Modules
+@subsection Enabling Existing RTL Modules
 
 The design relies on the Verilog HDL @emph{define} function to indicate which modules are included.
 
@@ -836,7 +862,7 @@ Inspect that file to see which modules are able to be included. At present the l
 These cores should be supported and ready to go by just defining them (uncomment in the @code{orspco-defines.v} file.)
 
 @node ORDB1A3PE1500 Customising Adding Modules
-@subsubsection Adding RTL Modules
+@subsection Adding RTL Modules
 
 There are a number of steps to take when adding a new module to the design.
 
@@ -936,7 +962,7 @@ The physical constraints file can be generated manually with the @kbd{make pdc-f
 @end menu
 
 @node ML501 Overview
-@subsection Overview
+@section Overview
 
 The Xilinx ML501 board contains a Virtex LX50 part, varied memories and peripherals. See Xilinx's site for specific details: 
 
@@ -953,7 +979,7 @@ The project is configured to generate either a @code{.bit} file for direct progr
 This guide is far from complete, but provides the basics on running simulations, and building the design.
 
 @node ML501 Structure
-@subsection Structure
+@section Structure
 
 Note that in this chapter the term @emph{board path} refers to the path in the project for this board port; @code{boards/xilinx/ml501}.
 
@@ -964,14 +990,14 @@ The Verilog RTL specific to this board is under @code{rtl/verilog} in the board 
 Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
 
 @node ML501 XILINX_PATH
-@subsubsection ML501 XILINX_PATH
+@subsection ML501 XILINX_PATH
 
 Be sure to set the environment variable @code{XILINX_PATH} to the path of the ISE path on the host machine. This can be done with something like @kbd{export XILINX_PATH=/software/xilinx_11.1/ISE} and additionally a symbolic link to the Verilog simulation library sources will be required - see the simulation section on this. Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
 
 If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
 
 @node ML501 Tools
-@subsection Tools
+@section Tools
 
 @menu
 * Host Tools:: 
@@ -981,19 +1007,19 @@ If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not 
 @end menu
 
 @node ML501 Host Tools
-@subsubsection Host Tools
+@subsection Host Tools
 @cindex host tools required ML501 
 
 Standard development suite of tools: gcc, make, etc.
 
 @node ML501 Target System Tools
-@subsubsection Target System Tools
+@subsection Target System Tools
 @cindex target system tools required ML501 
 
 OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
 
 @node ML501 EDA Tools
-@subsubsection EDA Tools
+@subsection EDA Tools
 @cindex EDA tools required ML501 
 
 RTL, gatelevel simulation: Mentor Graphics' Modelsim
@@ -1005,20 +1031,20 @@ This has been tested with Xilinx ISE 11.1 under Ubuntu Linux.
 
 
 @node ML501 Debug Tools
-@subsubsection Debug Tools
+@subsection Debug Tools
 @cindex Debug tools required ML501 
 
 or_debug_proxy, ORPmon
 
 @node ML501 Simulating
-@subsection Simulating
+@section Simulating
 @cindex simulating ML501 
 
 Ensure the @code{XILINX_PATH} environment variable is set correcetly. @xref{ML501 XILINX_PATH} for information.
 
 Note that if this path is not set, simulations will not compile.
 
-@subsubheading Run RTL Regression Test
+@subheading Run RTL Regression Test
 
 To run the default set of regression tests for the build, run the following command in the board's @code{sw/run} path.
 
@@ -1043,7 +1069,7 @@ If the chosen bootROM program (set via a define in software header file in the b
 
 
 @node ML501 Synthesis
-@subsection Synthesis
+@section Synthesis
 
 Synthesis of the board port for the Actel technology with the Synplify tool can be run in the board's @code{syn/xst/run} path with the following command.
 
@@ -1056,7 +1082,7 @@ This will create an NGC file in @code{syn/xst/run} named @code{orpsoc.ngc}.
 Hopefully it's all automated enough so that, as long as the design is simulating as desired, the correct set of RTL will be picked up and synthesized without any need for customising scripts for the tool.
 
 @node ML501 Synthesis Options
-@subsubsection Options
+@subsection Options
 
 Use the following command int the @code{syn/xst/run} path to get a list of the variables used during synthesis. Any can be set on the command line when running @code{make all}.
 
@@ -1066,7 +1092,7 @@ Use the following command int the @code{syn/xst/run} path to get a list of the v
 
 
 @node ML501 Synthesis Warnings
-@subsubsection Checks
+@subsection Checks
 
 The following is a list of some considerations before synthesis.
 
@@ -1087,7 +1113,7 @@ If the unwanted files from an old synthesis run are still there before the next 
 @end itemize
 
 @node ML501 Synthesised Netlist
-@subsubsection Netlist generation
+@subsection Netlist generation
 
 To create a Verilog HDL netlist of the post-synthesis design, run the following in the board's @code{syn/xst/run} path.
 
@@ -1096,7 +1122,7 @@ To create a Verilog HDL netlist of the post-synthesis design, run the following 
 @end example
 
 @node ML501 Place and Route
-@subsection Place and Route
+@section Place and Route
 
 Place and route of the design can be run from the board's @code{backend/par/run} path with the following command.
 
@@ -1105,7 +1131,7 @@ Place and route of the design can be run from the board's @code{backend/par/run}
 @end example
 
 @node ML501 Timing Report
-@subsection Post-PAR STA Report
+@section Post-PAR STA Report
 
 The @code{trce} tool can be used to generate a timing report of the post-place and route design.
 
@@ -1114,7 +1140,7 @@ The @code{trce} tool can be used to generate a timing report of the post-place a
 @end example
 
 @node ML501 Back-annotated Netlist
-@subsection Back-annotated Netlist
+@section Back-annotated Netlist
 
 A post-PAR back-annotated netlist can be generated with the following command.
 
@@ -1126,7 +1152,7 @@ This will make a new directory under the board's @code{backend/par/run} path nam
 
 
 @node ML501 Place and route options
-@subsubsection Options
+@subsection Options
 
 To get a list of options that can be set when running the backend flow, run the following in the board's @code{backend/par/run} path.
 
@@ -1135,14 +1161,14 @@ To get a list of options that can be set when running the backend flow, run the 
 @end example
 
 @node ML501 Constraints
-@subsubsection Constraints
+@subsection Constraints
 
 A Xilinx User Constraints File (UCF) file is in the board's @code{backend/par/bin} path. It is named @code{ml501.ucf}. It should be edited if any extra I/O or constraints are required.
 
 Eventually it would be good to dynamically generated this, based on what is included in the design, but for now this must be hand modified if modules are added ore removed from the design.
 
 @node ML501 Programming File Generation
-@subsection Programming File Generation
+@section Programming File Generation
 
 Programming file generation is run from the board's @code{backend/par/run} path with the following command.
 
@@ -1153,7 +1179,7 @@ Programming file generation is run from the board's @code{backend/par/run} path 
 This file can then be loaded into the Xilinx iMPACT program and programmed onto the Virtex 5 part on the ML501.
 
 @node ML501 SPI programming file
-@subsubsection SPI programming file generation
+@subsection SPI programming file generation
 
 To generate a file, which can be programmed into the SPI flash on the board (and thus allowing the FPGA to be configured without using iMPACT each time) run the following command in the board's @code{backend/par/run} path.
 
@@ -1162,7 +1188,7 @@ To generate a file, which can be programmed into the SPI flash on the board (and
 @end example
 
 @node ML501 SPI programming file with software
-@subsubsection SPI programming file generation with software
+@subsection SPI programming file generation with software
 
 To generate a file, which can be programmed into the SPI flash on the board (and thus allowing the FPGA to be configured without using iMPACT each time) and also has a bootloader the processor can run (such as ORPmon) run the following command in the board's @code{backend/par/run} path.
 
@@ -1191,7 +1217,7 @@ This @code{orpmon-sizeword.bin} file should then be passed via the BOOTLOADER_BI
 If once the FPGA configuration image, and a bootloader image is embedded in the SPI flash, the FPGA can be configured with ORPSoC and then the processor can load the bootloader (like ORPmon) with a single press of the board's @code{PROG} button. This makes developing on the board very easy.
 
 @node ML501 SPI flash programming
-@subsubsection SPI flash programming
+@subsection SPI flash programming
 
 For a guide on how to actually set up the ML501 board to program the SPI flash, see the section under ``@emph{My Own SPI Flash Image Demonstration}'' on page 26 of the Xilinx UG228 document, http://www.xilinx.com/support/documentation/boards_and_kits/ug228.pdf . Follow steps 1 to 4, and then 9 to 16, and supply the @code{.mcs} file generated here.
 
@@ -1205,14 +1231,14 @@ Booting from the SPI flash to ORPmon prompt is about 3 to 4 seconds.
 
 
 @node ML501 Customising
-@subsection Customising
+@section Customising
 
 The large amount of peripherals on the ML501 means that things will want to be added or removed to suit the design.
 
 The following sections have information on how to configure the design.
 
 @node ML501 Customising Enabling Existing Modules
-@subsubsection Enabling Existing RTL Modules
+@subsection Enabling Existing RTL Modules
 
 The design relies on the Verilog HDL @emph{define} function to indicate which modules are included. See the board's @code{rtl/verilog/include/orpsoc-defines.v} file to determine which options are enabled by uncommented @code{`define} values.
 
@@ -1229,7 +1255,7 @@ There are only a few modules included by default.
 The rest are optional, depending on what is defined in the board's @code{rtl/verilog/include/orpsoc-defines.v} file.
 
 @node ML501 Customising Adding Modules
-@subsubsection Adding RTL Modules
+@subsection Adding RTL Modules
 
 There are a number of steps to take when adding a new module to the design.
 
@@ -1272,10 +1298,10 @@ If any I/O is added, or special timing specified, the board's UCF file will need
 @end itemize
 
 @node ML501 Running And Debugging Software
-@subsection Running And Debugging Software
+@section Running And Debugging Software
 
 @node ML501 Debug Interface
-@subsubsection Debug Interface
+@subsection Debug Interface
 
 The debug interface uses a separate JTAG tap and some fly-leads must be connected from an @emph{ORSoC USB debugger} (http://opencores.com/shop,item,3) to the ML501.
 
@@ -1301,7 +1327,7 @@ The left column of pins on J4 are all tied to ground. All pins on J7 (expansion 
 Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See http://opencores.org/openrisc,debugging_physical for more information.
 
 @node ML501 UART
-@subsubsection UART
+@subsection UART
 
 There are 2 ways of connecting to the UART in the design.
 
@@ -1323,6 +1349,109 @@ Again, supply and ground leads for the UART drivers on the USB debugger can be s
 If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up witht he first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
 
 See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
+
+@c ****************************************************************************
+@c Software section
+@c **************************************************************************** 
+
+
+@node Software
+@chapter Software
+
+@cindex software use of @value{ORPSOC}
+
+This section details the structure of the software library included in @value{ORPSOC}.
+
+@node Software Overview
+@section Overview
+
+The software provided with ORPSoC is intended to be of sufficient functionality to develop and test the designs, with some additional utility programs for board bring up.
+
+The bulk of the software library consists of drivers and tests for the included RTL modules, focusing on the processor. A basic C library, implementing basic support functions such as printf, is included. This alleviates the prerequisite of a compiler with supporting C library installed.
+
+Each board port may contain additional software drivers and tests in its own software directory, the structure of which mimics that of the main software directory.
+
+@node Software Componenets
+@section Components
+
+This section outlines the different components of the software library in the @code{sw/} path in the root of @value{ORPSOC}.
+
+
+@node Software Components Applications
+@subsection Applications
+
+There are some included applications, which are neither drivers or tests.
+
+Typically these will contain a @code{README} file in their directories which contain information on the software and its use.
+
+In general, these are to be run on hardware, and thus will need to be compiled for a specific board. Be sure to pass the @code{BOARD} environment variable when compiling to pick up the appropriate board configuration. @xref{Software For Board Ports} for an example.
+
+@node Software Components Drivers
+@subsection Drivers
+
+Each RTL component may have a driver, which will be compiled into the liborpsoc library and be made available to applications and tests that use the library.
+
+Each driver path should contain its source and an include path for driver headers.
+
+@node Software Components CPU Drivers
+@subsection CPU Drivers
+
+An attempt has been made to make the interface to basic CPU functions as generic as possible. This can allow different CPUs to be implemented in @value{ORPSOC}.
+
+The header file @code{cpu-utils.h} should be included to gain access to the CPU driver functions, such as timers, special purpose registers, memory access macros, etc. This header will, in turn, include the appropriate CPU driver header.
+
+@emph{Note:} What is included in the CPU driver, and how it should be interfaced is not documented yet, but in future every effort should be made to ensure a generic interface to CPU functions is used.
+
+At present only the OR1200 has a driver, but it is intended that alternate OpenRISC processors can be implemented into ORPSoC and a driver for it to be easily used in the library.
+
+The environment variable @code{CPU_DRIVER} is used to specify which driver is the CPU driver to be used at liborpsoc compile time.
+
+@node Software Components Tests
+@subsection Tests
+
+Each test subdirectory contains directories for each target. Usually there's just @code{sim} and @code{board}, the difference between the two being longer run-time and use of UART for board-targeted tests.
+
+@emph{Note:} Test directory names should not contain hyphens or underscores. Test software files should be named with the single test directory name first, followed by a single word, eg. @code{or1200-simple.c}. 
+
+Test names are referenced using this @code{module}-@code{testname} pair. The automated testing mechanism implemented by the Makefile scripts will always search the @code{sim} paths for tests, rather than the @code{board} paths.
+
+@emph{Note:} There is no automated testing mechnism for the board-targeted software yet. It is anticipated that a testing harness for these will be developed, and we encourage users to help solve this problem.
+
+@node Software Components Library
+@subsection Library
+
+The @code{lib} path in the root software directory is where the code for the minimal C library is located, and is the location of the @code{liborpsoc} archive file after its compilation.
+
+@node Software Components Board
+@subsection Board
+
+The @code{board} path in the software directory may, in future, contain other board-specific code, but at present its @code{include} path houses just an important header, @code{board.h} used for configuring the software when compiling programs targeted at a specific board port.
+
+This file contains mainly defines of things such as the CPU frequency and timer rate, peripheral base addresses, IRQ numbers, and other board-specific defines. Each board port should contain its own, and is one of the reasons for passing the @code{BOARD} environment variable when compiling software targeted at a specific board port - so its board-specific defines will be used instead of the reference design's.
+
+@node Software Components Utilities
+@subsection Utilities
+
+The @code{utils} path contains tools used to help manipulate binary software images for a variety of purposes. All tools are designed to be run on the host machine, and not on ORPSoC.
+
+
+@node Software For Board Ports
+@section Software For Board Ports
+
+Each board port will have its own software directory, if only to keep its @code{board.h} header file, specifying system parameters specific to the board.
+
+It may also contain drivers and tests specific to peripherals for that board. 
+
+@emph{Note:} For any tests or drivers named the same found in both a board's software path and the root software path, the @emph{board's} software will be used instead.
+
+@emph{Note:} When compiling any software in the @emph{root} software path (such as in the applications folder) intended to run on a particular board, make use of the @code{BOARD} variable to indicat which board's configuration (@code{board.h} file, and any board-specific drivers) to use. For example:
+
+@example
+@kbd{orpsoc/sw/apps/app1$ make app1.elf BOARD=xilinx/ml501}
+@end example
+
+It's also advisable to do a @code{make distclean} prior to clear out any preexisting libraries that may not contain software appropriate for the targeted board port (it may have been built with the reference design's @code{board.h}, for example.)
+
 
 
 @c ****************************************************************************

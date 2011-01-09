@@ -14,10 +14,10 @@ all: bootrom.v
 bootrom.v: $(SW_ROOT)/bootrom/bootrom.v
 	$(Q)cp -v $< .
 
-export BOARD_PATH
-
-# Pass BOARD_PATH so the Make script in the root software path knows we're to
+# Export BOARD so the Make script in the root software path knows we're to
 # use our board.h file, not theirs.
+export BOARD
+
 $(SW_ROOT)/bootrom/bootrom.v:
 	$(Q)$(MAKE) -C $(SW_ROOT)/bootrom bootrom.v
 

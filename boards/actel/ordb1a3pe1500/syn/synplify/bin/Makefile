@@ -16,9 +16,9 @@ CUR_DIR=$(shell pwd)
 BOARD_DIR ?=$(CUR_DIR)/../../..
 PROJECT_ROOT=$(BOARD_DIR)/../../..
 
-# Export BOARD_PATH for the software makefiles
-BOARD_PATH=$(BOARD_DIR)
-export BOARD_PATH
+# Export BOARD for the software makefiles
+BOARD=actel/ordb1a3pe1500
+export BOARD
 
 DESIGN_NAME=orpsoc
 

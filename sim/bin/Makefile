@@ -55,7 +55,19 @@ BENCH_TOP=$(BENCH_VERILOG_DIR)/$(DESIGN_NAME)_testbench.v
 # Need this for individual test variables to not break
 TEST ?= or1200-simple
 
-TESTS ?= or1200-simple or1200-basic or1200-cbasic or1200-dctest or1200-float or1200-mmu  or1200-except or1200-mac or1200-ffl1 or1200-linkregtest or1200-tick or1200-ticksyscall uart-simple
+TESTS ?= or1200-simple \
+	or1200-basic \
+	or1200-cbasic \
+	or1200-dctest \
+	or1200-float \
+	or1200-mmu  \
+	or1200-except \
+	or1200-mac \
+	or1200-ffl1 \
+	or1200-linkregtest \
+	or1200-tick \
+	or1200-ticksyscall \
+	uart-simple
 
 # Gets turned into verilog `define
 SIM_TYPE=RTL
@@ -68,7 +80,10 @@ RTL_VERILOG_INCLUDE_DIR = $(RTL_VERILOG_DIR)/include
 
 PROJECT_VERILOG_DEFINES=$(RTL_VERILOG_INCLUDE_DIR)/$(DESIGN_NAME)-defines.v
 # Detect technology to use for the simulation
-DESIGN_DEFINES=$(shell cat $(PROJECT_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
+DESIGN_DEFINES=$(shell cat $(PROJECT_VERILOG_DEFINES) | \
+	sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | \
+	awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | \
+	grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
 
 # Rule to look at what defines are being extracted from main file
 print-defines:
@@ -361,24 +376,65 @@ include ../bin/definesgen.inc
 # Path for the current test
 TEST_SW_DIR=$(SW_DIR)/tests/$(shell echo $(TEST) | cut -d "-" -f 1)/sim
 
-# This SHOULD be a VMEM file. sram.vmem is the name of the image the ram models
-# attempt to load.
-SIM_SW_IMAGE ?=sram.vmem
+# This file name corresponds to the VMEM file the RAM models will attempt to 
+# load via $readmemh().
+SIM_VMEM_IMAGE ?=sram.vmem
+
+ifeq ($(USER_ELF),)
+ELF_FILE=$(TEST_SW_DIR)/$(TEST).elf
+else
+ELF_FILE=$(USER_ELF)
+ELF_FILE_NOTDIR=$(notdir $(USER_ELF))
+ELF_FILE_NOTDIR_BASENAME=$(basename $(ELF_FILE_NOTDIR))
+endif
+
+# Rules allowing user to specify a pre-existing VMEM file to load into the 
+# simulation, instead of compiling a test.
+ifeq ($(USER_VMEM),)
+VMEM_FILE=$(TEST_SW_DIR)/$(TEST).vmem
+.PHONY: $(VMEM_FILE)
+
+
+# If USER_ELF was specified, then we need a slightly different way of
+# generating the VMEM file from it than a usual test
+ifeq ($(USER_ELF),)
+$(SIM_VMEM_IMAGE): $(VMEM_FILE)
+	$(Q)if [ -L $@ ]; then unlink $@; fi
+	$(Q)if [ -e $@ ]; then rm $@; fi
+	$(Q)ln -s $< $@
+else
+$(SIM_VMEM_IMAGE): $(USER_ELF)
+	$(Q)$(MAKE) -C $(SW_DIR)/lib \
+	USER_ELF_BIN=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).bin \
+	USER_ELF_VMEM=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).vmem \
+	gen-user-elf-vmem
+	$(Q)cp -v $(ELF_FILE_NOTDIR_BASENAME).vmem $@
+
+TEST=$(ELF_FILE_NOTDIR_BASENAME)
+endif
+
+else
+VMEM_FILE=$(USER_VMEM)
+USER_VMEM_NOTDIR=$(notdir $(USER_VMEM))
+TEST=$(basename $(USER_VMEM_NOTDIR))
+
+$(SIM_VMEM_IMAGE): $(VMEM_FILE)
+	cp -v $< $@
+
+endif
+
+
+
 
 .PHONY : sw-vmem sw-elf
-sw-vmem: $(SIM_SW_IMAGE)
+sw-vmem: $(SIM_VMEM_IMAGE)
 
-$(SIM_SW_IMAGE): $(TEST_SW_DIR)/$(TEST).vmem
-	$(Q)if [ -L $@ ]; then unlink $@; fi
-	$(Q)ln -s $< $@
-
-.PHONY: $(TEST_SW_DIR)/$(TEST).vmem
 $(TEST_SW_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
 	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).vmem
 
 # Compile ELF and copy it here
-sw-elf: $(TEST_SW_DIR)/$(TEST).elf
+sw-elf: $(ELF_FILE)
 	$(Q)cp -v $< .
 
 $(TEST_SW_DIR)/$(TEST).elf:
@@ -409,7 +465,9 @@ clean: clean-sim clean-sim-test-sw clean-bootrom clean-vlt clean-out clean-sw
 clean-sim:
 	$(Q) echo; echo "\t### Cleaning simulation run directory ###"; echo;
 	$(Q)rm -rf *.* lib_* work transcript check-test-log
-	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
+	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then \
+		$(MAKE) -C $(VPI_SRC_C_DIR) clean; \
+	fi
 
 clean-bootrom:
 	$(MAKE) -C $(BOOTROM_SW_DIR) clean
@@ -426,7 +484,7 @@ clean-test-defines:
 	$(Q)rm -f $(TEST_DEFINES_VLG)
 
 clean-sim-test-sw:
-	$(Q)if [ -e $(SIM_SW_IMAGE) ]; then unlink $(SIM_SW_IMAGE); fi
+	$(Q)if [ -L $(SIM_VMEM_IMAGE) ]; then unlink $(SIM_VMEM_IMAGE); fi
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;

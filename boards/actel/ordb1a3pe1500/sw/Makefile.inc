@@ -9,10 +9,10 @@ PROJ_ROOT=../../../..
 SW_ROOT=$(BOARD_SW_ROOT)/$(PROJ_ROOT)/sw
 
 # Set the BOARD_PATH to point to the root of this board build
-BOARD_PATH=$(shell pwd)/$(BOARD_SW_ROOT)/..
+BOARD=actel/ordb1a3pe1500
 
 # Set RTL_VERILOG_INCLUDE_DIR so software 
-RTL_VERILOG_INCLUDE_DIR=$(BOARD_PATH)/rtl/verilog/include
+RTL_VERILOG_INCLUDE_DIR=$(shell pwd)/$(BOARD_SW_ROOT)/../rtl/verilog/include
 
 # Set the processor capability flags
 # This doesn't work! :-( Need to figure out way to set these and have them

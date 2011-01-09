@@ -456,7 +456,7 @@ module or1200_monitor;
 	   get_gpr(3, r3);
 	   $fdisplay(fgeneral, "%t: l.nop exit (%h)", $time, r3);
 `ifdef OR1200_MONITOR_VERBOSE_NOPS
-	   $display("%t: l.nop exit (%h)", $time, r3);
+	   $display("exit(%h)",r3);
 `endif	   
 	   $finish;
 	end
@@ -467,9 +467,9 @@ module or1200_monitor;
 	// simulation reports (l.nop 2)
 	if (`OR1200_TOP.`CPU_cpu.`CPU_ctrl.wb_insn == 32'h1500_0002) begin 
 	   get_gpr(3, r3);
-	   $fdisplay(fgeneral, "%t: l.nop report (%h)", $time, r3);
+	   $fdisplay(fgeneral, "%t: l.nop report (0x%h)", $time, r3);
 `ifdef OR1200_MONITOR_VERBOSE_NOPS
-	   $display("%t: l.nop report (%h)", $time, r3);
+	   $display("report (0x%h);", r3);
 `endif
 	end
 	// simulation printfs (l.nop 3)
@@ -503,7 +503,7 @@ module or1200_monitor;
       input [31:0] addr;
       output [31:0] insn;
       begin
-	 insn = `RAM_WB_TOP.get_mem(addr);
+	 insn = `RAM_WB_TOP.get_mem32(addr);
       end
    endtask // get_insn_from_wb_ram
 `endif

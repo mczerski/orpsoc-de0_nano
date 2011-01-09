@@ -55,8 +55,8 @@ BOARD_NAME=ordb1a3pe1500
 BOARD_DIR=$(PROJECT_ROOT)/boards/$(FPGA_VENDOR)/$(BOARD_NAME)
 
 # Export BOARD_PATH for the software makefiles
-BOARD_PATH=$(BOARD_DIR)
-export BOARD_PATH
+BOARD=$(FPGA_VENDOR)/$(BOARD_NAME)
+export BOARD
 
 # Paths to other important parts of this test suite
 COMMON_RTL_DIR = $(PROJECT_ROOT)/rtl

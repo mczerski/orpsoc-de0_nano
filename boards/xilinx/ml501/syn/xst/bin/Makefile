@@ -160,9 +160,9 @@ BOARD_SW_DIR=$(BOARD_DIR)/sw
 BOOTROM_FILE=bootrom.v
 BOARD_BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
 BOOTROM_VERILOG=$(BOARD_BOOTROM_SW_DIR)/$(BOOTROM_FILE)
-# Export BOARD_PATH for the software makefiles
-BOARD_PATH=$(BOARD_DIR)
-export BOARD_PATH
+# Export BOARD for the software makefiles
+BOARD=xilinx/ml501
+export BOARD
 bootrom: $(BOOTROM_VERILOG)
 $(BOOTROM_VERILOG):
 	$(MAKE) -C $(BOARD_BOOTROM_SW_DIR) $(BOOTROM_FILE)

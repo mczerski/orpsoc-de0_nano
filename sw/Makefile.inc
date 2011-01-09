@@ -48,10 +48,16 @@ CPU_DRIVER ?=$(SW_ROOT)/drivers/or1200
 
 # If BOARD_PATH is set, we'll first scan that path for which drivers they have
 # and will override any locally named driver directories here.
-ifdef BOARD_PATH
-#$(info BOARD_PATH is being used: $(BOARD_PATH))
-BOARD_SPECIFIC_DRIVERS=$(shell if [ -e $(BOARD_PATH)/sw/drivers ]; then ls $(BOARD_PATH)/sw/drivers; fi)
-BOARD_SW_TESTS=$(shell if [ -e $(BOARD_PATH)/sw/tests ]; then ls $(BOARD_PATH)/sw/tests; fi)
+ifdef BOARD
+BOARD_PATH=$(SW_ROOT)/../boards/$(BOARD)
+#$(info BOARD is being used: $(BOARD_PATH))
+BOARD_SPECIFIC_DRIVERS=$(shell if [ -e \
+	$(BOARD_PATH)/sw/drivers ]; then \
+	ls $(BOARD_PATH)/sw/drivers; \
+	fi)
+BOARD_SW_TESTS=$(shell if [ -e $(BOARD_PATH)/sw/tests ]; then\
+	ls $(BOARD_PATH)/sw/tests; \
+	fi)
 endif
 
 COMMON_SW_DRIVERS=$(shell ls $(SW_ROOT)/drivers )
