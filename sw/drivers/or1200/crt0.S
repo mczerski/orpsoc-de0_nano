@@ -3,7 +3,9 @@
 
 /* ======================================================= [ macros ] === */
 
-
+#define REDZONE 128
+#define EXCEPTION_STACK_SIZE (128 + REDZONE)
+	
 #define CLEAR_GPR(gpr) \
 	l.or    gpr, r0, r0
     
@@ -17,18 +19,14 @@ symbol:
 	l.ori   gpr, gpr, lo(symbol)
 
 	// Really goes to configurable interrupt handler
-#define UNHANDLED_EXCEPTION            \
-	l.addi  r1, r1, -256;          \
+#define EXCEPTION_HANDLER            \
+	l.addi  r1, r1, -EXCEPTION_STACK_SIZE;          \
 	l.sw    4(r1), r3;             \
 	l.sw    8(r1), r4;             \
 	l.mfspr r3,r0,SPR_NPC;          \
 	l.mfspr r4,r0,SPR_EPCR_BASE;   \
 	l.j default_exception_handler; \
 	l.nop
-
-
-
-	
 
 /* =================================================== [ exceptions ] === */
 	.section .vectors, "ax"
@@ -54,21 +52,21 @@ symbol:
 
 /* ---[ 0x200: BUS exception ]------------------------------------------- */
 	.org 0x200
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 
 /* ---[ 0x300: Data Page Fault exception ]------------------------------- */
 	.org 0x300
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 /* ---[ 0x400: Insn Page Fault exception ]------------------------------- */
 	.org 0x400
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 
 
 /* ---[ 0x500: Timer exception ]----------------------------------------- */
 	.org 0x500
 #define TIMER_RELOAD_VALUE (SPR_TTMR_IE | SPR_TTMR_RT | ((IN_CLK/TICKS_PER_SEC) & SPR_TTMR_PERIOD))
-	//UNHANDLED_EXCEPTION
+	//EXCEPTION_HANDLER
 	/* Simply load timer_ticks variable and increment */
 	.extern timer_ticks
 	l.addi 	r1, r1, -136
@@ -89,96 +87,97 @@ symbol:
 
 /* ---[ 0x600: Aligment exception ]-------------------------------------- */
 	.org 0x600
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 /* ---[ 0x700: Illegal insn exception ]---------------------------------- */
 	.org 0x700
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 
 /* ---[ 0x800: External interrupt exception ]---------------------------- */
 	.org 0x800
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 
 /* ---[ 0x900: DTLB miss exception ]------------------------------------- */
 	.org 0x900
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 /* ---[ 0xa00: ITLB miss exception ]------------------------------------- */
 	.org 0xa00
-	UNHANDLED_EXCEPTION
-	
-		
+	EXCEPTION_HANDLER
+
 /* ---[ 0xb00: Range exception ]----------------------------------------- */
 	.org 0xb00
-	UNHANDLED_EXCEPTION
-	
+	EXCEPTION_HANDLER
 
 /* ---[ 0xc00: Syscall exception ]--------------------------------------- */
 	.org 0xc00
-	UNHANDLED_EXCEPTION
-	
+	EXCEPTION_HANDLER
 
-/* ---[ 0xd00: Trap exception ]------------------------------------------ */
+/* ---[ 0xd00: FPU exception ]------------------------------------------- */
 	.org 0xd00
-	UNHANDLED_EXCEPTION
-	
+	EXCEPTION_HANDLER
 
 /* ---[ 0xe00: Trap exception ]------------------------------------------ */
 	.org 0xe00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
-	
-/* ---[ 0xf00: Reserved exceptions ]------------------------------------- */
-	.org 0xf00
-	UNHANDLED_EXCEPTION
+/* ---[ 0xf00 - 0x1400: Reserved exceptions ]---------------------------- */
 /*	
+	.org 0xf00
+	EXCEPTION_HANDLER
+
 	.org 0x1000
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1100
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1200
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1300
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1400
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
+*/
+/* ---[ 0x1500 - 0x1800: Implementation-specific exceptions ]------------ */
+/*	
 	.org 0x1500
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1600
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1700
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1800
-	UNHANDLED_EXCEPTION
-	
+	EXCEPTION_HANDLER
+*/
+/* ---[ 0x1500 - 0x1F00: Custom exceptions ]----------------------------- */
+/*	
 	.org 0x1900
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1a00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1b00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1c00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1d00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1e00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 	
 	.org 0x1f00
-	UNHANDLED_EXCEPTION
+	EXCEPTION_HANDLER
 */
 
 /* ========================================================= [ entry ] === */
@@ -391,7 +390,7 @@ default_exception_handler:
 	l.lwz    r31, 0x74(r1)
 	l.lwz    r32, 0x78(r1)
 
-	l.addi  r1, r1, 256
+	l.addi  r1, r1, EXCEPTION_STACK_SIZE
 
 	l.rfe
 	l.nop
