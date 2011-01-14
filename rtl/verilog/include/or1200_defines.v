@@ -162,9 +162,11 @@
 //
 //`define OR1200_IC_1W_512B
 //`define OR1200_IC_1W_4KB
-`define OR1200_IC_1W_8KB
+//`define OR1200_IC_1W_8KB
+`define OR1200_IC_1W_16KB
 //`define OR1200_DC_1W_4KB
-`define OR1200_DC_1W_8KB
+//`define OR1200_DC_1W_8KB
+`define OR1200_DC_1W_16KB
 
 `endif
 
@@ -1249,6 +1251,14 @@
 `define	OR1200_ICTAG			`OR1200_ICSIZE-`OR1200_ICLS	// 9
 `define	OR1200_ICTAG_W			20
 `endif
+`ifdef OR1200_IC_1W_16KB
+`define OR1200_ICSIZE			14			// 16384
+`define OR1200_ICINDX			`OR1200_ICSIZE-2	// 12
+`define OR1200_ICINDXH			`OR1200_ICSIZE-1	// 13
+`define OR1200_ICTAGL			`OR1200_ICINDXH+1	// 14
+`define	OR1200_ICTAG			`OR1200_ICSIZE-`OR1200_ICLS	// 10
+`define	OR1200_ICTAG_W			19
+`endif
 
 
 /////////////////////////////////////////////////
@@ -1296,6 +1306,14 @@
 `define OR1200_DCTAGL			`OR1200_DCINDXH+1	// 13
 `define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 9
 `define	OR1200_DCTAG_W			20
+`endif
+`ifdef OR1200_DC_1W_16KB
+`define OR1200_DCSIZE			14			// 16384
+`define OR1200_DCINDX			`OR1200_DCSIZE-2	// 12
+`define OR1200_DCINDXH			`OR1200_DCSIZE-1	// 13
+`define OR1200_DCTAGL			`OR1200_DCINDXH+1	// 14
+`define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 10
+`define	OR1200_DCTAG_W			19
 `endif
 
 

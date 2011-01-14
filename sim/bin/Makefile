@@ -746,9 +746,10 @@ print-vlt-model-link-paths:
 
 $(VLT_MODEL_LINKS):
 # Link all the required system C model files into the verilator work dir
-	for SYSCMODEL in $(SYSC_MODELS); do \
+	$(Q)for SYSCMODEL in $(SYSC_MODELS); do \
 		if [ ! -e $(SIM_VLT_DIR)/$$SYSCMODEL.cpp ]; then \
-		echo "\tLinking SystemC model $$SYSCMODEL  Verilator model build path"; \
+		echo \
+	"\tLinking SystemC model $$SYSCMODEL  Verilator model build path"; \
 			ln -s $(BENCH_SYSC_SRC_DIR)/$$SYSCMODEL.cpp \
 				$(SIM_VLT_DIR)/$$SYSCMODEL.cpp; \
 			ln -s $(BENCH_SYSC_INCLUDE_DIR)/$$SYSCMODEL.h \
@@ -777,8 +778,7 @@ vlt-tests:
 ###############################################################################
 # Verilator profiled model build rules
 ###############################################################################
-# To run this, first run a "make prepare-vlt VLT_DO_PROFILING=1" then do a 
-# "make clean" and then a "make prepare-vlt_profiled"
+# To run this, first run a "make prepare-vlt-profiled"
 # This new make target copies athe results of the profiling back to the right
 # paths before we create everything again
 ###############################################################################

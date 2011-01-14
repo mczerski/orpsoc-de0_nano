@@ -118,6 +118,13 @@ assign mbist_so_o = mbist_si_i;
       .dw(32)
       )
 `endif
+`ifdef OR1200_DC_1W_16KB
+   or1200_spram_32_bw #
+     (
+      .aw(12),
+      .dw(32)
+      )
+`endif
    dc_ram
      (
 `ifdef OR1200_BIST
