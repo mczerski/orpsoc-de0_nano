@@ -296,8 +296,8 @@ ENTRY(_start)
 	l.and   r1, r1, r2
 */	
 	/* Clear BSS */
-        LOAD_SYMBOL_2_GPR(r28, ___bss_start)
-        LOAD_SYMBOL_2_GPR(r30, __end)
+        LOAD_SYMBOL_2_GPR(r28, _bss_start)
+        LOAD_SYMBOL_2_GPR(r30, _bss_end)
 1:
         l.sw    (0)(r28), r0
         l.sfltu r28, r30

@@ -61,19 +61,12 @@ SECTIONS
 		_edata  =  .;
 	} > ram
 	
-	.bss SIZEOF(.data) + ADDR(.data) :
+	.bss :
 	{
-		sbss = . ;
-		_sbss = . ;
-		__bss_start = ALIGN(0x8);
-		___bss_start = ALIGN(0x8);
+		_bss_start = .;
 		*(.bss)
 		*(COMMON)
-		end = ALIGN(0x8);
-		_end = ALIGN(0x8);
-		__end = ALIGN(0x8);
-		ebss = .;
-		_ebss = .;
+		_bss_end = .;
 	} > ram
 	
 	/* ensure there is enough room for stack */

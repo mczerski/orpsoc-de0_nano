@@ -179,9 +179,12 @@ VOPT_ARGS=+acc=rnpqv
 endif
 # VSIM commands
 # Suppressed warnings - 3009: Failed to open $readmemh() file
-# Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
-# Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
-MGC_VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+# Suppressed warnings - 3009: Module 'blah' does not have a `timescale 
+# 			directive in effect, but previous modules do.
+# Suppressed warnings - 8598: Non-positive replication multiplier inside 
+#			concat. Replication will be ignored
+MGC_VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) \
+		-do "set StdArithNoWarnings 1; run -all; exit"
 # Options required when VPI option used
 ifeq ($(VPI), 1)
 MGC_VPI_LIB=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
@@ -206,15 +209,25 @@ BENCH_VERILOG_SRC_SUBDIRS += $(VPI_SRC_VERILOG_DIR)
 #
 # A list of paths under rtl/verilog we wish to exclude for module searching
 VERILOG_MODULES_EXCLUDE=  include components
-VERILOG_MODULES_EXCLUDE_LIST_E=$(shell for exclude in $(VERILOG_MODULES_EXCLUDE); do echo "-e $$exclude"; done)
-RTL_VERILOG_MODULES=$(shell ls $(RTL_VERILOG_DIR) | grep -v $(VERILOG_MODULES_EXCLUDE_LIST_E) )
+VERILOG_MODULES_EXCLUDE_LIST_E=$(shell for exclude in \
+		$(VERILOG_MODULES_EXCLUDE); do echo "-e $$exclude"; done)
+RTL_VERILOG_MODULES=$(shell ls $(RTL_VERILOG_DIR) | grep -v \
+			$(VERILOG_MODULES_EXCLUDE_LIST_E) )
 # Specific files to exclude, currently none.
 #VERILOG_EXCLUDE=
-#VERILOG_EXCLUDE_LIST_E=$(shell for exclude in $(VERILOG_EXCLUDE); do echo "-e $$exclude"; done)
+#VERILOG_EXCLUDE_LIST_E=$(shell for exclude in $(VERILOG_EXCLUDE); \
+		do echo "-e $$exclude"; done)
 # List of verilog source files, minus excluded files
-#RTL_VERILOG_SRC=$(shell for module in $(RTL_VERILOG_MODULES); do if [ -d $(RTL_VERILOG_DIR)/$$module ]; then ls $(RTL_VERILOG_DIR)/$$module/*.v | grep -v $(VERILOG_EXCLUDE_LIST_E); fi; done)
+#RTL_VERILOG_SRC=$(shell for module in $(RTL_VERILOG_MODULES); do \
+	if [ -d $(RTL_VERILOG_DIR)/$$module ]; then \
+		ls $(RTL_VERILOG_DIR)/$$module/*.v | grep -v \
+			$(VERILOG_EXCLUDE_LIST_E); \
+	fi; done)
 # List of verilog source files, ignoring excludes
-RTL_VERILOG_SRC=$(shell for module in $(RTL_VERILOG_MODULES); do if [ -d $(RTL_VERILOG_DIR)/$$module ]; then ls $(RTL_VERILOG_DIR)/$$module/*.v; fi; done)
+RTL_VERILOG_SRC=$(shell for module in $(RTL_VERILOG_MODULES); do \
+	if [ -d $(RTL_VERILOG_DIR)/$$module ]; then \
+		ls $(RTL_VERILOG_DIR)/$$module/*.v; \
+	fi; done)
 
 # List of verilog includes
 RTL_VERILOG_INCLUDES=$(shell ls $(RTL_VERILOG_INCLUDE_DIR)/*.*)
@@ -241,7 +254,10 @@ rtl:
 # VHDL modules
 #RTL_VHDL_MODULES=$(shell ls $(RTL_VHDL_DIR))
 # VHDL sources
-#RTL_VHDL_SRC=$(shell for module in $(RTL_VHDL_MODULES); do if [ -d $(RTL_VHDL_DIR)/$$module ]; then ls $(RTL_VHDL_DIR)/$$module/*.vhd; fi; done)
+#RTL_VHDL_SRC=$(shell for module in $(RTL_VHDL_MODULES); do \
+	if [ -d $(RTL_VHDL_DIR)/$$module ]; then \
+		ls $(RTL_VHDL_DIR)/$$module/*.vhd; \
+	fi; done)
 #print-vhdl-src:
 #	@echo echo; echo "\t### VHDL modules and source ###"; echo
 #	@echo "modules: "; echo $(RTL_VHDL_MODULES); echo
@@ -249,30 +265,42 @@ rtl:
 
 
 # Testbench verilog source
-BENCH_VERILOG_SRC=$(shell ls $(BENCH_VERILOG_DIR)/*.v | grep -v $(DESIGN_NAME)_testbench )
+BENCH_VERILOG_SRC=$(shell ls $(BENCH_VERILOG_DIR)/*.v | grep -v \
+	$(DESIGN_NAME)_testbench )
 
 print-bench-src:
 	$(Q)echo "\tBench verilog source"; \
 	echo $(BENCH_VERILOG_SRC)
 
 # Testbench source subdirectory detection
-BENCH_VERILOG_SRC_SUBDIRS +=$(shell for file in `ls $(BENCH_VERILOG_DIR)`; do if [ -d $(BENCH_VERILOG_DIR)/$$file ]; then echo $(BENCH_VERILOG_DIR)/$$file; fi; done)
+BENCH_VERILOG_SRC_SUBDIRS +=$(shell for file in `ls $(BENCH_VERILOG_DIR)`; do \
+	if [ -d $(BENCH_VERILOG_DIR)/$$file ]; then \
+		echo $(BENCH_VERILOG_DIR)/$$file; \
+	fi; done)
 
 # Compile script generation rules:
 
-modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
+modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
+			$(BOOTROM_VERILOG)
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
 	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BENCH_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
-	$(Q)for module in $(RTL_VERILOG_MODULES); do if [ -d $(RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; fi; done
+	$(Q)for module in $(RTL_VERILOG_MODULES); do \
+		if [ -d $(RTL_VERILOG_DIR)/$$module ]; then \
+			echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; \
+		fi; done
 	$(Q)echo >> $@
 
 modelsim_bench.scr: $(BENCH_VERILOG_SRC)
 	$(Q)echo "+incdir+"$(BENCH_VERILOG_DIR) > $@;
-	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do echo "+incdir+"$$path >> $@; done
-	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do echo "-y "$$path >> $@; done
+	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
+		echo "+incdir+"$$path >> $@; \
+	done
+	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
+		echo "-y "$$path >> $@; \
+	done
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
@@ -301,16 +329,23 @@ $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(MGC_VPI_LIB) work
 # Icarus Verilog simulator build and run rules
 #
 .PHONY: $(ICARUS_SCRIPT)
-$(ICARUS_SCRIPT):  $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG) $(BENCH_VERILOG_SRC)
+$(ICARUS_SCRIPT):  $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
+		$(BOOTROM_VERILOG) $(BENCH_VERILOG_SRC)
 	$(Q)echo "# Icarus Verilog simulation script" > $@
 	$(Q)echo "# Auto generated. Any alterations will be written over!" >> $@
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
 	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BENCH_VERILOG_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;        
-	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do echo "+incdir+"$$path >> $@; done
-	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do echo "-y "$$path >> $@; done
-	$(Q)for module in $(RTL_VERILOG_MODULES); do echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; done
+	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
+		echo "+incdir+"$$path >> $@; \
+	done
+	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
+		echo "-y "$$path >> $@; \
+	done
+	$(Q)for module in $(RTL_VERILOG_MODULES); do \
+		echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; \
+	done
 	$(Q)echo "-y" $(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "-y" $(BENCH_VERILOG_DIR) >> $@;
 	$(Q)echo $(BENCH_TOP) >> $@;
@@ -365,9 +400,6 @@ check-test-log:
 
 # Include the test-defines.v generation rule
 include ../bin/definesgen.inc
-
-#	$(Q)for module in $(GATELEVEL_MODULES); do echo "\`define "$$module"_IS_GATELEVEL " >> $@; done
-# More possible test defines go here
 
 #
 # Software make rules (called recursively)
@@ -478,7 +510,8 @@ clean-out:
 # Clean away verilator build path and objects in SystemC path
 clean-vlt:
 	$(Q)rm -rf $(SIM_VLT_DIR)
-	$(Q)$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make clean
+	$(Q)$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f \
+		$(BENCH_SYSC_SRC_DIR)/Modules.make clean
 
 clean-test-defines:
 	$(Q)rm -f $(TEST_DEFINES_VLG)
@@ -511,14 +544,17 @@ VLT_EXE=Vorpsoc_top
 VLT_SCRIPT=verilator.scr
 
 # Script for Verilator
-$(SIM_VLT_DIR)/$(VLT_SCRIPT): $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
+$(SIM_VLT_DIR)/$(VLT_SCRIPT): $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
+				$(BOOTROM_VERILOG)
 	$(Q)echo "\tGenerating Verilator script"
 	$(Q)echo "# Verilator sources script" > $@
 	$(Q)echo "# Auto generated. Any alterations will be written over!" >> $@
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;        
 	$(Q)echo "+incdir+"$(SIM_RUN_DIR) >> $@;
-	$(Q)for module in $(RTL_VERILOG_MODULES); do echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; done
+	$(Q)for module in $(RTL_VERILOG_MODULES); do \
+		echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; \
+	done
 	$(Q)echo $(DUT_TOP) >> $@;
 	$(Q) echo >> $@
 
@@ -558,7 +594,8 @@ endif
 # checking the efficiency of the model - not really useful for checking code 
 # or the function of the model.
 ifdef VLT_DO_PERFORMANCE_PROFILE_BUILD
-VLT_CPPFLAGS += -fprofile-generate -fbranch-probabilities -fvpt -funroll-loops -fpeel-loops -ftracer
+VLT_CPPFLAGS += -fprofile-generate -fbranch-probabilities -fvpt \
+		-funroll-loops -fpeel-loops -ftracer
 else
 VLT_CPPFLAGS +=-fprofile-use -Wcoverage-mismatch
 endif
@@ -581,7 +618,8 @@ TRACE_FLAGS=-DVM_TRACE=1 -I${SYSTEMPERL}/src
 VLT_FLAGS +=--inline-mult 1
 # Optimisation option for Verilator scripts
 VLT_FLAGS +=-O3
-# X-assign - at reset, all signals are set to random values, helps find rst bugs
+# X-assign - at reset, all signals are set to random values, helps find 
+# reset bugs
 VLT_FLAGS +=-x-assign unique
 
 VLT_TRACEOBJ = verilated_vcd_c
@@ -595,9 +633,13 @@ SYSC_MODELS_BUILD=$(SYSC_MODELS) $(VLT_TRACEOBJ)
 SYSC_MODEL_SOURCES=$(shell ls $(BENCH_SYSC_SRC_DIR)/*.cpp)
 SYSC_MODEL_SOURCES +=$(shell ls $(BENCH_SYSC_INCLUDE_DIR)/*.h)
 
-VLT_MODULES_OBJS=$(shell for mod in $(SYSC_MODELS_BUILD); do echo $(SIM_VLT_DIR)/$$mod.o; done)
+VLT_MODULES_OBJS=$(shell for mod in $(SYSC_MODELS_BUILD); do \
+		echo $(SIM_VLT_DIR)/$$mod.o; \
+	done)
 
-VLT_MODEL_LINKS=$(shell for SYSCMODEL in $(SYSC_MODELS); do echo $(SIM_VLT_DIR)/$$SYSCMODEL.cpp; done) 
+VLT_MODEL_LINKS=$(shell for SYSCMODEL in $(SYSC_MODELS); do \
+		echo $(SIM_VLT_DIR)/$$SYSCMODEL.cpp; \
+	done) 
 
 # Make Verilator build path if it doesn't exist
 $(SIM_VLT_DIR):
@@ -618,18 +660,32 @@ prepare-vlt: build-vlt
 	$(SIM_VLT_DIR)/$(VLT_EXE) -h
 	@echo;echo
 
-$(SIM_VLT_DIR)/$(VLT_EXE): $(SIM_VLT_DIR)/lib$(VLT_EXE).a $(SIM_VLT_DIR)/OrpsocMain.o
-# Final linking of the simulation executable. Order of libraries here is important!
+$(SIM_VLT_DIR)/$(VLT_EXE): $(SIM_VLT_DIR)/lib$(VLT_EXE).a \
+				$(SIM_VLT_DIR)/OrpsocMain.o
+# Final linking of the simulation executable. Order of libraries here is 
+# important!
 	$(Q)echo; echo "\tGenerating simulation executable"; echo
-	$(Q)cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -o $(VLT_EXE) -L. -L$(BENCH_SYSC_SRC_DIR) -L$(SYSTEMC)/$(SYSC_LIB_ARCH_DIR) OrpsocMain.o -l$(VLT_EXE) -lmodules -lsystemc
+	$(Q)cd $(SIM_VLT_DIR) && \
+		g++ $(VLT_DEBUG_COMPILE_FLAGS) \
+		$(VLT_CPPFLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) \
+		-I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -o $(VLT_EXE) \
+		-L. -L$(BENCH_SYSC_SRC_DIR) -L$(SYSTEMC)/$(SYSC_LIB_ARCH_DIR) \
+		OrpsocMain.o -l$(VLT_EXE) -lmodules -lsystemc
 
-# Now compile the top level systemC "testbench" module from the systemC source path
+# Now compile the top level systemC "testbench" module from the systemC source 
+# path
 $(SIM_VLT_DIR)/OrpsocMain.o: $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp
 	@echo; echo "\tCompiling top level SystemC testbench"; echo
-	cd $(SIM_VLT_DIR) && g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) $(TRACE_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) -I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c $(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp 
+	cd $(SIM_VLT_DIR) && \
+	g++ $(VLT_DEBUG_COMPILE_FLAGS) $(VLT_CPPFLAGS) $(TRACE_FLAGS) \
+	-I$(BENCH_SYSC_INCLUDE_DIR) -I$(SIM_VLT_DIR) \
+	-I$(VERILATOR_ROOT)/include -I$(SYSTEMC)/include -c \
+	$(BENCH_SYSC_SRC_DIR)/OrpsocMain.cpp 
 
-$(SIM_VLT_DIR)/lib$(VLT_EXE).a: $(SIM_VLT_DIR)/$(VLT_EXE)__ALL.a $(VLT_MODULES_OBJS) $(SIM_VLT_DIR)/verilated.o
-# Now archive all of the libraries from verilator witht he other modules we might have
+$(SIM_VLT_DIR)/lib$(VLT_EXE).a: $(SIM_VLT_DIR)/$(VLT_EXE)__ALL.a \
+		$(VLT_MODULES_OBJS) $(SIM_VLT_DIR)/verilated.o
+# Now archive all of the libraries from verilator witht he other modules we 
+# might have
 	@echo; echo "\tArchiving libraries into lib"$(VLT_EXE)".a"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
 	cp $(VLT_EXE)__ALL.a lib$(VLT_EXE).a && \
@@ -661,24 +717,29 @@ $(VLT_MODULES_OBJS):
 		 $(MAKE) -f $(VLT_EXE).mk $$SYSCMODEL.o; \
 	done	
 
-$(SIM_VLT_DIR)/$(VLT_EXE)__ALL.a: $(SIM_VLT_DIR)/$(VLT_EXE).mk $(SYSC_MODEL_SOURCES)
+$(SIM_VLT_DIR)/$(VLT_EXE)__ALL.a: $(SIM_VLT_DIR)/$(VLT_EXE).mk \
+		$(SYSC_MODEL_SOURCES)
 	@echo; echo "\tCompiling main design"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
 	export USER_CPPFLAGS="$(VLT_CPPFLAGS)"; \
 	export USER_LDDFLAGS="$(VLT_CPPFLAGS)"; \
 	$(MAKE) -f $(VLT_EXE).mk $(VLT_EXE)__ALL.a
 
-$(SIM_VLT_DIR)/$(VLT_EXE).mk: $(SIM_VLT_DIR)/$(VLT_SCRIPT) $(BENCH_SYSC_SRC_DIR)/libmodules.a
+$(SIM_VLT_DIR)/$(VLT_EXE).mk: $(SIM_VLT_DIR)/$(VLT_SCRIPT) \
+		$(BENCH_SYSC_SRC_DIR)/libmodules.a
 # Now call verilator to generate the .mk files
 	$(Q)echo; echo "\tGenerating makefiles with Verilator"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
-	verilator -language 1364-2001 --top-module orpsoc_top -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
+	verilator -language 1364-2001 --top-module orpsoc_top -Mdir . -sc \
+	$(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) \
+	-f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
 
 # SystemC modules library
 $(BENCH_SYSC_SRC_DIR)/libmodules.a:
 	@echo; echo "\tCompiling SystemC modules"; echo
 	$(Q)export VLT_CPPFLAGS="$(VLT_CPPFLAGS)"; \
-	$(MAKE) -C $(BENCH_SYSC_SRC_DIR) -f $(BENCH_SYSC_SRC_DIR)/Modules.make $(VLT_SYSC_DEBUG_DEFINE) 
+	$(MAKE) -C $(BENCH_SYSC_SRC_DIR) \
+	-f $(BENCH_SYSC_SRC_DIR)/Modules.make $(VLT_SYSC_DEBUG_DEFINE) 
 
 print-vlt-model-link-paths:
 	$(Q)echo $(VLT_MODEL_LINKS)
@@ -688,8 +749,10 @@ $(VLT_MODEL_LINKS):
 	for SYSCMODEL in $(SYSC_MODELS); do \
 		if [ ! -e $(SIM_VLT_DIR)/$$SYSCMODEL.cpp ]; then \
 		echo "\tLinking SystemC model $$SYSCMODEL  Verilator model build path"; \
-			ln -s $(BENCH_SYSC_SRC_DIR)/$$SYSCMODEL.cpp $(SIM_VLT_DIR)/$$SYSCMODEL.cpp; \
-			ln -s $(BENCH_SYSC_INCLUDE_DIR)/$$SYSCMODEL.h $(SIM_VLT_DIR)/$$SYSCMODEL.h; \
+			ln -s $(BENCH_SYSC_SRC_DIR)/$$SYSCMODEL.cpp \
+				$(SIM_VLT_DIR)/$$SYSCMODEL.cpp; \
+			ln -s $(BENCH_SYSC_INCLUDE_DIR)/$$SYSCMODEL.h \
+				$(SIM_VLT_DIR)/$$SYSCMODEL.h; \
 		fi; \
 	done
 
@@ -727,7 +790,6 @@ prepare-vlt-profiled: $(SIM_VLT_DIR)/OrpsocMain.gcda \
 
 $(SIM_VLT_DIR)/OrpsocMain.gcda: $(SIM_VLT_DIR)/$(VLT_EXE)-for-profiling
 	$(MAKE) -C $(SW_DIR)/apps/dhry dhry.elf NUM_RUNS=5000
-#	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/dhry/dhry.elf -v -l sim.log --crash-monitor
 	$(SIM_VLT_DIR)/$(VLT_EXE) -f $(SW_DIR)/apps/dhry/dhry.elf
 
 # Clean all compiled things
@@ -751,14 +813,16 @@ vlt-restore-profileoutput:
 lint-vlt: $(SIM_VLT_DIR) rtl $(DUMMY_FILES_FOR_VLT) $(SIM_VLT_DIR)/$(VLT_SCRIPT)
 	$(Q)echo; echo "\tLinting design with Verilator"; echo
 	$(Q)cd $(SIM_VLT_DIR) && \
-	verilator -language 1364-2001 --top-module orpsoc_top --lint-only -Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) -I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
+	verilator -language 1364-2001 --top-module orpsoc_top --lint-only \
+	-Mdir . -sc $(VLT_FLAGS) -I$(BENCH_SYSC_INCLUDE_DIR) \
+	-I$(BENCH_SYSC_SRC_DIR) -f $(SIM_VLT_DIR)/$(VLT_SCRIPT)
 
 ################################################################################
 # Architectural simulator test rules
 ################################################################################
 
 ARCH_SIM_EXE ?=or32-elf-sim
-ARCH_SIM_CFG ?= ../bin/or1ksim-orpsocv2.cfg
+ARCH_SIM_CFG ?= ../bin/refdesign-or1ksim.cfg
 ARCH_SIM_OPTS ?= -q
 
 .PHONY: rtl-test
