@@ -162,9 +162,13 @@
 //
 //`define OR1200_IC_1W_512B
 //`define OR1200_IC_1W_4KB
-`define OR1200_IC_1W_8KB
+//`define OR1200_IC_1W_8KB
+//`define OR1200_IC_1W_16KB
+`define OR1200_IC_1W_32KB
 //`define OR1200_DC_1W_4KB
-`define OR1200_DC_1W_8KB
+//`define OR1200_DC_1W_8KB
+//`define OR1200_DC_1W_16KB
+`define OR1200_DC_1W_32KB
 
 `endif
 
@@ -349,7 +353,6 @@
 //
 `define OR1200_IMPL_ALU_FFL1
 
-
 //
 // Implement multiplier
 //
@@ -465,8 +468,7 @@
 `define OR1200_ALUOP_DIV	4'd9
 `define OR1200_ALUOP_DIVU	4'd10
 `define OR1200_ALUOP_MULU	4'd11
-/* Values sent to ALU from decode unit - not strictly defined by ISA */ 
-`define OR1200_ALUOP_IMM	4'd11
+/* Values sent to ALU from decode unit - not strictly defined by ISA */
 `define OR1200_ALUOP_MOVHI	4'd12
 `define OR1200_ALUOP_COMP	4'd13
 `define OR1200_ALUOP_MTSR	4'd14
@@ -1221,19 +1223,23 @@
 // Insn cache (IC)
 //
 
-// 3 for 8 bytes, 4 for 16 bytes etc
-`define OR1200_ICLS		4
+// 4 for 16 byte line, 5 for 32 byte lines.
+`ifdef OR1200_IC_1W_32KB
+ `define OR1200_ICLS		5
+`else
+ `define OR1200_ICLS		4
+`endif
 
 //
 // IC configurations
 //
 `ifdef OR1200_IC_1W_512B
-`define OR1200_ICSIZE   9     // 512
-`define OR1200_ICINDX   `OR1200_ICSIZE-2 // 7
-`define OR1200_ICINDXH  `OR1200_ICSIZE-1 // 8
-`define OR1200_ICTAGL   `OR1200_ICINDXH+1 // 9
-`define OR1200_ICTAG    `OR1200_ICSIZE-`OR1200_ICLS // 5
-`define OR1200_ICTAG_W  24
+`define OR1200_ICSIZE                   9                       // 512
+`define OR1200_ICINDX                   `OR1200_ICSIZE-2        // 7
+`define OR1200_ICINDXH                  `OR1200_ICSIZE-1        // 8
+`define OR1200_ICTAGL                   `OR1200_ICINDXH+1       // 9
+`define OR1200_ICTAG                    `OR1200_ICSIZE-`OR1200_ICLS // 5
+`define OR1200_ICTAG_W                  24
 `endif
 `ifdef OR1200_IC_1W_4KB
 `define OR1200_ICSIZE			12			// 4096
@@ -1251,6 +1257,22 @@
 `define	OR1200_ICTAG			`OR1200_ICSIZE-`OR1200_ICLS	// 9
 `define	OR1200_ICTAG_W			20
 `endif
+`ifdef OR1200_IC_1W_16KB
+`define OR1200_ICSIZE			14			// 16384
+`define OR1200_ICINDX			`OR1200_ICSIZE-2	// 12
+`define OR1200_ICINDXH			`OR1200_ICSIZE-1	// 13
+`define OR1200_ICTAGL			`OR1200_ICINDXH+1	// 14
+`define	OR1200_ICTAG			`OR1200_ICSIZE-`OR1200_ICLS	// 10
+`define	OR1200_ICTAG_W			19
+`endif
+`ifdef OR1200_IC_1W_32KB
+`define OR1200_ICSIZE			15			// 32768
+`define OR1200_ICINDX			`OR1200_ICSIZE-2	// 13
+`define OR1200_ICINDXH			`OR1200_ICSIZE-1	// 14
+`define OR1200_ICTAGL			`OR1200_ICINDXH+1	// 14
+`define	OR1200_ICTAG			`OR1200_ICSIZE-`OR1200_ICLS	// 10
+`define	OR1200_ICTAG_W			18
+`endif
 
 
 /////////////////////////////////////////////////
@@ -1258,8 +1280,12 @@
 // Data cache (DC)
 //
 
-// 3 for 8 bytes, 4 for 16 bytes etc
-`define OR1200_DCLS		4
+// 4 for 16 bytes, 5 for 32 bytes
+`ifdef OR1200_DC_1W_32KB
+ `define OR1200_DCLS		5
+`else
+ `define OR1200_DCLS		4
+`endif
 
 // Define to enable default behavior of cache as write through
 // Turning this off enabled write back statergy
@@ -1298,6 +1324,22 @@
 `define OR1200_DCTAGL			`OR1200_DCINDXH+1	// 13
 `define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 9
 `define	OR1200_DCTAG_W			20
+`endif
+`ifdef OR1200_DC_1W_16KB
+`define OR1200_DCSIZE			14			// 16384
+`define OR1200_DCINDX			`OR1200_DCSIZE-2	// 12
+`define OR1200_DCINDXH			`OR1200_DCSIZE-1	// 13
+`define OR1200_DCTAGL			`OR1200_DCINDXH+1	// 14
+`define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 10
+`define	OR1200_DCTAG_W			19
+`endif
+`ifdef OR1200_DC_1W_32KB
+`define OR1200_DCSIZE			15			// 32768
+`define OR1200_DCINDX			`OR1200_DCSIZE-2	// 13
+`define OR1200_DCINDXH			`OR1200_DCSIZE-1	// 14
+`define OR1200_DCTAGL			`OR1200_DCINDXH+1	// 15
+`define	OR1200_DCTAG			`OR1200_DCSIZE-`OR1200_DCLS	// 10
+`define	OR1200_DCTAG_W			18
 `endif
 
 
@@ -1729,5 +1771,5 @@
 `define OR1200_BOOT_PCREG_DEFAULT 30'h3c00003f
 `define OR1200_BOOT_ADR 32'hf0000100
 // Boot from 0x100
-// `define OR1200_BOOT_PCREG_DEFAULT 30'h0000003f
-// `define OR1200_BOOT_ADR 32'h00000100
+//`define OR1200_BOOT_PCREG_DEFAULT 30'h0000003f
+//`define OR1200_BOOT_ADR 32'h00000100

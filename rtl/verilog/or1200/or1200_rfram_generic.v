@@ -126,6 +126,7 @@ reg	[32*dw-1:0]		mem;
 reg	[dw-1:0]		do_a;
 reg	[dw-1:0]		do_b;
 
+`ifdef verilator
    // Function to access GPRs (for use by Verilator). No need to hide this one
    // from the simulator, since it has an input (as required by IEEE 1364-2001).
    function [31:0] get_gpr;
@@ -190,9 +191,12 @@ reg	[dw-1:0]		do_b;
       mem[gpr_no*32 +  2] = value[ 2];
       mem[gpr_no*32 +  1]  = value[ 1];
       mem[gpr_no*32 +  0] = value[ 0];
+
+      set_gpr = 0;
       
    endfunction // set_gpr
-
+`endif //  `ifdef verilator
+   
 //
 // Write port
 //

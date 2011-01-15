@@ -152,16 +152,18 @@ $(BIT_FILE_FOR_SPI): $(PARRED_NCD)
 	@echo; echo "\t#### Generating .bit file for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
 	bitgen -w $(XILINX_FLAGS) -g StartUpClk:CClk $< $@ )
+
+# Generate MCS with bootloader specified by user, if BOOTLOADER_BIN defined.
 ifeq ($(BOOTLOADER_BIN),)
 $(MCS_FILE): $(BIT_FILE_FOR_SPI)
 	@echo; echo "\t#### Generating .mcs file for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	promgen -spi -p mcs -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< )
+	promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< )
 else
 $(MCS_FILE): $(BIT_FILE_FOR_SPI)
-	@echo; echo "\t#### Generating .mcs file for SPI load ####";
+	@echo; echo "\t#### Generating .mcs file with bootloader for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	promgen -spi -p mcs -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< \
+	promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< \
 	-data_file up $(SPI_BOOTLOADER_SW_OFFSET_HEX) $(BOOTLOADER_BIN) \
 	 )
 endif
