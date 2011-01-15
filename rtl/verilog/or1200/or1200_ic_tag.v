@@ -115,34 +115,11 @@ assign mbist_so_o = mbist_si_i;
 //
 // Instantiation of TAG RAM block
 //
-`ifdef OR1200_IC_1W_512B
    or1200_spram #
      (
-      .aw(5),
-      .dw(24)
+      .aw(`OR1200_ICTAG),
+      .dw(`OR1200_ICTAG_W)
       )
-`endif
-`ifdef OR1200_IC_1W_4KB
-   or1200_spram #
-     (
-      .aw(8),
-      .dw(21)
-      )
-`endif
-`ifdef OR1200_IC_1W_8KB
-   or1200_spram #
-     (
-      .aw(9),
-      .dw(20)
-      )
-`endif
-`ifdef OR1200_IC_1W_16KB
-   or1200_spram #
-     (
-      .aw(10),
-      .dw(19)
-      )
-`endif 
    ic_tag0
      (
 `ifdef OR1200_BIST

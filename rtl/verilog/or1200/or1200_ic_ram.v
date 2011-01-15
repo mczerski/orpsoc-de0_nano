@@ -105,34 +105,11 @@ assign mbist_so_o = mbist_si_i;
 //
 // Instantiation of IC RAM block
 //
-`ifdef OR1200_IC_1W_512B
    or1200_spram #
      (
-      .aw(9),
+      .aw(`OR1200_ICINDX),
       .dw(32)
       )
-`endif
-`ifdef OR1200_IC_1W_4KB
-   or1200_spram #
-     (
-      .aw(10),
-      .dw(32)
-      )
-`endif
-`ifdef OR1200_IC_1W_8KB
-   or1200_spram #
-     (
-      .aw(11),
-      .dw(32)
-      )
-`endif
-`ifdef OR1200_IC_1W_16KB
-   or1200_spram #
-     (
-      .aw(12),
-      .dw(32)
-      )
-`endif   
    ic_ram0
      (
 `ifdef OR1200_BIST

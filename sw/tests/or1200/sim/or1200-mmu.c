@@ -84,9 +84,15 @@
 #endif
 
 
-// Reduce the number of sets tested
+// Define to run only tests on SHORT_TEST_NUM TLB sets
 #define SHORT_TEST
+#define SHORT_TEST_NUM 4
 
+// Defines useful when wishing to skip instruction or data MMU tests when doing
+// development on one or the other.
+
+// Set this to 1 to enable the IMMU tests
+#define DO_IMMU_TESTS 1
 // Set this to 1 to enable the DMMU tests
 #define DO_DMMU_TESTS 1
 
@@ -941,12 +947,17 @@ int dtlb_permission_test (int set)
 
 
 /* Dcache test - check inhibit
-Write data with cache inhibit on and off, check for coherency
+   Write data with cache inhibit on and off, check for coherency
  */
 int dtlb_dcache_test (int set)
 { 
   int i, j;
   unsigned long ea, ta, vmea;
+  unsigned long testwrite_to_be_cached, testwrite_not_to_be_cached;
+
+  // This test can't be run if set==DTLB_SETS-1
+  if (set==(DTLB_SETS-1))
+    return 0;
 
   // Check data cache is present and enabled
   if (!(mfspr(SPR_UPR)& SPR_UPR_DCP))
@@ -976,41 +987,52 @@ int dtlb_dcache_test (int set)
     mtspr (SPR_DTLBTR_BASE(0) + i, ta | DTLB_PR_NOLIMIT);
   } 
 
+  /* Use (RAM_START + (RAM_SIZE/2)) as location we'll poke via MMUs */
+  /* Configure a 1-1 mapping for it, and a high->low mapping for it */
+
   /* Testing page */
   ea = RAM_START + (RAM_SIZE/2) + (set*PAGE_SIZE);
 
+  /* Ultimate physical address */
   ta = RAM_START + (RAM_SIZE/2) + (set*PAGE_SIZE);
 
+  /* Set a virtual address to translate via last TLB cache set */
   vmea = VM_BASE + RAM_START + (RAM_SIZE/2) + ((DTLB_SETS-1)*PAGE_SIZE);
 
   // Set a 1-1 translation for this page without cache inhibited
-
   /* Set match register */
   mtspr (SPR_DTLBMR_BASE(0) + set, ea | SPR_DTLBMR_V);  
   /* Set translate register */
   mtspr (SPR_DTLBTR_BASE(0) + set, ta | DTLB_PR_NOLIMIT);  
 
-  // Now set a far-off translation, VM_BASE, for this page with cache inhibited
-  // Use the last set
+  /* Now set a far-off translation, VM_BASE, for this page with cache 
+     using the last set */
 
   /* Set match register */
-  mtspr (SPR_DTLBMR_BASE(0) + (DTLB_SETS-1), 
-	 vmea | SPR_DTLBMR_V);
+  mtspr (SPR_DTLBMR_BASE(0) + (DTLB_SETS-1), vmea | SPR_DTLBMR_V);
   /* Set translate register */
-  mtspr (SPR_DTLBTR_BASE(0) + (DTLB_SETS-1), 
-	 ta | DTLB_PR_NOLIMIT | SPR_DTLBTR_CI);
+  mtspr (SPR_DTLBTR_BASE(0) + (DTLB_SETS-1), ta | DTLB_PR_NOLIMIT | 
+	 SPR_DTLBTR_CI);
+
+  /* Invalidate this location in cache, to force reload when we read */
+  mtspr (/*SPR_DCR_BASE(0) +*/ SPR_DCBIR, ea);
   
   /* Enable DMMU */
   dmmu_enable();
   
   // First do a write with the cache inhibited mapping
-  unsigned long int testwrite_to_be_cached = 0xfeca1d0d ^ set;
+  testwrite_to_be_cached = 0xfeca1d0d ^ set;
+  
   REG32((vmea)) = testwrite_to_be_cached;
+  
   // Read it back to check that it's the same, this read should get cached
   ASSERT(REG32(ea) == testwrite_to_be_cached);
+  
   // Now write again to the cache inhibited location
-  unsigned long int testwrite_not_to_be_cached = 0xbaadbeef ^ set;
+  testwrite_not_to_be_cached = 0xbaadbeef ^ set;
+  
   REG32((vmea)) = testwrite_not_to_be_cached;
+  
   // Now check that the cached mapping doesn't read this value back
   ASSERT(REG32(ea) == testwrite_to_be_cached);
     
@@ -1021,6 +1043,7 @@ int dtlb_dcache_test (int set)
 
   // Check that we now get the second value we wrote
   testwrite_to_be_cached = testwrite_not_to_be_cached;
+  
   ASSERT(REG32(ea) == testwrite_to_be_cached);
   
   /* Disable DMMU */
@@ -1424,12 +1447,15 @@ int main (void)
 {
   int i, j;
 
-  start_text_addr = (unsigned long*)&_stext;
-  end_text_addr = (unsigned long*)&_endtext;
-  end_data_addr = (unsigned long*)&_stack;
+  start_text_addr = (unsigned long)&_stext;
+  end_text_addr = (unsigned long)&_endtext;
+  end_data_addr = (unsigned long)&_stack;
   end_data_addr += 4;
 
 #ifndef TLB_BOTTOM_TEST_PAGE_HARDSET
+  /* Set the botom MMU page (and thus TLB set) we'll begin tests at, hopefully 
+     avoiding pages with program text, data and stack. Determined by 
+     determining page after one top of stack is on. */
   TLB_TEXT_SET_NB =  TLB_DATA_SET_NB = (end_data_addr+PAGE_SIZE) / PAGE_SIZE;
 #endif
   
@@ -1457,7 +1483,7 @@ int main (void)
   /* Virtual address match test */
   for (j = 0; j < DTLB_WAYS; j++) {
 #ifdef SHORT_TEST
-    for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
+    for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
     for (i = TLB_DATA_SET_NB; i < (DTLB_SETS - 1); i++)
 #endif
@@ -1467,7 +1493,7 @@ int main (void)
   /* Valid bit testing */
 
 #ifdef SHORT_TEST
-  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
+  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
   for (i = TLB_DATA_SET_NB; i < (DTLB_SETS - 1); i++)
 #endif
@@ -1475,7 +1501,7 @@ int main (void)
 
   /* Permission test */
 #ifdef SHORT_TEST
-  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
+  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
   for (i = TLB_DATA_SET_NB; i < (DTLB_SETS - 1); i++)
 #endif
@@ -1485,7 +1511,7 @@ int main (void)
 
 #ifndef OR1200_NO_DC
 #ifdef SHORT_TEST
-  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
+  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
   for (i = TLB_DATA_SET_NB; i < (DTLB_SETS - 2); i++)
 #endif
@@ -1495,6 +1521,7 @@ int main (void)
 
 #endif
 
+#if DO_IMMU_TESTS==1
 
   /* Translation test */
   itlb_translation_test ();
@@ -1503,7 +1530,7 @@ int main (void)
 
   for (j = 0; j < DTLB_WAYS; j++) {
 #ifdef SHORT_TEST
-  for (i = TLB_DATA_SET_NB + 1; i < (TLB_DATA_SET_NB+4 - 1); i++)
+  for (i = TLB_DATA_SET_NB + 1; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
   for (i = TLB_DATA_SET_NB + 1; i < (ITLB_SETS - 1); i++)
 #endif
@@ -1512,7 +1539,7 @@ int main (void)
 
   /* Valid bit testing */
 #ifdef SHORT_TEST
-  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB+4 - 1); i++)
+  for (i = TLB_DATA_SET_NB; i < (TLB_DATA_SET_NB + SHORT_TEST_NUM - 1); i++)
 #else
   for (i = TLB_DATA_SET_NB; i < (ITLB_SETS - 1); i++)
 #endif
@@ -1522,12 +1549,13 @@ int main (void)
 
   /* Permission test */
 #ifdef SHORT_TEST
-  for (i = TLB_TEXT_SET_NB; i < (TLB_TEXT_SET_NB + 4); i++)
+  for (i = TLB_TEXT_SET_NB; i < (TLB_TEXT_SET_NB + SHORT_TEST_NUM); i++)
 #else
   for (i = TLB_TEXT_SET_NB; i < (ITLB_SETS - 1); i++)
 #endif
     itlb_permission_test (i);
 
+#endif
 
   printf("Tests completed\n");
   report (0xdeaddead);

@@ -102,7 +102,7 @@ output				tag_we;
 //
 reg	[31:0]			saved_addr_r;
 reg	[1:0]			state;
-reg	[2:0]			cnt;
+reg [`OR1200_ICLS-1:0]    	cnt;
 reg				hitmiss_eval;
 reg				load;
 reg				cache_inhibit;
@@ -147,7 +147,7 @@ reg 				last_eval_miss; // JPB
 	 saved_addr_r <=  32'b0;
 	 hitmiss_eval <=  1'b0;
 	 load <=  1'b0;
-	 cnt <=  3'b000;
+	 cnt <=  `OR1200_ICLS'd0;
 	 cache_inhibit <=  1'b0;
 	 last_eval_miss <= 0; // JPB
 	 
@@ -174,8 +174,7 @@ reg 				last_eval_miss; // JPB
 	       cache_inhibit <=  1'b1;
 	     
 	     if (hitmiss_eval)
-	       saved_addr_r[31:13] <=  start_addr[31:13];
-	     
+	       saved_addr_r[31:`OR1200_ICTAGL] <= start_addr[31:`OR1200_ICTAGL];
 	     if ((!ic_en) ||
 		 // fetch aborted (usually caused by IMMU)
 		 (hitmiss_eval & !icqmem_cycstb_i) ||	
@@ -190,9 +189,10 @@ reg 				last_eval_miss; // JPB
 	     // fetch missed, wait for first fetch and continue filling line
 	     else if (tagcomp_miss & biudata_valid) begin	
 		state <=  `OR1200_ICFSM_LREFILL3;
-		saved_addr_r[3:2] <=  saved_addr_r[3:2] + 1'd1;
+		saved_addr_r[`OR1200_ICLS-1:2] 
+		  <= saved_addr_r[`OR1200_ICLS-1:2] + 1;
 		hitmiss_eval <=  1'b0;
-		cnt <=  `OR1200_ICLS-2;
+		cnt <= ((1 << `OR1200_ICLS) - (2 * 4));
 		cache_inhibit <=  1'b0;
 	     end
 	     // fetch aborted (usually caused by exception)
@@ -227,8 +227,9 @@ reg 				last_eval_miss; // JPB
              end
 	     // refill ack, more fetchs to come
 	     else if (biudata_valid && (|cnt)) begin	
-		cnt <=  cnt - 3'd1;
-		saved_addr_r[3:2] <=  saved_addr_r[3:2] + 1'd1;
+		cnt <=  cnt - `OR1200_ICLS'd4;
+		saved_addr_r[`OR1200_ICLS-1:2] 
+		  <= saved_addr_r[`OR1200_ICLS-1:2] + 1;
 	     end
 	     // last fetch of line refill
 	     else if (biudata_valid) begin

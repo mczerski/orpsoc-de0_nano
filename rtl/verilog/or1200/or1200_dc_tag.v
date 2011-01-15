@@ -108,27 +108,11 @@ assign mbist_so_o = mbist_si_i;
 // Instantiation of TAG RAM block
 //
 // Data widths are tag width plus one for valid
-`ifdef OR1200_DC_1W_4KB
    or1200_spram #
      (
-      .aw(8),
+      .aw(`OR1200_DCTAG),
       .dw(`OR1200_DCTAG_W + 1)
       )
-`endif
-`ifdef OR1200_DC_1W_8KB
-   or1200_spram #
-     (
-      .aw(9),
-      .dw(`OR1200_DCTAG_W + 1)
-      )
-`endif
-`ifdef OR1200_DC_1W_16KB
-   or1200_spram #
-     (
-      .aw(10),
-      .dw(`OR1200_DCTAG_W + 1)
-      )
-`endif  
    dc_tag0
      (
 `ifdef OR1200_BIST

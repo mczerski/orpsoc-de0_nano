@@ -97,7 +97,7 @@
 
 //
 // Memory coherence checking (double check instruction in fetch stage against
-// what is in memory.)
+// what is in memory.) Useful for cache controller development.
 //
 //`define MEM_COHERENCE_CHECK
 
@@ -503,7 +503,7 @@ module or1200_monitor;
       input [31:0] addr;
       output [31:0] insn;
       begin
-	 insn = `RAM_WB_TOP.get_mem32(addr);
+	 insn = `RAM_WB_TOP.get_mem32(addr[31:2]);
       end
    endtask // get_insn_from_wb_ram
 `endif
@@ -774,8 +774,8 @@ module or1200_monitor;
 	     
 	     // Check if it's a new PC - will also get triggered if the
 	     // instruction has changed since we last checked it
-	     if (((physical_pc !== last_addr) || (last_mem_word != `INSN_TO_CHECK))
-		 & !tlb_miss)
+	     if (((physical_pc !== last_addr) || 
+		  (last_mem_word != `INSN_TO_CHECK)) & !tlb_miss)
 	       begin
 		  // Decode stage not void, check instruction
 		  // get PC
@@ -783,10 +783,14 @@ module or1200_monitor;
 
 		  if (mem_word !== `INSN_TO_CHECK)
 		    begin
-		       $fdisplay(fgeneral, "%t: Instruction mismatch for PC 0x%h (phys. 0x%h) - memory had 0x%h, CPU had 0x%h", $time, `PC_TO_CHECK, physical_pc, mem_word, `INSN_TO_CHECK);
-		       $display("%t: Instruction mismatch for PC 0x%h (phys. 0x%h) - memory had 0x%h, CPU had 0x%h", $time, `PC_TO_CHECK, physical_pc, mem_word, `INSN_TO_CHECK);
-		       #200
-			 $finish;		  
+		       $fdisplay(fgeneral, "%t: Instruction mismatch for PC 0x%h (phys. 0x%h) - memory had 0x%h, CPU had 0x%h", 
+				 $time, `PC_TO_CHECK, physical_pc, mem_word, 
+				 `INSN_TO_CHECK);
+		       $display("%t: Instruction mismatch for PC 0x%h (phys. 0x%h) - memory had 0x%h, CPU had 0x%h", 
+				$time, `PC_TO_CHECK, physical_pc, mem_word, 
+				`INSN_TO_CHECK);
+		       #200;
+		       $finish;		  
 		    end
 		  last_addr = physical_pc;
 		  last_mem_word = mem_word;	

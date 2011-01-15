@@ -16,6 +16,12 @@
 	Setup tick interrupts to occur regularly, and then do a bunch of l.sys
 	systems calls, checking that they all occur OK
 
+        Note: if this test appears to continue without counting, it's most
+	likely due to a tick counter value that's too small (processor is
+	executing too slowly, due to lack of cache or similar) and always
+	interrupting before execution can continue. Try increasing the
+	TICK_COUNTER_VALUE #define to give the processor time to continue.
+
 	Julius Baxter, julius@opencores.org
 */
 //////////////////////////////////////////////////////////////////////
@@ -45,7 +51,8 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-#define TICK_COUNTER_VALUE 8
+
+#define TICK_COUNTER_VALUE 16
 
 
 
