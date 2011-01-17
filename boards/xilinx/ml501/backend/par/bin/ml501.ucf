@@ -707,9 +707,9 @@ NET "*/u_phy_io/gen_dqs*.u_iob_dqs/en_dqs_sync" MAXDELAY = 850 ps;
 ## DDR2 clock domain nets
 NET "*/xilinx_ddr2_if0/ddr2_read_done" TNM_NET = "DDR2_READ_DONE_GRP";
 NET "*/xilinx_ddr2_if0/ddr2_write_done" TNM_NET = "DDR2_WRITE_DONE_GRP";
-NET "*/xilinx_ddr2_if0/do_writeback_ddr2_shifter*" TNM_NET = "DDR2_WRITEBACK_SHIFTER";
 
-TIMEGRP "DDR2_MC_REGS" = "DDR2_READ_DONE_GRP" "DDR2_WRITE_DONE_GRP" "DDR2_WRITEBACK_SHIFTER";
+
+TIMEGRP "DDR2_MC_REGS" = "DDR2_READ_DONE_GRP" "DDR2_WRITE_DONE_GRP";
 ## System bus (wishbone) domain nets
 NET "*/xilinx_ddr2_if0/do_writeback*" TNM_NET = "WB_DO_WRITEBACK";
 NET "*/xilinx_ddr2_if0/do_readfrom*" TNM_NET = "WB_DO_READFROM";

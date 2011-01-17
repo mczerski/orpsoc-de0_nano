@@ -248,4 +248,5 @@ distclean: clean
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)for dir in `ls $(SW_APPS_PATH)`; do $(MAKE) -C $(SW_ROOT)/apps/$$dir clean; done
 	$(Q)$(MAKE) -C $(SW_ROOT)/lib clean
+	$(Q)$(MAKE) -C $(SW_ROOT)/bootrom clean
 	$(Q)rm -f $(PROCESSED_DEFINES)

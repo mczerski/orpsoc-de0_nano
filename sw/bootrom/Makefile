@@ -2,6 +2,11 @@
 SW_ROOT=..
 include $(SW_ROOT)/Makefile.inc
 
+# Whenever PRELOAD_RAM is defined on command line, we probably want the bootrom
+# to be jumping to reset instead of doing a full boot preload.
+ifeq ($(PRELOAD_RAM),1)
+OR32_CFLAGS += -DPRELOAD_RAM
+endif
 
 all: bootrom.v
 

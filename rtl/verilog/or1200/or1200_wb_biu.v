@@ -235,15 +235,11 @@ module or1200_wb_biu(
 			!(wb_ack & wb_cti_o == 3'b111);
 	   
 	   wb_stb_nxt = !wb_stb_o | !wb_err_i & !wb_rty_i & !wb_ack | 
-			!wb_err_i & !wb_rty_i & wb_cti_o == 3'b010 /*& !wb_we_o -- Removed to add burst write, JPB*/;
+			!wb_err_i & !wb_rty_i & wb_cti_o == 3'b010 ;
 	   wb_cti_nxt[2] = wb_stb_o & wb_ack & burst_len == 'h0 | wb_cti_o[2];
 	   wb_cti_nxt[1] = 1'b1  ;
 	   wb_cti_nxt[0] = wb_stb_o & wb_ack & burst_len == 'h0 | wb_cti_o[0];
 
-	   
-	   //if ((!biu_cyc_i | !biu_stb | !biu_cab_i) & wb_cti_o == 3'b010  | 
-	   //     biu_sel_i != wb_sel_o | biu_we_i != wb_we_o)
-	   
 	   if ((!biu_cyc_i | !biu_stb | !biu_cab_i | biu_sel_i != wb_sel_o | 
 		biu_we_i != wb_we_o) & wb_cti_o == 3'b010)
 	     wb_fsm_state_nxt = wb_fsm_last;
@@ -298,12 +294,14 @@ module or1200_wb_biu(
       end
       else begin
 	 wb_cyc_o	<=  wb_cyc_nxt;
-	 //		wb_stb_o	<=  wb_stb_nxt;
+
          if (wb_ack & wb_cti_o == 3'b111) 
            wb_stb_o        <=  1'b0;
          else
            wb_stb_o        <=  wb_stb_nxt;
+`ifndef OR1200_NO_BURSTS
 	 wb_cti_o	<=  wb_cti_nxt;
+`endif	 
 	 wb_bte_o	<=  (bl==8) ? 2'b10 : (bl==4) ? 2'b01 : 2'b00;
 `ifdef OR1200_WB_CAB
 	 wb_cab_o	<=  biu_cab_i;

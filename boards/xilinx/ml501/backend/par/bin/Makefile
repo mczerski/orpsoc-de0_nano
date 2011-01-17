@@ -187,7 +187,7 @@ timingreport: $(PARRED_NCD)
 
 
 clean:
-	$(Q)rm -rf *.*
+	$(Q)rm -rf *.* xlnx_auto*
 
 clean-syn:
 	$(Q)$(MAKE) -C $(SYN_RUN_DIR) distclean

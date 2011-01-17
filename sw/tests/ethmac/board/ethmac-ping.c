@@ -51,15 +51,15 @@ static int next_tx_buf_num;
 //#define OUR_IP_BYTES 0xc0,0xa8,0x64,0x9b // 192.168.100.155
 //#define OUR_IP_LONG 0xc0a8649b
 
-//#define OUR_IP_BYTES 0xc0,0xa8,0x0,0x14 // 192.168.0.20
-//#define OUR_IP_LONG 0xc0a80014
+#define OUR_IP_BYTES 0xc0,0xa8,0x0,0x5a // 192.168.0.90
+#define OUR_IP_LONG 0xc0a8005a
 
 
 //#define OUR_IP_BYTES 0xc0,0xa8,0x1,0x22 // 192.168.1.34
 //#define OUR_IP_LONG 0xc0a80122
 
-#define OUR_IP_BYTES 0xc0,0xa8,0x1,0x2 // 192.168.1.2
-#define OUR_IP_LONG 0xc0a80102
+//#define OUR_IP_BYTES 0xc0,0xa8,0x1,0x2 // 192.168.1.2
+//#define OUR_IP_LONG 0xc0a80102
 
 //#define OUR_IP_BYTES 0xac,0x1e,0x0,0x2 // 172.30.0.2
 //#define OUR_IP_LONG 0xac1e0002
@@ -67,10 +67,12 @@ static int next_tx_buf_num;
 static char our_ip[4] = {OUR_IP_BYTES};
 
 //#define DEST_IP_BYTES 0xc0,0xa8,0x64,0x69 // 192 .168.100.105
-#define DEST_IP_BYTES 0xc0,0xa8,0x01,0x08 // 192 .168.1.8
+//#define DEST_IP_BYTES 0xc0,0xa8,0x01,0x08 // 192 .168.1.8
+#define DEST_IP_BYTES 0xc0,0xa8,0x00,0x0f // 192 .168.0.15
 //#define DEST_IP_BYTES 0xac,0x1e,0x0,0x01 // 172.30.0.1
 
-#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x01,0xff // 192 .168.1.255
+//#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x01,0xff // 192 .168.1.255
+#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x00,0xff // 192 .168.0.255
 
 /* Functions in this file */
 void ethmac_setup(void);

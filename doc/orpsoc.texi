@@ -1223,9 +1223,12 @@ For a guide on how to actually set up the ML501 board to program the SPI flash, 
 
 Be sure to set the @emph{CONFIG} switches to @code{00010101} (left-to-right when Xilinx logo in North-West of board) before attempting to program the SPI flash. The be sure to switch them back to @code{00000101} before attempting to boot the image.
 
-Note that this will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf .
+@emph{Note}: SPI flash programming will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf .
 
-Note that the other cable from the progammer (going to the JP1 header) @emph{must} be unplugged from the board before attempting to program the SPI flash.
+@emph{Note}: If leaving the SPI programming fly leads in place and attempting to boot the image, be sure to remove the @code{Vref} (@code{VCC3V3} on JP2) connection before attempting to boot. Be sure the configuration DIP SW15 is set back to the @code{00000101} position!
+
+@emph{Note:} The other cable from the programmer (going to the JP1 header) @emph{must} be unplugged from the board before attempting to program the SPI flash.
+
 
 Booting from the SPI flash to ORPmon prompt is about 3 to 4 seconds.
 

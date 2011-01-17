@@ -9,11 +9,14 @@
 // Uncomment the appropriate bootloader define. This will effect the bootrom.S
 // file, which is compiled and converted into Verilog for inclusion at 
 // synthesis time. See bootloader/bootloader.S for details on each option.
-
+#ifndef PRELOAD_RAM
 #define BOOTROM_SPI_FLASH
 //#define BOOTROM_GOTO_RESET
 //#define BOOTROM_LOOP_AT_ZERO
 //#define BOOTROM_LOOP_IN_ROM
+#else
+#define BOOTROM_GOTO_RESET
+#endif
 
 // Address bootloader should start from in FLASH
 // Last 256KB of 2MB flash - offset 0x1c0000 (2MB-256KB)
