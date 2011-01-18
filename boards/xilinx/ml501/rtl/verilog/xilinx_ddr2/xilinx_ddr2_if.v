@@ -95,7 +95,7 @@
  * wb_clk:do_readfrom -> ddr2_clk:ddr2_read_done
  * 
 */
-module xilinx_ddr2_if2 (
+module xilinx_ddr2_if (
     input [31:0]       wb_adr_i,
     input 	       wb_stb_i,
     input 	       wb_cyc_i,
@@ -250,8 +250,12 @@ module xilinx_ddr2_if2 (
    wire 			ack_err;
    reg 				ack_err_r;
 
-   
-   
+
+   // Synchronisation signals
+   reg                          sync, sync_r;
+   wire 			sync_start;
+   wire 			sync_done;
+
    // Decoded select line
    wire [`DDR2_CACHE_NUM_LINES-1:0] selected_cache_line;
    wire [`DDR2_CACHE_NUM_LINES_ENC_WIDTH-1:0] selected_cache_line_enc;
@@ -283,6 +287,7 @@ module xilinx_ddr2_if2 (
       .cache_line_invalidate		(cache_line_addr_invalidate),
       .selected_cache_line		(selected_cache_line),
       .selected_cache_line_enc		(selected_cache_line_enc),
+      .sync_done                        (sync_done),
       // Inputs
       .cache_line_addr_valid		(cache_line_addr_valid),
       .cache_line_addr_hit		(cache_line_hit),
@@ -290,6 +295,7 @@ module xilinx_ddr2_if2 (
       .cache_write			(cache_write),
       .writeback_done			(do_writeback_finished),
       .fill_done			(do_readfrom_finished),
+      .sync_start                       (sync_start),
       .wb_clk				(wb_clk),
       .wb_rst				(wb_rst));
 
@@ -310,7 +316,7 @@ module xilinx_ddr2_if2 (
    assign wb_req_addr_hit = (wb_req & cache_hit & cached_addr_valid);
    
    // Wishbone request detection
-   assign wb_req = wb_stb_i & wb_cyc_i & phy_init_done; 
+   assign wb_req = wb_stb_i & wb_cyc_i & phy_init_done & !sync; 
    
    always @(posedge wb_clk)
      wb_req_r <= wb_req;
@@ -407,6 +413,28 @@ module xilinx_ddr2_if2 (
    always @(posedge wb_clk)
      wb_ack_o_r <= wb_ack_o;
    
+   // Logic controling synchronisation
+   always @(posedge wb_clk)
+     if (wb_rst)
+       sync <= 0;
+     else if (sync_done) // Sync. done indicator from cache controller
+       sync <= 0;
+
+   always @(posedge wb_clk)
+     sync_r <= sync;
+
+   assign sync_start = sync & !sync_r;
+   
+   task do_sync;
+      begin
+	 // Wait for us to not be doing a transaction.
+	 while(wb_req)
+	   @wb_clk;
+	 // Cache not busy, initiate sync.
+	 sync = 1;
+      end
+   endtask // do_sync
+
    // Writeback/readfrom lower address generation
    always @(posedge wb_clk)
      if (wb_rst)
@@ -717,10 +745,11 @@ module xilinx_ddr2_wb_if_cache_adr_reg
 endmodule // xilinx_ddr2_wb_if_cache_adr_reg
 
 module xilinx_ddr2_wb_if_cache_control
-  ( cache_line_addr_valid, cache_line_addr_hit, 
+  ( cache_line_addr_valid, cache_line_addr_hit,
     wb_req,
     cache_write,
-    writeback_done, fill_done,    
+    writeback_done, fill_done,
+    sync_start, sync_done,
     start_writeback, start_fill,
     cache_line_validate, cache_line_invalidate,   
     selected_cache_line, selected_cache_line_enc,
@@ -735,32 +764,43 @@ module xilinx_ddr2_wb_if_cache_control
    input 		 wb_req;
    input 		 cache_write;   
    input 		 writeback_done, fill_done;
+
+   input 		 sync_start;
+   output 		 sync_done;
    
    output reg 		 start_writeback;
    output reg 		 start_fill;
    output reg [num_lines-1:0] cache_line_validate;
    output reg [num_lines-1:0] cache_line_invalidate;
-      
-   output [num_lines-1:0] selected_cache_line;
+   
+   output [num_lines-1:0]     selected_cache_line;
    output reg [num_lines_log2-1:0] selected_cache_line_enc;
    
-   input 		  wb_clk, wb_rst;
+   input 			   wb_clk, wb_rst;
    
-   reg [num_lines-1:0] 	  dirty;
+   reg [num_lines-1:0] 		   lines_dirty;
    
-   reg [num_lines-1:0] 	  selected_cache_line_from_miss;
+   reg [num_lines-1:0] 		   selected_cache_line_from_miss;
+   
+   reg 				   selected_cache_line_new;
+   
+   reg 				   invalidate_clean_line;
+   
+   reg [num_lines-1:0] 		   selected_cache_line_r;
+   reg [num_lines-1:0] 		   selected_cache_line_r2;   
+   
+   reg 				   wb_req_r;
+   
+   wire 			   wb_req_new;
+   reg 				   wb_req_new_r;
+   
+   parameter sync_line_check_wait = 4;
+   reg [num_lines-1:0] 		   sync_line_counter;
+   reg 				   sync_doing;
+   reg [sync_line_check_wait-1:0]  sync_line_select_wait_counter_shr;
+   reg 				   sync_line_done;
+   wire 			   sync_writeback_line;
 
-   reg 			  selected_cache_line_new;
-   
-   reg 			  invalidate_clean_line;
-   
-   reg [num_lines-1:0] 	  selected_cache_line_r;
-   reg [num_lines-1:0] 	  selected_cache_line_r2;   
-
-   reg 			  wb_req_r;
-
-   wire 		  wb_req_new;
-   reg 			  wb_req_new_r;
 
    always @(posedge wb_clk)
      wb_req_r <= wb_req;
@@ -789,6 +829,8 @@ module xilinx_ddr2_wb_if_cache_control
        selected_cache_line_r <= cache_line_addr_valid & cache_line_addr_hit;
      else if (wb_req_new_r & !(|selected_cache_line_r))
        selected_cache_line_r <= selected_cache_line_from_miss;
+     else if (sync_doing)
+       selected_cache_line_r <= sync_line_counter;
 
    always @(posedge wb_clk)
      selected_cache_line_r2 <= selected_cache_line_r;
@@ -811,11 +853,11 @@ module xilinx_ddr2_wb_if_cache_control
 
    always @(posedge wb_clk)
      if (wb_rst)
-       dirty <= 0;
+       lines_dirty <= 0;
      else if (cache_write)
-       dirty <= dirty | selected_cache_line_r;
+       lines_dirty <= lines_dirty | selected_cache_line_r;
      else if (writeback_done)
-       dirty <= dirty & ~(selected_cache_line_r);
+       lines_dirty <= lines_dirty & ~(selected_cache_line_r);
    
    // Validate the cache line address in the register when line filled
    always @(posedge wb_clk)
@@ -830,7 +872,7 @@ module xilinx_ddr2_wb_if_cache_control
    always @(posedge wb_clk)
      if (wb_rst)
        cache_line_invalidate <= 0;
-     else if (writeback_done | invalidate_clean_line)
+     else if ((writeback_done & !sync_doing) | invalidate_clean_line)
        cache_line_invalidate <= selected_cache_line_r;
      else if (|cache_line_invalidate)
        cache_line_invalidate <= 0;
@@ -839,12 +881,15 @@ module xilinx_ddr2_wb_if_cache_control
    always @(posedge wb_clk)
      if (wb_rst)
        start_writeback <= 0;
-     else if (selected_cache_line_new & (|(dirty & selected_cache_line_r)) &
+     else if (start_writeback)
+       start_writeback <= 0;
+     else if (selected_cache_line_new & 
+	      (|(lines_dirty & selected_cache_line_r)) &
 	      (|(selected_cache_line_r & cache_line_addr_valid)) & 
 	      !(|(cache_line_addr_hit & selected_cache_line_r)))
        start_writeback <= 1;
-     else if (start_writeback)
-       start_writeback <= 0;
+     else if (sync_writeback_line)
+       start_writeback <= 1;
 
    // Invalidate lines which we haven't written to so we can fill them
    always @(posedge wb_clk)
@@ -853,7 +898,7 @@ module xilinx_ddr2_wb_if_cache_control
      else if (invalidate_clean_line)
        invalidate_clean_line <= 0;
      else if ((selected_cache_line_new) &  // New line selected
-	      !(|(dirty & selected_cache_line_r)) & // It's not dirty
+	      !(|(lines_dirty & selected_cache_line_r)) & // It's not dirty
 	      // It's valid, but we've selected it so we're trashing it
 	      (|(selected_cache_line_r & cache_line_addr_valid)) & 
 	      !(|(cache_line_addr_hit & selected_cache_line_r))) // Not a hit
@@ -871,13 +916,13 @@ module xilinx_ddr2_wb_if_cache_control
      else if (((selected_cache_line_new) & // New line selected
 	       // not valid
 	       !(|(cache_line_addr_valid & selected_cache_line_r))) | 
-	      writeback_done | invalidate_clean_line_r
+	      (writeback_done & !sync_doing) | invalidate_clean_line_r
 	      )
        start_fill <= 1;
      else if (start_fill)
        start_fill <= 0;
 
-   // Relies on there only being 4 lines
+   // Hardcoded to 4 lines currently.
    always @(posedge wb_clk)
      if (selected_cache_line_r[0])
        selected_cache_line_enc <= 0;
@@ -888,5 +933,56 @@ module xilinx_ddr2_wb_if_cache_control
      else if (selected_cache_line_r[3])
        selected_cache_line_enc <= 3;
 
+
+   // Synchronisation control
+
+   always @(posedge wb_clk)
+     if (wb_rst)
+       sync_doing <= 0;
+     else if (sync_start)
+       sync_doing <= 1;
+     else if (sync_done)
+       sync_doing <= 0;
+
+   always @(posedge wb_clk)
+     if (wb_rst)
+       sync_line_counter <= 0;
+     else if (sync_start)
+       // Set first line to check
+       sync_line_counter[0] <= 1'b1;
+     else if (sync_line_done)
+       // Shift along, check next line
+       sync_line_counter <=  {sync_line_counter[num_lines-2:0], 1'b0};
+
+   // Pulse this on finishing of checking lines
+   assign sync_done = sync_line_counter[num_lines-1] & sync_line_done;
+   
+   // Pulses when a dirty line is detected and should be written back.
+   assign sync_writeback_line = sync_doing & 
+				sync_line_select_wait_counter_shr[0] & 
+				cache_line_addr_valid &
+				|(sync_line_counter & lines_dirty);
+   
+   always @(posedge wb_clk)
+     if (wb_rst)
+       sync_line_select_wait_counter_shr <= 0;
+     else if (|sync_line_select_wait_counter_shr)
+       sync_line_select_wait_counter_shr
+	 <= {1'b0,sync_line_select_wait_counter_shr[sync_line_check_wait-1:1]};
+     else if (sync_start | (sync_line_done & !sync_done))
+       sync_line_select_wait_counter_shr[sync_line_check_wait-1] <= 1'b1;
+
+   always @(posedge wb_clk)
+     if (wb_rst)
+       sync_line_done <= 1'b0;
+     else if (sync_line_done)
+       sync_line_done <= 1'b0;   
+   // Either line doesn't need writeback
+     else if (sync_line_select_wait_counter_shr[0] & !sync_writeback_line)
+       sync_line_done <= 1'b1;
+   // Or writeback finished
+     else if  (writeback_done & sync_doing)
+       sync_line_done <= 1'b1;
+     
 
 endmodule // xilinx_ddr2_wb_if_cache_control

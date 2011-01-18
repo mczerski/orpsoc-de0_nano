@@ -72,11 +72,11 @@ reg [31:0] lfsr;
 integer lfsr_last_byte;
 
 // Is number of ethernet packets to send if doing the eth-rx test.
-parameter eth_stim_num_rx_only_num_packets = 500; // Set to 0 for continuous RX
-parameter eth_stim_num_rx_only_packet_size = 512;
+parameter eth_stim_num_rx_only_num_packets = 12; // Set to 0 for continuous RX
+parameter eth_stim_num_rx_only_packet_size = 60;
 parameter eth_stim_num_rx_only_packet_size_change = 2'b01;  // 2'b01: Increment
-parameter eth_stim_num_rx_only_packet_size_change_amount = 1;
-parameter eth_stim_num_rx_only_IPG = 800000000; // ns
+parameter eth_stim_num_rx_only_packet_size_change_amount = 127;
+parameter eth_stim_num_rx_only_IPG = 180_000_000; // ps
 
 // Do call/response test
 reg eth_stim_do_rx_reponse_to_tx;
@@ -95,10 +95,10 @@ parameter rx_while_tx_min_packet_size = 32;
 
 // Use the smallest possible IPG
 parameter eth_stim_use_min_IPG = 0;
-parameter eth_stim_IPG_delay_max = 500_000; // Maximum 500uS ga
+parameter eth_stim_IPG_delay_max = 500_000_000; // Maximum 500uS ga
 //parameter eth_stim_IPG_delay_max = 100_000_000; // Maximum 100mS between packets
-parameter eth_stim_IPG_min_10mb = 9600; // 9.6 uS
-parameter eth_stim_IPG_min_100mb = 800; // 860+~100 = 960 nS 100MBit min IPG
+parameter eth_stim_IPG_min_10mb = 9600_000; // 9.6 uS
+parameter eth_stim_IPG_min_100mb = 800_000; // 860+~100 = 960 nS 100MBit min IPG
 parameter eth_stim_check_rx_packet_contents = 1;
 parameter eth_stim_check_tx_packet_contents = 1;
 
@@ -114,8 +114,6 @@ parameter eth_stim_disable_rx_stim = 0;
 //parameter  Td_rx_packet_check = (`BOARD_CLOCK_PERIOD * 2000);
 // For 64MHz sdram controller, use following:
 parameter  Td_rx_packet_check = (`BOARD_CLOCK_PERIOD * 500);
-
-
 
 integer expected_rxbd;// init to 0
 integer expected_txbd;
@@ -581,6 +579,24 @@ initial
 
 `endif   
 
+`ifdef XILINX_DDR2
+   task sync_controller_cache_xilinx_ddr;
+      begin
+	 // Sync cache (writeback dirty lines) with external memory
+	 dut.xilinx_ddr2_0.xilinx_ddr2_if0.do_sync;
+	 // Wait for it to occur.
+	 while (dut.xilinx_ddr2_0.xilinx_ddr2_if0.sync)
+	   #100;
+
+	 // Wait just incase writeback of all data hasn't fully occurred.
+	 // 4uS, in case RAM needs to refresh while writing back.
+	 #4_000_000;
+	 
+	 
+      end
+   endtask // sync_controller_cache_xilinx_ddr
+`endif
+     
 
    //
    // Check packet TX'd by MAC was good
@@ -602,7 +618,7 @@ initial
       integer 	   failure;
       begin
 	 failure = 0;
-	
+	 
 	 get_bd_lenstat(tx_bd_num, tx_len_bd);
 	
 	 tx_len_bd = {15'd0,tx_len_bd[31:16]};
@@ -616,6 +632,10 @@ initial
 	      #100;
 	      $finish;
 	   end
+
+`ifdef XILINX_DDR2
+	 sync_controller_cache_xilinx_ddr;
+`endif
 	 
 	 get_bd_addr(tx_bd_num, tx_bd_addr);
 	 
@@ -634,27 +654,26 @@ initial
 	      sdram_byte = 8'hx;
 `ifdef RAM_WB
 	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(txpnt_sdram);      
-`endif	      
-`ifdef VERSATILE_SDRAM	      
-	      sdram0.get_byte(txpnt_sdram,sdram_byte);      
-`endif
-`ifdef XILINX_DDR2
+`else
+ `ifdef VERSATILE_SDRAM	      
+	      sdram0.get_byte(txpnt_sdram,sdram_byte);
+ `else
+  `ifdef XILINX_DDR2
 	      get_byte_from_xilinx_ddr2(txpnt_sdram, sdram_byte);
-`endif	      
-	      if (sdram_byte === 8'hx)
-		begin
-		   $display(" * Error: sdram_byte was %x", sdram_byte);
-		   
-		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
-		   $display(" * RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-			    tx_bd_addr, txpnt_wb);
-		   $finish;
-		end
-
+  `else
+	      $display(" * Error: sdram_byte was %x", sdram_byte);
+	      
+	      $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+	      $finish;
+	      
+  `endif
+ `endif
+`endif
 
 	      phy_byte = eth_phy0.tx_mem[buffer];
 	      // Debugging output
 	      //$display("txpnt_sdram = 0x%h, sdram_byte = 0x%h, buffer = 0x%h, phy_byte = 0x%h", txpnt_sdram,  sdram_byte, buffer, phy_byte);
+	      
 	      if (phy_byte !== sdram_byte)
 		begin
 		   `TIME;		  
@@ -1107,7 +1126,6 @@ initial
       reg [24:0]   rxpnt_sdram; // byte address from CPU in RAM
       reg [15:0]   sdram_short;
       reg [7:0]    sdram_byte;
-      //reg [7:0]    phy_rx_mem [0:2000];
       
       integer 	   i;
       integer 	   failure;
@@ -1131,6 +1149,10 @@ initial
 	 // Delay some time - takes a bit for the Wishbone FSM to pipe out the
 	 // packet over Wishbone and into whatever memory it's going into
 	 #Td_rx_packet_check;
+
+`ifdef XILINX_DDR2
+	 sync_controller_cache_xilinx_ddr;
+`endif
 	
 	 // Ok, buffer filled, let's get its offset in memory
 	 get_bd_addr(rx_bd_num, rx_bd_addr);
@@ -1154,31 +1176,21 @@ initial
 	   begin
 
 	      sdram_byte = 8'hx;
-`ifdef RAM_WB
-	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(rxpnt_sdram);      
-`endif	      	      
-`ifdef VERSATILE_SDRAM	      
-	      sdram0.get_byte(rxpnt_sdram,sdram_byte);      
-`endif	      
 `ifdef XILINX_DDR2
 	      get_byte_from_xilinx_ddr2(rxpnt_sdram, sdram_byte);
-`endif	      
-	      if (sdram_byte === 8'hx)
-		begin
-		   $display(" * Error:");
-		   
-		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
-		   $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-			    rx_bd_addr, rxpnt_wb);
-		   $finish;
-		end
-
-	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];//phy_rx_mem[buffer]; //eth_phy0.rx_mem[buffer];
+`else
+	      $display(" * Error:");
+	      
+	      $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+	      $finish;
+`endif
+	      
+	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];
 
 	      if (phy_byte !== sdram_byte)
 		begin
 //		   `TIME;		  
-		   $display("*E Wrong byte (%5d) of RX packet %5d! phy = %h, ram = %h",
+		   $display("*E Wrong byte (%5d) of RX packet %5d. phy mem = %h, ram = %h",
 			    i, eth_rx_num_packets_checked, phy_byte, sdram_byte);
 		   failure = 1;
 		end

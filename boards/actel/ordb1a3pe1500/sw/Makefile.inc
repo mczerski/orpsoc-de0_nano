@@ -15,8 +15,6 @@ BOARD=actel/ordb1a3pe1500
 RTL_VERILOG_INCLUDE_DIR=$(shell pwd)/$(BOARD_SW_ROOT)/../rtl/verilog/include
 
 # Set the processor capability flags
-# This doesn't work! :-( Need to figure out way to set these and have them
-# carry through to things like the liborpsoc driver modules etc.
 #MARCH_FLAGS =-mhard-mul -mhard-div -msoft-float
 MARCH_FLAGS =-mhard-mul -msoft-div -msoft-float
 export MARCH_FLAGS

@@ -347,10 +347,14 @@ module ddr2_ctrl #
     // for simulation purposes - to force CTRL_AF_RDEN low during reset
     if (rst_r1)
       rd_af_flag_r <= 1'd0;
-    else if (rd_af_flag_r) // jb - probably should find a way to stop this toggling all the time
-      rd_af_flag_r <= 0;     // jb
+    else if (rd_af_flag_r) // jb - probably should find a way 
+                           // to stop this toggling all the time
+      rd_af_flag_r <= 0;   // jb
     else if((ctrl_af_rden_r) ||
-            (/*rd_af_flag_r &&*/ (af_valid_r || af_valid_r1))) // Fixed bug where third addresses would get lost (pulled off fifo and then  clobbered by other value later, thus ignored/skipped) - just make sure we don't get too excited and pull too many off at once  - jb
+            (/*rd_af_flag_r &&*/ (af_valid_r || af_valid_r1)))
+      // Fixed bug where third addresses would get lost (pulled off fifo and 
+      // then  clobbered by other value later, thus ignored/skipped) - just 
+      // make sure we don't get too excited and pull too many off at once  - jb
          rd_af_flag_r <= 1'd0;
     else if (~af_valid_r1 || ~af_valid_r)
          rd_af_flag_r <= 1'd1;
