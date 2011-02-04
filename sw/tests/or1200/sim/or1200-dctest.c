@@ -14,8 +14,7 @@
 #define LOOPS 64
 #define WORD_STRIDE 8
 
-// Memory area to test at
-#define TEST_BASE 0x600000 /* 6MB */
+extern unsigned long _stack;
 
 unsigned long int my_lfsr;
 
@@ -29,6 +28,8 @@ int
 main()
 {
 
+	unsigned long stack_top = (unsigned long) &_stack;
+
   // Check data cache is present and enabled
   if (!(mfspr(SPR_UPR)& SPR_UPR_DCP) | !(mfspr(SPR_SR) & SPR_SR_DCE))
     {
@@ -37,7 +38,7 @@ main()
       return 0;
     }
 
-  volatile char* ptr = (volatile char*) TEST_BASE;
+  volatile char* ptr = (volatile char*) (stack_top + 256);
   int i;
 
   ptr[0] = 0xab;
@@ -99,7 +100,7 @@ main()
 
   // init LFSR
   my_lfsr = RAND_LFSR_SEED;
-  volatile unsigned long int *lptr = (volatile unsigned long int*) TEST_BASE;
+  volatile unsigned long int *lptr = (volatile unsigned long int*) (stack_top + 256);
   for(i=0;i<LOOPS;i++)
     {
       lptr[(i*WORD_STRIDE)-1] = next_rand();

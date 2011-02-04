@@ -97,7 +97,6 @@ SIM_VLT_DIR ?=$(SIM_DIR)/vlt
 RTL_SIM_DIR=$(SIM_DIR)
 RTL_SIM_RUN_DIR=$(RTL_SIM_DIR)/run
 RTL_SIM_BIN_DIR=$(RTL_SIM_DIR)/bin
-RTL_SIM_SRC_DIR=$(RTL_SIM_DIR)/src
 RTL_SIM_RESULTS_DIR=$(RTL_SIM_DIR)/out
 
 # Testbench paths
@@ -174,8 +173,31 @@ VOPT_ARGS=$(QUIET) -suppress 2241
 # If VCD dump is desired, tell Modelsim not to optimise
 # away everything.
 ifeq ($(VCD), 1)
-#VOPT_ARGS=-voptargs="+acc=rnp"
+# If certain versions of modelsim don't have the vopt executable, define
+# MGC_NO_VOPT=1 when running.
+ifeq ($(MGC_NO_VOPT), 1)
+MGC_VSIM_ARGS +=-voptargs="+acc=rnp"
+MGC_VOPT_CMD=echo
+MGC_VSIM_TGT=orpsoc_testbench
+else
 VOPT_ARGS=+acc=rnpqv
+MGC_VOPT_CMD= vopt $(QUIET) $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
+MGC_VSIM_TGT=tb
+endif
+
+else
+
+ifeq ($(MGC_NO_VOPT), 1)
+MGC_VSIM_ARGS += -vopt
+MGC_VOPT_CMD=echo
+MGC_VSIM_TGT=orpsoc_testbench
+else
+VOPT_ARGS=+acc=rnpqv
+MGC_VOPT_CMD= vopt $(QUIET) $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
+MGC_VSIM_TGT=tb
+endif
+
+
 endif
 # VSIM commands
 # Suppressed warnings - 3009: Failed to open $readmemh() file
@@ -183,7 +205,7 @@ endif
 # 			directive in effect, but previous modules do.
 # Suppressed warnings - 8598: Non-positive replication multiplier inside 
 #			concat. Replication will be ignored
-MGC_VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) \
+MGC_VSIM_ARGS +=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) \
 		-do "set StdArithNoWarnings 1; run -all; exit"
 # Options required when VPI option used
 ifeq ($(VPI), 1)
@@ -283,7 +305,6 @@ BENCH_VERILOG_SRC_SUBDIRS +=$(shell for file in `ls $(BENCH_VERILOG_DIR)`; do \
 modelsim_dut.scr: rtl $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
 			$(BOOTROM_VERILOG)
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
-	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BENCH_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
@@ -302,9 +323,7 @@ modelsim_bench.scr: $(BENCH_VERILOG_SRC)
 		echo "-y "$$path >> $@; \
 	done
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) >> $@;
-	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
-	$(Q)echo "-y" $(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)for vsrc in $(BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
 	$(Q)echo >> $@
 
@@ -321,9 +340,9 @@ work: modelsim_dut.scr #$(RTL_VHDL_SRC)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(MGC_VPI_LIB) work
 	$(Q)echo; echo "\t### Compiling testbench ###"; echo
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
-	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
+	$(Q)$(MGC_VOPT_CMD)
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
-	$(Q)vsim $(MGC_VSIM_ARGS) tb
+	$(Q)vsim $(VOPT_ARGS) $(MGC_VSIM_ARGS) $(MGC_VSIM_TGT)
 
 #
 # Icarus Verilog simulator build and run rules
@@ -334,7 +353,6 @@ $(ICARUS_SCRIPT):  $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
 	$(Q)echo "# Icarus Verilog simulation script" > $@
 	$(Q)echo "# Auto generated. Any alterations will be written over!" >> $@
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) > $@;
-	$(Q)echo "+incdir+"$(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BENCH_VERILOG_DIR) >> $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;        
 	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
@@ -346,7 +364,6 @@ $(ICARUS_SCRIPT):  $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
 	$(Q)for module in $(RTL_VERILOG_MODULES); do \
 		echo "-y " $(RTL_VERILOG_DIR)/$$module >> $@; \
 	done
-	$(Q)echo "-y" $(RTL_SIM_SRC_DIR) >> $@;
 	$(Q)echo "-y" $(BENCH_VERILOG_DIR) >> $@;
 	$(Q)echo $(BENCH_TOP) >> $@;
 	$(Q) echo >> $@

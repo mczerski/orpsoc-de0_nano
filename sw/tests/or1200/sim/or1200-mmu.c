@@ -94,7 +94,7 @@
 // Set this to 1 to enable the IMMU tests
 #define DO_IMMU_TESTS 1
 // Set this to 1 to enable the DMMU tests
-#define DO_DMMU_TESTS 1
+#define DO_DMMU_TESTS 0
 
 // Symbols defined in linker script
 extern unsigned long _endtext;
@@ -114,7 +114,9 @@ Bottom half will be used for this program, the rest
 will be used for testing */
 #define RAM_START   0x00000000
 // Assume only 2MB memory
-#define RAM_SIZE    0x00200000
+#ifndef RAM_SIZE
+# define RAM_SIZE    0x00200000
+#endif
 
 #define VM_BASE 0xc0000000
 

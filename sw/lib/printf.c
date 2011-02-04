@@ -663,6 +663,17 @@ vfnprintf ( char *stream, size_t n, const char *format, va_list arg)
   /* NOTREACHED */
 }
 
+int
+sprintf(char* str, const char *fmt, ...)
+{
+	va_list args;
+	
+	va_start(args, fmt);
+
+	return vfnprintf(str, 1024, fmt, args);
+	
+}
+
 #include "printf.h"
 
 // Actual printf function we call, with static buffer of 512 bytes

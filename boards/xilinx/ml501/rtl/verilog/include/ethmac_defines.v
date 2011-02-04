@@ -45,9 +45,9 @@
 `define ETH_MBIST_CTRL_WIDTH 3        // width of MBIST control bus
 
 // Generic FIFO implementation - hopefully synthesizable with Synplify
-`define ETH_FIFO_GENERIC
+//`define ETH_FIFO_GENERIC
 // Ethernet implemented in Xilinx Chips (uncomment following lines)
-// `define ETH_FIFO_XILINX             // Use Xilinx distributed ram for tx and rx fifo
+ `define ETH_FIFO_XILINX             // Use Xilinx distributed ram for tx and rx fifo
 // `define ETH_XILINX_RAMB4            // Selection of the used memory for Buffer descriptors
                                       // Core is going to be implemented in Virtex FPGA and contains Virtex 
                                       // specific elements. 
@@ -186,9 +186,10 @@
 
 // Defines for ethernet TX fifo size - impacts FPGA resource usage
 //`define ETH_TX_FULL_PACKET_FIFO  // Full 1500 byte TX buffer - uncomment this
-//`define ETH_TX_256BYTE_FIFO  // 256 byte TX buffer - uncomment this
+//`define ETH_TX_128BYTE_FIFO  // 128 byte TX buffer - uncomment this
+`define ETH_TX_256BYTE_FIFO  // 256 byte TX buffer - uncomment this
 //`define ETH_TX_512BYTE_FIFO  // 512 byte TX buffer - uncomment this
-`define ETH_TX_1KBYTE_FIFO     // 1024 byte TX buffer - uncomment this
+//`define ETH_TX_1KBYTE_FIFO     // 1024 byte TX buffer - uncomment this
 
 `ifdef  ETH_TX_FULL_PACKET_FIFO
  `define ETH_TX_FIFO_CNT_WIDTH  9
@@ -206,27 +207,30 @@
     `define ETH_TX_FIFO_CNT_WIDTH  6
     `define ETH_TX_FIFO_DEPTH      64
    `else
+    `ifdef ETH_TX_128BYTE_FIFO
+     `define ETH_TX_FIFO_CNT_WIDTH  5
+     `define ETH_TX_FIFO_DEPTH      32
+    `else
 // Default is 64 bytes
-    `define ETH_TX_FIFO_CNT_WIDTH  4
-    `define ETH_TX_FIFO_DEPTH      16
+     `define ETH_TX_FIFO_CNT_WIDTH  4
+     `define ETH_TX_FIFO_DEPTH      16
+    `endif
    `endif
   `endif
- `endif // !`ifdef ETH_TX_512BYTE_FIFO
+`endif // !`ifdef ETH_TX_512BYTE_FIFO
 `endif // !`ifdef ETH_TX_FULL_PACKET_FIFO
 
-
-
 // Settings for RX FIFO
-`define ETH_RX_FIFO_CNT_WIDTH  8
-`define ETH_RX_FIFO_DEPTH      256
+//`define ETH_RX_FIFO_CNT_WIDTH  8
+//`define ETH_RX_FIFO_DEPTH      256
 //`define ETH_RX_FIFO_CNT_WIDTH  7
 //`define ETH_RX_FIFO_DEPTH      128
 //`define ETH_RX_FIFO_CNT_WIDTH  6
 //`define ETH_RX_FIFO_DEPTH      64
 //`define ETH_RX_FIFO_CNT_WIDTH  5
 //`define ETH_RX_FIFO_DEPTH      32
-//`define ETH_RX_FIFO_CNT_WIDTH  4
-//`define ETH_RX_FIFO_DEPTH      16
+`define ETH_RX_FIFO_CNT_WIDTH  4
+`define ETH_RX_FIFO_DEPTH      16
 
 `define ETH_RX_FIFO_DATA_WIDTH 32
 
@@ -243,7 +247,6 @@
 // Undefine this to enable bursting for RX (writing to memory)
 `define ETH_RX_BURST_EN
 
-
 // WISHBONE interface is Revision B3 compliant (uncomment when needed)
 `define ETH_WISHBONE_B3
 
@@ -252,4 +255,4 @@
 
 // Define this to allow reading of the Wishbone control state machine on reg
 // address 0x58
-`define WISHBONE_DEBUG
+//`define WISHBONE_DEBUG

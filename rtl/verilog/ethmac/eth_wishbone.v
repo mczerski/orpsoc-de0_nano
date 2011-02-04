@@ -1257,7 +1257,7 @@ module eth_wishbone
 	if(Reset)
 	  TxStartFrm_wb <= 1'b0;
 	else
-	  if(TxBDReady & ~StartOccured & (TxBufferFull | TxLengthEq0))
+	  if(TxBDReady & ~StartOccured & (TxBufferAlmostFull | TxBufferFull| TxLengthEq0))
 	    TxStartFrm_wb <= 1'b1;
 	  else
 	    if(TxStartFrm_syncb2)

@@ -62,6 +62,7 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 * Board Designs::
 * ORDB1A3PE1500::
 * ML501::
+* Generic Designs::
 * Software::
 * GNU Free Documentation License::  The license for this documentation
 * Index::
@@ -433,7 +434,12 @@ Turn off processor monitor's execution trace generation. This helps speed up the
 @item SIMULATOR
 Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsim} to use Mentor Graphics' Modelsim. No others are supported right now.
 
+@item MGC_NO_VOPT
+When using Modelsim (specifying @code{SIMULATOR=modelsim}), if the version does not include the individual @code{vopt} executable, specify @code{MGC_NO_VOPT=1} when compiling.
+
 @end table
+
+
 
 
 
@@ -1352,6 +1358,29 @@ Again, supply and ground leads for the UART drivers on the USB debugger can be s
 If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up witht he first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
 
 See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
+
+
+@c ****************************************************************************
+@c Generic Design build chapter
+@c **************************************************************************** 
+
+@node Generic
+@chapter Generic
+@cindex Generic design information
+
+@menu
+* Overview::
+@end menu
+
+
+@node Generic Build Overview
+@section Overview
+
+The paths under @code{boards/generic} contain designs similar to the reference design, in that they are not technology specific, and used for development of certain features of the processor, or peripherals.
+
+An example is the fault tolerance testing build, in @code{boards/generic/ft}, which implements some custom modules in the testbench and ORPSoC top level design, and is in general a very minimal system just for testing.
+
+Additional builds, testing certain parts of the technology, can be developed here.
 
 @c ****************************************************************************
 @c Software section

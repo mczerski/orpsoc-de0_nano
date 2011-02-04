@@ -668,7 +668,7 @@ module orpsoc_top
    // ROM
    // 
    ////////////////////////////////////////////////////////////////////////
-   
+`ifdef BOOTROM   
    rom rom0
      (
       .wb_dat_o				(wbs_i_rom0_dat_o),
@@ -682,6 +682,10 @@ module orpsoc_top
       .wb_rst				(wb_rst));
 
    defparam rom0.addr_width = wbs_i_rom0_addr_width;
+`else // !`ifdef BOOTROM
+   assign wbs_i_rom0_dat_o = 0;
+   assign wbs_i_rom0_ack_o = 0;
+`endif // !`ifdef BOOTROM
 
    assign wbs_i_rom0_err_o = 0;
    assign wbs_i_rom0_rty_o = 0;
@@ -725,14 +729,14 @@ module orpsoc_top
       .wbm1_err_o                       (wbs_d_mc0_err_o),
       .wbm1_rty_o                       (wbs_d_mc0_rty_o),
       // Wishbone slave interface 2
-      .wbm2_dat_i			(0),
-      .wbm2_adr_i			(0),
-      .wbm2_sel_i			(0),
-      .wbm2_cti_i			(0),
-      .wbm2_bte_i			(0),
-      .wbm2_we_i			(0),
-      .wbm2_cyc_i			(0),
-      .wbm2_stb_i			(0),
+      .wbm2_dat_i			(32'd0),
+      .wbm2_adr_i			(32'd0),
+      .wbm2_sel_i			(4'd0),
+      .wbm2_cti_i			(3'd0),
+      .wbm2_bte_i			(2'd0),
+      .wbm2_we_i			(1'd0),
+      .wbm2_cyc_i			(1'd0),
+      .wbm2_stb_i			(1'd0),
       .wbm2_dat_o			(),
       .wbm2_ack_o			(),
       .wbm2_err_o                       (),

@@ -8,7 +8,8 @@ PROJ_ROOT=../../../..
 # Figure out actual path the common software directory
 SW_ROOT=$(BOARD_SW_ROOT)/$(PROJ_ROOT)/sw
 
-# Set the BOARD_PATH to point to the root of this board build
+# Set the BOARD to be the path within the board/ path of the project that goes
+# to this project.
 BOARD=actel/ordb1a3pe1500
 
 # Set RTL_VERILOG_INCLUDE_DIR so software 

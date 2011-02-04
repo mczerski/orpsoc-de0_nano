@@ -112,9 +112,10 @@ module or1200_dpram
       // verilator public
       input [aw-1:0] 		gpr_no;
       input [dw-1:0] 		value;
-
-      mem[gpr_no] = value;
-      
+      begin
+	 mem[gpr_no] = value;
+	 set_gpr = 0;
+      end
    endfunction // get_gpr
    
    //

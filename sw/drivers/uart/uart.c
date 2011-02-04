@@ -2,8 +2,13 @@
 #include "board.h"
 #include "uart.h"
 
-const int UART_BASE_ADR[1] = {UART0_BASE};
-const int UART_BAUDS[1] = {UART0_BAUD_RATE};
+#ifdef UART_NUM_CORES
+const int UART_BASE_ADR[UART_NUM_CORES] = {UART_BASE_ADDRESSES_CSV};
+const int UART_BAUDS[UART_NUM_CORES] = {UART_BAUD_RATES_CSV};
+#else
+const int UART_BASE_ADR[1] = {0};
+const int UART_BAUDS[1] = {0};
+#endif
 
 #define BOTH_EMPTY (UART_LSR_TEMT | UART_LSR_THRE)
 

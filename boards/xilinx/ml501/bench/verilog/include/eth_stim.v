@@ -76,7 +76,7 @@ parameter eth_stim_num_rx_only_num_packets = 12; // Set to 0 for continuous RX
 parameter eth_stim_num_rx_only_packet_size = 60;
 parameter eth_stim_num_rx_only_packet_size_change = 2'b01;  // 2'b01: Increment
 parameter eth_stim_num_rx_only_packet_size_change_amount = 127;
-parameter eth_stim_num_rx_only_IPG = 180_000_000; // ps
+parameter eth_stim_num_rx_only_IPG = 800_000; // ps
 
 // Do call/response test
 reg eth_stim_do_rx_reponse_to_tx;
@@ -95,7 +95,7 @@ parameter rx_while_tx_min_packet_size = 32;
 
 // Use the smallest possible IPG
 parameter eth_stim_use_min_IPG = 0;
-parameter eth_stim_IPG_delay_max = 500_000_000; // Maximum 500uS ga
+parameter eth_stim_IPG_delay_max = 100_000_000; // Maximum 100 us
 //parameter eth_stim_IPG_delay_max = 100_000_000; // Maximum 100mS between packets
 parameter eth_stim_IPG_min_10mb = 9600_000; // 9.6 uS
 parameter eth_stim_IPG_min_100mb = 800_000; // 860+~100 = 960 nS 100MBit min IPG

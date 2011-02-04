@@ -64,9 +64,9 @@ output                    empty;
 output  [CNT_WIDTH-1:0]   cnt;
 
 
-
+reg     [CNT_WIDTH-1:0]   read_pointer;
 reg [CNT_WIDTH-1:0] 	  cnt;
-   reg 			  final_read;
+reg 			  final_read;
    
 always @ (posedge clk or posedge reset)
 begin
@@ -113,10 +113,6 @@ end
      else if (write)
        waddr <= waddr + 1;
 
-   reg 		       read_reg;
-   always @(posedge clk)
-     read_reg <= read;
-
    always @(posedge clk)
      if (reset)
        raddr <= 0;
@@ -153,11 +149,27 @@ end
    assign empty = ~(|cnt);
    assign almost_empty = cnt==1;
    assign full  = {{32-CNT_WIDTH{1'b0}},cnt} == (DEPTH-1);
-   assign almost_full  = &cnt[CNT_WIDTH-1:0];
+   //assign almost_full  = &cnt[CNT_WIDTH-1:0];
+   assign almost_full  = {{32-CNT_WIDTH{1'b0}},cnt} == (DEPTH-2);
+
+
+
+always @ (posedge clk or posedge reset)
+begin
+  if(reset)
+    read_pointer <= 0;
+  else
+  if(clear)
+    // Begin read pointer at 1
+    read_pointer <= { {(CNT_WIDTH-1){1'b0}}, 1'b1};
+  else
+  if(read & ~empty)
+    read_pointer <= read_pointer + 1'b1;
+end
+
 
 `else // !`ifdef ETH_FIFO_GENERIC
-   
-reg     [CNT_WIDTH-1:0]   read_pointer;
+
 reg     [CNT_WIDTH-1:0]   write_pointer;
 
 
@@ -167,8 +179,7 @@ begin
     read_pointer <= 0;
   else
   if(clear)
-    //read_pointer <= { {(CNT_WIDTH-1){1'b0}}, read};
-    read_pointer <= { {(CNT_WIDTH-1){1'b0}}, 1'b1};
+    read_pointer <= { {(CNT_WIDTH-1){1'b0}}, read};
   else
   if(read & ~empty)
     read_pointer <= read_pointer + 1'b1;
@@ -186,15 +197,81 @@ begin
     write_pointer <= write_pointer + 1'b1;
 end
 
-`ifdef ETH_FIFO_XILINX
-  xilinx_dist_ram_16x32 fifo
-  ( .data_out(data_out), 
-    .we(write & ~full),
-    .data_in(data_in),
-    .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer),
-    .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer),
-    .wclk(clk)
-  );
+ `ifdef ETH_FIFO_XILINX
+   
+  generate
+     if (CNT_WIDTH==4)
+       begin
+	  xilinx_dist_ram_16x32 fifo
+	    ( .data_out(data_out), 
+	      .we(write & ~full),
+	      .data_in(data_in),
+	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
+	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
+	      .wclk(clk)
+	      );
+       end // if (CNT_WIDTH==4)
+     else if (CNT_WIDTH==6)
+       begin
+
+	  wire  [DATA_WIDTH-1:0]  data_out0;
+	  wire [DATA_WIDTH-1:0]   data_out1;
+	  wire [DATA_WIDTH-1:0]   data_out2;
+	  wire [DATA_WIDTH-1:0]   data_out3;
+	  
+	  wire 			  ramsel0,ramsel1,ramsel2,ramsel3;
+
+	  assign ramsel0 = (read_pointer[5:4]==2'b00);
+	  assign ramsel1 = (read_pointer[5:4]==2'b01);
+	  assign ramsel2 = (read_pointer[5:4]==2'b10);
+	  assign ramsel3 = (read_pointer[5:4]==2'b11);
+	  
+	  assign data_out =  ramsel3 ? data_out3 :
+			     ramsel2 ? data_out2 :
+			     ramsel1 ? data_out1 : data_out0;
+	  
+	  xilinx_dist_ram_16x32 fifo0
+	    ( .data_out(data_out0), 
+	      .we((write & ~full) & ramsel0),
+	      .data_in(data_in),
+	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
+	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
+	      .wclk(clk)
+	      );
+	  
+	  xilinx_dist_ram_16x32 fifo1
+	    ( .data_out(data_out1), 
+	      .we(write & ~full & ramsel1),
+	      .data_in(data_in),
+	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
+	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
+	      .wclk(clk)
+	      );
+
+	  xilinx_dist_ram_16x32 fifo2
+	    ( .data_out(data_out2), 
+	      .we(write & ~full & ramsel2),
+	      .data_in(data_in),
+	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
+	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
+	      .wclk(clk)
+	      );
+	  
+	  xilinx_dist_ram_16x32 fifo3
+	    ( .data_out(data_out3), 
+	      .we(write & ~full & ramsel3),
+	      .data_in(data_in),
+	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
+	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
+	      .wclk(clk)
+	      );    
+       end // if (CNT_WIDTH==6)
+  endgenerate
+   
+   
+     
+
+   
 `else   // !ETH_FIFO_XILINX
 `ifdef ETH_ALTERA_ALTSYNCRAM
   altera_dpram_16x32	altera_dpram_16x32_inst

@@ -35,6 +35,37 @@ symbol:
 /* ---[ 0x100: RESET exception ]----------------------------------------- */
         .org 0x100 	
 	l.movhi r0, 0
+	l.movhi r1, 0
+	l.movhi r2, 0
+	l.movhi r3, 0
+	l.movhi r4, 0
+	l.movhi r5, 0
+	l.movhi r6, 0
+	l.movhi r7, 0
+	l.movhi r8, 0
+	l.movhi r9, 0
+	l.movhi r10, 0
+	l.movhi r11, 0
+	l.movhi r12, 0
+	l.movhi r13, 0
+	l.movhi r14, 0
+	l.movhi r15, 0
+	l.movhi r16, 0
+	l.movhi r17, 0
+	l.movhi r18, 0
+	l.movhi r19, 0
+	l.movhi r20, 0
+	l.movhi r21, 0
+	l.movhi r22, 0
+	l.movhi r23, 0
+	l.movhi r24, 0
+	l.movhi r25, 0
+	l.movhi r26, 0
+	l.movhi r27, 0
+	l.movhi r28, 0
+	l.movhi r29, 0
+	l.movhi r30, 0
+	l.movhi r31, 0
 	/* Clear status register, set supervisor mode */
 	l.ori r1, r0, SPR_SR_SM
 	l.mtspr r0, r1, SPR_SR
@@ -290,11 +321,6 @@ ENTRY(_start)
 
 .L10:
 
-	/* Initialise stack */
-/*	LOAD_SYMBOL_2_GPR(r1, _stack)
-	l.addi  r2, r0, -3
-	l.and   r1, r1, r2
-*/	
 	/* Clear BSS */
         LOAD_SYMBOL_2_GPR(r28, _bss_start)
         LOAD_SYMBOL_2_GPR(r30, _bss_end)
@@ -304,12 +330,10 @@ ENTRY(_start)
         l.bf    1b
         l.addi  r28, r28, 4
 
-
 	/* Initialise UART in a C function */
 	/*l.jal    _uart_init
 	l.nop*/
         
-
 	/* Jump to main program entry point (argc = argv = 0) */
 	CLEAR_GPR(r3)
 	CLEAR_GPR(r4)

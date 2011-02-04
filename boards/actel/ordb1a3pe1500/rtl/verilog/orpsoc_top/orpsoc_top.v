@@ -1001,7 +1001,7 @@ module orpsoc_top
    wire [10:0] 				  or1200_dbg_wp_o;
    wire 				  or1200_dbg_bp_o;
    wire 				  or1200_dbg_rst;   
-   
+
    wire 				  or1200_clk, or1200_rst;
    wire 				  sig_tick;
    

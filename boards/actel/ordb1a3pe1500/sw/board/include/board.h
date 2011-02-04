@@ -15,11 +15,14 @@
 // Uncomment the appropriate bootloader define. This will effect the bootrom.S
 // file, which is compiled and converted into Verilog for inclusion at 
 // synthesis time. See bootloader/bootloader.S for details on each option.
-
+#ifndef PRELOAD_RAM
 #define BOOTROM_SPI_FLASH
 //#define BOOTROM_GOTO_RESET
 //#define BOOTROM_LOOP_AT_ZERO
 //#define BOOTROM_LOOP_IN_ROM
+#else
+#define BOOTROM_GOTO_RESET
+#endif
 
 //
 // Defines for each core (memory map base, OR1200 interrupt line number, etc.)
@@ -90,5 +93,19 @@
 // OR1200 tick timer period define
 //
 #define TICKS_PER_SEC   100
+
+//
+// UART driver initialisation
+// 
+#define UART_NUM_CORES 3
+
+#define UART_BASE_ADDRESSES_CSV						\
+	UART0_BASE, UART2_BASE, UART2_BASE
+
+#define UART_BAUD_RATES_CSV						\
+	UART0_BAUD_RATE, UART1_BAUD_RATE, UART1_BAUD_RATE
+
+
+
 
 #endif

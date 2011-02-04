@@ -9,7 +9,14 @@
 #include "simple-spi.h"
 #include "cpu-utils.h"
 
-const int spi_base_adr[1] = {SPI0_BASE};
+
+const int spi_base_adr[1] = {
+#ifdef SPI0_BASE
+	SPI0_BASE
+#else
+	0
+#endif
+};
 
 void 
 spi_core_enable(int core)

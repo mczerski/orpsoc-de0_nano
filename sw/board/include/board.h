@@ -20,4 +20,13 @@
 //
 #define TICKS_PER_SEC   100
 
+
+//
+// UART driver configuration
+// 
+#define UART_NUM_CORES 1
+#define UART_BASE_ADDRESSES_CSV	UART0_BASE
+#define UART_BAUD_RATES_CSV UART0_BAUD_RATE
+
+
 #endif

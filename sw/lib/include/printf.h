@@ -1,6 +1,8 @@
 #ifndef _PRINTF_H_
 #define _PRINTF_H_
 
+int sprintf(char* str, const char *fmt, ...);
+
 #define PRINTFBUFFER_SIZE 512
 extern char PRINTFBUFFER[PRINTFBUFFER_SIZE]; // Declare a global printf buffer
 //int vfnprintf ( char *stream, size_t n, const char *format, va_list arg);
