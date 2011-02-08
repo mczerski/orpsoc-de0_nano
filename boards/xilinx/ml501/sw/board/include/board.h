@@ -72,4 +72,14 @@
 #define UART_BAUD_RATES_CSV UART0_BAUD_RATE
 
 
+// 
+// i2c_master_slave core driver configuration
+//
+
+#define I2C_MASTER_SLAVE_NUM_CORES 2
+
+#define I2C_MASTER_SLAVE_BASE_ADDRESSES_CSV		\
+	I2C_0_BASE, I2C_1_BASE
+
+
 #endif

@@ -12,15 +12,29 @@
 #include "cpu-utils.h"
 #include "i2c_master_slave.h"
 
+
+// Ensure board.h defines I2C_MASTER_SLAVE_NUM_CORES and 
+// I2C_MASTER_SLAVE_BASE_ADDRESSES_CSV which should be the base address values
+// separated with commas
+#ifdef I2C_MASTER_SLAVE_NUM_CORES
+
+const int I2C_MASTER_SLAVE_BASE_ADR[I2C_MASTER_SLAVE_NUM_CORES] = { 
+	I2C_MASTER_SLAVE_BASE_ADDRESSES_CSV };
+#else
+
+const int I2C_MASTER_SLAVE_BASE_ADR[1] = {-1};
+
+#endif
+
 inline unsigned char i2c_master_slave_read_reg(int core, unsigned char addr)
 {
-	return REG8((i2c_base_adr[core] + addr));
+	return REG8((I2C_MASTER_SLAVE_BASE_ADR[core] + addr));
 }
 
 inline void i2c_master_slave_write_reg(int core, unsigned char addr,
 				       unsigned char data)
 {
-	REG8((i2c_base_adr[core] + addr)) = data;
+	REG8((I2C_MASTER_SLAVE_BASE_ADR[core] + addr)) = data;
 }
 
 int i2c_master_slave_wait_for_busy(int core)
@@ -171,10 +185,10 @@ int i2c_master_slave_master_start(int core, unsigned char addr, int read)
 ************************************************************/
 int i2c_master_slave_master_write(int core, unsigned char data,
 				  int check_prev_ack, int stop)
-{
+{	
 	if (i2c_master_slave_wait_for_transfer(core))
 		return 1;
-	
+
 	// present data
 	i2c_master_slave_write_reg(core, I2C_MASTER_SLAVE_TXR, data);
 
@@ -188,7 +202,8 @@ int i2c_master_slave_master_write(int core, unsigned char data,
 					   I2C_MASTER_SLAVE_CR_WRITE |
 					   I2C_MASTER_SLAVE_CR_STOP);
 
-	return 0;
+	return i2c_master_slave_wait_for_transfer(core);
+
 }
 
 /***********************************************************
@@ -238,7 +253,7 @@ int i2c_master_slave_master_read(int core, int check_prev_ack,
 
 	*data = i2c_master_slave_read_reg(core, I2C_MASTER_SLAVE_RXR);
 
-	return 0;
+	return i2c_master_slave_wait_for_transfer(core);
 }
 
 /***********************************************************

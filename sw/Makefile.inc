@@ -250,3 +250,4 @@ distclean: clean
 	$(Q)$(MAKE) -C $(SW_ROOT)/lib clean
 	$(Q)$(MAKE) -C $(SW_ROOT)/bootrom clean
 	$(Q)rm -f $(PROCESSED_DEFINES)
+	$(Q)$(MAKE) -C $(SW_ROOT)/utils clean

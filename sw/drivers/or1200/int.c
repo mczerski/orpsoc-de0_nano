@@ -1,5 +1,8 @@
-/* This file is part of test microkernel for OpenRISC 1000. */
-/* (C) 2001 Simon Srot, srot@opencores.org */
+/*
+ *
+ * User interrupt handler software for OR1200
+ *
+ */
 
 #include "or1200-utils.h"
 #include "spr-defs.h"

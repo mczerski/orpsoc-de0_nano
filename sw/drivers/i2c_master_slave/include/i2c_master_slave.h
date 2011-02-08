@@ -10,7 +10,6 @@
 #ifndef _I2C_MASTER_SLAVE_H_
 #define _I2C_MASTER_SLAVE_H_
 
-extern const int i2c_base_adr[4];
 //Memory mapping adresses
 
 #define I2C_MASTER_SLAVE_PRERlo 0x0	// Clock prescaler register
