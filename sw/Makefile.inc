@@ -29,7 +29,7 @@
 ####                                                              ####
 ######################################################################
 
-DESIGN_NAME=orpsoc
+DESIGN_NAME ?=orpsoc
 
 OR32_TOOL_PREFIX=or32-elf-
 
@@ -136,7 +136,7 @@ DESIGN_PROCESSED_VERILOG_DEFINES=$(SW_ROOT)/lib/include/$(DESIGN_NAME)-defines.h
 OR1200_VERILOG_DEFINES=$(RTL_VERILOG_INCLUDE_DIR)/or1200_defines.v
 OR1200_PROCESSED_VERILOG_DEFINES=$(SW_ROOT)/lib/include/or1200-defines.h
 
-PROCESSED_DEFINES=$(DESIGN_PROCESSED_VERILOG_DEFINES) $(OR1200_PROCESSED_VERILOG_DEFINES) 
+PROCESSED_DEFINES +=$(DESIGN_PROCESSED_VERILOG_DEFINES) $(OR1200_PROCESSED_VERILOG_DEFINES) 
 
 # Mother makefile can set this if extra things are needed to be built and
 # compild with a certain app.
@@ -250,4 +250,3 @@ distclean: clean
 	$(Q)$(MAKE) -C $(SW_ROOT)/lib clean
 	$(Q)$(MAKE) -C $(SW_ROOT)/bootrom clean
 	$(Q)rm -f $(PROCESSED_DEFINES)
-	$(Q)$(MAKE) -C $(SW_ROOT)/utils clean
