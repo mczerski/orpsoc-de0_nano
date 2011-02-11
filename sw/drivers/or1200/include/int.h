@@ -14,7 +14,7 @@ struct ihnd {
 int int_add(unsigned long vect, void (* handler)(void *), void *arg);
 
 /* Add exception vector handler */
-void add_handler(unsigned long vector, void (* handler) (void *));
+void add_handler(unsigned long vector, void (* handler) (void));
 
 /* Initialize routine */
 int int_init();

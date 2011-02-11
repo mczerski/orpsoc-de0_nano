@@ -6,8 +6,8 @@
 
 void* memcpy( void* s1, void* s2, size_t n)
 {
-  char* r1 = s1;
-  const char* r2 = s2;
+  char* r1 = (char *) s1;
+  const char* r2 =  (const char*) s2;
 #ifdef __BCC__
   while (n--) {
     *r1++ = *r2++;

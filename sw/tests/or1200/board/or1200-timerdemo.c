@@ -104,9 +104,9 @@ print_time(void)
 
 }
 
-void our_timer_handler(void *);
+void our_timer_handler(void);
 
-void our_timer_handler(void *ptr)
+void our_timer_handler(void)
 {
 	// Call time output function
 	print_time();

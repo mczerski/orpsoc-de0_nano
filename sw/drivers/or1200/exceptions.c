@@ -39,10 +39,10 @@ char *exception_strings[] = {
   "A Custom",                                // 1f
 };
 
-extern void int_main();
-extern void cpu_timer_tick();
+extern void int_main(void);
+extern void cpu_timer_tick(void);
 
-void (*except_handlers[]) (void ) = {0,    // 0
+void (*except_handlers[]) (void)  = {0,    // 0
 				    0,    // 1
 				    0,    // 2
 				    0,    // 3
@@ -65,20 +65,22 @@ void (*except_handlers[]) (void ) = {0,    // 0
   
 
 void
-add_handler(unsigned long vector, void (*handler) (void *))
+add_handler(unsigned long vector, void (*handler) (void))
 {
   except_handlers[vector] = handler;
 }
 
-void default_exception_handler_c(unsigned exception_address,unsigned epc)
+void 
+default_exception_handler_c(unsigned exception_address,unsigned epc)
 {
   int exception_no = (exception_address >> 8) & 0x1f;
   if (except_handlers[exception_no])
     {	    
-      return (*except_handlers[exception_no])();
+	    (*except_handlers[exception_no])();
+	    return;
     }
 
-  // Init uart here, incase it hasn't been
+  // init uart here, incase it hasn't been
   uart_init(DEFAULT_UART);
 	  
   printf("EPC = 0x%.8x\n", exception_address);

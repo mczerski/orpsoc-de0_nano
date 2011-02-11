@@ -272,7 +272,7 @@ vfnprintf ( char *stream, size_t n, const char *format, va_list arg)
    (unsigned long)va_arg(arg, unsigned int))
 
   
-  xdigs = NULL;  // stop compiler whinging
+  xdigs = (char *) NULL;  // stop compiler whinging
   fmt = (char *)format;
   ret = 0;
   
@@ -675,7 +675,7 @@ sprintf(char* str, const char *fmt, ...)
 }
 
 #include "printf.h"
-
+#include "cpu-utils.h"
 // Actual printf function we call, with static buffer of 512 bytes
 char PRINTFBUFFER[PRINTFBUFFER_SIZE]; // Declare a global printf buffer
 

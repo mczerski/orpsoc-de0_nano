@@ -31,7 +31,6 @@ symbol:
 /* =================================================== [ exceptions ] === */
 	.section .vectors, "ax"
 
-
 /* ---[ 0x100: RESET exception ]----------------------------------------- */
         .org 0x100 	
 	l.movhi r0, 0
@@ -197,6 +196,8 @@ symbol:
 
 ENTRY(_start)
 
+	
+	
 	/* Instruction cache enable */
 	/* Check if IC present and skip enabling otherwise */
 	l.mfspr r24,r0,SPR_UPR
