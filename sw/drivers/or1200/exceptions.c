@@ -40,13 +40,14 @@ char *exception_strings[] = {
 };
 
 extern void int_main();
+extern void cpu_timer_tick();
 
 void (*except_handlers[]) (void ) = {0,    // 0
 				    0,    // 1
 				    0,    // 2
 				    0,    // 3
 				    0,    // 4
-				    0,    // 5
+				    cpu_timer_tick,    // 5
 				    0,    // 6
 				    0,    // 7
 				    int_main,    // 8

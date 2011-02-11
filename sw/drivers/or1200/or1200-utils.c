@@ -75,12 +75,13 @@ cpu_disable_timer(void)
 }
 
 /* Timer increment - called by interrupt routine */
-/* Now actually done in interrupt vector code in crt0.S */
 void 
 cpu_timer_tick(void)
 {
   timer_ticks++;
-  mtspr(SPR_TTMR, SPR_TTMR_IE | SPR_TTMR_RT | ((IN_CLK/TICKS_PER_SEC) & SPR_TTMR_PERIOD));
+  // Reset timer mode register to interrupt with same interval
+  mtspr(SPR_TTMR, SPR_TTMR_IE | SPR_TTMR_RT | 
+	((IN_CLK/TICKS_PER_SEC) & SPR_TTMR_PERIOD));
 }
 
 /* Reset tick counter */
