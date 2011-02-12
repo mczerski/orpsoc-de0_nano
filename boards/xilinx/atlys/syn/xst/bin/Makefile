@@ -184,7 +184,7 @@ GENERATED_DEFINES += $(SYNDIR_TIMESCALE_FILE)
 GENERATED_DEFINES += $(SYNDIR_SYN_VERILOG_DEFINES)
 
 
-FPGA_PART ?=xc6slx45-3-csg324
+FPGA_PART ?=xc6slx45-2-csg324
 OPT_MODE ?=Speed
 OPT_LEVEL ?=2
 
@@ -259,13 +259,11 @@ $(XCF_FILE):
 	$(Q)echo "#" >> $@
 	$(Q)echo "# Not much here, XST is smart enough to determine clocks through DCMs" >> $@
 	$(Q)echo "#" >> $@
-	$(Q)echo "# 200MHz diff. XTAL used as main system clock" >> $@
 	$(Q)echo "# 100 MHz user clock" >> $@
-	$(Q)echo "#NET \"sys_clk_in\" TNM_NET = \"sys_clk_in_grp\";" >> $@
-	$(Q)echo "#TIMESPEC \"TS_sys_clk_in\" = PERIOD \"sys_clk_in_grp\" 10 ns HIGH 50%;" >> $@
+	$(Q)echo "NET \"sys_clk_in\" TNM_NET = \"sys_clk_in_grp\";" >> $@
+	$(Q)echo "TIMESPEC \"TS_sys_clk_in\" = PERIOD \"sys_clk_in_grp\" 10 ns HIGH 50%;" >> $@
 	$(Q)echo "# Ignore the reset logic" >> $@
 	$(Q)echo "NET rst_n_pad_i* TIG;" >> $@
-	$(Q)echo "# SSRAM multicylce constraints:" >> $@
 	$(Q)echo "# Define the two clock domains as timespecs" >> $@
 	$(Q)echo "#NET dcm0_clkdv TNM_NET=\"wb_clk\";" >> $@
 	$(Q)echo "#TIMESPEC \"TS_wb_clk\" = PERIOD \"wb_clk\" 20 ns HIGH 10;" >> $@

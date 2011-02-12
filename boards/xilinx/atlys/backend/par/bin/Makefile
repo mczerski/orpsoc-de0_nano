@@ -87,13 +87,13 @@ endif
 #
 # Options for Xilinx PAR tools
 #
-FPGA_PART=xc6slx45-3-csg324
+FPGA_PART=xc6slx45-2-csg324
 ifeq ($(V), 1)
 XILINX_FLAGS ?=
 else
 XILINX_FLAGS ?=-intstyle silent
 endif
-ILINX_MAP_FLAGS=-logic_opt off
+XILINX_MAP_FLAGS=-logic_opt off
 XILINX_AREA_TARGET = speed
 TIMING_REPORT_OPTIONS = -u 1000 -e 1000
 SPI_FLASH_SIZE_KBYTES ?=16384
@@ -142,7 +142,7 @@ $(MAPPED_NCD): $(NGD_FILE)
 $(PARRED_NCD): $(MAPPED_NCD)
 	@echo; echo "\t#### PAR'ing ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	par -w -ol high $(XILINX_FLAGS) $< $@ $(PCD_FILE) )
+	par -w -ol high -xe n $(XILINX_FLAGS) $< $@ $(PCD_FILE) )
 
 #This target uses Xilinx tools to generate a bitstream for download
 $(BIT_FILE): $(PARRED_NCD)

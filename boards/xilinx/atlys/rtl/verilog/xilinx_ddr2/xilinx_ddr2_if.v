@@ -165,14 +165,32 @@ module xilinx_ddr2_if (
 // Spartan-6 MIG doesn't have any defines for the DDR2 burst length, 
 // only burst length for user data.
 // Our user port is 128-bit
-// TODO: add conf defines for this
-`define DDR2_BURST_1_DW128_ADDR_WIDTH 2 // = log2(burst of 1 128-bits = 4 words)
-`define DDR2_BURST_2_DW128_ADDR_WIDTH 3 // = log2(burst of 2 128-bits = 8 words)
-`define DDR2_BURST_4_DW128_ADDR_WIDTH 4 // = log2(burst of 4 128-bits = 16 words)
+//`define DDR2_BURSTLENGTH_1
+//`define DDR2_BURSTLENGTH_2
+//`define DDR2_BURSTLENGTH_4
+//`define DDR2_BURSTLENGTH_8
+`define DDR2_BURSTLENGTH_16
+
+`ifdef DDR2_BURSTLENGTH_1
+  `define DDR2_BURST_DW128_ADDR_WIDTH 2 // = log2(burst of 1 128-bits = 4 words)
+  `define DDR2_ADDR_ALIGN             4
+`elsif DDR2_BURSTLENGTH_2
+  `define DDR2_BURST_DW128_ADDR_WIDTH 3 // = log2(burst of 2 128-bits = 8 words)
+  `define DDR2_ADDR_ALIGN             5
+`elsif DDR2_BURSTLENGTH_4
+  `define DDR2_BURST_DW128_ADDR_WIDTH 4 // = log2(burst of 4 128-bits = 16 words)
+  `define DDR2_ADDR_ALIGN             6
+`elsif DDR2_BURSTLENGTH_8
+  `define DDR2_BURST_DW128_ADDR_WIDTH 5 // = log2(burst of 8 128-bits = 32 words)
+  `define DDR2_ADDR_ALIGN             7
+`elsif DDR2_BURSTLENGTH_16
+  `define DDR2_BURST_DW128_ADDR_WIDTH 6 // = log2(burst of 16 128-bits = 64 words)
+  `define DDR2_ADDR_ALIGN             8
+`endif
 
    // This counts how many addresses we should write to the fifo - the number 
    // of discrete FIFO transactions.
-   reg [`DDR2_CACHE_ADDR_WIDTH_WORDS_PER_LINE-`DDR2_BURST_1_DW128_ADDR_WIDTH - 1:0] addr_counter;
+   reg [`DDR2_CACHE_ADDR_WIDTH_WORDS_PER_LINE-`DDR2_BURST_DW128_ADDR_WIDTH - 1:0] addr_counter;
 
    wire 	       cache_write;
       
@@ -183,9 +201,8 @@ module xilinx_ddr2_if (
    reg 		       do_writeback, do_writeback_r;
    wire 	       do_writeback_start, do_writeback_finished;
    // Wire to indicate writing to data FIFO of MIG has completed
-   wire 	       do_writeback_data_finished;
+   reg   	       do_writeback_data_finished;
    
-   reg                 do_writeback_addresses_start;
    // Wire to indicate that address FIFO of MIG should be written to to 
    // initiate memory accesses.
    reg 		       do_writeback_addresses, do_writeback_addresses_r;
@@ -447,9 +464,9 @@ module xilinx_ddr2_if (
    always @(posedge wb_clk)
      if (wb_rst)
        do_af_write <= 0;
-     else if (do_readfrom_start | do_writeback_addresses_start)
+     else if (do_readfrom_start | do_writeback_data_finished)
        do_af_write <= 1;
-     else if ((&addr_counter)) // Stop when counter rolls over
+     else if ((&addr_counter) & !ddr2_p0_cmd_full) // Stop when counter rolls over
        do_af_write <= 0;	 
    
    // Wishbone side of cache enable. Always enabled unless doing DDR2-side
@@ -470,14 +487,15 @@ module xilinx_ddr2_if (
      do_writeback_r <= do_writeback;
 
    // Detect falling edge of do_writeback
-   assign do_writeback_data_finished = !do_writeback & do_writeback_r;
+   always @(posedge wb_clk)
+     do_writeback_data_finished <= !do_writeback & do_writeback_r;
    
    always @(posedge wb_clk)
      if (wb_rst)
        do_writeback_addresses <= 0;
-     else if (do_writeback_addresses_start)
+     else if (do_writeback_data_finished)
        do_writeback_addresses <= 1;
-     else if ((&addr_counter))
+     else if ((&addr_counter) & !ddr2_p0_cmd_full)
        do_writeback_addresses <= 0;
 
    always @(posedge wb_clk)
@@ -508,14 +526,14 @@ module xilinx_ddr2_if (
    assign doing_readfrom = do_readfrom | do_readfrom_r;   
 
    // Address fifo signals
-   assign ddr2_p0_cmd_en = (do_readfrom_r | (do_writeback_addresses_r & !ddr2_p0_wr_empty)) & 
+   assign ddr2_p0_cmd_en = ((do_readfrom_r & ddr2_p0_wr_empty) | (do_writeback_addresses_r & !ddr2_p0_wr_empty)) & 
                            !ddr2_p0_cmd_full & do_af_write;   
    assign ddr2_p0_cmd_instr[0] = doing_readfrom; // 1 - read, 0 - write
    assign ddr2_p0_cmd_instr[2:1] = 0;
 
-   assign writeback_af_addr = {cached_addr, addr_counter, 4'd0};
+   assign writeback_af_addr = {cached_addr, addr_counter, `DDR2_ADDR_ALIGN'd0};
    
-   assign readfrom_af_addr = {wb_adr_i[`DDR2_CACHE_TAG_BITS], addr_counter, 4'd0};
+   assign readfrom_af_addr = {wb_adr_i[`DDR2_CACHE_TAG_BITS], addr_counter, `DDR2_ADDR_ALIGN'd0};
    
    assign ddr2_p0_cmd_byte_addr = doing_readfrom ?  readfrom_af_addr : writeback_af_addr;
    assign ddr2_p0_wr_en         = do_writeback_ddr2_fifo_we;
@@ -536,22 +554,11 @@ module xilinx_ddr2_if (
    always @(posedge wb_clk)
      if (wb_rst)
        ddr2_write_done <= 0;
-     else if ((&ddr2_cache_line_word_addr))
+     else if ((&ddr2_cache_line_word_addr) & do_writeback)
        ddr2_write_done <= 1;
      else if (!do_writeback) // sample WB domain
        ddr2_write_done <= 0;
 
-   // Start the address writeback when half of the data have been written to wr FIFO
-   // TODO: check for burst len and fifo underruns and start accordingly
-   always @(posedge wb_clk)
-       if (wb_rst)
-         do_writeback_addresses_start <= 0;
-       else if((ddr2_cache_line_word_addr == `DDR2_CACHE_DDR2_SIDE_NUM_WORDS_PER_LINE/2) &&
-                do_writeback)
-         do_writeback_addresses_start <= 1;
-       else
-         do_writeback_addresses_start <= 0;
-       
    always @(posedge wb_clk)
      rd_data_valid_r <= !ddr2_p0_rd_empty;
    
@@ -576,10 +583,17 @@ module xilinx_ddr2_if (
    // Read enable always on
    assign ddr2_p0_rd_en = 1'b1;
 
-   // TODO: add conf defines for this
+`ifdef DDR2_BURSTLENGTH_1
    assign ddr2_p0_cmd_bl = 0; // burst of 1 * 128-bit
-// assign ddr2_p0_cmd_bl = 1; // burst of 2 * 128-bit
-// assign ddr2_p0_cmd_bl = 3; // burst of 4 * 128-bit
+`elsif DDR2_BURSTLENGTH_2
+   assign ddr2_p0_cmd_bl = 1; // burst of 2 * 128-bit
+`elsif DDR2_BURSTLENGTH_4
+   assign ddr2_p0_cmd_bl = 3; // burst of 4 * 128-bit
+`elsif DDR2_BURSTLENGTH_8
+   assign ddr2_p0_cmd_bl = 7; // burst of 8 * 128-bit
+`elsif DDR2_BURSTLENGTH_16
+   assign ddr2_p0_cmd_bl = 15; // burst of 16 * 128-bit
+`endif   
    
    // Xilinx Coregen true dual-port RAMB
    // Wishbone side : 32-bit
