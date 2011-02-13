@@ -1,6 +1,9 @@
 #ifndef _OR1200_UTILS_H_
 #define _OR1200_UTILS_H_
 
+// Pull in interrupt defines here
+#include "int.h"
+
 /* Register access macros */
 #define REG8(add) *((volatile unsigned char *)(add))
 #define REG16(add) *((volatile unsigned short *)(add))
