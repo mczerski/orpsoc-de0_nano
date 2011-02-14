@@ -69,36 +69,39 @@ CONFIG VCCAUX  = 3.3;
 # NET "gpio0_io<15>" LOC = "E4";  # Bank = 3, Pin name = IO_L54P_M3RESET,       Sch name = SW7
 #
 ## TEMAC Ethernet MAC
-# NET "phyrst"    LOC = "G13"; # Bank = 1, Pin name = IO_L32N_A16_M1A9,       	 Sch name = E-RESET
-# NET "phytxclk"  LOC = "K16"; # Bank = 1, Pin name = IO_L41N_GCLK8_M1CASN,       Sch name = E-TXCLK
-# 
-# NET "phyTXD<0>" LOC = "H16"; # Bank = 1, Pin name = IO_L37N_A6_M1A1,       	 Sch name = E-TXD0
-# NET "phyTXD<1>" LOC = "H13"; # Bank = 1, Pin name = IO_L36P_A9_M1BA0,       	 Sch name = E-TXD1
-# NET "phyTXD<2>" LOC = "K14"; # Bank = 1, Pin name = IO_L39N_M1ODT,       		 Sch name = E-TXD2
-# NET "phyTXD<3>" LOC = "K13"; # Bank = 1, Pin name = IO_L34N_A12_M1BA2,       	 Sch name = E-TXD3
+ NET "eth0_rst_n_o"    LOC = "G13"; # Bank = 1, Pin name = IO_L32N_A16_M1A9,       	 Sch name = E-RESET
+ NET "eth0_tx_clk"  LOC = "K16"; # Bank = 1, Pin name = IO_L41N_GCLK8_M1CASN,       Sch name = E-TXCLK
+ 
+ NET "eth0_tx_data<0>" LOC = "H16"; # Bank = 1, Pin name = IO_L37N_A6_M1A1,       	 Sch name = E-TXD0
+ NET "eth0_tx_data<1>" LOC = "H13"; # Bank = 1, Pin name = IO_L36P_A9_M1BA0,       	 Sch name = E-TXD1
+ NET "eth0_tx_data<2>" LOC = "K14"; # Bank = 1, Pin name = IO_L39N_M1ODT,       		 Sch name = E-TXD2
+ NET "eth0_tx_data<3>" LOC = "K13"; # Bank = 1, Pin name = IO_L34N_A12_M1BA2,       	 Sch name = E-TXD3
 # NET "phyTXD<4>" LOC = "J13"; # Bank = 1, Pin name = IO_L39P_M1A3,       		 Sch name = E-TXD4
 # NET "phyTXD<5>" LOC = "G14"; # Bank = 1, Pin name = IO_L30N_A20_M1A11,       	 Sch name = E-TXD5
 # NET "phyTXD<6>" LOC = "H12"; # Bank = 1, Pin name = IO_L32P_A17_M1A8,       	 Sch name = E-TXD6
 # NET "phyTXD<7>" LOC = "K12"; # Bank = 1, Pin name = IO_L34P_A13_M1WE,       	 Sch name = E-TXD7
 # 
-# NET "phytxen"   LOC = "H15"; # Bank = 1, Pin name = IO_L37P_A7_M1A0,       	 Sch name = E-TXEN
-# NET "phytxer"   LOC = "G18"; # Bank = 1, Pin name = IO_L38N_A4_M1CLKN,       	 Sch name = E-TXER
+ NET "eth0_tx_en"   LOC = "H15"; # Bank = 1, Pin name = IO_L37P_A7_M1A0,       	 Sch name = E-TXEN
+ NET "eth0_tx_er"   LOC = "G18"; # Bank = 1, Pin name = IO_L38N_A4_M1CLKN,       	 Sch name = E-TXER
 # NET "phygtxclk" LOC = "L12"; # Bank = 1, Pin name = IO_L40P_GCLK11_M1A5,        Sch name = E-GTXCLK
-# 
-# NET "phyRXD<0>" LOC = "G16"; # Bank = 1, Pin name = IO_L38P_A5_M1CLK,       	 Sch name = E-RXD0
-# NET "phyRXD<1>" LOC = "H14"; # Bank = 1, Pin name = IO_L36N_A8_M1BA1,       	 Sch name = E-RXD1
-# NET "phyRXD<2>" LOC = "E16"; # Bank = 1, Pin name = IO_L33P_A15_M1A10,       	 Sch name = E-RXD2
-# NET "phyRXD<3>" LOC = "F15"; # Bank = 1, Pin name = IO_L1P_A25,       			 Sch name = E-RXD3
+ 
+ NET "eth0_rx_data<0>" LOC = "G16"; # Bank = 1, Pin name = IO_L38P_A5_M1CLK,       	 Sch name = E-RXD0
+ NET "eth0_rx_data<1>" LOC = "H14"; # Bank = 1, Pin name = IO_L36N_A8_M1BA1,       	 Sch name = E-RXD1
+ NET "eth0_rx_data<2>" LOC = "E16"; # Bank = 1, Pin name = IO_L33P_A15_M1A10,       	 Sch name = E-RXD2
+ NET "eth0_rx_data<3>" LOC = "F15"; # Bank = 1, Pin name = IO_L1P_A25,       			 Sch name = E-RXD3
 # NET "phyRXD<4>" LOC = "F14"; # Bank = 1, Pin name = IO_L30P_A21_M1RESET,        Sch name = E-RXD4
 # NET "phyRXD<5>" LOC = "E18"; # Bank = 1, Pin name = IO_L33N_A14_M1A4,       	 Sch name = E-RXD5
 # NET "phyRXD<6>" LOC = "D18"; # Bank = 1, Pin name = IO_L31N_A18_M1A12,       	 Sch name = E-RXD6
 # NET "phyRXD<7>" LOC = "D17"; # Bank = 1, Pin name = IO_L31P_A19_M1CKE,       	 Sch name = E-RXD7
-# 
-# NET "phyrxdv"   LOC = "F17"; # Bank = 1, Pin name = IO_L35P_A11_M1A7,       	 Sch name = E-RXDV
-# NET "phyrxer"   LOC = "F18"; # Bank = 1, Pin name = IO_L35N_A10_M1A2,           Sch name = E-RXER
-# NET "phyrxclk"  LOC = "K15"; # Bank = 1, Pin name = IO_L41P_GCLK9_IRDY1_M1RASN, Sch name = E-RXCLK
-# NET "phymdc"    LOC = "F16"; # Bank = 1, Pin name = IO_L1N_A24_VREF,       	 Sch name = E-MDC
-# NET "phymdi"    LOC = "N17"; # Bank = 1, Pin name = IO_L48P_HDC_M1DQ8,       	 Sch name = E-MDIO
+ 
+ NET "eth0_dv"   LOC = "F17"; # Bank = 1, Pin name = IO_L35P_A11_M1A7,       	 Sch name = E-RXDV
+ NET "eth0_rx_er"   LOC = "F18"; # Bank = 1, Pin name = IO_L35N_A10_M1A2,           Sch name = E-RXER
+ NET "eth0_rx_clk"  LOC = "K15"; # Bank = 1, Pin name = IO_L41P_GCLK9_IRDY1_M1RASN, Sch name = E-RXCLK
+ NET "eth0_mdc_pad_o"    LOC = "F16"; # Bank = 1, Pin name = IO_L1N_A24_VREF,       	 Sch name = E-MDC
+ NET "eth0_md_pad_io"    LOC = "N17"; # Bank = 1, Pin name = IO_L48P_HDC_M1DQ8,       	 Sch name = E-MDIO
+ NET "eth0_col"       LOC = "C17"; # Bank = 1, Pin name = IO_L29P_A23_M1A13, Sch name = E-COL
+ NET "eth0_crs"        LOC = "C18"; # Bank = 1, Pin name = IO_L29N_A22_M1A14, Sch name = E-CRS
+
 # NET "phyint"    LOC = "L16"; # Bank = 1, Pin name = IO_L42N_GCLK6_TRDY1_M1LDM,  Sch name = E-INT
 #
 ## DDR2

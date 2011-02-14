@@ -922,34 +922,6 @@ module orpsoc_top
    ////////////////////////////////////////////////////////////////////////   
 `endif // !`ifdef JTAG_DEBUG
 
-   ////////////////////////////////////////////////////////////////////////
-   //
-   // Xilinx ChipScope
-   // 
-   ////////////////////////////////////////////////////////////////////////
-/*
-   wire [35:0] ila0_ctrl;
-	wire [31:0] ila0_trig0;
-	wire [31:0] ila0_trig1;
-	wire 		   ila0_trig2;
-	wire 			ila0_clk;
-	assign ila0_trig0 = wbs_d_mc0_adr_i;
-	assign ila0_trig1 = wbs_d_mc0_dat_i;
-	assign ila0_trig2 = 0;
-	
-	chipscope_ila ila0 (
-    .CONTROL(ila0_ctrl), // INOUT BUS [35:0]
-    .CLK(wb_clk), // IN
-    .TRIG0(ila0_trig0), // IN BUS [31:0]
-    .TRIG1(ila0_trig1), // IN BUS [31:0]
-    .TRIG2(ila0_trig2) // IN BUS [0:0]
-   );
-   chipscope_icon icon0 (
-    .CONTROL0(ila0_ctrl) // INOUT BUS [35:0]
-   );
-  */ 
- 
-
 `ifdef XILINX_DDR2
    ////////////////////////////////////////////////////////////////////////
    //
@@ -1359,24 +1331,7 @@ module orpsoc_top
       );
 
    defparam spi0.slave_select_width = spi0_ss_width;
-/* SJK
-   // SPI clock and MISO lines must go through STARTUP_VIRTEX5 block.
-   STARTUP_VIRTEX5 startup_virtex5
-     (
-      .CFGCLK(),
-      .CFGMCLK(),
-      .DINSPI(spi0_miso_i),
-      .EOS(),
-      .TCKSPI(),
-      .CLK(),
-      .GSR(1'b0),
-      .GTS(1'b0),
-      .USRCCLKO(spi0_sck_o),
-      .USRCCLKTS(1'b0),
-      .USRDONEO(),
-      .USRDONETS()
-      );
-*/   
+
    ////////////////////////////////////////////////////////////////////////   
 `else // !`ifdef SPI0
 
