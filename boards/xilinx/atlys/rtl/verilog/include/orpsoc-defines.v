@@ -44,15 +44,12 @@
 
  `define XILINX
  `define XILINX_PLL
- //`define FPGA_BOARD_XILINX_ML501
  `define FPGA_BOARD_XILINX_ATLYS
-// `define IOCONFIG_XILINX_ML501
  `define IOCONFIG_XILINX_ATLYS
- `define BOARD_CLOCK_PERIOD 10000 // 200MHz (pS accuracy for Xilinx sims.) 
+ `define BOARD_CLOCK_PERIOD 10000 // 100MHz (pS accuracy for Xilinx sims.) 
 
 // `define JTAG_DEBUG
 // `define RAM_WB
-// `define XILINX_SSRAM
  `define XILINX_DDR2
  `define UART0
  `define GPIO0

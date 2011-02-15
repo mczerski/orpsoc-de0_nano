@@ -163,12 +163,12 @@
 //`define OR1200_IC_1W_512B
 //`define OR1200_IC_1W_4KB
 //`define OR1200_IC_1W_8KB
-`define OR1200_IC_1W_16KB
-//`define OR1200_IC_1W_32KB
+//`define OR1200_IC_1W_16KB
+`define OR1200_IC_1W_32KB
 //`define OR1200_DC_1W_4KB
 //`define OR1200_DC_1W_8KB
-`define OR1200_DC_1W_16KB
-//`define OR1200_DC_1W_32KB
+//`define OR1200_DC_1W_16KB
+`define OR1200_DC_1W_32KB
 
 `endif
 
@@ -210,7 +210,7 @@
 // Disable bursts if they are not supported by the
 // memory subsystem (only affect cache line fill)
 //
-`define OR1200_NO_BURSTS
+//`define OR1200_NO_BURSTS
 //
 
 //
