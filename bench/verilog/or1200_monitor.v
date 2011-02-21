@@ -740,10 +740,10 @@ module or1200_monitor;
 	   begin
 	      get_gpr(j,current_gprs[j]);
 	   end
-	 current_sr = `OR1200_TOP.`CPU_cpu.or1200_sprs.sr ;
-    	 current_esr = `OR1200_TOP.`CPU_cpu.or1200_sprs.epcr ;
-	 current_epcr = `OR1200_TOP.`CPU_cpu.or1200_sprs.epcr ;
-	 current_eear = `OR1200_TOP.`CPU_cpu.or1200_sprs.eear ;
+	 current_sr = `OR1200_TOP.`CPU_cpu.`CPU_sprs.sr ;
+    	 current_esr = `OR1200_TOP.`CPU_cpu.`CPU_sprs.epcr ;
+	 current_epcr = `OR1200_TOP.`CPU_cpu.`CPU_sprs.epcr ;
+	 current_eear = `OR1200_TOP.`CPU_cpu.`CPU_sprs.eear ;
       end
    endtask
    
