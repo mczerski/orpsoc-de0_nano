@@ -200,6 +200,16 @@ endif
 # Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
 # Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
 VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+
+# VPI debugging interface variables
+VPI_SRC_C_DIR=$(COMMON_BENCH_VERILOG_DIR)/vpi/c
+VPI_SRC_VERILOG_DIR=vpi/verilog
+VPI_SRCS=$(shell ls $(VPI_SRC_C_DIR)/*.[ch])
+
+# Modelsim VPI compile variables
+MODELTECH_VPILIB=msim_jp_vpi.sl
+
+
 # Modelsim VPI settings
 ifeq ($(VPI), 1)
 VPI_LIBS=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
@@ -327,6 +337,11 @@ BENCH_VERILOG_SUBDIRS += $(addprefix $(BOARD_BENCH_VERILOG_DIR)/,$(BOARD_BENCH_V
 
 # Finally, add include path from local bench path
 BENCH_VERILOG_SUBDIRS += $(BOARD_BENCH_VERILOG_DIR)/include
+
+ifeq ($(VPI), 1)
+# Manually add the VPI bench verilog path
+COMMON_BENCH_VERILOG_SUBDIRS += $(VPI_SRC_VERILOG_DIR)
+endif
 
 print-board-bench-subdirs:
 	$(Q)echo "\tBoard bench subdirectories"; \
@@ -523,7 +538,7 @@ clean: clean-sim clean-sim-test-sw clean-bootrom clean-out clean-sw
 clean-sim:
 	$(Q) echo; echo "\t### Cleaning simulation run directory ###"; echo;
 	$(Q)rm -rf *.* lib_* work transcript check-test-log
-# No VPI support for now.	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
+	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
 
 clean-bootrom:
 	$(MAKE) -C $(BOOTROM_SW_DIR) clean

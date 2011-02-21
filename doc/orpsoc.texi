@@ -437,6 +437,10 @@ Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsi
 @item MGC_NO_VOPT
 When using Modelsim (specifying @code{SIMULATOR=modelsim}), if the version does not include the individual @code{vopt} executable, specify @code{MGC_NO_VOPT=1} when compiling.
 
+@item VPI
+Pass @code{VPI=1} to have the an external JTAG debug module stall the processor just after bootup, and then provide a GDB stub (interacting with the Verilog sim via the VPI) to allow control of the system in a similar fashtion to that of a physical target controlled over JTAG via a debug proxy application. The port for GDB is hardcoded to 50002. See the code in @code{bench/verilog/vpi/c} for more details. 
+If running with Modelsim, ensure the path @code{MGC_PATH} is set and points to a directory containing a path named @code{modeltech}, which should be the Modelsim install.
+
 @end table
 
 
@@ -1364,8 +1368,8 @@ See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_
 @c Generic Design build chapter
 @c **************************************************************************** 
 
-@node Generic
-@chapter Generic
+@node Generic Designs
+@chapter Generic Designs
 @cindex Generic design information
 
 @menu
@@ -1378,9 +1382,8 @@ See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_
 
 The paths under @code{boards/generic} contain designs similar to the reference design, in that they are not technology specific, and used for development of certain features of the processor, or peripherals.
 
-An example is the fault tolerance testing build, in @code{boards/generic/ft}, which implements some custom modules in the testbench and ORPSoC top level design, and is in general a very minimal system just for testing.
+These builds are a TODO, but should provide technology-independent builds, with any specialist modules required to debug, or assist in development or demonstration of a module.
 
-Additional builds, testing certain parts of the technology, can be developed here.
 
 @c ****************************************************************************
 @c Software section
