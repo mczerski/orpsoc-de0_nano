@@ -69,6 +69,7 @@ SOURCE_FILES= jp_vpi.c rsp-rtl_sim.c gdb.c
 OBJ_FILES=    jp_vpi.o rsp-rtl_sim.o gdb.o
 
 MODELTECH_INC_PATH=$(MGC_PATH)/modeltech/include
+MODELTECH_VPI_CFLAGS=-fPIC -fno-stack-protector -DMODELSIM_VPI
 # Modelsim VPI compile commands
 msim_jp_vpi.sl: $(OBJ_FILES)
 	ld -shared -E -o $@ $?
@@ -76,7 +77,7 @@ msim_jp_vpi.sl: $(OBJ_FILES)
 	$(Q)echo; echo "\t### Building VPI debug components for Modelsim ###"; echo;
 	$(Q)gcc -g ${DEBUG_DEFINES} -I${MODELTECH_INC_PATH} \
 	-l${MODELTECH_INC_PATH} \
-	-DMODELSIM_VPI \
+	$(MODELTECH_VPI_CFLAGS) \
 	-c $< -o $*.o
 
 clean:
