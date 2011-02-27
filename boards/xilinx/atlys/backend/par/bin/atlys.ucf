@@ -293,6 +293,32 @@ NET  "ddr2_zio"                                      IOSTANDARD = SSTL18_II;
  NET "uart0_stx_pad_o" LOC = "B16"; # Bank = 0, Pin name = IO_L66P_SCP1, Sch name = USBB-TXD
 #
 #
-#Created by Constraints Editor (xc6slx45-csg324-3) - 2011/02/01
-NET "sys_clk_in" TNM_NET = sys_clk_in;
-TIMESPEC TS_sys_clk_in = PERIOD "sys_clk_in" 10 ns HIGH 50%;
+# Constraints
+
+NET "sys_clk_in" TNM_NET = "sys_clk_in";
+TIMESPEC TS_sys_clk_in = PERIOD "sys_clk_in" 100 MHz HIGH 50 %;
+
+NET "wb_clk" TNM_NET = "wb_clk";
+TIMESPEC TS_wb_clk = PERIOD "wb_clk" 50 MHz high 50%;
+
+NET rst_n_pad_i TIG;
+
+NET "gpio0_io<*>" TIG;
+
+# ethernet constraints
+NET eth0_rst_n_o      TIG;
+
+NET "eth0_tx_clk" TNM_NET = "eth0_tx_clk";
+TIMESPEC TS_eth0_tx_clk = PERIOD "eth0_tx_clk" 25 MHz high 50%;
+
+NET "eth0_rx_clk" TNM_NET = "eth0_rx_clk";
+TIMESPEC TS_eth0_rx_clk = PERIOD "eth0_rx_clk" 25 MHz high 50%;
+
+# DDR2 Constraints 
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/selfrefresh_mcb_mode" TIG;
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/c?_pll_lock" TIG;
+     
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/gen_term_calib.mcb_soft_calibration_top_inst/mcb_soft_calibration_inst/CKE_Train" TIG; ##This path exists for DDR2 only
+
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc3_infrastructure_inst/sys_clk_ibufg" TNM_NET = "SYS_CLK3";
+TIMESPEC "TS_SYS_CLK3" = PERIOD "SYS_CLK3"  3.75  ns HIGH 50 %;

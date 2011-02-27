@@ -1,6 +1,6 @@
 /*
  *
- * Clock, reset generation unit for ML501 board
+ * Clock, reset generation unit for Atlys board
  * 
  * Implements clock generation according to design defines
  * 
@@ -209,7 +209,7 @@ module clkgen
    assign sync_rst_n = dcm0_locked;
 
  `ifdef XILINX_DDR2
-   assign ddr2_if_clk_o = dcm0_clkfx; // 200MHz    
+   assign ddr2_if_clk_o = dcm0_clkfx; // 266MHz    
    assign clk100_o = dcm0_clk0; // 100MHz
  `endif   
    
