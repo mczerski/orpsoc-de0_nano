@@ -978,11 +978,13 @@ The Xilinx ML501 board contains a Virtex LX50 part, varied memories and peripher
 
 http://www.xilinx.com/products/devkits/HW-V5-ML501-UNI-G.htm
 
+The OR1200 core and Wishbone bus is set to run at 66MHz. The OR1200 core, as defined here, is almost fully featured, with every hardware arithmetic option enabled, and the largest possible cache configuration, of 1024 sets with 8 words per line which is 32 kilobytes of cache each for instruction and data buses.
+
 Not all peripherals are supported, and adding support for each is a goal.
 
 At present the build contains a memory controller for the DDR2 SDRAM (based around a Xilinx MIG derived controller) and SSRAM. None of the other peripherals (VGA/AC97/PS2/USB/LCD) have controllers in the design yet.
 
-The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but still has some bugs to do with memory access, although it appears to be using the RGMII interface to the 10/10/1000 PHY on the ML501 OK.
+The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but only with the PHY in 10/100 mode using the MII interface to the Marvel Alaska Ethernet PHY IC. There still may be bugs in the FIFO buffer configuration in the ethmac module when the Xilinx FIFO option is enabled via the ethmac_defines.v file. Adding GMII support to the MAC, is a TODO task.
 
 The project is configured to generate either a @code{.bit} file for direct programming via JTAG, or a @code{.mcs} file with inbuilt bootloader software for the processor, meaning the board can be powered up and an application like ORPmon loaded without having to reprogram it from iMPACT between power cycles.
 

@@ -941,11 +941,11 @@ NET "eth0_crs" IOBDELAY=NONE;
 NET "eth0_col" IOBDELAY=NONE;
 
 ## # Timing ignores (to specify unconstrained paths)
-#FIXME? NET "*clkgen0/wb_clk_o" TNM_NET = "sys_clk"; # Wishbone clock
-TIMESPEC "TS_PHYTX_OPB" = FROM "TXCLK_GRP" TO "sys_clk" TIG;
-TIMESPEC "TS_OPB_PHYTX" = FROM "sys_clk" TO "TXCLK_GRP" TIG;
-TIMESPEC "TS_PHYRX_OPB" = FROM "RXCLK_GRP" TO "sys_clk" TIG;
-TIMESPEC "TS_OPB_PHYRX" = FROM "sys_clk" TO "RXCLK_GRP" TIG;
+NET "wb_clk" TNM_NET = "wb_clk_grp"; # Wishbone clock
+TIMESPEC "TS_PHYTX_OPB" = FROM "TXCLK_GRP" TO "wb_clk_grp" TIG;
+TIMESPEC "TS_OPB_PHYTX" = FROM "wb_clk_grp" TO "TXCLK_GRP" TIG;
+TIMESPEC "TS_PHYRX_OPB" = FROM "RXCLK_GRP" TO "wb_clk_grp" TIG;
+TIMESPEC "TS_OPB_PHYRX" = FROM "wb_clk_grp" TO "RXCLK_GRP" TIG;
 
 ## #------------------------------------------------------------------------------
 ## # IO Pad Location Constraints / Properties for AC97 Sound Controller
