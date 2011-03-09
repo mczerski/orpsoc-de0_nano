@@ -63,6 +63,7 @@ TESTS ?= or1200-simple \
 	or1200-mmu  \
 	or1200-except \
 	or1200-mac \
+	or1200-ext \
 	or1200-ffl1 \
 	or1200-linkregtest \
 	or1200-tick \

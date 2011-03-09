@@ -215,8 +215,6 @@ _main:
 	l.maci	r5, 1 		// Multiply: MAC reg 41
 	l.maci	r4, 0 		// Multiply: MAC reg 41
 	l.maci	r4, 3 		// Multiply: MAC reg 50 (0x32)
-	l.nop
-	l.nop
 	l.macrc r3
 	l.nop 0x2
 	l.sfeqi r3, 0x32
