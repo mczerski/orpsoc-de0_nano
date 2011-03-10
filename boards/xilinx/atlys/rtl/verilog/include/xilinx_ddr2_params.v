@@ -9,4 +9,16 @@
    parameter C3_MEM_ADDR_ORDER       = "BANK_ROW_COLUMN";       
    parameter C3_NUM_DQ_PINS          = 16;       
    parameter C3_MEM_ADDR_WIDTH       = 13;       
-   parameter C3_MEM_BANKADDR_WIDTH   = 3;        
+   parameter C3_MEM_BANKADDR_WIDTH   = 3;
+   
+   // Simulation parameter defines
+   parameter DQ_WIDTH                = 16;
+   parameter DQS_WIDTH               = 1;
+   parameter DM_WIDTH                = 1;
+   parameter CLK_WIDTH               = 1;
+   parameter ROW_WIDTH               = 13;
+   parameter BANK_WIDTH              = 3;
+   parameter CKE_WIDTH               = 1;
+   parameter ODT_WIDTH               = 1;
+
+     

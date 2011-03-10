@@ -232,14 +232,14 @@ module xilinx_ddr2_if (
    wire [(C3_P0_MASK_SIZE)-1:0]      ddr2_p0_wr_mask;
    wire 	       ddr2_p0_wr_full;
    wire                ddr2_p0_wr_empty;
-   wire                ddr2_p0_wr_count;
+   wire [6:0]          ddr2_p0_wr_count;
    wire                ddr2_p0_wr_underrun;
    wire                ddr2_p0_wr_error;
    wire                ddr2_p0_rd_en;
    wire [(C3_P0_DATA_PORT_SIZE)-1:0] ddr2_p0_rd_data;
    wire                ddr2_p0_rd_full;
    wire                ddr2_p0_rd_empty;
-   wire                ddr2_p0_rd_count;
+   wire [6:0]          ddr2_p0_rd_count;
    wire                ddr2_p0_rd_overflow;
    wire                ddr2_p0_rd_error;
    wire 	       ddr2_calib_done;

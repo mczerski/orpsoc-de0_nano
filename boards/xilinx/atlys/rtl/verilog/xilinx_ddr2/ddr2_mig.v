@@ -66,7 +66,7 @@
 //*****************************************************************************
 `timescale 1ns/1ps
 
-(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=ede1116axxx-8e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=One 128-bit bi-directional port, C3_MEM_ADDR_ORDER=BANK_ROW_COLUMN, C3_PORT_ENABLE=Port0, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
+(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=mt47h64m16xx-25e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=One 128-bit bi-directional port, C3_MEM_ADDR_ORDER=BANK_ROW_COLUMN, C3_PORT_ENABLE=Port0, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
 module ddr2_mig #
 (
    parameter C3_P0_MASK_SIZE           = 16,
@@ -147,7 +147,7 @@ module ddr2_mig #
    localparam C3_PORT_CONFIG             =  "B128";
    localparam C3_CLKOUT0_DIVIDE       = 1;       
    localparam C3_CLKOUT1_DIVIDE       = 1;       
-   localparam C3_CLKOUT2_DIVIDE       = 4;       
+   localparam C3_CLKOUT2_DIVIDE       = 16;       
    localparam C3_CLKOUT3_DIVIDE       = 8;       
    localparam C3_CLKFBOUT_MULT        = 2;       
    localparam C3_DIVCLK_DIVIDE        = 1;       
@@ -165,7 +165,7 @@ module ddr2_mig #
    localparam C3_ARB_TIME_SLOT_9      = 3'o0;       
    localparam C3_ARB_TIME_SLOT_10     = 3'o0;       
    localparam C3_ARB_TIME_SLOT_11     = 3'o0;       
-   localparam C3_MEM_TRAS             = 45000;       
+   localparam C3_MEM_TRAS             = 42500;       
    localparam C3_MEM_TRCD             = 12500;       
    localparam C3_MEM_TREFI            = 7800000;       
    localparam C3_MEM_TRFC             = 127500;       
