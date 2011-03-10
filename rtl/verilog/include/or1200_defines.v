@@ -398,7 +398,7 @@
 // Uncomment to use a serial divider, otherwise will
 // be a generic parallel implementation.
 //
-//`define OR1200_DIV_SERIAL
+`define OR1200_DIV_SERIAL
 
 //
 // Implement HW Single Precision FPU
