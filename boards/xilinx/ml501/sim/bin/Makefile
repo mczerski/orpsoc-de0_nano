@@ -432,7 +432,7 @@ $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 
 
 .PHONY: rtl-test
-rtl-test: clean-sim-test-sw sw clean-test-defines $(TEST_DEFINES_VLG) \
+rtl-test: clean-sim-test-sw sw-vmem clean-test-defines $(TEST_DEFINES_VLG) \
 	$(SIMULATOR)
 
 # Run an RTL test followed by checking of generated results
@@ -480,13 +480,13 @@ TEST_MODULE=$(shell echo $(TEST) | cut -d "-" -f 1)
 BOARD_SW_TEST_DIR=$(BOARD_SW_DIR)/tests/$(TEST_MODULE)/sim
 COMMON_SW_TEST_DIR=$(COMMON_SW_DIR)/tests/$(TEST_MODULE)/sim
 # Do this by testing for the file's existence 
-SW_TEST_DIR=$(shell if [ -e $(BOARD_SW_TEST_DIR)/$(TEST).[cS] ]; then echo $(BOARD_SW_TEST_DIR); else echo $(COMMON_SW_TEST_DIR); fi)
+TEST_SW_DIR=$(shell if [ -e $(BOARD_SW_TEST_DIR)/$(TEST).[cS] ]; then echo $(BOARD_SW_TEST_DIR); else echo $(COMMON_SW_TEST_DIR); fi)
 
 print-test-sw-dir:
 	@echo; echo "\tTest software is in the following path"; echo;
 	@echo $(BOARD_SW_DIR); echo;
 	@echo $(BOARD_SW_TEST_DIR); echo;
-	@echo $(SW_TEST_DIR); echo;
+	@echo $(TEST_SW_DIR); echo;
 
 print-sw-tests:
 	$(Q) $(MAKE) -C $(COMMON_SW_DIR)/lib print-sw-tests
@@ -499,44 +499,88 @@ print-sw-tests:
 # Set PRELOAD_RAM=1 to preload the system memory - be sure the bootROM program
 # chosen in board.h is the one booting from the reset vector.
 ifeq ($(PRELOAD_RAM), 1)
-SIM_SW_IMAGE ?=sram.vmem
+SIM_DIR_VMEM_IMAGE ?=sram.vmem
 else
-SIM_SW_IMAGE ?=flash.in
+SIM_DIR_VMEM_IMAGE ?=flash.in
 endif
 
-# Amount to pad the image we'll load into the SPI flash
+# Ability to bypass all stuffing around involved with generating software and
+# directly specify an ELF
+ifeq ($(USER_ELF),)
+ELF_FILE=$(TEST_SW_DIR)/$(TEST).elf
+else
+ELF_FILE=$(USER_ELF)
+ELF_FILE_NOTDIR=$(notdir $(USER_ELF))
+ELF_FILE_NOTDIR_BASENAME=$(basename $(ELF_FILE_NOTDIR))
+endif
+
+
+# Rules allowing user to specify a pre-existing VMEM file to load into the 
+# simulation, instead of compiling a test.
+ifeq ($(USER_VMEM),)
+
+
+ifeq ($(PRELOAD_RAM), 1)
+VMEM_FILE ?= $(TEST_SW_DIR)/$(TEST).vmem
+else
+VMEM_FILE ?= $(TEST_SW_DIR)/$(TEST).flashin
+endif
+.PHONY: $(VMEM_FILE)
+
+
+# If USER_ELF was specified, then we need a slightly different way of
+# generating the VMEM file from it than a usual test
+ifeq ($(USER_ELF),)
+$(SIM_DIR_VMEM_IMAGE): $(VMEM_FILE)
+	$(Q)if [ -L $@ ]; then unlink $@; fi
+	$(Q)if [ -e $@ ]; then rm $@; fi
+	$(Q)ln -s $< $@
+else # !($(USER_ELF),) - USER_ELF set on command line
+$(SIM_DIR_VMEM_IMAGE): $(USER_ELF)
+	$(Q)$(MAKE) -C $(COMMON_SW_DIR)/lib \
+	USER_ELF_BIN=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).bin \
+	USER_ELF_VMEM=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).vmem \
+	gen-user-elf-vmem
+	$(Q)cp -v $(ELF_FILE_NOTDIR_BASENAME).vmem $@
+
+TEST=$(ELF_FILE_NOTDIR_BASENAME)
+endif
+
+else # !($(USER_VMEM),) - USER_VMEM set on command line
+VMEM_FILE=$(USER_VMEM)
+USER_VMEM_NOTDIR=$(notdir $(USER_VMEM))
+TEST=$(basename $(USER_VMEM_NOTDIR))
+
+$(SIM_DIR_VMEM_IMAGE): $(VMEM_FILE)
+	cp -v $< $@
+
+endif
+
+
+# Amount to pad the image we'll load into the SPI flash for ML501 sims
 HEX_IMAGE_PADDING ?=0x1c0000
 
-.PHONY : sw
-sw: $(SIM_SW_IMAGE)
+.PHONY : sw-vmem sw-elf
+sw-vmem: $(SIM_DIR_VMEM_IMAGE)
 
-
-flash.in: $(SW_TEST_DIR)/$(TEST).flashin
-	$(Q)if [ -L $@ ]; then unlink $@; fi
-	$(Q)ln -s $< $@
-
-sram.vmem: $(SW_TEST_DIR)/$(TEST).vmem
-	$(Q)if [ -L $@ ]; then unlink $@; fi
-	$(Q)ln -s $< $@
-
-.PHONY: $(SW_TEST_DIR)/$(TEST).flashin
-$(SW_TEST_DIR)/$(TEST).flashin:
+.PHONY: $(TEST_SW_DIR)/$(TEST).flashin
+$(TEST_SW_DIR)/$(TEST).flashin:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
-	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).flashin \
+	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).flashin \
 		HEX_IMAGE_PADDING=$(HEX_IMAGE_PADDING)
 
-.PHONY: $(SW_TEST_DIR)/$(TEST).vmem
-$(SW_TEST_DIR)/$(TEST).vmem:
+.PHONY: $(TEST_SW_DIR)/$(TEST).vmem
+$(TEST_SW_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
-	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).vmem
+	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).vmem
 
 # Create test software disassembly
 
-sw-dis: $(SW_TEST_DIR)/$(TEST).dis
+sw-dis: $(TEST_SW_DIR)/$(TEST).dis
 	$(Q)cp -v $< .
 
-$(SW_TEST_DIR)/$(TEST).dis:
-	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).dis
+$(TEST_SW_DIR)/$(TEST).dis:
+	$(Q)$(MAKE) -C $(TEST_SW_DIR) $(TEST).dis
 
 #
 # Cleaning rules
@@ -558,7 +602,7 @@ clean-test-defines:
 	$(Q)rm -f $(TEST_DEFINES_VLG)
 
 clean-sim-test-sw:
-	$(Q)if [ -e $(SIM_SW_IMAGE) ]; then unlink $(SIM_SW_IMAGE); fi
+	$(Q)if [ -L $(SIM_DIR_VMEM_IMAGE) ]; then unlink $(SIM_DIR_VMEM_IMAGE); fi
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
