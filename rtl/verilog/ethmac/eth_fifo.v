@@ -219,20 +219,20 @@ end
 	  wire [DATA_WIDTH-1:0]   data_out2;
 	  wire [DATA_WIDTH-1:0]   data_out3;
 	  
-	  wire 			  ramsel0,ramsel1,ramsel2,ramsel3;
+	  wire 			  we_ram0,we_ram1,we_ram2,we_ram3;
 
-	  assign ramsel0 = (read_pointer[5:4]==2'b00);
-	  assign ramsel1 = (read_pointer[5:4]==2'b01);
-	  assign ramsel2 = (read_pointer[5:4]==2'b10);
-	  assign ramsel3 = (read_pointer[5:4]==2'b11);
+	  assign we_ram0 = (write_pointer[5:4]==2'b00);
+	  assign we_ram1 = (write_pointer[5:4]==2'b01);
+	  assign we_ram2 = (write_pointer[5:4]==2'b10);
+	  assign we_ram3 = (write_pointer[5:4]==2'b11);
 	  
-	  assign data_out =  ramsel3 ? data_out3 :
-			     ramsel2 ? data_out2 :
-			     ramsel1 ? data_out1 : data_out0;
+	  assign data_out = (read_pointer[5:4]==2'b11) ? data_out3 :
+			    (read_pointer[5:4]==2'b10) ? data_out2 :
+			    (read_pointer[5:4]==2'b01) ? data_out1 : data_out0;
 	  
 	  xilinx_dist_ram_16x32 fifo0
 	    ( .data_out(data_out0), 
-	      .we((write & ~full) & ramsel0),
+	      .we(write & ~full & we_ram0),
 	      .data_in(data_in),
 	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
 	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
@@ -241,7 +241,7 @@ end
 	  
 	  xilinx_dist_ram_16x32 fifo1
 	    ( .data_out(data_out1), 
-	      .we(write & ~full & ramsel1),
+	      .we(write & ~full & we_ram1),
 	      .data_in(data_in),
 	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
 	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
@@ -250,7 +250,7 @@ end
 
 	  xilinx_dist_ram_16x32 fifo2
 	    ( .data_out(data_out2), 
-	      .we(write & ~full & ramsel2),
+	      .we(write & ~full & we_ram2),
 	      .data_in(data_in),
 	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
 	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),
@@ -259,7 +259,7 @@ end
 	  
 	  xilinx_dist_ram_16x32 fifo3
 	    ( .data_out(data_out3), 
-	      .we(write & ~full & ramsel3),
+	      .we(write & ~full & we_ram3),
 	      .data_in(data_in),
 	      .read_address( clear ? {CNT_WIDTH-1{1'b0}} : read_pointer[3:0]),
 	      .write_address(clear ? {CNT_WIDTH-1{1'b0}} : write_pointer[3:0]),

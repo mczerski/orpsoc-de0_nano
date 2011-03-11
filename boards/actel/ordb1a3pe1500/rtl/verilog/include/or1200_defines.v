@@ -324,6 +324,23 @@
 //`define OR1200_IMPL_CY
 
 //
+// Implement carry bit SR[OV]
+//
+// Compiler doesn't use this, but other code may like
+// to.
+//
+//`define OR1200_IMPL_OV
+
+//
+// Implement carry bit SR[OVE]
+//
+// Overflow interrupt indicator. When enabled, SR[OV] flag
+// does not remain asserted after exception.
+//
+//`define OR1200_IMPL_OVE
+
+
+//
 // Implement rotate in the ALU
 //
 // At the time of writing this, or32
@@ -825,9 +842,9 @@
 `define OR1200_SR_LEE  7
 `define OR1200_SR_CE   8
 `define OR1200_SR_F    9
-`define OR1200_SR_CY   10	// Unused
-`define OR1200_SR_OV   11	// Unused
-`define OR1200_SR_OVE  12	// Unused
+`define OR1200_SR_CY   10	// Optional
+`define OR1200_SR_OV   11	// Optional
+`define OR1200_SR_OVE  12	// Optional
 `define OR1200_SR_DSX  13	// Unused
 `define OR1200_SR_EPH  14
 `define OR1200_SR_FO   15

@@ -240,7 +240,7 @@
 `define FAST_TEST   1           // 64/1024 packets are sent
 
 // Defines hard baud prescaler register - uncomment to enable
-`define PRESCALER_PRESET_HARD
+//`define PRESCALER_PRESET_HARD
 // 115200 baud preset values
 // 20MHz: prescaler 10.8 (11, rounded up)
 //`define PRESCALER_HIGH_PRESET 8'd0
@@ -249,6 +249,6 @@
 //`define PRESCALER_HIGH_PRESET 8'd0
 //`define PRESCALER_LOW_PRESET 8'd27
 // 66MHz: prescaler 36.1
-`define PRESCALER_HIGH_PRESET 8'd0
-`define PRESCALER_LOW_PRESET 8'd36
+//`define PRESCALER_HIGH_PRESET 8'd0
+//`define PRESCALER_LOW_PRESET 8'd36
 
