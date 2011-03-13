@@ -1,7 +1,8 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
-#define IN_CLK  	      50000000 // Hz
+//#define IN_CLK  	      50000000 // Hz
+#define IN_CLK  	      66666667 // Hz
 
 //
 // ROM bootloader

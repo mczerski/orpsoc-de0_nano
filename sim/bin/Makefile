@@ -63,6 +63,9 @@ TESTS ?= or1200-simple \
 	or1200-mmu  \
 	or1200-except \
 	or1200-mac \
+	or1200-ext \
+	or1200-cy	\
+	or1200-ov	\
 	or1200-ffl1 \
 	or1200-linkregtest \
 	or1200-tick \
@@ -427,7 +430,7 @@ TEST_SW_DIR=$(SW_DIR)/tests/$(shell echo $(TEST) | cut -d "-" -f 1)/sim
 
 # This file name corresponds to the VMEM file the RAM models will attempt to 
 # load via $readmemh().
-SIM_VMEM_IMAGE ?=sram.vmem
+SIM_DIR_VMEM_IMAGE ?=sram.vmem
 
 ifeq ($(USER_ELF),)
 ELF_FILE=$(TEST_SW_DIR)/$(TEST).elf
@@ -447,12 +450,12 @@ VMEM_FILE=$(TEST_SW_DIR)/$(TEST).vmem
 # If USER_ELF was specified, then we need a slightly different way of
 # generating the VMEM file from it than a usual test
 ifeq ($(USER_ELF),)
-$(SIM_VMEM_IMAGE): $(VMEM_FILE)
+$(SIM_DIR_VMEM_IMAGE): $(VMEM_FILE)
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)if [ -e $@ ]; then rm $@; fi
 	$(Q)ln -s $< $@
 else
-$(SIM_VMEM_IMAGE): $(USER_ELF)
+$(SIM_DIR_VMEM_IMAGE): $(USER_ELF)
 	$(Q)$(MAKE) -C $(SW_DIR)/lib \
 	USER_ELF_BIN=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).bin \
 	USER_ELF_VMEM=`pwd`/$(ELF_FILE_NOTDIR_BASENAME).vmem \
@@ -467,7 +470,7 @@ VMEM_FILE=$(USER_VMEM)
 USER_VMEM_NOTDIR=$(notdir $(USER_VMEM))
 TEST=$(basename $(USER_VMEM_NOTDIR))
 
-$(SIM_VMEM_IMAGE): $(VMEM_FILE)
+$(SIM_DIR_VMEM_IMAGE): $(VMEM_FILE)
 	cp -v $< $@
 
 endif
@@ -476,7 +479,7 @@ endif
 
 
 .PHONY : sw-vmem sw-elf
-sw-vmem: $(SIM_VMEM_IMAGE)
+sw-vmem: $(SIM_DIR_VMEM_IMAGE)
 
 $(TEST_SW_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
@@ -534,7 +537,7 @@ clean-test-defines:
 	$(Q)rm -f $(TEST_DEFINES_VLG)
 
 clean-sim-test-sw:
-	$(Q)if [ -L $(SIM_VMEM_IMAGE) ]; then unlink $(SIM_VMEM_IMAGE); fi
+	$(Q)if [ -L $(SIM_DIR_VMEM_IMAGE) ]; then unlink $(SIM_DIR_VMEM_IMAGE); fi
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;

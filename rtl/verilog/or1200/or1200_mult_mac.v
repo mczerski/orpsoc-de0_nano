@@ -65,6 +65,9 @@ module or1200_mult_mac(
 		       ex_freeze, id_macrc_op, macrc_op, a, b, mac_op, alu_op, 
 		       result, mult_mac_stall,
 
+		       // Overflow
+		       ovforw, ov_we,
+		       
 		       // SPR interface
 		       spr_cs, spr_write, spr_addr, spr_dat_i, spr_dat_o
 		       );
@@ -93,7 +96,8 @@ module or1200_mult_mac(
    input [`OR1200_ALUOP_WIDTH-1:0] 	alu_op;
    output [width-1:0] 			result;
    output				mult_mac_stall;
-
+   output 				ovforw, ov_we;
+   
    //
    // SPR interface
    //
@@ -107,6 +111,7 @@ module or1200_mult_mac(
    // Internal wires and regs
    //
    reg [width-1:0] 			result;
+   reg 					ex_freeze_r;
 `ifdef OR1200_MULT_IMPLEMENTED
    reg [2*width-1:0] 			mul_prod_r;
    wire 				alu_op_smul;   
@@ -121,7 +126,7 @@ module or1200_mult_mac(
 `endif
    wire [2*width-1:0] 			mul_prod;
    wire 				mul_stall;
-   
+   reg [1:0] 				mul_stall_count;   
    wire [`OR1200_MACOP_WIDTH-1:0] 	mac_op;
 `ifdef OR1200_MAC_IMPLEMENTED
    reg [`OR1200_MACOP_WIDTH-1:0] 	mac_op_r1;
@@ -153,9 +158,11 @@ module or1200_mult_mac(
  `else
    reg [width-1:0] 			div_quot_r;      
    reg [width-1:0] 			div_quot_generic;   
- `endif   
+ `endif
+   wire 				div_by_zero;
 `endif
-
+   reg 					ovforw, ov_we;
+   
    //
    // Combinatorial logic
    //
@@ -187,6 +194,16 @@ module or1200_mult_mac(
 	      alu_op_div | alu_op_mul | (|mac_op) ? a : 32'd0;
    assign y = (alu_op_sdiv | alu_op_smul) & b[31] ? ~b + 32'b1 : 
 	      alu_op_div | alu_op_mul | (|mac_op) ? b : 32'd0;
+
+   assign div_by_zero = !(|b) & alu_op_div;
+   
+
+   // Used to indicate when we should check for new multiply or MAC ops
+   always @(posedge clk or `OR1200_RST_EVENT rst)
+     if (rst == `OR1200_RST_VALUE)
+       ex_freeze_r <= 1'b1;
+     else
+       ex_freeze_r <= ex_freeze;
 
    //
    // Select result of current ALU operation to be forwarded
@@ -220,7 +237,43 @@ module or1200_mult_mac(
 `else
        result = {width{1'b0}};    
 `endif    
-     endcase
+     endcase // casez (alu_op)
+
+
+   //
+   // Overflow generation
+   //
+   always @*
+     casez(alu_op)	// synopsys parallel_case
+`ifdef OR1200_IMPL_OV       
+ `ifdef OR1200_MULT_IMPLEMENTED
+       `OR1200_ALUOP_MUL: begin
+	  // Actually doing unsigned multiply internally, and then negate on
+	  // output as appropriate, so if sign bit is set, then is overflow
+	  ovforw = mul_prod_r[31];
+	  ov_we = 1;
+       end
+       `OR1200_ALUOP_MULU : begin
+	  // Overflow on unsigned multiply is simpler.
+	  ovforw = mul_prod_r[32];
+	  ov_we = 1;
+       end
+ `endif //  `ifdef OR1200_MULT_IMPLEMENTED
+ `ifdef OR1200_DIV_IMPLEMENTED
+       `OR1200_ALUOP_DIVU,
+       `OR1200_ALUOP_DIV: begin
+	  // Overflow on divide by zero
+	  ovforw = div_by_zero;
+	  ov_we = 1;
+       end
+ `endif
+`endif //  `ifdef OR1200_IMPL_OV
+       default: begin
+	  ovforw = 0;
+	  ov_we = 0;
+       end
+     endcase // casez (alu_op)
+   
 
 `ifdef OR1200_MULT_IMPLEMENTED
  `ifdef OR1200_MULT_SERIAL
@@ -251,7 +304,7 @@ module or1200_mult_mac(
 	mul_free <= 1'b1;	
      end
 
-   assign mul_stall = (|serial_mul_cnt);
+   assign mul_stall = (|serial_mul_cnt) | (alu_op_mul & !ex_freeze_r);
    
  `else
    
@@ -287,7 +340,20 @@ module or1200_mult_mac(
 	mul_prod_r <=  mul_prod[63:0];
      end
 
-   assign mul_stall = 0;
+   //
+   // Generate stall signal during multiplication
+   //
+   always @(`OR1200_RST_EVENT rst or posedge clk)
+     if (rst == `OR1200_RST_VALUE)
+       mul_stall_count <= 0;
+     else if (!(|mul_stall_count))
+       mul_stall_count <= {mul_stall_count[0], alu_op_mul & !ex_freeze_r};
+     else 
+       mul_stall_count <= {mul_stall_count[0],1'b0};
+       
+   assign mul_stall = (|mul_stall_count) | 
+		      (!(|mul_stall_count) & alu_op_mul & !ex_freeze_r);
+   
  `endif // !`ifdef OR1200_MULT_SERIAL   
    
 `else // OR1200_MULT_IMPLEMENTED
@@ -297,14 +363,6 @@ module or1200_mult_mac(
 `endif // OR1200_MULT_IMPLEMENTED
 
 `ifdef OR1200_MAC_IMPLEMENTED
-   // Signal to indicate when we should check for new MAC op
-   reg ex_freeze_r;
-   
-   always @(posedge clk or `OR1200_RST_EVENT rst)
-     if (rst == `OR1200_RST_VALUE)
-       ex_freeze_r <= 1'b1;
-     else
-       ex_freeze_r <= ex_freeze;
    
    //
    // Propagation of l.mac opcode, only register it for one cycle
@@ -363,6 +421,7 @@ module or1200_mult_mac(
      else
        mac_stall_r <=  (|mac_op | (|mac_op_r1) | (|mac_op_r2)) & 
 		       (id_macrc_op | mac_stall_r);
+   
 `else // OR1200_MAC_IMPLEMENTED
    assign mac_stall_r = 1'b0;
    assign mac_r = {2*width{1'b0}};
@@ -384,6 +443,11 @@ module or1200_mult_mac(
 	div_free <=  1'b1;
 	div_cntr <=  6'b00_0000;
      end
+     else if (div_by_zero) begin
+	div_quot_r <=  64'h0000_0000_0000_0000;
+	div_free <=  1'b1;
+	div_cntr <=  6'b00_0000;
+     end
      else if (|div_cntr) begin
 	if (div_tmp[31])
 	  div_quot_r <=  {div_quot_r[62:0], 1'b0};
@@ -397,11 +461,10 @@ module or1200_mult_mac(
 	div_free <=  1'b0;
      end
      else if (div_free | !ex_freeze) begin
-	//div_quot_r <=  div_quot[63:0];
 	div_free <=  1'b1;
      end
 
-   assign div_stall = (|div_cntr);
+   assign div_stall = (|div_cntr) | (!ex_freeze_r & alu_op_div);
 
 
  `else // !`ifdef OR1200_DIV_SERIAL
