@@ -324,7 +324,7 @@ module orpsoc_testbench;
 
 `ifdef XILINX_DDR2
  `ifndef GATE_SIM
-   defparam dut.xilinx_ddr2_0.xilinx_ddr2_if0.ddr2_mig0.C3_SIMULATION = "TRUE";
+   defparam dut.xilinx_ddr2_0.xilinx_ddr2_if0.ddr2_mig.C3_SIMULATION = "TRUE";
  `endif
 
    always @( * ) begin

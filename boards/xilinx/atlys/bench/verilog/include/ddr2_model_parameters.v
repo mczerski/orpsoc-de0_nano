@@ -29,7 +29,7 @@
 
                                           // SYMBOL UNITS DESCRIPTION
                                           // ------ ----- -----------
-`define x256Mb
+`define x1Gb
 `define x16
 `define sg25E
 

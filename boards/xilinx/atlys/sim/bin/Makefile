@@ -146,7 +146,9 @@ TECHNOLOGY_BACKEND_DIR=$(BOARD_DIR)/../backend
 # This path is for the technology library
 #TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
 # Depends on the XILINX_PATH variable - we check above if it's set properly.
-TECHNOLOGY_BACKEND_VERILOG_DIR=$(XILINX_PATH)/verilog
+TECHNOLOGY_BACKEND_VERILOG_DIR=$(XILINX_PATH)/ISE/verilog
+
+TECHNOLOGY_BACKEND_BIN_DIR=$(XILINX_PATH)/ISE/bin/lin
 
 # Synthesis directory for board
 BOARD_SYN_DIR=$(BOARD_DIR)/syn/synplify
@@ -204,7 +206,7 @@ SIMULATOR ?= $(MODELSIM)
 #
 # Modelsim-specific settings
 #
-VOPT_ARGS=$(QUIET) -suppress 2241
+VOPT_ARGS=$(QUIET) -L secureip -suppress 2241 
 # If VCD dump is desired, tell Modelsim not to optimise
 # away everything.
 ifeq ($(VCD), 1)
@@ -215,7 +217,7 @@ endif
 # Suppressed warnings - 3009: Failed to open $readmemh() file
 # Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
 # Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
-VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+VSIM_ARGS=  -L secureip -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
 # Modelsim VPI settings
 ifeq ($(VPI), 1)
 VPI_LIBS=$(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB)
@@ -410,6 +412,7 @@ work: modelsim_dut.scr
 .PHONY : $(MODELSIM)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
+	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib -s mti_se -l all -arch spartan6 -lib all 
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
 	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
