@@ -355,7 +355,7 @@ int sc_main(int argc, char *argv[])
 
 #ifdef UART0
 	// Init the UART function
-	uart->initUart(50000000, 115200);
+	uart->initUart(115200);
 #endif
 
 	if (do_program_file_load)	// Did the user specify a file to load?

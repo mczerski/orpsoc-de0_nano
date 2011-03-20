@@ -53,44 +53,42 @@ module mt48lc16m16a2 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
    // Params. for  mt48lc32m16a2 (64MB part)
    parameter addr_bits =      13;
    parameter col_bits  =      10;
-   parameter mem_sizes = 8388606;
+   parameter mem_sizes = 8388608;
 `endif
 
 `ifdef MT48LC16M16
    // Params. for  mt48lc16m16a2 (32MB part)
    parameter addr_bits =      13;
    parameter col_bits  =       9;
-   parameter mem_sizes = 4194303;
+   parameter mem_sizes = 4194304;
 `endif
    
 `ifdef MT48LC4M16    
-  //Params for mt48lc4m16a2 (8MB part)
+   //Params for mt48lc4m16a2 (8MB part)
    parameter addr_bits =      12;
    parameter col_bits  =       8;
-   parameter mem_sizes =   1048575;
+   parameter mem_sizes =   1048576;
 `endif
    
    // Common to all parts
    parameter data_bits =      16;
 
+   inout     [data_bits - 1 : 0] Dq;
+   input [addr_bits - 1 : 0] 	 Addr;
+   input [1 : 0] 		 Ba;
+   input                         Clk;
+   input                         Cke;
+   input                         Cs_n;
+   input                         Ras_n;
+   input                         Cas_n;
+   input                         We_n;
+   input [1 : 0] 		 Dqm;
    
-
-    inout     [data_bits - 1 : 0] Dq;
-    input [addr_bits - 1 : 0] 	  Addr;
-    input                 [1 : 0] Ba;
-    input                         Clk;
-    input                         Cke;
-    input                         Cs_n;
-    input                         Ras_n;
-    input                         Cas_n;
-    input                         We_n;
-    input                 [1 : 0] Dqm;
-
-    reg       [data_bits - 1 : 0] Bank0 [0 : mem_sizes];
-    reg       [data_bits - 1 : 0] Bank1 [0 : mem_sizes];
-    reg       [data_bits - 1 : 0] Bank2 [0 : mem_sizes];
-    reg       [data_bits - 1 : 0] Bank3 [0 : mem_sizes];
-       reg       [31 : 0] Bank0_32bit [0 : (mem_sizes/2)]; // Temporary 32-bit wide array to hold readmemh()'d data before loading into 16-bit wide array
+   reg [data_bits - 1 : 0] 	 Bank0 [0 : mem_sizes];
+   reg [data_bits - 1 : 0] 	 Bank1 [0 : mem_sizes];
+   reg [data_bits - 1 : 0] 	 Bank2 [0 : mem_sizes];
+   reg [data_bits - 1 : 0] 	 Bank3 [0 : mem_sizes];
+   reg [31 : 0] 		 Bank0_32bit [0 : (mem_sizes/2)]; // Temporary 32-bit wide array to hold readmemh()'d data before loading into 16-bit wide array
     reg                   [1 : 0] Bank_addr [0 : 3];                // Bank Address Pipeline
     reg        [col_bits - 1 : 0] Col_addr [0 : 3];                 // Column Address Pipeline
     reg                   [3 : 0] Command [0 : 3];                  // Command Operation Pipeline
@@ -1152,9 +1150,93 @@ end
 	   data = short[7:0];
 
 	 //$display("SDRAM addr 0x%0h, bank %0d, short 0x%0h, byte 0x%0h", addr, bank, short, data);
-	 
-	 
       end
    endtask // get_byte
+
+   task set_byte;
+      input [31:0] addr;
+      input [7:0] data;
+      reg [1:0]	   bank;
+      reg [15:0]   short;
+      
+      begin
+	 bank = addr[24:23];
+	 
+	 case(bank)
+	   2'b00:
+	     short = Bank0[addr[22:1]];
+	   2'b01:
+	     short = Bank1[addr[22:1]];
+	   2'b10:
+	     short = Bank2[addr[22:1]];
+	   2'b11:
+	     short = Bank3[addr[22:1]];
+	 endcase // case (bank)
+
+	 // set the byte in the short
+	 if (!addr[0])
+	   short[15:8] = data;
+	 else
+	   short[7:0] = data;
+
+	 // Write short back to memory
+	 case(bank)
+	   2'b00:
+	     Bank0[addr[22:1]] = short;
+	   2'b01:
+	     Bank1[addr[22:1]] = short;
+	   2'b10:
+	     Bank2[addr[22:1]] = short;
+	   2'b11:
+	     Bank3[addr[22:1]] = short;
+	 endcase // case (bank)
+	 
+      end
+   endtask // set_byte
+
+   task get_short;
+      input [31:0] addr;
+      output [15:0] data;
+      reg [1:0]	   bank;
+      reg [15:0]   short;
+      
+      begin
+	 bank = addr[24:23];
+	 
+	 case(bank)
+	   2'b00:
+	     short = Bank0[addr[22:1]];
+	   2'b01:
+	     short = Bank1[addr[22:1]];
+	   2'b10:
+	     short = Bank2[addr[22:1]];
+	   2'b11:
+	     short = Bank3[addr[22:1]];
+	 endcase // case (bank)
+
+	 data = short;
+      end
+   endtask // get_short
+   
+   task set_short;
+      input [31:0] addr;
+      input [15:0] data;
+      reg [1:0]	   bank;
+      begin
+	 bank = addr[24:23];
+	 
+	 // Write short back to memory
+	 case(bank)
+	   2'b00:
+	     Bank0[addr[22:1]] = data;
+	   2'b01:
+	     Bank1[addr[22:1]] = data;
+	   2'b10:
+	     Bank2[addr[22:1]] = data;
+	   2'b11:
+	     Bank3[addr[22:1]] = data;
+	 endcase // case (bank)
+      end
+   endtask // set_short
    
 endmodule
