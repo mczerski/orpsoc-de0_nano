@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ///                                                               //// 
-/// ORPSoC ML501 testbench                                        ////
+/// ORPSoC Atlys testbench                                        ////
 ///                                                               ////
 /// Instantiate ORPSoC, monitors, provide stimulus                ////
 ///                                                               ////
@@ -111,7 +111,7 @@ module orpsoc_testbench;
 `ifdef XILINX_DDR2
  `include "xilinx_ddr2_params.v"
    localparam DEVICE_WIDTH    = 16;      // Memory device data width
-   localparam real 	     CLK_PERIOD_NS   = CLK_PERIOD / 1000.0;
+   localparam real 	     CLK_PERIOD_NS   = C3_MEMCLK_PERIOD / 1000.0;
    localparam real 	     TCYC_200           = 5.0;
    localparam real 	     TPROP_DQS          = 0.00;  // Delay for DQS signal during Write Operation
    localparam real 	     TPROP_DQS_RD       = 0.00;  // Delay for DQS signal during Read Operation
@@ -122,8 +122,12 @@ module orpsoc_testbench;
    wire [DQ_WIDTH-1:0] 	     ddr2_dq_sdram;
    wire [DQS_WIDTH-1:0]      ddr2_dqs_sdram;
    wire [DQS_WIDTH-1:0]      ddr2_dqs_n_sdram;
+   wire 		     ddr2_udqs_sdram;
+   wire 		     ddr2_udqs_n_sdram;
    wire [DM_WIDTH-1:0] 	     ddr2_dm_sdram;
+   wire 		     ddr2_udm_sdram;
    reg [DM_WIDTH-1:0] 	     ddr2_dm_sdram_tmp;
+   reg 			     ddr2_udm_sdram_tmp;
    reg [CLK_WIDTH-1:0] 	     ddr2_ck_sdram;
    reg [CLK_WIDTH-1:0] 	     ddr2_ck_n_sdram;
    reg [ROW_WIDTH-1:0] 	     ddr2_a_sdram;
@@ -131,14 +135,16 @@ module orpsoc_testbench;
    reg 			     ddr2_ras_n_sdram;
    reg 			     ddr2_cas_n_sdram;
    reg 			     ddr2_we_n_sdram;
-   reg [CS_WIDTH-1:0] 	     ddr2_cs_n_sdram;
    reg [CKE_WIDTH-1:0] 	     ddr2_cke_sdram;
    reg [ODT_WIDTH-1:0] 	     ddr2_odt_sdram;
    
    wire [DQ_WIDTH-1:0] 	     ddr2_dq_fpga;
    wire [DQS_WIDTH-1:0]      ddr2_dqs_fpga;
    wire [DQS_WIDTH-1:0]      ddr2_dqs_n_fpga;
+   wire 		     ddr2_udqs_fpga;
+   wire 		     ddr2_udqs_n_fpga;
    wire [DM_WIDTH-1:0] 	     ddr2_dm_fpga;
+   wire 		     ddr2_udm_fpga;
    wire [CLK_WIDTH-1:0]      ddr2_ck_fpga;
    wire [CLK_WIDTH-1:0]      ddr2_ck_n_fpga;
    wire [ROW_WIDTH-1:0]      ddr2_a_fpga;
@@ -146,21 +152,11 @@ module orpsoc_testbench;
    wire 		     ddr2_ras_n_fpga;
    wire 		     ddr2_cas_n_fpga;
    wire 		     ddr2_we_n_fpga;
-   wire [CS_WIDTH-1:0] 	     ddr2_cs_n_fpga;
    wire [CKE_WIDTH-1:0]      ddr2_cke_fpga;
    wire [ODT_WIDTH-1:0]      ddr2_odt_fpga;
-`endif
-`ifdef XILINX_SSRAM
-   wire 		     sram_clk;
-   wire 		     sram_clk_fb;
-   wire 		     sram_adv_ld_n;
-   wire [3:0] 		     sram_bw;
-   wire 		     sram_cen;
-   wire [21:1] 		     sram_flash_addr;
-   wire [31:0] 		     sram_flash_data;
-   wire 		     sram_flash_oe_n;
-   wire 		     sram_flash_we_n;
-   wire 		     sram_mode;
+
+   wire                      ddr2_rzq;
+   wire	                     ddr2_zio;
 `endif
 
    orpsoc_top dut
@@ -177,27 +173,19 @@ module orpsoc_testbench;
       .ddr2_ras_n			(ddr2_ras_n_fpga),
       .ddr2_cas_n			(ddr2_cas_n_fpga),
       .ddr2_we_n			(ddr2_we_n_fpga),
-      .ddr2_cs_n			(ddr2_cs_n_fpga),
+      .ddr2_rzq                         (ddr2_rzq),
+      .ddr2_zio                         (ddr2_zio),
       .ddr2_odt				(ddr2_odt_fpga),
       .ddr2_cke				(ddr2_cke_fpga),
       .ddr2_dm				(ddr2_dm_fpga),
+      .ddr2_udm                         (ddr2_udm_fpga),
       .ddr2_ck				(ddr2_ck_fpga),
       .ddr2_ck_n			(ddr2_ck_n_fpga),
       .ddr2_dq				(ddr2_dq_fpga),
       .ddr2_dqs				(ddr2_dqs_fpga),
       .ddr2_dqs_n			(ddr2_dqs_n_fpga),
-`endif
-`ifdef XILINX_SSRAM
-      .sram_clk                         (sram_clk),
-      .sram_flash_addr                  (sram_flash_addr),
-      .sram_cen                         (sram_cen),
-      .sram_flash_oe_n                  (sram_flash_oe_n),
-      .sram_flash_we_n                  (sram_flash_we_n),
-      .sram_bw                          (sram_bw),
-      .sram_adv_ld_n                    (sram_adv_ld_n),
-      .sram_mode                        (sram_mode),
-      .sram_clk_fb                      (sram_clk_fb),
-      .sram_flash_data                  (sram_flash_data),
+      .ddr2_udqs                        (ddr2_udqs_fpga),
+      .ddr2_udqs_n                      (ddr2_udqs_n_fpga),
 `endif
 `ifdef UART0      
       .uart0_stx_pad_o			(uart0_stx_pad_o),
@@ -206,13 +194,10 @@ module orpsoc_testbench;
       .uart0_srx_expheader_pad_i	(uart0_srx_pad_i),
 `endif
 `ifdef SPI0
-      /*
-       via STARTUP_VIRTEX5
        .spi0_sck_o			(spi0_sck_o),
        .spi0_miso_i			(spi0_miso_i),
-       */
-      .spi0_mosi_o			(spi0_mosi_o),
-      .spi0_ss_o			(spi0_ss_o),
+       .spi0_mosi_o			(spi0_mosi_o),
+       .spi0_ss_o			(spi0_ss_o),
 `endif
 `ifdef I2C0
       .i2c0_sda_io			(i2c_sda),
@@ -241,8 +226,7 @@ module orpsoc_testbench;
       .eth0_md_pad_io                   (eth0_md_pad_io),
 `endif //  `ifdef ETH0
 
-      .sys_clk_in_p                     (clk_p),
-      .sys_clk_in_n                     (clk_n),
+      .sys_clk_in                       (clk),
 
       .rst_n_pad_i			(rst_n)      
       );
@@ -284,14 +268,10 @@ module orpsoc_testbench;
 `endif //  `ifdef JTAG_DEBUG
    
 `ifdef SPI0
-   // STARTUP_VIRTEX5 module routes these out on the board.
-   // So for now just connect directly to the internals here.
-   assign spi0_sck_o = dut.spi0_sck_o;
-   assign dut.spi0_miso_i = spi0_miso_i;
    
    // SPI flash memory - M25P16 compatible SPI protocol
    AT26DFxxx
-     #(.MEMSIZE(2048*1024)) // 2MB flash on ML501
+     #(.MEMSIZE(16384*1024)) // 16MB flash on Atlys
      spi0_flash
      (// Outputs
       .SO					(spi0_miso_i),
@@ -342,43 +322,10 @@ module orpsoc_testbench;
 
 `endif //  `ifdef ETH0
 
-`ifdef XILINX_SSRAM
-   wire [18:0] 		     sram_a;
-   wire [3:0] 		     dqp;   
-   
-   assign sram_a[18:0] = sram_flash_addr[19:1];   
-   wire 		     sram_ce1b, sram_ce2, sram_ce3b;
-   assign sram_ce1b = 1'b0;
-   assign sram_ce2 = 1'b1;   
-   assign sram_ce3b = 1'b0;   
-   assign sram_clk_fb = sram_clk;   
-
-   cy7c1354 ssram0
-     (
-      // Inouts
-      // This model puts each parity bit after each byte, but the ML501's part
-      // doesn't, so we wire up the data bus like so.
-      .d				({dqp[3],sram_flash_data[31:24],
-					  dqp[2],sram_flash_data[23:16],
-					  dqp[1],sram_flash_data[15:8],
-					  dqp[0],sram_flash_data[7:0]}),
-      // Inputs
-      .clk				(sram_clk),
-      .we_b				(sram_flash_we_n),
-      .adv_lb				(sram_adv_ld_n),
-      .ce1b				(sram_ce1b),
-      .ce2				(sram_ce2),
-      .ce3b				(sram_ce3b),
-      .oeb				(sram_flash_oe_n),
-      .cenb				(sram_cen),
-      .mode				(sram_mode),
-      .bws				(sram_bw),
-      .a				(sram_a));
-`endif
-
 `ifdef XILINX_DDR2
  `ifndef GATE_SIM
-   defparam dut.xilinx_ddr2_0.xilinx_ddr2_if0.ddr2_mig0.SIM_ONLY = 1;
+   defparam dut.xilinx_ddr2_0.xilinx_ddr2_if0.ddr2_mig.C3_SIMULATION = "TRUE";
+   defparam dut.xilinx_ddr2_0.xilinx_ddr2_if0.ddr2_mig.DEBUG_EN = 1;
  `endif
 
    always @( * ) begin
@@ -389,12 +336,13 @@ module orpsoc_testbench;
       ddr2_ras_n_sdram      <=  #(TPROP_PCB_CTRL) ddr2_ras_n_fpga;
       ddr2_cas_n_sdram      <=  #(TPROP_PCB_CTRL) ddr2_cas_n_fpga;
       ddr2_we_n_sdram       <=  #(TPROP_PCB_CTRL) ddr2_we_n_fpga;
-      ddr2_cs_n_sdram       <=  #(TPROP_PCB_CTRL) ddr2_cs_n_fpga;
       ddr2_cke_sdram        <=  #(TPROP_PCB_CTRL) ddr2_cke_fpga;
       ddr2_odt_sdram        <=  #(TPROP_PCB_CTRL) ddr2_odt_fpga;
       ddr2_dm_sdram_tmp     <=  #(TPROP_PCB_DATA) ddr2_dm_fpga;//DM signal generation
+      ddr2_udm_sdram_tmp     <=  #(TPROP_PCB_DATA) ddr2_udm_fpga;//DM signal generation
    end // always @ ( * )
    
+   PULLDOWN ddr2_zio_pulldown (.O(ddr2_zio));   PULLDOWN ddr2_rzq_pulldown (.O(ddr2_rzq));
    // Model delays on bi-directional BUS
    genvar dqwd;
    generate
@@ -441,18 +389,37 @@ module orpsoc_testbench;
 	    );
       end
    endgenerate
+   wiredelay #
+     (
+      .Delay_g     (TPROP_DQS),
+      .Delay_rd    (TPROP_DQS_RD)
+      )
+   u_delay_udqs
+     (
+      .A           (ddr2_udqs_fpga),
+      .B           (ddr2_udqs_sdram),
+      .reset       (rst_n)
+      );
    
-   assign ddr2_dm_sdram = ddr2_dm_sdram_tmp;
+   wiredelay #
+     (
+      .Delay_g     (TPROP_DQS),
+      .Delay_rd    (TPROP_DQS_RD)
+      )
+   u_delay_udqs_n
+     (
+      .A           (ddr2_udqs_n_fpga),
+      .B           (ddr2_udqs_n_sdram),
+      .reset       (rst_n)
+      ); 
+   
+   assign ddr2_dm_sdram  = ddr2_dm_sdram_tmp;
+   assign ddr2_udm_sdram = ddr2_udm_sdram_tmp;
    parameter NUM_PROGRAM_WORDS=1048576;   
    integer ram_ptr, program_word_ptr, k;
    reg [31:0] tmp_program_word;
    reg [31:0] program_array [0:NUM_PROGRAM_WORDS-1]; // 1M words = 4MB
    reg [8*16-1:0] ddr2_ram_mem_line; //8*16-bits= 8 shorts (half-words)
-   genvar 	  i, j;
-   generate
-      // if the data width is multiple of 16
-      for(j = 0; j < CS_NUM; j = j+1) begin : gen_cs // Loop of 1
-         for(i = 0; i < DQS_WIDTH/2; i = i+1) begin : gen // Loop of 4 (DQS_WIDTH=8)
 	    initial
 	      begin
 
@@ -463,26 +430,22 @@ module orpsoc_testbench;
 	    
 	    ddr2_model u_mem0
 	      (
-	       .ck        (ddr2_ck_sdram[CLK_WIDTH*i/DQS_WIDTH]),
-	       .ck_n      (ddr2_ck_n_sdram[CLK_WIDTH*i/DQS_WIDTH]),
-	       .cke       (ddr2_cke_sdram[j]),
-	       .cs_n      (ddr2_cs_n_sdram[CS_WIDTH*i/DQS_WIDTH]),
+	       .ck        (ddr2_ck_sdram),
+	       .ck_n      (ddr2_ck_n_sdram),
+	       .cke       (ddr2_cke_sdram),
+	       .cs_n      (1'b0),
 	       .ras_n     (ddr2_ras_n_sdram),
 	       .cas_n     (ddr2_cas_n_sdram),
 	       .we_n      (ddr2_we_n_sdram),
-	       .dm_rdqs   (ddr2_dm_sdram[(2*(i+1))-1 : i*2]),
+	       .dm_rdqs   ({ddr2_udm_sdram,ddr2_dm_sdram}),
 	       .ba        (ddr2_ba_sdram),
 	       .addr      (ddr2_a_sdram),
-	       .dq        (ddr2_dq_sdram[(16*(i+1))-1 : i*16]),
-	       .dqs       (ddr2_dqs_sdram[(2*(i+1))-1 : i*2]),
-	       .dqs_n     (ddr2_dqs_n_sdram[(2*(i+1))-1 : i*2]),
+	       .dq        (ddr2_dq_sdram),
+	       .dqs       ({ddr2_udqs_sdram,ddr2_dqs_sdram}),
+	       .dqs_n     ({ddr2_udqs_n_sdram,ddr2_dqs_n_sdram}),
 	       .rdqs_n    (),
-	       .odt       (ddr2_odt_sdram[ODT_WIDTH*i/DQS_WIDTH])
+	       .odt       (ddr2_odt_sdram)
 	       );
-         end
-      end
-   endgenerate
-   
 `endif
 
    

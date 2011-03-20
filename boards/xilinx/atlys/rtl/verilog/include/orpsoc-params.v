@@ -93,6 +93,13 @@ parameter wbs_d_eth0_addr_width = 12;
 parameter wbm_eth0_data_width = 32;
 parameter wbm_eth0_addr_width = 32;
 
+// DVI0 defines
+parameter dvi0_wb_adr = 8'h97;
+parameter wbs_d_dvi0_data_width = 32;
+parameter wbs_d_dvi0_addr_width = 12;
+parameter wbm_dvi0_data_width = 32;
+parameter wbm_dvi0_addr_width = 32;
+
 // Memory sizing for synthesis (small)
 parameter internal_sram_mem_span = 32'h0080_0000;
 parameter internal_sram_adr_width_for_span = 23;   
@@ -127,13 +134,13 @@ parameter ibus_arb_slave1_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 // Data bus              //
 //                       //
 ///////////////////////////
-// Has auto foward to last slave when no address hits
+// Has auto foward to slave2 when no address hits
 parameter dbus_arb_wb_addr_match_width = 8;
 parameter dbus_arb_wb_num_slaves = 5;
 // Slave addresses
 parameter dbus_arb_slave0_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 parameter dbus_arb_slave1_adr = eth0_wb_adr; // Ethernet 0
-
+parameter dbus_arb_slave3_adr = dvi0_wb_adr;
 ///////////////////////////////
 //                           //
 // Byte-wide peripheral bus  //

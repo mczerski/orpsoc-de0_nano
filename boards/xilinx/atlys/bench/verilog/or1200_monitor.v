@@ -451,7 +451,8 @@ module or1200_monitor;
 `endif //  `ifdef VERSATILE_SDRAM
 
 `ifdef XILINX_DDR2
- `define DDR2_TOP `TB_TOP.gen_cs[0]
+   //SJK this needs to be fixed
+//SJK  `define DDR2_TOP `TB_TOP.gen_cs[0]
    // Gets instruction word from correct bank
    task get_insn_from_xilinx_ddr2;
       input [31:0] addr;
@@ -462,10 +463,17 @@ module or1200_monitor;
       begin
 	 // Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 
 	 // 16 words total
+/* SJK
 	 `DDR2_TOP.gen[0].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line0);
 	 `DDR2_TOP.gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line1);
 	 `DDR2_TOP.gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line2);
 	 `DDR2_TOP.gen[3].u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line3);
+*/
+	 u_mem0.memory_read(addr[28:27],addr[26:13],{addr[12:6],3'd0},ddr2_array_line0);
+	 insn[31:0] = ddr2_array_line0[31:0];
+	 $display("SJK DEBUG");
+	 
+/*
 	 case (addr[5:2])
 	   4'h0:
 	     begin
@@ -548,6 +556,7 @@ module or1200_monitor;
 		insn[31:16] = ddr2_array_line3[127:112];
 	     end	   
 	 endcase // case (addr[5:2])
+SJK */
       end
    endtask // get_insn_from_xilinx_ddr2
 `endif   

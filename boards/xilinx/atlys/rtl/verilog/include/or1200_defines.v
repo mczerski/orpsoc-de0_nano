@@ -367,7 +367,7 @@
 // implement MAC, multiplier (non-serial) needs to be
 // implemented.
 //
-`define OR1200_MAC_IMPLEMENTED
+//`define OR1200_MAC_IMPLEMENTED
 
 //
 // Implement optional l.div/l.divu instructions
@@ -393,7 +393,7 @@
 //
 // Implement HW Single Precision FPU
 //
-`define OR1200_FPU_IMPLEMENTED
+//`define OR1200_FPU_IMPLEMENTED
 
 
 //

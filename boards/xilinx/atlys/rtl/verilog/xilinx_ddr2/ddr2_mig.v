@@ -66,18 +66,20 @@
 //*****************************************************************************
 `timescale 1ns/1ps
 
-(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=ede1116axxx-8e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=One 128-bit bi-directional port, C3_MEM_ADDR_ORDER=BANK_ROW_COLUMN, C3_PORT_ENABLE=Port0, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
+(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=ede1116axxx-8e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=Four 32-bit bi-directional ports, C3_MEM_ADDR_ORDER=ROW_BANK_COLUMN, C3_PORT_ENABLE=Port0_Port1_Port2_Port3, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
 module ddr2_mig #
 (
-   parameter C3_P0_MASK_SIZE           = 16,
-   parameter C3_P0_DATA_PORT_SIZE      = 128,
+   parameter C3_P0_MASK_SIZE           = 4,
+   parameter C3_P0_DATA_PORT_SIZE      = 32,
+   parameter C3_P1_MASK_SIZE           = 4,
+   parameter C3_P1_DATA_PORT_SIZE      = 32,
    parameter DEBUG_EN                = 0,       
    parameter C3_MEMCLK_PERIOD        = 3750,       
    parameter C3_CALIB_SOFT_IP        = "TRUE",       
    parameter C3_SIMULATION           = "FALSE",       
    parameter C3_RST_ACT_LOW          = 0,       
    parameter C3_INPUT_CLK_TYPE       = "SINGLE_ENDED",       
-   parameter C3_MEM_ADDR_ORDER       = "BANK_ROW_COLUMN",       
+   parameter C3_MEM_ADDR_ORDER       = "ROW_BANK_COLUMN",       
    parameter C3_NUM_DQ_PINS          = 16,       
    parameter C3_MEM_ADDR_WIDTH       = 13,       
    parameter C3_MEM_BANKADDR_WIDTH   = 3        
@@ -131,7 +133,79 @@ module ddr2_mig #
       output		c3_p0_rd_empty,
       output [6:0]	c3_p0_rd_count,
       output		c3_p0_rd_overflow,
-      output		c3_p0_rd_error
+      output		c3_p0_rd_error,
+      input		c3_p1_cmd_clk,
+      input		c3_p1_cmd_en,
+      input [2:0]	c3_p1_cmd_instr,
+      input [5:0]	c3_p1_cmd_bl,
+      input [29:0]	c3_p1_cmd_byte_addr,
+      output		c3_p1_cmd_empty,
+      output		c3_p1_cmd_full,
+      input		c3_p1_wr_clk,
+      input		c3_p1_wr_en,
+      input [C3_P1_MASK_SIZE - 1:0]	c3_p1_wr_mask,
+      input [C3_P1_DATA_PORT_SIZE - 1:0]	c3_p1_wr_data,
+      output		c3_p1_wr_full,
+      output		c3_p1_wr_empty,
+      output [6:0]	c3_p1_wr_count,
+      output		c3_p1_wr_underrun,
+      output		c3_p1_wr_error,
+      input		c3_p1_rd_clk,
+      input		c3_p1_rd_en,
+      output [C3_P1_DATA_PORT_SIZE - 1:0]	c3_p1_rd_data,
+      output		c3_p1_rd_full,
+      output		c3_p1_rd_empty,
+      output [6:0]	c3_p1_rd_count,
+      output		c3_p1_rd_overflow,
+      output		c3_p1_rd_error,
+      input		c3_p2_cmd_clk,
+      input		c3_p2_cmd_en,
+      input [2:0]	c3_p2_cmd_instr,
+      input [5:0]	c3_p2_cmd_bl,
+      input [29:0]	c3_p2_cmd_byte_addr,
+      output		c3_p2_cmd_empty,
+      output		c3_p2_cmd_full,
+      input		c3_p2_wr_clk,
+      input		c3_p2_wr_en,
+      input [3:0]	c3_p2_wr_mask,
+      input [31:0]	c3_p2_wr_data,
+      output		c3_p2_wr_full,
+      output		c3_p2_wr_empty,
+      output [6:0]	c3_p2_wr_count,
+      output		c3_p2_wr_underrun,
+      output		c3_p2_wr_error,
+      input		c3_p2_rd_clk,
+      input		c3_p2_rd_en,
+      output [31:0]	c3_p2_rd_data,
+      output		c3_p2_rd_full,
+      output		c3_p2_rd_empty,
+      output [6:0]	c3_p2_rd_count,
+      output		c3_p2_rd_overflow,
+      output		c3_p2_rd_error,
+      input		c3_p3_cmd_clk,
+      input		c3_p3_cmd_en,
+      input [2:0]	c3_p3_cmd_instr,
+      input [5:0]	c3_p3_cmd_bl,
+      input [29:0]	c3_p3_cmd_byte_addr,
+      output		c3_p3_cmd_empty,
+      output		c3_p3_cmd_full,
+      input		c3_p3_wr_clk,
+      input		c3_p3_wr_en,
+      input [3:0]	c3_p3_wr_mask,
+      input [31:0]	c3_p3_wr_data,
+      output		c3_p3_wr_full,
+      output		c3_p3_wr_empty,
+      output [6:0]	c3_p3_wr_count,
+      output		c3_p3_wr_underrun,
+      output		c3_p3_wr_error,
+      input		c3_p3_rd_clk,
+      input		c3_p3_rd_en,
+      output [31:0]	c3_p3_rd_data,
+      output		c3_p3_rd_full,
+      output		c3_p3_rd_empty,
+      output [6:0]	c3_p3_rd_count,
+      output		c3_p3_rd_overflow,
+      output		c3_p3_rd_error
 );
 // The parameter CX_PORT_ENABLE shows all the active user ports in the design.
 // For example, the value 6'b111100 tells that only port-2, port-3, port-4
@@ -141,30 +215,28 @@ module ddr2_mig #
 // Config-2: Four 32-bit bi-directional ports and the ports port-2 through
 // port-5 in Config-4: Two 64-bit bi-directional ports. Please look into the 
 // Chapter-2 of ug388.pdf in the /docs directory for further details.
-   localparam  C3_P1_MASK_SIZE           =16;
-   localparam  C3_P1_DATA_PORT_SIZE      =128;
-   localparam C3_PORT_ENABLE              = 6'b000001;
-   localparam C3_PORT_CONFIG             =  "B128";
+   localparam C3_PORT_ENABLE              = 6'b001111;
+   localparam C3_PORT_CONFIG             =  "B32_B32_B32_B32";
    localparam C3_CLKOUT0_DIVIDE       = 1;       
    localparam C3_CLKOUT1_DIVIDE       = 1;       
-   localparam C3_CLKOUT2_DIVIDE       = 4;       
+   localparam C3_CLKOUT2_DIVIDE       = 16;       
    localparam C3_CLKOUT3_DIVIDE       = 8;       
    localparam C3_CLKFBOUT_MULT        = 2;       
    localparam C3_DIVCLK_DIVIDE        = 1;       
    localparam C3_ARB_ALGORITHM        = 0;       
    localparam C3_ARB_NUM_TIME_SLOTS   = 12;       
-   localparam C3_ARB_TIME_SLOT_0      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_1      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_2      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_3      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_4      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_5      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_6      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_7      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_8      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_9      = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_10     = 3'o0;       
-   localparam C3_ARB_TIME_SLOT_11     = 3'o0;       
+   localparam C3_ARB_TIME_SLOT_0      = 12'o0124;       
+   localparam C3_ARB_TIME_SLOT_1      = 12'o1240;       
+   localparam C3_ARB_TIME_SLOT_2      = 12'o2401;       
+   localparam C3_ARB_TIME_SLOT_3      = 12'o4012;       
+   localparam C3_ARB_TIME_SLOT_4      = 12'o0124;       
+   localparam C3_ARB_TIME_SLOT_5      = 12'o1240;       
+   localparam C3_ARB_TIME_SLOT_6      = 12'o2401;       
+   localparam C3_ARB_TIME_SLOT_7      = 12'o4012;       
+   localparam C3_ARB_TIME_SLOT_8      = 12'o0124;       
+   localparam C3_ARB_TIME_SLOT_9      = 12'o1240;       
+   localparam C3_ARB_TIME_SLOT_10     = 12'o2401;       
+   localparam C3_ARB_TIME_SLOT_11     = 12'o4012;       
    localparam C3_MEM_TRAS             = 45000;       
    localparam C3_MEM_TRCD             = 12500;       
    localparam C3_MEM_TREFI            = 7800000;       
@@ -175,7 +247,7 @@ module ddr2_mig #
    localparam C3_MEM_TWTR             = 7500;       
    localparam C3_MEM_TYPE             = "DDR2";       
    localparam C3_MEM_DENSITY          = "1Gb";       
-   localparam C3_MEM_BURST_LEN        = 8;       
+   localparam C3_MEM_BURST_LEN        = 4;       
    localparam C3_MEM_CAS_LATENCY      = 4;       
    localparam C3_MEM_NUM_COL_BITS     = 10;       
    localparam C3_MEM_DDR1_2_ODS       = "FULL";       
@@ -217,18 +289,18 @@ module ddr2_mig #
    localparam C3_DQ15_TAP_DELAY_VAL   = 0;       
    localparam C3_MCB_USE_EXTERNAL_BUFPLL  = 1;       
    localparam C3_INCLK_PERIOD         = ((C3_MEMCLK_PERIOD * C3_CLKFBOUT_MULT) / (C3_DIVCLK_DIVIDE * C3_CLKOUT0_DIVIDE * 2));       
-   localparam C3_ARB_TIME0_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_0[2:0]};
-   localparam C3_ARB_TIME1_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_1[2:0]};
-   localparam C3_ARB_TIME2_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_2[2:0]};
-   localparam C3_ARB_TIME3_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_3[2:0]};
-   localparam C3_ARB_TIME4_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_4[2:0]};
-   localparam C3_ARB_TIME5_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_5[2:0]};
-   localparam C3_ARB_TIME6_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_6[2:0]};
-   localparam C3_ARB_TIME7_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_7[2:0]};
-   localparam C3_ARB_TIME8_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_8[2:0]};
-   localparam C3_ARB_TIME9_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_9[2:0]};
-   localparam C3_ARB_TIME10_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_10[2:0]};
-   localparam C3_ARB_TIME11_SLOT  = {3'b111, 3'b111, 3'b111, 3'b111, 3'b111, C3_ARB_TIME_SLOT_11[2:0]};
+   localparam C3_ARB_TIME0_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_0[2:0], C3_ARB_TIME_SLOT_0[5:3], C3_ARB_TIME_SLOT_0[8:6], C3_ARB_TIME_SLOT_0[11:9]};
+   localparam C3_ARB_TIME1_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_1[2:0], C3_ARB_TIME_SLOT_1[5:3], C3_ARB_TIME_SLOT_1[8:6], C3_ARB_TIME_SLOT_1[11:9]};
+   localparam C3_ARB_TIME2_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_2[2:0], C3_ARB_TIME_SLOT_2[5:3], C3_ARB_TIME_SLOT_2[8:6], C3_ARB_TIME_SLOT_2[11:9]};
+   localparam C3_ARB_TIME3_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_3[2:0], C3_ARB_TIME_SLOT_3[5:3], C3_ARB_TIME_SLOT_3[8:6], C3_ARB_TIME_SLOT_3[11:9]};
+   localparam C3_ARB_TIME4_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_4[2:0], C3_ARB_TIME_SLOT_4[5:3], C3_ARB_TIME_SLOT_4[8:6], C3_ARB_TIME_SLOT_4[11:9]};
+   localparam C3_ARB_TIME5_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_5[2:0], C3_ARB_TIME_SLOT_5[5:3], C3_ARB_TIME_SLOT_5[8:6], C3_ARB_TIME_SLOT_5[11:9]};
+   localparam C3_ARB_TIME6_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_6[2:0], C3_ARB_TIME_SLOT_6[5:3], C3_ARB_TIME_SLOT_6[8:6], C3_ARB_TIME_SLOT_6[11:9]};
+   localparam C3_ARB_TIME7_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_7[2:0], C3_ARB_TIME_SLOT_7[5:3], C3_ARB_TIME_SLOT_7[8:6], C3_ARB_TIME_SLOT_7[11:9]};
+   localparam C3_ARB_TIME8_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_8[2:0], C3_ARB_TIME_SLOT_8[5:3], C3_ARB_TIME_SLOT_8[8:6], C3_ARB_TIME_SLOT_8[11:9]};
+   localparam C3_ARB_TIME9_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_9[2:0], C3_ARB_TIME_SLOT_9[5:3], C3_ARB_TIME_SLOT_9[8:6], C3_ARB_TIME_SLOT_9[11:9]};
+   localparam C3_ARB_TIME10_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_10[2:0], C3_ARB_TIME_SLOT_10[5:3], C3_ARB_TIME_SLOT_10[8:6], C3_ARB_TIME_SLOT_10[11:9]};
+   localparam C3_ARB_TIME11_SLOT  = {3'b111, 3'b111, C3_ARB_TIME_SLOT_11[2:0], C3_ARB_TIME_SLOT_11[5:3], C3_ARB_TIME_SLOT_11[8:6], C3_ARB_TIME_SLOT_11[11:9]};
 
   wire                              c3_sys_clk_p;
   wire                              c3_sys_clk_n;
@@ -245,78 +317,6 @@ module ddr2_mig #
   wire  [2:0]                      c3_vio_data_mode_value;
   wire  [2:0]                      c3_vio_addr_mode_value;
   wire  [31:0]                      c3_cmp_data;
-wire				c3_p1_cmd_clk;
-wire				c3_p1_cmd_en;
-wire[2:0]			c3_p1_cmd_instr;
-wire[5:0]			c3_p1_cmd_bl;
-wire[29:0]			c3_p1_cmd_byte_addr;
-wire				c3_p1_cmd_empty;
-wire				c3_p1_cmd_full;
-wire				c3_p1_wr_clk;
-wire				c3_p1_wr_en;
-wire[C3_P1_MASK_SIZE-1:0]	c3_p1_wr_mask;
-wire[C3_P1_DATA_PORT_SIZE-1:0]	c3_p1_wr_data;
-wire				c3_p1_wr_full;
-wire				c3_p1_wr_empty;
-wire[6:0]			c3_p1_wr_count;
-wire				c3_p1_wr_underrun;
-wire				c3_p1_wr_error;
-wire				c3_p1_rd_clk;
-wire				c3_p1_rd_en;
-wire[C3_P1_DATA_PORT_SIZE-1:0]	c3_p1_rd_data;
-wire				c3_p1_rd_full;
-wire				c3_p1_rd_empty;
-wire[6:0]			c3_p1_rd_count;
-wire				c3_p1_rd_overflow;
-wire				c3_p1_rd_error;
-wire				c3_p2_cmd_clk;
-wire				c3_p2_cmd_en;
-wire[2:0]			c3_p2_cmd_instr;
-wire[5:0]			c3_p2_cmd_bl;
-wire[29:0]			c3_p2_cmd_byte_addr;
-wire				c3_p2_cmd_empty;
-wire				c3_p2_cmd_full;
-wire				c3_p2_wr_clk;
-wire				c3_p2_wr_en;
-wire[3:0]			c3_p2_wr_mask;
-wire[31:0]			c3_p2_wr_data;
-wire				c3_p2_wr_full;
-wire				c3_p2_wr_empty;
-wire[6:0]			c3_p2_wr_count;
-wire				c3_p2_wr_underrun;
-wire				c3_p2_wr_error;
-wire				c3_p2_rd_clk;
-wire				c3_p2_rd_en;
-wire[31:0]			c3_p2_rd_data;
-wire				c3_p2_rd_full;
-wire				c3_p2_rd_empty;
-wire[6:0]			c3_p2_rd_count;
-wire				c3_p2_rd_overflow;
-wire				c3_p2_rd_error;
-wire				c3_p3_cmd_clk;
-wire				c3_p3_cmd_en;
-wire[2:0]			c3_p3_cmd_instr;
-wire[5:0]			c3_p3_cmd_bl;
-wire[29:0]			c3_p3_cmd_byte_addr;
-wire				c3_p3_cmd_empty;
-wire				c3_p3_cmd_full;
-wire				c3_p3_wr_clk;
-wire				c3_p3_wr_en;
-wire[3:0]			c3_p3_wr_mask;
-wire[31:0]			c3_p3_wr_data;
-wire				c3_p3_wr_full;
-wire				c3_p3_wr_empty;
-wire[6:0]			c3_p3_wr_count;
-wire				c3_p3_wr_underrun;
-wire				c3_p3_wr_error;
-wire				c3_p3_rd_clk;
-wire				c3_p3_rd_en;
-wire[31:0]			c3_p3_rd_data;
-wire				c3_p3_rd_full;
-wire				c3_p3_rd_empty;
-wire[6:0]			c3_p3_rd_count;
-wire				c3_p3_rd_overflow;
-wire				c3_p3_rd_error;
 wire				c3_p4_cmd_clk;
 wire				c3_p4_cmd_en;
 wire[2:0]			c3_p4_cmd_instr;

@@ -732,6 +732,7 @@ module orpsoc_top
    defparam arbiter_dbus0.wb_num_slaves = dbus_arb_wb_num_slaves;
    defparam arbiter_dbus0.slave0_adr = dbus_arb_slave0_adr;
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
+   defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
 
    //
    // Wishbone byte-wide bus arbiter

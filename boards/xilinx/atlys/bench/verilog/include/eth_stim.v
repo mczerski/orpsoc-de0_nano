@@ -463,10 +463,14 @@ initial
       begin
 	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 
 	// 16 words total
-	 gen_cs[0].gen[0].u_mem0.memory_read(addr[28:27],addr[26:13],
+	 //SJK FIXME!!
+	 u_mem0.memory_read(addr[28:27],addr[26:13],
 					     {addr[12:6],3'd0},
 					     ddr2_array_line0);
-	 gen_cs[0].gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],
+	 insn[31:0] = ddr2_array_line0[31:0];
+	 
+/*
+	 en_cs[0].gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],
 					     {addr[12:6],3'd0},
 					     ddr2_array_line1);
 	 gen_cs[0].gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],
@@ -557,6 +561,7 @@ initial
 		insn[31:16] = ddr2_array_line3[127:112];
 	     end	   
 	 endcase // case (addr[5:2])
+ */
       end
    endtask
    

@@ -41,14 +41,15 @@ CONFIG VCCAUX  = 3.3;
 # NET "FlashMemDq<3>" LOC = "V14"; # Bank = 2, Pin name = IO_L12N_D2_MISO3_2, 		 Sch name = DQ3
 #
 ## onBoard Leds
- NET "gpio0_io<0>" LOC = "U18"; # Bank = 1, Pin name = IO_L52N_M1DQ15, 	   Sch name = LD0
- NET "gpio0_io<1>" LOC = "M14"; # Bank = 1, Pin name = IO_L53P, 		 	   Sch name = LD1
- NET "gpio0_io<2>" LOC = "N14"; # Bank = 1, Pin name = IO_L53N_VREF, 	   Sch name = LD2
- NET "gpio0_io<3>" LOC = "L14"; # Bank = 1, Pin name = IO_L61P, 		 	   Sch name = LD3
- NET "gpio0_io<4>" LOC = "M13"; # Bank = 1, Pin name = IO_L61N, 		 	   Sch name = LD4
- NET "gpio0_io<5>" LOC = "D4";  # Bank = 0, Pin name = IO_L1P_HSWAPEN_0,	   Sch name = HSWAP/LD5
- NET "gpio0_io<6>" LOC = "P16"; # Bank = 1, Pin name = IO_L74N_DOUT_BUSY_1, Sch name = LD6
- NET "gpio0_io<7>" LOC = "N12"; # Bank = 2, Pin name = IO_L13P_M1_2,		   Sch name = M1/LD7
+NET "gpio0_io[0]" LOC = U18; # Bank = 1, Pin name = IO_L52N_M1DQ15, 	   Sch name = LD0
+NET "gpio0_io[1]" LOC = M14; # Bank = 1, Pin name = IO_L53P, 		 	   Sch name = LD1
+NET "gpio0_io[2]" LOC = N14; # Bank = 1, Pin name = IO_L53N_VREF, 	   Sch name = LD2
+NET "gpio0_io[3]" LOC = L14; # Bank = 1, Pin name = IO_L61P, 		 	   Sch name = LD3
+NET "gpio0_io[4]" LOC = M13; # Bank = 1, Pin name = IO_L61N, 		 	   Sch name = LD4
+NET "gpio0_io[5]" LOC = D4 | IOSTANDARD = LVCMOS33; # Bank = 0, Pin name = IO_L1P_HSWAPEN_0,	   Sch name = HSWAP/LD5
+NET "gpio0_io[6]" LOC = P16; # Bank = 1, Pin name = IO_L74N_DOUT_BUSY_1, Sch name = LD6
+NET "gpio0_io[7]" LOC = N12; # Bank = 2, Pin name = IO_L13P_M1_2,		   Sch name = M1/LD7
+
 # 
 ## onBoard PUSH BUTTONS 
  NET "rst_n_pad_i" LOC = "T15"; # Bank = 2, Pin name = IO_L1N_M0_CMPMISO_2, Sch name = M0/RESET
@@ -186,14 +187,30 @@ NET  "ddr2_zio"                                      IOSTANDARD = SSTL18_II;
  NET "ddr2_odt"      LOC="K6"; # Bank = 3, Pin name = IO_L45N_M3ODT,        		  Sch name = DDR-ODT
 
 ## onboard HDMI OUT
-# NET "HDMIOUTCLKP" LOC = "B6"; # Bank = 0, Pin name = IO_L8P,		  Sch name = TMDS-TX-CLK_P
-# NET "HDMIOUTCLKN" LOC = "A6"; # Bank = 0, Pin name = IO_L8N_VREF,	  Sch name = TMDS-TX-CLK_N
-# NET "HDMIOUTD0P"  LOC = "D8"; # Bank = 0, Pin name = IO_L11P,		  Sch name = TMDS-TX-0_P
-# NET "HDMIOUTD0N"  LOC = "C8"; # Bank = 0, Pin name = IO_L11N,		  Sch name = TMDS-TX-0_N
-# NET "HDMIOUTD1P"  LOC = "C7"; # Bank = 0, Pin name = IO_L10P,		  Sch name = TMDS-TX-1_P
-# NET "HDMIOUTD1N"  LOC = "A7"; # Bank = 0, Pin name = IO_L10N,		  Sch name = TMDS-TX-1_N
-# NET "HDMIOUTD2P"  LOC = "B8"; # Bank = 0, Pin name = IO_L33P,		  Sch name = TMDS-TX-2_P
-# NET "HDMIOUTD2N"  LOC = "A8"; # Bank = 0, Pin name = IO_L33N,		  Sch name = TMDS-TX-2_N
+# Bank = 0, Pin name = IO_L8P,		  Sch name = TMDS-TX-CLK_P
+NET "tmds_o[3]" IOSTANDARD = TMDS_33;
+NET "tmds_o[3]" LOC = B6;
+ # Bank = 0, Pin name = IO_L8N_VREF,	  Sch name = TMDS-TX-CLK_N
+NET "tmdsb_o[3]" IOSTANDARD = TMDS_33;
+NET "tmdsb_o[3]" LOC = A6; 
+# Bank = 0, Pin name = IO_L11P,		  Sch name = TMDS-TX-0_P
+NET "tmds_o[0]" IOSTANDARD = TMDS_33;
+NET "tmds_o[0]" LOC = D8;
+# Bank = 0, Pin name = IO_L11N,		  Sch name = TMDS-TX-0_N
+NET "tmdsb_o[0]" IOSTANDARD = TMDS_33;
+NET "tmdsb_o[0]" LOC = C8;
+# Bank = 0, Pin name = IO_L10P,		  Sch name = TMDS-TX-1_P
+NET "tmds_o[1]" IOSTANDARD = TMDS_33;
+NET "tmds_o[1]" LOC = C7;
+# Bank = 0, Pin name = IO_L10N,		  Sch name = TMDS-TX-1_N
+NET "tmdsb_o[1]" IOSTANDARD = TMDS_33;
+NET "tmdsb_o[1]" LOC = A7;
+# Bank = 0, Pin name = IO_L33P,		  Sch name = TMDS-TX-2_P
+NET "tmds_o[2]" IOSTANDARD = TMDS_33;
+NET "tmds_o[2]" LOC = B8;
+# Bank = 0, Pin name = IO_L33N,		  Sch name = TMDS-TX-2_N
+NET "tmdsb_o[2]" IOSTANDARD = TMDS_33;
+NET "tmdsb_o[2]" LOC = A8;
 # NET "HDMIOUTSCL"  LOC = "D9"; # Bank = 0, Pin name = IO_L34P_GCLK19, Sch name = TMDS-TX-SCL
 # NET "HDMIOUTSDA"  LOC = "C9"; # Bank = 0, Pin name = IO_L34N_GCLK18, Sch name = TMDS-TX-SDA
 #
@@ -289,10 +306,61 @@ NET  "ddr2_zio"                                      IOSTANDARD = SSTL18_II;
 # NET "VHDCIIO2<19>" LOC = "V5";  # Bank = 2,  Pin name = IO_49N_D4,        		Sch name = EXP-IO20_N 
 # 
 ## USB UART Connector
- NET "uart0_srx_pad_i" LOC = "A16"; # Bank = 0, Pin name = IO_L66N_SCP0, Sch name = USBB-RXD
- NET "uart0_stx_pad_o" LOC = "B16"; # Bank = 0, Pin name = IO_L66P_SCP1, Sch name = USBB-TXD
+# Bank = 0, Pin name = IO_L66N_SCP0, Sch name = USBB-RXD
+NET "uart0_srx_pad_i" LOC = A16 | IOSTANDARD = LVCMOS33;
+# Bank = 0, Pin name = IO_L66P_SCP1, Sch name = USBB-TXD
+NET "uart0_stx_pad_o" LOC = B16 | IOSTANDARD = LVCMOS33;
 #
 #
-#Created by Constraints Editor (xc6slx45-csg324-3) - 2011/02/01
-NET "sys_clk_in" TNM_NET = sys_clk_in;
-TIMESPEC TS_sys_clk_in = PERIOD "sys_clk_in" 10 ns HIGH 50%;
+# Constraints
+
+NET "sys_clk_in" TNM_NET = "sys_clk_in";
+TIMESPEC TS_sys_clk_in = PERIOD "sys_clk_in" 100 MHz HIGH 50 %;
+
+NET "wb_clk" TNM_NET = "wb_clk";
+TIMESPEC TS_wb_clk = PERIOD "wb_clk" 50 MHz high 50%;
+
+NET rst_n_pad_i TIG;
+
+NET "gpio0_io<*>" TIG;
+
+# ethernet constraints
+NET eth0_rst_n_o      TIG;
+
+NET "eth0_tx_clk" TNM_NET = "eth0_tx_clk";
+TIMESPEC TS_eth0_tx_clk = PERIOD "eth0_tx_clk" 25 MHz high 50%;
+
+NET "eth0_rx_clk" TNM_NET = "eth0_rx_clk";
+TIMESPEC TS_eth0_rx_clk = PERIOD "eth0_rx_clk" 25 MHz high 50%;
+
+# HDMI constraints
+NET "dvi_gen0/clk50m_bufg" TNM_NET = "TNM_CLK50M";
+TIMESPEC "TS_CLK50M" = PERIOD "TNM_CLK50M" 50 MHz HIGH 50 % PRIORITY 0 ;
+
+NET "pclk" TNM_NET = "TNM_PCLK";
+#TIMESPEC "TS_PCLK" = PERIOD "TNM_PCLK" 108 MHz HIGH 50 % PRIORITY 0 ;
+TIMESPEC "TS_PCLK" = PERIOD "TNM_PCLK" 40 MHz HIGH 50 % PRIORITY 0 ;
+
+NET "dvi_gen0/pclkx2" TNM_NET = "TNM_PCLKX2";
+TIMESPEC "TS_PCLKX2" = PERIOD "TNM_PCLKX2" TS_PCLK * 2;
+
+NET "dvi_gen0/pclkx10" TNM_NET = "TNM_PCLKX10";
+TIMESPEC "TS_PCLKX10" = PERIOD "TNM_PCLKX10" TS_PCLK * 10;
+
+TIMEGRP "bramgrp" = RAMS(dvi_gen0/enc0/pixel2x/dataint<*>);  
+TIMEGRP "fddbgrp" = FFS(dvi_gen0/enc0/pixel2x/db<*>);
+TIMEGRP "bramra" = FFS(dvi_gen0/enc0/pixel2x/ra<*>);
+
+TIMESPEC "TS_ramdo" = FROM "bramgrp" TO "fddbgrp" TS_PCLK;
+TIMESPEC "TS_ramra" = FROM "bramra" TO "fddbgrp" TS_PCLK;
+
+# DDR2 Constraints 
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/selfrefresh_mcb_mode" TIG;
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/c?_pll_lock" TIG;
+     
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/gen_term_calib.mcb_soft_calibration_top_inst/mcb_soft_calibration_inst/CKE_Train" TIG; ##This path exists for DDR2 only
+
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc3_infrastructure_inst/sys_clk_ibufg" TNM_NET = "SYS_CLK3";
+TIMESPEC "TS_SYS_CLK3" = PERIOD "SYS_CLK3"  3.75  ns HIGH 50 %;
+
+

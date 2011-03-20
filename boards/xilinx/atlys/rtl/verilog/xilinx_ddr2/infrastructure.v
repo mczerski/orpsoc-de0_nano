@@ -151,14 +151,14 @@ module infrastructure #
       //***********************************************************************
       // SINGLE_ENDED input clock input buffers
       //***********************************************************************
-/* SJK
+/*SJK
       IBUFG  u_ibufg_sys_clk
           (
            .I  (sys_clk),
            .O  (sys_clk_ibufg)
            );
 */
-   assign sys_clk_ibufg = sys_clk;
+        assign sys_clk_ibufg = sys_clk;
    end
   endgenerate
 

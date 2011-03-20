@@ -58,7 +58,7 @@
 // `define I2C1
  `define ETH0
  `define ETH0_PHY_RST
-
+ `define VGA0
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 
