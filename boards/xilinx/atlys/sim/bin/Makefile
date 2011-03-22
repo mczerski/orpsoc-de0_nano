@@ -147,7 +147,6 @@ TECHNOLOGY_BACKEND_DIR=$(BOARD_DIR)/../backend
 #TECHNOLOGY_BACKEND_VERILOG_DIR=$(TECHNOLOGY_BACKEND_DIR)/rtl/verilog
 # Depends on the XILINX_PATH variable - we check above if it's set properly.
 TECHNOLOGY_BACKEND_VERILOG_DIR=$(XILINX_PATH)/ISE/verilog
-
 TECHNOLOGY_BACKEND_BIN_DIR=$(XILINX_PATH)/ISE/bin/lin
 
 # Synthesis directory for board
@@ -184,9 +183,11 @@ TEST_DEFINES_VLG=test-defines.v
 ifeq ($(V), 1)
 Q=
 QUIET=
+XLIB_INTSTYLE= 
 else
 Q ?=@
 QUIET=-quiet
+XLIB_INTSTYLE=-intstyle silent
 endif
 
 # Modelsim variables
@@ -226,6 +227,9 @@ endif
 # Rule to make the VPI library for modelsim
 $(VPI_SRC_C_DIR)/$(MODELTECH_VPILIB): $(VPI_SRCS)
 	$(MAKE) -C $(VPI_SRC_C_DIR) $(MODELTECH_VPILIB)
+
+# Xilinx Xlib specific settings
+XLIB_ARGS=$(XLIB_INTSTYLE) -s mti_se -l all -arch spartan6 -lib all
 
 #
 # Verilog DUT source variables
@@ -412,7 +416,7 @@ work: modelsim_dut.scr
 .PHONY : $(MODELSIM)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
-	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib -s mti_se -l all -arch spartan6 -lib all 
+	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
 	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
