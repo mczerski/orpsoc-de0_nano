@@ -49,7 +49,7 @@
 
 `timescale 1 ps / 1 ps
 
-module dvi_gen (
+module dvi_gen_top (
   input  wire        rst_n_pad_i,
   input  wire        dvi_clk_i,
   input  wire [15:0] hlen,
@@ -105,6 +105,8 @@ module dvi_gen (
   //////////////////////////////////////
   wire busy;
   reg switch = 1'b0;
+  reg [15:0] hlen_q, vlen_q;
+
   always @ (posedge clk50m_bufg)
   begin
     switch <= pwrup | ({hlen_q,vlen_q} != {hlen,vlen});
@@ -125,7 +127,6 @@ module dvi_gen (
   defparam SRL16E_0.INIT = 16'h0;
 
   reg [7:0] pclk_M, pclk_D;
-  reg [15:0] hlen_q, vlen_q;
 
   always @(posedge clk50m_bufg)
   begin

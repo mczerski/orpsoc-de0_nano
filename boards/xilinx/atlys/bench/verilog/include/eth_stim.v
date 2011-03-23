@@ -461,107 +461,11 @@ initial
 		     ddr2_array_line3;
       integer 	     word_in_line_num;      
       begin
-	// Get our 4 128-bit chunks (8 half-words in each!! Confused yet?), 
-	// 16 words total
-	 //SJK FIXME!!
 	 u_mem0.memory_read(addr[28:27],addr[26:13],
 					     {addr[12:6],3'd0},
 					     ddr2_array_line0);
 	 insn[31:0] = ddr2_array_line0[31:0];
 	 
-/*
-	 en_cs[0].gen[1].u_mem0.memory_read(addr[28:27],addr[26:13],
-					     {addr[12:6],3'd0},
-					     ddr2_array_line1);
-	 gen_cs[0].gen[2].u_mem0.memory_read(addr[28:27],addr[26:13],
-					     {addr[12:6],3'd0},
-					     ddr2_array_line2);
-	 gen_cs[0].gen[3].u_mem0.memory_read(addr[28:27],addr[26:13],
-					     {addr[12:6],3'd0},
-					     ddr2_array_line3);
-	 case (addr[5:2])
-	   4'h0:
-	     begin
-		insn[15:0] = ddr2_array_line0[15:0];
-		insn[31:16] = ddr2_array_line1[15:0];
-	     end
-	   4'h1:
-	     begin
-		insn[15:0] = ddr2_array_line2[15:0];
-		insn[31:16] = ddr2_array_line3[15:0];
-	     end
-	   4'h2:
-	     begin
-		insn[15:0] = ddr2_array_line0[31:16];
-		insn[31:16] = ddr2_array_line1[31:16];
-	     end
-	   4'h3:
-	     begin
-		insn[15:0] = ddr2_array_line2[31:16];
-		insn[31:16] = ddr2_array_line3[31:16];
-	     end
-	   4'h4:
-	     begin
-		insn[15:0] = ddr2_array_line0[47:32];
-		insn[31:16] = ddr2_array_line1[47:32];
-	     end
-	   4'h5:
-	     begin
-		insn[15:0] = ddr2_array_line2[47:32];
-		insn[31:16] = ddr2_array_line3[47:32];
-	     end
-	   4'h6:
-	     begin
-		insn[15:0] = ddr2_array_line0[63:48];
-		insn[31:16] = ddr2_array_line1[63:48];
-	     end
-	   4'h7:
-	     begin
-		insn[15:0] = ddr2_array_line2[63:48];
-		insn[31:16] = ddr2_array_line3[63:48];
-	     end
-	   4'h8:
-	     begin
-		insn[15:0] = ddr2_array_line0[79:64];
-		insn[31:16] = ddr2_array_line1[79:64];
-	     end
-	   4'h9:
-	     begin
-		insn[15:0] = ddr2_array_line2[79:64];
-		insn[31:16] = ddr2_array_line3[79:64];
-	     end
-	   4'ha:
-	     begin
-		insn[15:0] = ddr2_array_line0[95:80];
-		insn[31:16] = ddr2_array_line1[95:80];
-	     end
-	   4'hb:
-	     begin
-		insn[15:0] = ddr2_array_line2[95:80];
-		insn[31:16] = ddr2_array_line3[95:80];
-	     end
-	   4'hc:
-	     begin
-		insn[15:0] = ddr2_array_line0[111:96];
-		insn[31:16] = ddr2_array_line1[111:96];
-	     end
-	   4'hd:
-	     begin
-		insn[15:0] = ddr2_array_line2[111:96];
-		insn[31:16] = ddr2_array_line3[111:96];
-	     end
-	   4'he:
-	     begin
-		insn[15:0] = ddr2_array_line0[127:112];
-		insn[31:16] = ddr2_array_line1[127:112];
-	     end
-	   4'hf:
-	     begin
-		insn[15:0] = ddr2_array_line2[127:112];
-		insn[31:16] = ddr2_array_line3[127:112];
-	     end	   
-	 endcase // case (addr[5:2])
- */
       end
    endtask
    

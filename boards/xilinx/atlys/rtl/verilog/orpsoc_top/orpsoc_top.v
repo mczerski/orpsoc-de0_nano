@@ -1643,7 +1643,7 @@ module orpsoc_top
     .Tvlen               (vlen)    
     );
 
-    dvi_gen dvi_gen0 (
+    dvi_gen_top dvi_gen0 (
       .rst_n_pad_i   (rst_n_pad_i),
       .dvi_clk_i     (dvi_clk),
       .hlen          (hlen),

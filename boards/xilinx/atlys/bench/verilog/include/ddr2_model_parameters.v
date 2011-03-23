@@ -1037,7 +1037,8 @@
 
         // Size Parameters
         parameter BA_BITS          =       3; // Set this parmaeter to control how many Bank Address bits
-        parameter MEM_BITS         =      10; // Number of write data bursts can be stored in memory.  The default is 2^10=1024.
+        //parameter MEM_BITS         =      10; // Number of write data bursts can be stored in memory.  The default is 2^10=1024.
+        parameter MEM_BITS         =      17; // Number of write data bursts can be stored in memory.
         parameter AP               =      10; // the address bit that controls auto-precharge and precharge-all
         parameter BL_BITS          =       3; // the number of bits required to count to MAX_BL
         parameter BO_BITS          =       2; // the number of Burst Order Bits
@@ -1383,7 +1384,7 @@
 
     // Simulation parameters
     parameter STOP_ON_ERROR    =       1; // If set to 1, the model will halt on command sequence/major errors
-    parameter DEBUG            =       1; // Turn on Debug messages
+    parameter DEBUG            =       0; // Turn on Debug messages
     parameter BUS_DELAY        =       0; // delay in nanoseconds
     parameter RANDOM_OUT_DELAY =       0; // If set to 1, the model will put a random amount of delay on DQ/DQS during reads
     parameter RANDOM_SEED      = 711689044; //seed value for random generator.
