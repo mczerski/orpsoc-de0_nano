@@ -5,7 +5,8 @@
 /// Instantiate ORPSoC, monitors, provide stimulus                ////
 ///                                                               ////
 /// Julius Baxter, julius@opencores.org                           ////
-///                                                               ////
+/// Contributor(s):                                               ////
+///   Stefan Kristiansson, stefan.kristiansson@saunalahti.fi      ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
