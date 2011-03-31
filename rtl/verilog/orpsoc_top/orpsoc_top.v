@@ -231,6 +231,21 @@ module orpsoc_top
    wire 			     wbs_d_uart0_err_o;
    wire 			     wbs_d_uart0_rty_o;   
 
+      
+   // intgen wires
+   wire [31:0] 			     wbs_d_intgen_adr_i;
+   wire [7:0] 			     wbs_d_intgen_dat_i;
+   wire [3:0] 			     wbs_d_intgen_sel_i;
+   wire 			     wbs_d_intgen_we_i;
+   wire 			     wbs_d_intgen_cyc_i;
+   wire 			     wbs_d_intgen_stb_i;
+   wire [2:0] 			     wbs_d_intgen_cti_i;
+   wire [1:0] 			     wbs_d_intgen_bte_i;   
+   wire [7:0] 			     wbs_d_intgen_dat_o;   
+   wire 			     wbs_d_intgen_ack_o;
+   wire 			     wbs_d_intgen_err_o;
+   wire 			     wbs_d_intgen_rty_o;   
+
 
    //
    // Wishbone instruction bus arbiter
@@ -407,6 +422,18 @@ module orpsoc_top
       .wbs0_ack_o			(wbs_d_uart0_ack_o),
       .wbs0_err_o			(wbs_d_uart0_err_o),
       .wbs0_rty_o			(wbs_d_uart0_rty_o),
+
+      .wbs1_adr_i			(wbs_d_intgen_adr_i),
+      .wbs1_dat_i			(wbs_d_intgen_dat_i),
+      .wbs1_we_i			(wbs_d_intgen_we_i),
+      .wbs1_cyc_i			(wbs_d_intgen_cyc_i),
+      .wbs1_stb_i			(wbs_d_intgen_stb_i),
+      .wbs1_cti_i			(wbs_d_intgen_cti_i),
+      .wbs1_bte_i			(wbs_d_intgen_bte_i),
+      .wbs1_dat_o			(wbs_d_intgen_dat_o),
+      .wbs1_ack_o			(wbs_d_intgen_ack_o),
+      .wbs1_err_o			(wbs_d_intgen_err_o),
+      .wbs1_rty_o			(wbs_d_intgen_rty_o),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -811,6 +838,30 @@ module orpsoc_top
    
    ////////////////////////////////////////////////////////////////////////       
 `endif // !`ifdef UART0
+
+`ifdef INTGEN
+
+   wire        intgen_irq;
+
+   intgen intgen0
+     (
+      .clk_i                           (wb_clk),
+      .rst_i                           (wb_rst),
+      .wb_adr_i                        (wbs_d_intgen_adr_i[intgen_addr_width-1:0]),
+      .wb_cyc_i                        (wbs_d_intgen_cyc_i),
+      .wb_stb_i                        (wbs_d_intgen_stb_i),
+      .wb_dat_i                        (wbs_d_intgen_dat_i),
+      .wb_we_i                         (wbs_d_intgen_we_i),
+      .wb_ack_o                        (wbs_d_intgen_ack_o),
+      .wb_dat_o                        (wbs_d_intgen_dat_o),
+      
+      .irq_o                           (intgen_irq)
+      );
+
+`endif //  `ifdef INTGEN
+   assign wbs_d_intgen_err_o = 0;
+   assign wbs_d_intgen_rty_o = 0;
+   
    
    ////////////////////////////////////////////////////////////////////////
    //
@@ -845,7 +896,11 @@ module orpsoc_top
    assign or1200_pic_ints[16] = 0;
    assign or1200_pic_ints[17] = 0;
    assign or1200_pic_ints[18] = 0;
+`ifdef INTGEN
+   assign or1200_pic_ints[19] = intgen_irq;
+`else
    assign or1200_pic_ints[19] = 0;
+`endif
    
 endmodule // top
 
