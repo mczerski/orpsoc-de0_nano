@@ -98,11 +98,17 @@ cpu_get_timer_ticks(void)
   return timer_ticks;
 }
 
-/* Wait for 10ms */
+/* Wait for 10ms, assumes CLK_HZ is 100, which it usually is.
+   Will be slightly inaccurate!*/
 void 
 cpu_sleep_10ms(void)
 {
+  unsigned long ttcr = mfspr(SPR_TTCR) & SPR_TTCR_PERIOD;
   unsigned long first_time = cpu_get_timer_ticks();
-  while (first_time == cpu_get_timer_ticks());    
+  while (first_time == cpu_get_timer_ticks()); // Wait for tick to occur
+  // Now wait until we're past the tick value we read before to know we've
+  // gone at least enough
+  while(ttcr > (mfspr(SPR_TTCR) & SPR_TTCR_PERIOD));
+
 }
   
