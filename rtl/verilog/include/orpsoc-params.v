@@ -45,6 +45,11 @@ parameter uart0_wb_adr = 8'h90;
 parameter uart0_data_width = 8;
 parameter uart0_addr_width = 3;
 
+// Interrupt generator (intgen) params
+parameter intgen_wb_adr = 8'he1;
+parameter intgen_data_width = 8;
+parameter intgen_addr_width = 1;
+
 // ROM
 parameter wbs_i_rom0_data_width = 32;
 parameter wbs_i_rom0_addr_width = 6;
@@ -93,10 +98,10 @@ parameter dbus_arb_slave1_adr = 8'hxx; // Default slave - address don't care (X)
 //                           //
 ///////////////////////////////
 parameter bbus_arb_wb_addr_match_width = 8;
-parameter bbus_arb_wb_num_slaves = 1; // Update this when changing slaves!
+parameter bbus_arb_wb_num_slaves = 2; // Update this when changing slaves!
 // Slave addresses
 parameter bbus_arb_slave0_adr  = uart0_wb_adr;
-parameter bbus_arb_slave1_adr  = 0 /* UNASSIGNED */;
+parameter bbus_arb_slave1_adr  = intgen_wb_adr;
 parameter bbus_arb_slave2_adr  = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave3_adr  = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave4_adr  = 0 /* UNASSIGNED */;
