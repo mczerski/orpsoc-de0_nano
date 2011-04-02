@@ -1330,7 +1330,9 @@ module orpsoc_top
       .stx_pad_o			(uart0_stx),
       .rts_pad_o			(),
       .dtr_pad_o			(),
-      //      .baud_o				(),
+`ifdef UART_HAS_BAUDRATE_OUTPUT
+      .baud_o				(),
+`endif
       // Inputs
       .srx_pad_i			(uart0_srx),
       .cts_pad_i			(1'b0),

@@ -38,13 +38,6 @@
 #include "board.h"
 #include "or1200-defines.h"
 
-// Check MAC unit is enabled before trying to run this test
-#ifndef OR1200_IMPL_ALU_FFL1
-# error
-# error Find First/Last '1' isntructions not enabled.
-# error
-#endif
-
 	
 /* =================================================== [ exceptions ] === */
 	.section .vectors, "ax"
@@ -66,7 +59,20 @@
 	l.jr    r4
 	l.nop
 
+/* ---[ 0x700: Illegal instruction exception ]-------------------------- */
+        .org 0x700
+#ifndef OR1200_IMPL_ALU_FFL1
+	// No problem - instruction not supported
+	l.movhi r3, hi(0x8000000d)
+	l.ori 	r3, r3, lo(0x8000000d)
+	l.nop 	0x2
+	l.ori 	r3, r0, 0
+#else
+	l.ori 	r3, r0, 1
+#endif
+	l.nop 	0x1
 
+	
 /* =================================================== [ text ] === */
 	.section .text
 

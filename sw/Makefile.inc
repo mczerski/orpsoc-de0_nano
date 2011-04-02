@@ -124,7 +124,9 @@ OR32_CFLAGS ?=-g -nostdlib -O2 $(MARCH_FLAGS) \
 		$(INCLUDE_FLAGS) \
 		-I$(SW_ROOT)/lib/include \
 
-OR32_LDFLAGS ?=-L$(SW_ROOT)/lib -lorpsoc -lgcc -T$(CPU_DRIVER)/link.ld -e 256 
+LINK_SCRIPT_OPT ?=-T$(CPU_DRIVER)/link.ld
+
+OR32_LDFLAGS ?=-L$(SW_ROOT)/lib -lorpsoc -lgcc $(LINK_SCRIPT_OPT) -e 256 
 OR32_ARFLAGS ?=-r
 # RTL_VERILOG_INCLUDE_DIR *MUST* be set!
 # Backup one - default, but may be wrong!

@@ -225,12 +225,12 @@
 //`define ETH_RX_FIFO_DEPTH      256
 //`define ETH_RX_FIFO_CNT_WIDTH  7
 //`define ETH_RX_FIFO_DEPTH      128
-//`define ETH_RX_FIFO_CNT_WIDTH  6
-//`define ETH_RX_FIFO_DEPTH      64
+`define ETH_RX_FIFO_CNT_WIDTH  6
+`define ETH_RX_FIFO_DEPTH      64
 //`define ETH_RX_FIFO_CNT_WIDTH  5
 //`define ETH_RX_FIFO_DEPTH      32
-`define ETH_RX_FIFO_CNT_WIDTH  4
-`define ETH_RX_FIFO_DEPTH      16
+//`define ETH_RX_FIFO_CNT_WIDTH  4
+//`define ETH_RX_FIFO_DEPTH      16
 
 `define ETH_RX_FIFO_DATA_WIDTH 32
 

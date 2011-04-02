@@ -24,11 +24,17 @@
 
 #include <iostream>
 #include <iomanip>
-#include <cmath>
 
 #include "UartSC.h"
 
 //#define UART_SC_DEBUG
+
+// Keep disabled for now, to stop any portability problems cropping up.
+//#define UART_SC_STDIN_ENABLE
+
+#ifdef UART_SC_STDIN_ENABLE
+#include <termios.h>
+#endif
 
 SC_HAS_PROCESS(UartSC);
 
@@ -37,97 +43,228 @@ SC_HAS_PROCESS(UartSC);
 //! @param[in] name  Name of this module, passed to the parent constructor.
 // Todo: Probably some sort of scaler parameter
 
-UartSC::UartSC(sc_core::sc_module_name name):
-sc_module(name)
+UartSC::UartSC(sc_core::sc_module_name uart):
+	sc_module(uart)
 {
-
-	SC_METHOD(checkTx);
+#ifdef UART_SC_STDIN_ENABLE
+	SC_THREAD(driveRx);
+#endif
+	SC_THREAD(checkTx);
 	dont_initialize();
-	sensitive << clk.pos();
-	//sensitive << uarttx;
+	sensitive << uarttx;
 
 }				// UartSC ()
 
 void
- UartSC::initUart(int clk_freq_hz,	// Presume in NS
-		  int uart_baud)
+UartSC::initUart(int uart_baud)
 {
-	// Calculate number of clocks per UART bit
-	clocks_per_bit = (int)(clk_freq_hz / uart_baud);
+	// Calculate number of ns per UART bit
+	ns_per_bit = (int) ((long long)1000000000/(long long)uart_baud);
 	bits_received = 0;
+
+	// Init state of RX
+	rx_state = 0;
+	
+	// Set input, ORPSoC's RX, line to high
+	uartrx.write(true);
+	
+
 #ifdef UART_SC_DEBUG
 	printf
-	    ("UartSC Initialised: Sys. clk. freq.: %d Hz, Baud: %d, cpb: %d\n",
-	     clk_freq_hz, uart_baud, clocks_per_bit);
+		("UartSC Initialised: Baud: %d, ns per bit: %d\n",
+		 uart_baud, ns_per_bit);
 #endif
 }
+
+// Some C from 
+// http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+//
+int UartSC::kbhit()
+{
+#ifdef UART_SC_STDIN_ENABLE
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(STDIN_FILENO, &fds);
+#else
+    return 0;
+#endif
+}
+
+#define NB_ENABLE 1
+#define NB_DISABLE 0
+
+// The following is apparently VERY Linux-centric. Maybe a ncurses version could
+// be handy if this gets used on various platforms.
+void UartSC::nonblock(int state)
+{
+#ifdef UART_SC_STDIN_ENABLE
+	struct termios ttystate;
+	
+	//get the terminal state
+	tcgetattr(STDIN_FILENO, &ttystate);
+	
+	if (state==NB_ENABLE)
+	{
+		//turn off canonical mode
+		ttystate.c_lflag &= ~ICANON;
+		//minimum of number input read.
+		ttystate.c_cc[VMIN] = 1;
+	}
+	else if (state==NB_DISABLE)
+	{
+		//turn on canonical mode
+		ttystate.c_lflag |= ICANON;
+	}
+	//set the terminal attributes.
+	tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+#endif	
+}
+
+
+
+void UartSC::driveRx()
+{
+	static char c;
+
+	UartSC::nonblock(NB_ENABLE);
+
+	while(1)
+	{
+		if (rx_state == 0) // Waiting for a character input from user
+		{
+
+			// Do we have a character on input?
+			//c=cin.peek();
+
+			
+			if (kbhit())
+			{
+				
+				c = fgetc(stdin);
+#ifdef UART_SC_DEBUG
+				cout << "UartSC::driveRX got " << c << endl;
+#endif
+				rx_state++;				
+			}
+
+			wait(1000000, SC_NS);
+
+		}
+		else if (rx_state == 1)
+		{
+#ifdef UART_SC_DEBUG
+			cout << "UartSC::driveRX start-bit " << c << endl;
+#endif
+			// Start bit - low
+			uartrx.write(false);
+			rx_state++;
+			// Wait a bit
+			wait(ns_per_bit, SC_NS);
+		}
+		else if (rx_state > 1 && rx_state < 10)
+		{
+#ifdef UART_SC_DEBUG
+			cout << "UartSC::driveRX bit " << rx_state-2 << " " <<
+			     (c & (1 << rx_state-2)) << endl;
+#endif
+
+			if (c & (1 << rx_state-2))
+				uartrx.write(true);
+			else
+				uartrx.write(false);
+			
+			rx_state++;
+			
+			// Wait a bit
+			wait(ns_per_bit, SC_NS);
+		}
+		else if (rx_state == 10) 
+		{
+#ifdef UART_SC_DEBUG
+			cout << "UartSC::driveRX stop bit" << endl;
+#endif
+			rx_state = 0;
+			// Stop bit
+			uartrx.write(true);
+			// Wait a bit
+			wait(ns_per_bit + (ns_per_bit/2), SC_NS);
+			
+		}
+	}
+}
+
 
 // Maybe do this with threads instead?!
 void UartSC::checkTx()
 {
+	while(1){
 
+		// Check the number of bits received
+		if (bits_received == 0) {
+			// Check if tx is low
+			if ((uarttx.read() & 1) == 0) {
+			
+				// Line pulled low, begin receive of new char
+				current_char = 0;
+			
+				//counter = 1;			
+
+				bits_received++;	// We got the start bit
+			
+				// Now wait until next bit
+				wait(ns_per_bit, SC_NS);
 #ifdef UART_SC_DEBUG
-	//printf("Uart TX activity: level is : 0x%x\n", uarttx.read()&1);
+				cout << "UartSC checkTx: got start bit at time "
+				     <<	sc_time_stamp() << endl;
 #endif
+			}
+			else
+				// Nothing yet - keep waiting
+				wait(ns_per_bit/2, SC_NS);
 
-	// Check the number of bits received
-	if (bits_received == 0) {
-		// Check if tx is low
-		if ((uarttx.read() & 1) == 0) {
-			// Line pulled low, begin receive of new char
-			current_char = 0;
-			// Start 
-			counter = 1;
-			bits_received++;	// We got the start bit
-#ifdef UART_SC_DEBUG
-			cout << "UartSC checkTx: got start bit at time " <<
-			    sc_time_stamp() << endl;
-#endif
-		}
-	} else if (bits_received > 0 && bits_received < 9) {
-		// Check the counter - see if it's time to sample the line
-		// We do an extra half-bit delay on first bit read
-		if (((bits_received == 1) &&
-		     (counter == (clocks_per_bit + (clocks_per_bit / 2)))) ||
-		    ((bits_received > 1) && (counter == clocks_per_bit))) {
-			//printf("UartSC checkTx: read bit %d as 0x%x at time", bits_received, uarttx.read()&1);
-			//cout << sc_time_stamp() << endl;
-
-			// Shift in the current value of the tx into our char
-			current_char |=
-			    ((uarttx.read() & 1) << (bits_received - 1));
-			// Reset the counter
-			counter = 1;
+		} else if (bits_received > 0 && bits_received < 9) {
+			
+			current_char |=	((uarttx.read() & 1) << 
+					 (bits_received - 1));
+			
 			// Increment bit number
 			bits_received++;
-		} else
-			counter++;
-	} else if (bits_received == 9) {
-		// Now check for stop bit 1
-		if (counter == clocks_per_bit) {
-			// Check that the value is 1 - this should be the stop bit
+
+			// Wait for next bit
+			wait(ns_per_bit, SC_NS);
+			
+			
+		} else if (bits_received == 9) {
+
+			// Now check for stop bit 1
 			if ((uarttx.read() & 1) != 1) {
 				printf("UART TX framing error at time\n");
 				cout << sc_time_stamp() << endl;
-
-				// Perhaps do something else here to deal with this
+				
+				// Perhaps do something else here to deal with 
+				// this.
 				bits_received = 0;
-				counter = 0;
-			} else {
+			}
+			else
+			{
 				// Print the char
 #ifdef UART_SC_DEBUG
 				printf("Char received: 0x%2x time: ",
 				       current_char);
 				cout << sc_time_stamp() << endl;
 #endif
-				// cout'ing the char didn't work for some systems - jb 090613ol
+				// cout'ing the char didn't work for some 
+				// systems.
 				//cout << current_char;
 				printf("%c", current_char);
-
+				
 				bits_received = 0;
-				counter = 0;
 			}
-		} else
-			counter++;
+		}
 	}
 }

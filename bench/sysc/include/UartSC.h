@@ -42,15 +42,26 @@ public:
 	sc_out < bool > uartrx;
 
 	// Init function
-	void initUart(int clk_freq_hz, int uart_baud);
+	void initUart(int uart_baud);
 	// Transmit (from ORPSoC) handling function
 	void checkTx();
+	// Receieve (in ORPSoC) generation function
+	void driveRx();
+	// Check keyboard for entry
+	int kbhit();
+	// Enable canonical mode on console
+	void nonblock(int state);
 
 private:
-	int clocks_per_bit;
 	uint8_t current_char;
 	int counter;
 	int bits_received;
+	int ns_per_bit;
+
+	int rx_state;
+	int rx_counter;
+	int rx_bits_sent;
+	char rx_char;
 
 };				// UartSC ()
 
