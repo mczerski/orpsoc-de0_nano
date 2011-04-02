@@ -66,7 +66,8 @@
 //*****************************************************************************
 `timescale 1ns/1ps
 
-(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=ede1116axxx-8e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=Four 32-bit bi-directional ports, C3_MEM_ADDR_ORDER=ROW_BANK_COLUMN, C3_PORT_ENABLE=Port0_Port1_Port2_Port3, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
+(* X_CORE_INFO = "mig_v3_61_ddr2_ddr2_s6, Coregen 12.4" , CORE_GENERATION_INFO = "ddr2_ddr2_s6,mig_v3_61,{component_name=ddr2_mig, C3_MEM_INTERFACE_TYPE=DDR2_SDRAM, C3_CLK_PERIOD=3750, C3_MEMORY_PART=mt47h64m16xx-25e, C3_OUTPUT_DRV=FULL, C3_RTT_NOM=50OHMS, C3_DQS#_ENABLE=YES, C3_HIGH_TEMP_SR=NORMAL, C3_PORT_CONFIG=Four 32-bit bi-directional ports, C3_MEM_ADDR_ORDER=BANK_ROW_COLUMN, C3_PORT_ENABLE=Port0_Port1_Port2_Port3, C3_CLASS_ADDR=II, C3_CLASS_DATA=II, C3_INPUT_PIN_TERMINATION=CALIB_TERM, C3_DATA_TERMINATION=25 Ohms, C3_CLKFBOUT_MULT_F=2, C3_CLKOUT_DIVIDE=1, C3_DEBUG_PORT=0, INPUT_CLK_TYPE=Single-Ended, LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, NO_OF_CONTROLLERS=1}" *)
+
 module ddr2_mig #
 (
    parameter C3_P0_MASK_SIZE           = 4,
@@ -77,12 +78,12 @@ module ddr2_mig #
    parameter C3_MEMCLK_PERIOD        = 3750,       
    parameter C3_CALIB_SOFT_IP        = "TRUE",       
    parameter C3_SIMULATION           = "FALSE",       
-   parameter C3_RST_ACT_LOW          = 0,       
-   parameter C3_INPUT_CLK_TYPE       = "SINGLE_ENDED",       
-   parameter C3_MEM_ADDR_ORDER       = "ROW_BANK_COLUMN",       
-   parameter C3_NUM_DQ_PINS          = 16,       
-   parameter C3_MEM_ADDR_WIDTH       = 13,       
-   parameter C3_MEM_BANKADDR_WIDTH   = 3        
+   parameter C3_RST_ACT_LOW          = 0,
+   parameter C3_INPUT_CLK_TYPE       = "SINGLE_ENDED",
+   parameter C3_MEM_ADDR_ORDER       = "BANK_ROW_COLUMN",
+   parameter C3_NUM_DQ_PINS          = 16,
+   parameter C3_MEM_ADDR_WIDTH       = 13,
+   parameter C3_MEM_BANKADDR_WIDTH   = 3
 )	
 
 (
@@ -247,7 +248,7 @@ module ddr2_mig #
    localparam C3_MEM_TWTR             = 7500;       
    localparam C3_MEM_TYPE             = "DDR2";       
    localparam C3_MEM_DENSITY          = "1Gb";       
-   localparam C3_MEM_BURST_LEN        = 4;       
+   localparam C3_MEM_BURST_LEN        = 8;       
    localparam C3_MEM_CAS_LATENCY      = 4;       
    localparam C3_MEM_NUM_COL_BITS     = 10;       
    localparam C3_MEM_DDR1_2_ODS       = "FULL";       
