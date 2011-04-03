@@ -186,7 +186,7 @@ NET  "ddr2_zio"                                      IOSTANDARD = SSTL18_II;
  NET "ddr2_udm"      LOC="K4"; # Bank = 3, Pin name = IO_L42P_GCLK25_TRDY2_M3UDM,	  Sch name = DDR-UDM
  NET "ddr2_odt"      LOC="K6"; # Bank = 3, Pin name = IO_L45N_M3ODT,        		  Sch name = DDR-ODT
 
-## onboard HDMI OUT
+# onboard HDMI OUT
 # Bank = 0, Pin name = IO_L8P,		  Sch name = TMDS-TX-CLK_P
 NET "tmds_o[3]" IOSTANDARD = TMDS_33;
 NET "tmds_o[3]" LOC = B6;
@@ -347,7 +347,7 @@ TIMESPEC "TS_PCLKX2" = PERIOD "TNM_PCLKX2" TS_PCLK * 2;
 NET "dvi_gen0/pclkx10" TNM_NET = "TNM_PCLKX10";
 TIMESPEC "TS_PCLKX10" = PERIOD "TNM_PCLKX10" TS_PCLK * 10;
 
-TIMEGRP "bramgrp" = RAMS(dvi_gen0/enc0/pixel2x/dataint<*>);  
+TIMEGRP "bramgrp" = RAMS(dvi_gen0/enc0/pixel2x/dataint<*>);
 TIMEGRP "fddbgrp" = FFS(dvi_gen0/enc0/pixel2x/db<*>);
 TIMEGRP "bramra" = FFS(dvi_gen0/enc0/pixel2x/ra<*>);
 
@@ -362,6 +362,7 @@ NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/m
 NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/c?_pll_lock" TIG;
      
 NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/gen_term_calib.mcb_soft_calibration_top_inst/mcb_soft_calibration_inst/CKE_Train" TIG; ##This path exists for DDR2 only
+NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/gen_term_calib.mcb_soft_calibration_top_inst/mcb_soft_calibration_inst/DONE_SOFTANDHARD_CAL" TIG;
 
 NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc3_infrastructure_inst/sys_clk_ibufg" TNM_NET = "SYS_CLK3";
 TIMESPEC "TS_SYS_CLK3" = PERIOD "SYS_CLK3"  3.75  ns HIGH 50 %;
