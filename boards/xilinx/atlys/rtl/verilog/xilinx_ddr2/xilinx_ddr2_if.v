@@ -113,15 +113,19 @@ module xilinx_ddr2_if (
     parameter NUM_USERPORTS = 4;
     parameter P0_BURST_ADDR_WIDTH = 4;
     parameter P0_BURST_ADDR_ALIGN = P0_BURST_ADDR_WIDTH + 2;
-  
-    parameter P1_BURST_ADDR_WIDTH = 4;
+	 parameter P0_WB_BURSTING      = "TRUE";
+	 
+    parameter P1_BURST_ADDR_WIDTH = 6;
     parameter P1_BURST_ADDR_ALIGN = P1_BURST_ADDR_WIDTH + 2;
+	 parameter P1_WB_BURSTING      = "TRUE";
   
-    parameter P2_BURST_ADDR_WIDTH = 4;
+    parameter P2_BURST_ADDR_WIDTH = 6;
     parameter P2_BURST_ADDR_ALIGN = P2_BURST_ADDR_WIDTH + 2;
+	 parameter P2_WB_BURSTING      = "TRUE";
   
     parameter P3_BURST_ADDR_WIDTH = 4;
     parameter P3_BURST_ADDR_ALIGN = P3_BURST_ADDR_WIDTH + 2;
+	 parameter P3_WB_BURSTING      = "TRUE";
 
     wire 	              ddr2_clk; // DDR2 iface domain clock.
     wire 	              ddr2_rst; // reset from the ddr2 module
@@ -216,7 +220,7 @@ module xilinx_ddr2_if (
     wire [31:0] px_cache_addr[NUM_USERPORTS-1:0];
 
     // Let the port know if another port have wrote to its current cache buffer address
-    // SJK TODO: own writes to own cache
+    // TODO: own writes to own cache
     assign px_addr_dirty[0] = ((wb0_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) |
                               ((wb1_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) | 
                               ((wb2_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
@@ -284,7 +288,25 @@ module xilinx_ddr2_if (
         );
     end   
     endgenerate
+	 
+	 // Forward parameters to WB to userports
+    defparam up[0].BURST_ADDR_WIDTH = P0_BURST_ADDR_WIDTH;
+    defparam up[0].BURST_ADDR_ALIGN = P0_BURST_ADDR_ALIGN;
+    defparam up[0].WB_BURSTING      = P0_WB_BURSTING;
 
+    defparam up[1].BURST_ADDR_WIDTH = P1_BURST_ADDR_WIDTH;
+    defparam up[1].BURST_ADDR_ALIGN = P1_BURST_ADDR_ALIGN;
+    defparam up[1].WB_BURSTING      = P1_WB_BURSTING;
+
+    defparam up[2].BURST_ADDR_WIDTH = P2_BURST_ADDR_WIDTH;
+    defparam up[2].BURST_ADDR_ALIGN = P2_BURST_ADDR_ALIGN;
+    defparam up[2].WB_BURSTING      = P2_WB_BURSTING;
+
+    defparam up[3].BURST_ADDR_WIDTH = P3_BURST_ADDR_WIDTH;
+    defparam up[3].BURST_ADDR_ALIGN = P3_BURST_ADDR_ALIGN;
+    defparam up[3].WB_BURSTING      = P3_WB_BURSTING;
+	 
+	
   ddr2_mig  #
   (
    .C3_P0_MASK_SIZE       (C3_P0_MASK_SIZE),
@@ -464,6 +486,7 @@ module wb_to_userport (
    parameter BURST_ADDR_WIDTH = 4;
    parameter BURST_ADDR_ALIGN = BURST_ADDR_WIDTH + 2;
    parameter BURST_LENGTH     = 2**BURST_ADDR_WIDTH;
+	parameter WB_BURSTING      = "FALSE";
 
    reg [31:0]                      burst_data_buf[BURST_LENGTH-1:0];
    reg [31:BURST_ADDR_ALIGN]       burst_addr;
@@ -479,19 +502,27 @@ module wb_to_userport (
    reg                             wb_ack_write;
    wire                            wb_req_new;
    wire                            wb_read_req;
+   reg                             wb_bursting;
+   reg [3:0]                       wb_burst_addr;
    
    // dummy signal to align address with a variable amount of zeroes
    wire [BURST_ADDR_ALIGN-1:0]     addr_align_zeroes; 
    assign addr_align_zeroes = 0;
    
    assign cache_addr = {burst_addr, addr_align_zeroes};
-  
    assign wb_req = wb_stb_i & wb_cyc_i & ddr2_calib_done; 
+   assign wb_req_new  = wb_req & !wb_req_r;
    
    always @(posedge wb_clk) begin
      wb_req_r <= wb_req & !wb_ack_o;
    end
    
+   // Wishbone bursting defines
+`define WB_CLASSIC     3'b000
+`define WB_CONST_ADDR  3'b001
+`define WB_INC_BURST   3'b010
+`define WB_END_BURST   3'b111
+
    // register incoming dirty address signal, and hold it until a new burst read has started
    always @(posedge wb_clk) begin
      if (wb_rst)
@@ -501,9 +532,10 @@ module wb_to_userport (
      else if (burst_start)
        addr_dirty_r <= 0;          
    end
-   
-   assign wb_req_new  = wb_req & !wb_req_r;
-   assign wb_read_req = wb_req & !wb_we_i & !wb_ack_read;
+	
+   // In case of WB bursting, we can ack on each clock edge
+	// We don't take account for the type of bursting, since we can't perform wrapping bursts anyway
+   assign wb_read_req = wb_req & !wb_we_i  & (!wb_ack_read | ((wb_cti_i == `WB_INC_BURST) & (WB_BURSTING == "TRUE")));
    assign addr_match  = (burst_addr == wb_adr_i[31:BURST_ADDR_ALIGN]) & !addr_dirty_r;
    
    // Check if addr is in read cache, and that no other port have written to that address
@@ -528,8 +560,9 @@ module wb_to_userport (
    always @(posedge wb_clk) begin
      read_done <= 0;
      if (wb_rst) begin
-       burst_cnt <= 0;
-       bursting  <= 0;
+       burst_cnt  <= 0;
+       bursting   <= 0;
+       burst_addr <= 0;
      end else if (burst_start & !bursting) begin
        burst_cnt <= 0;
        bursting  <= 1;
