@@ -1612,7 +1612,7 @@ module orpsoc_top
     .wbs_stb_i           (wbs_d_dvi0_stb_i), 
     .wbs_cyc_i           (wbs_d_dvi0_cyc_i), 
     .wbs_ack_o           (wbs_d_dvi0_ack_o), 
-    .wbs_rty_o           (), 
+    .wbs_rty_o           (wbs_d_dvi0_rty_o), 
     .wbs_err_o           (wbs_d_dvi0_err_o),
     .wbm_adr_o           (wbm_dvi0_adr_o[31:0]),
     .wbm_dat_i           (wbm_dvi0_dat_i[31:0]), 
