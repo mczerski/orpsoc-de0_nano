@@ -76,11 +76,6 @@
 // (for use with external DVI transmitters)
 //`define VGA_12BIT_DVI
 
-//
-// enable / disable DVI output
-// (uses internal DVI transmitter)
-`define VGA_INTERNAL_DVI
-
 
 ////////////////////////
 //
