@@ -4,8 +4,8 @@
 ////                                                              ////
 ////  Description                                                 ////
 ////  Simple interface to the Xilinx MIG generated DDR2 controller////
-////  The interface presents four wishbone slaves,                ////  
-////  which are mapped into four 32-bit user ports of the MIG     ////
+////  The interface presents five wishbone slaves,                ////
+////  which are mapped into 32-bit user ports of the MIG          ////
 ////                                                              ////
 ////                                                              ////
 ////  Author(s):                                                  ////
@@ -83,6 +83,17 @@ module xilinx_ddr2_if (
     output [31:0]      wb3_dat_o,
     output             wb3_ack_o,
 
+    input [31:0]       wb4_adr_i,
+    input              wb4_stb_i,
+    input              wb4_cyc_i,
+    input  [2:0]       wb4_cti_i,
+    input  [1:0]       wb4_bte_i,
+    input              wb4_we_i,
+    input  [3:0]       wb4_sel_i,
+    input  [31:0]      wb4_dat_i,
+    output [31:0]      wb4_dat_o,
+    output             wb4_ack_o,
+
     output [12:0]      ddr2_a,
     output [2:0]       ddr2_ba,
     output 	           ddr2_ras_n,
@@ -110,7 +121,7 @@ module xilinx_ddr2_if (
    
 `include "orpsoc-defines.v"
 `include "xilinx_ddr2_params.v"
-    parameter NUM_USERPORTS = 4;
+    parameter NUM_USERPORTS = 5;
     parameter P0_BURST_ADDR_WIDTH = 4;
     parameter P0_BURST_ADDR_ALIGN = P0_BURST_ADDR_WIDTH + 2;
 	 parameter P0_WB_BURSTING      = "TRUE";
@@ -126,6 +137,10 @@ module xilinx_ddr2_if (
     parameter P3_BURST_ADDR_WIDTH = 4;
     parameter P3_BURST_ADDR_ALIGN = P3_BURST_ADDR_WIDTH + 2;
 	 parameter P3_WB_BURSTING      = "TRUE";
+
+    parameter P4_BURST_ADDR_WIDTH = 4;
+    parameter P4_BURST_ADDR_ALIGN = P4_BURST_ADDR_WIDTH + 2;
+	 parameter P4_WB_BURSTING      = "TRUE";
 
     wire 	              ddr2_clk; // DDR2 iface domain clock.
     wire 	              ddr2_rst; // reset from the ddr2 module
@@ -224,23 +239,32 @@ module xilinx_ddr2_if (
     assign px_addr_dirty[0] = ((wb0_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) |
                               ((wb1_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) | 
                               ((wb2_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
-                              ((wb3_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]);
+                              ((wb3_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
+                              ((wb4_adr_i[31:P0_BURST_ADDR_ALIGN] == px_cache_addr[0][31:P0_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
                            
     assign px_addr_dirty[1] = ((wb0_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) | 
                               ((wb1_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) | 
                               ((wb2_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
-                              ((wb3_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]);
+                              ((wb3_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
+                              ((wb4_adr_i[31:P1_BURST_ADDR_ALIGN] == px_cache_addr[1][31:P1_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
                            
     assign px_addr_dirty[2] = ((wb0_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) | 
                               ((wb1_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) |
                               ((wb2_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
-                              ((wb3_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]);
+                              ((wb3_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
+                              ((wb4_adr_i[31:P2_BURST_ADDR_ALIGN] == px_cache_addr[2][31:P2_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
     
     assign px_addr_dirty[3] = ((wb0_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) | 
                               ((wb1_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) |
                               ((wb2_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
-                              ((wb3_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]);
+                              ((wb3_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
+                              ((wb4_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[3][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
 
+    assign px_addr_dirty[4] = ((wb0_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[0]) | 
+                              ((wb1_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[1]) |
+                              ((wb2_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
+                              ((wb3_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
+                              ((wb4_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
     genvar i;
     generate
     for (i = 0; i < NUM_USERPORTS; i = i + 1) begin : userport
@@ -252,7 +276,7 @@ module xilinx_ddr2_if (
       always @(posedge wb_clk)
         wb_px_req_r[i] <= wb_px_req[i] & !wb_px_ack_o[i];
 
-       wb_to_userport up ( 
+       wb_to_userport wb2up ( 
         .wb_clk                     (wb_clk),
         .wb_rst                     (wb_rst),
         .wb_adr_i                   (wb_px_adr_i[i]),
@@ -288,25 +312,35 @@ module xilinx_ddr2_if (
         );
     end   
     endgenerate
-	 
+
 	 // Forward parameters to WB to userports
-    defparam up[0].BURST_ADDR_WIDTH = P0_BURST_ADDR_WIDTH;
-    defparam up[0].BURST_ADDR_ALIGN = P0_BURST_ADDR_ALIGN;
-    defparam up[0].WB_BURSTING      = P0_WB_BURSTING;
+    defparam wb2up[0].BURST_ADDR_WIDTH = P0_BURST_ADDR_WIDTH;
+    defparam wb2up[0].BURST_ADDR_ALIGN = P0_BURST_ADDR_ALIGN;
+    defparam wb2up[0].WB_BURSTING      = P0_WB_BURSTING;
 
-    defparam up[1].BURST_ADDR_WIDTH = P1_BURST_ADDR_WIDTH;
-    defparam up[1].BURST_ADDR_ALIGN = P1_BURST_ADDR_ALIGN;
-    defparam up[1].WB_BURSTING      = P1_WB_BURSTING;
+    defparam wb2up[1].BURST_ADDR_WIDTH = P1_BURST_ADDR_WIDTH;
+    defparam wb2up[1].BURST_ADDR_ALIGN = P1_BURST_ADDR_ALIGN;
+    defparam wb2up[1].WB_BURSTING      = P1_WB_BURSTING;
 
-    defparam up[2].BURST_ADDR_WIDTH = P2_BURST_ADDR_WIDTH;
-    defparam up[2].BURST_ADDR_ALIGN = P2_BURST_ADDR_ALIGN;
-    defparam up[2].WB_BURSTING      = P2_WB_BURSTING;
+    defparam wb2up[2].BURST_ADDR_WIDTH = P2_BURST_ADDR_WIDTH;
+    defparam wb2up[2].BURST_ADDR_ALIGN = P2_BURST_ADDR_ALIGN;
+    defparam wb2up[2].WB_BURSTING      = P2_WB_BURSTING;
 
-    defparam up[3].BURST_ADDR_WIDTH = P3_BURST_ADDR_WIDTH;
-    defparam up[3].BURST_ADDR_ALIGN = P3_BURST_ADDR_ALIGN;
-    defparam up[3].WB_BURSTING      = P3_WB_BURSTING;
-	 
-	
+    defparam wb2up[3].BURST_ADDR_WIDTH = P3_BURST_ADDR_WIDTH;
+    defparam wb2up[3].BURST_ADDR_ALIGN = P3_BURST_ADDR_ALIGN;
+    defparam wb2up[3].WB_BURSTING      = P3_WB_BURSTING;
+
+    defparam wb2up[4].BURST_ADDR_WIDTH = P4_BURST_ADDR_WIDTH;
+    defparam wb2up[4].BURST_ADDR_ALIGN = P4_BURST_ADDR_ALIGN;
+    defparam wb2up[4].WB_BURSTING      = P4_WB_BURSTING;
+  
+  // The user ports are configured as follows:
+  // P0 = 32 bit, Read and Write
+  // P1 = 32 bit, Read and Write
+  // P2 = 32 bit, Read only
+  // P3 = 32 bit, Write only
+  // P4 = 32 bit, Read only
+  // P5 = 32 bit, Read only
   ddr2_mig  #
   (
    .C3_P0_MASK_SIZE       (C3_P0_MASK_SIZE),
@@ -398,21 +432,12 @@ module xilinx_ddr2_if (
     .c3_p1_rd_overflow    (ddr2_px_rd_overflow[1]),
     .c3_p1_rd_error       (ddr2_px_rd_error[1]),
     .c3_p2_cmd_clk        (wb_clk),
-    .c3_p2_cmd_en         (ddr2_px_cmd_en[2]),
+    .c3_p2_cmd_en         (ddr2_px_cmd_en[2] & !wb_px_we_i[2]),
     .c3_p2_cmd_instr      (ddr2_px_cmd_instr[2]),
     .c3_p2_cmd_bl         (ddr2_px_cmd_bl[2]),
     .c3_p2_cmd_byte_addr  (ddr2_px_cmd_byte_addr[2]),
-    .c3_p2_cmd_empty      (ddr2_px_cmd_empty[2]),
-    .c3_p2_cmd_full       (ddr2_px_cmd_full[2]),
-    .c3_p2_wr_clk         (wb_clk),
-    .c3_p2_wr_en          (ddr2_px_wr_en[2]),
-    .c3_p2_wr_mask        (ddr2_px_wr_mask[2]),
-    .c3_p2_wr_data        (ddr2_px_wr_data[2]),
-    .c3_p2_wr_full        (ddr2_px_wr_full[2]),
-    .c3_p2_wr_empty       (ddr2_px_wr_empty[2]),
-    .c3_p2_wr_count       (ddr2_px_wr_count[2]),
-    .c3_p2_wr_underrun    (ddr2_px_wr_underrun[2]),
-    .c3_p2_wr_error       (ddr2_px_wr_error[2]),
+    .c3_p2_cmd_empty      (),
+    .c3_p2_cmd_full       (),
     .c3_p2_rd_clk         (wb_clk),
     .c3_p2_rd_en          (ddr2_px_rd_en[2]),
     .c3_p2_rd_data        (ddr2_px_rd_data[2]),
@@ -422,29 +447,53 @@ module xilinx_ddr2_if (
     .c3_p2_rd_overflow    (ddr2_px_rd_overflow[2]),
     .c3_p2_rd_error       (ddr2_px_rd_error[2]),
     .c3_p3_cmd_clk        (wb_clk),
-    .c3_p3_cmd_en         (ddr2_px_cmd_en[3]),
-    .c3_p3_cmd_instr      (ddr2_px_cmd_instr[3]),
-    .c3_p3_cmd_bl         (ddr2_px_cmd_bl[3]),
-    .c3_p3_cmd_byte_addr  (ddr2_px_cmd_byte_addr[3]),
-    .c3_p3_cmd_empty      (ddr2_px_cmd_empty[3]),
-    .c3_p3_cmd_full       (ddr2_px_cmd_full[3]),
+    .c3_p3_cmd_en         (ddr2_px_cmd_en[2] & wb_px_we_i[2]),
+    .c3_p3_cmd_instr      (ddr2_px_cmd_instr[2]),
+    .c3_p3_cmd_bl         (ddr2_px_cmd_bl[2]),
+    .c3_p3_cmd_byte_addr  (ddr2_px_cmd_byte_addr[2]),
+    .c3_p3_cmd_empty      (ddr2_px_cmd_empty[2]),
+    .c3_p3_cmd_full       (ddr2_px_cmd_full[2]),
     .c3_p3_wr_clk         (wb_clk),
-    .c3_p3_wr_en          (ddr2_px_wr_en[3]),
-    .c3_p3_wr_mask        (ddr2_px_wr_mask[3]),
-    .c3_p3_wr_data        (ddr2_px_wr_data[3]),
-    .c3_p3_wr_full        (ddr2_px_wr_full[3]),
-    .c3_p3_wr_empty       (ddr2_px_wr_empty[3]),
-    .c3_p3_wr_count       (ddr2_px_wr_count[3]),
-    .c3_p3_wr_underrun    (ddr2_px_wr_underrun[3]),
-    .c3_p3_wr_error       (ddr2_px_wr_error[3]),
-    .c3_p3_rd_clk         (wb_clk),
-    .c3_p3_rd_en          (ddr2_px_rd_en[3]),
-    .c3_p3_rd_data        (ddr2_px_rd_data[3]),
-    .c3_p3_rd_full        (ddr2_px_rd_full[3]),
-    .c3_p3_rd_empty       (ddr2_px_rd_empty[3]),
-    .c3_p3_rd_count       (ddr2_px_rd_count[3]),
-    .c3_p3_rd_overflow    (ddr2_px_rd_overflow[3]),
-    .c3_p3_rd_error       (ddr2_px_rd_error[3])    
+    .c3_p3_wr_en          (ddr2_px_wr_en[2]),
+    .c3_p3_wr_mask        (ddr2_px_wr_mask[2]),
+    .c3_p3_wr_data        (ddr2_px_wr_data[2]),
+    .c3_p3_wr_full        (ddr2_px_wr_full[2]),
+    .c3_p3_wr_empty       (ddr2_px_wr_empty[2]),
+    .c3_p3_wr_count       (ddr2_px_wr_count[2]),
+    .c3_p3_wr_underrun    (ddr2_px_wr_underrun[2]),
+    .c3_p3_wr_error       (ddr2_px_wr_error[2]),
+    .c3_p4_cmd_clk        (wb_clk),
+    .c3_p4_cmd_en         (ddr2_px_cmd_en[3]),
+    .c3_p4_cmd_instr      (ddr2_px_cmd_instr[3]),
+    .c3_p4_cmd_bl         (ddr2_px_cmd_bl[3]),
+    .c3_p4_cmd_byte_addr  (ddr2_px_cmd_byte_addr[3]),
+    .c3_p4_cmd_empty      (ddr2_px_cmd_empty[3]),
+    .c3_p4_cmd_full       (ddr2_px_cmd_full[3]),
+    .c3_p4_rd_clk         (wb_clk),
+    .c3_p4_rd_en          (ddr2_px_rd_en[3]),
+    .c3_p4_rd_data        (ddr2_px_rd_data[3]),
+    .c3_p4_rd_full        (ddr2_px_rd_full[3]),
+    .c3_p4_rd_empty       (ddr2_px_rd_empty[3]),
+    .c3_p4_rd_count       (ddr2_px_rd_count[3]),
+    .c3_p4_rd_overflow    (ddr2_px_rd_overflow[3]),
+    .c3_p4_rd_error       (ddr2_px_rd_error[3]),
+	 
+    .c3_p5_cmd_clk        (wb_clk),
+    .c3_p5_cmd_en         (ddr2_px_cmd_en[4]),
+    .c3_p5_cmd_instr      (ddr2_px_cmd_instr[4]),
+    .c3_p5_cmd_bl         (ddr2_px_cmd_bl[4]),
+    .c3_p5_cmd_byte_addr  (ddr2_px_cmd_byte_addr[4]),
+    .c3_p5_cmd_empty      (ddr2_px_cmd_empty[4]),
+    .c3_p5_cmd_full       (ddr2_px_cmd_full[4]),
+    .c3_p5_rd_clk         (wb_clk),
+    .c3_p5_rd_en          (ddr2_px_rd_en[4]),
+    .c3_p5_rd_data        (ddr2_px_rd_data[4]),
+    .c3_p5_rd_full        (ddr2_px_rd_full[4]),
+    .c3_p5_rd_empty       (ddr2_px_rd_empty[4]),
+    .c3_p5_rd_count       (ddr2_px_rd_count[4]),
+    .c3_p5_rd_overflow    (ddr2_px_rd_overflow[4]),
+    .c3_p5_rd_error       (ddr2_px_rd_error[4])    
+
    );
 
 endmodule // atlys_ddr2_if
