@@ -245,11 +245,11 @@ NET "tmdsb_o[2]" LOC = A8;
 # NET "USBSDO" LOC = "N18"; # Bank = 1, Pin name = IO_L48N_M1DQ9,  Sch name = PIC32-SDO1
 # 
 ## Audio
-# NET "BITCLK"   LOC = "L13"; # Bank = 1, Pin name = IO_L40N_GCLK10_M1A6, Sch name = AUD-BIT-CLK
-# NET "AUDSDI"   LOC = "T18"; # Bank = 1, Pin name = IO_L51N_M1DQ13,      Sch name = AUD-SDI
-# NET "AUDSDO"   LOC = "N16"; # Bank = 1, Pin name = IO_L50N_M1UDQSN,     Sch name = AUD-SDO
-# NET "AUDSYNC"  LOC = "U17"; # Bank = 1, Pin name = IO_L52P_M1DQ14,      Sch name = AUD-SYNC
-# NET "AUDRST"   LOC = "T17"; # Bank = 1, Pin name = IO_L51P_M1DQ12,      Sch name = AUD-RESET
+ NET "ac97_bit_clk_pad_i"   LOC = "L13"; # Bank = 1, Pin name = IO_L40N_GCLK10_M1A6, Sch name = AUD-BIT-CLK
+ NET "ac97_sdata_pad_i"   LOC = "T18"; # Bank = 1, Pin name = IO_L51N_M1DQ13,      Sch name = AUD-SDI
+ NET "ac97_sdata_pad_o"   LOC = "N16"; # Bank = 1, Pin name = IO_L50N_M1UDQSN,     Sch name = AUD-SDO
+ NET "ac97_sync_pad_o"  LOC = "U17"; # Bank = 1, Pin name = IO_L52P_M1DQ14,      Sch name = AUD-SYNC
+ NET "ac97_reset_pad_o"   LOC = "T17"; # Bank = 1, Pin name = IO_L51P_M1DQ12,      Sch name = AUD-RESET
 # 
 ## PMOD Connector
 # NET "JB<0>"  LOC = "T3"; # Bank = 2,  Pin name = IO_L62N_D6,     Sch name = JA-D0_N

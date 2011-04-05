@@ -5,7 +5,8 @@
 /// Instantiates modules, depending on ORPSoC defines file        ////
 ///                                                               ////
 /// Julius Baxter, julius@opencores.org                           ////
-///                                                               ////
+/// Contributor(s):                                               ////
+///   Stefan Kristiansson, stefan.kristiansson@saunalahti.fi      ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
@@ -81,7 +82,10 @@ module orpsoc_top
     tmds_o,
     tmdsb_o,
 `endif
-  
+`ifdef AC97
+    ac97_bit_clk_pad_i, ac97_sync_pad_o, ac97_sdata_pad_o, 
+    ac97_sdata_pad_i, ac97_reset_pad_o,
+`endif  
     sys_clk_in,
 
     rst_n_pad_i  
@@ -164,7 +168,14 @@ module orpsoc_top
 `ifdef VGA0
    output [3:0]               tmds_o;
    output [3:0]               tmdsb_o;
-`endif   
+`endif
+`ifdef AC97
+   input              ac97_bit_clk_pad_i;
+   output             ac97_sync_pad_o;
+   output             ac97_sdata_pad_o;
+   input              ac97_sdata_pad_i;
+   output             ac97_reset_pad_o;
+`endif
    ////////////////////////////////////////////////////////////////////////
    //
    // Clock and reset generation module
@@ -451,7 +462,33 @@ module orpsoc_top
    wire                             wbm_vga0_err_i;
    wire                             wbm_vga0_rty_i;
 
+   // ac97 slave wires
+   wire [31:0]                      wbs_d_ac97_adr_i;
+   wire [wbs_d_ac97_data_width-1:0] wbs_d_ac97_dat_i;
+   wire [3:0]                       wbs_d_ac97_sel_i;
+   wire                             wbs_d_ac97_we_i;
+   wire                             wbs_d_ac97_cyc_i;
+   wire                             wbs_d_ac97_stb_i;
+   wire [2:0]                       wbs_d_ac97_cti_i;
+   wire [1:0]                       wbs_d_ac97_bte_i;   
+   wire [wbs_d_ac97_data_width-1:0] wbs_d_ac97_dat_o;   
+   wire                             wbs_d_ac97_ack_o;
+   wire                             wbs_d_ac97_err_o;
+   wire                             wbs_d_ac97_rty_o;
 
+   // ac97 master wires
+   wire [wbm_ac97_addr_width-1:0] 	wbm_ac97_adr_o;
+   wire [wbm_ac97_data_width-1:0] 	wbm_ac97_dat_o;
+   wire [3:0]                       wbm_ac97_sel_o;
+   wire                             wbm_ac97_we_o;
+   wire                             wbm_ac97_cyc_o;
+   wire                             wbm_ac97_stb_o;
+   wire [2:0]                       wbm_ac97_cti_o;
+   wire [1:0]                       wbm_ac97_bte_o;
+   wire [wbm_ac97_data_width-1:0]   wbm_ac97_dat_i;
+   wire                             wbm_ac97_ack_i;
+   wire                             wbm_ac97_err_i;
+   wire                             wbm_ac97_rty_i;
    //
    // Wishbone instruction bus arbiter
    //
@@ -607,6 +644,19 @@ module orpsoc_top
       .wbs3_err_o           (wbs_d_vga0_err_o),
       .wbs3_rty_o           (wbs_d_vga0_rty_o),
 
+      .wbs4_adr_i           (wbs_d_ac97_adr_i),
+      .wbs4_dat_i           (wbs_d_ac97_dat_i),
+      .wbs4_sel_i           (wbs_d_ac97_sel_i),
+      .wbs4_we_i            (wbs_d_ac97_we_i),
+      .wbs4_cyc_i           (wbs_d_ac97_cyc_i),
+      .wbs4_stb_i           (wbs_d_ac97_stb_i),
+      .wbs4_cti_i           (wbs_d_ac97_cti_i),
+      .wbs4_bte_i           (wbs_d_ac97_bte_i),
+      .wbs4_dat_o           (wbs_d_ac97_dat_o),
+      .wbs4_ack_o           (wbs_d_ac97_ack_o),
+      .wbs4_err_o           (wbs_d_ac97_err_o),
+      .wbs4_rty_o           (wbs_d_ac97_rty_o),
+
       // Clock, reset inputs
       .wb_clk			(wb_clk),
       .wb_rst			(wb_rst));
@@ -617,6 +667,7 @@ module orpsoc_top
    defparam arbiter_dbus0.slave0_adr = dbus_arb_slave0_adr;
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
    defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
+   defparam arbiter_dbus0.slave4_adr = dbus_arb_slave4_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1021,27 +1072,40 @@ module orpsoc_top
       .wbm3_rty_o                       (wbm_vga0_rty_i), 
       .wbm3_dat_o                       (wbm_vga0_dat_i),
 
+      .wbm4_adr_i                       (wbm_ac97_adr_o), 
+      .wbm4_bte_i                       (wbm_ac97_bte_o), 
+      .wbm4_cti_i                       (wbm_ac97_cti_o), 
+      .wbm4_cyc_i                       (wbm_ac97_cyc_o), 
+      .wbm4_dat_i                       (wbm_ac97_dat_o), 
+      .wbm4_sel_i                       (wbm_ac97_sel_o),
+      .wbm4_stb_i                       (wbm_ac97_stb_o), 
+      .wbm4_we_i                        (wbm_ac97_we_o),
+      .wbm4_ack_o                       (wbm_ac97_ack_i), 
+      .wbm4_err_o                       (wbm_ac97_err_i), 
+      .wbm4_rty_o                       (wbm_ac97_rty_i), 
+      .wbm4_dat_o                       (wbm_ac97_dat_i),
+
       .wb_clk                           (wb_clk),
       .wb_rst                           (wb_rst),
       
-      .ddr2_a  				(ddr2_a[12:0]),
-      .ddr2_ba				(ddr2_ba),
-      .ddr2_ras_n			(ddr2_ras_n),
-      .ddr2_cas_n			(ddr2_cas_n),
-      .ddr2_we_n			(ddr2_we_n),
-      .ddr2_rzq 			(ddr2_rzq),
-      .ddr2_zio 			(ddr2_zio),
-      .ddr2_odt				(ddr2_odt),
-      .ddr2_cke				(ddr2_cke),
-      .ddr2_dm				(ddr2_dm),
-      .ddr2_udm				(ddr2_udm),
-      .ddr2_ck				(ddr2_ck),
-      .ddr2_ck_n			(ddr2_ck_n),
-      .ddr2_dq				(ddr2_dq),
-      .ddr2_dqs				(ddr2_dqs),
-      .ddr2_dqs_n			(ddr2_dqs_n),
-      .ddr2_udqs			(ddr2_udqs),
-      .ddr2_udqs_n			(ddr2_udqs_n),
+      .ddr2_a                           (ddr2_a[12:0]),
+      .ddr2_ba                          (ddr2_ba),
+      .ddr2_ras_n                       (ddr2_ras_n),
+      .ddr2_cas_n                       (ddr2_cas_n),
+      .ddr2_we_n                        (ddr2_we_n),
+      .ddr2_rzq                         (ddr2_rzq),
+      .ddr2_zio                         (ddr2_zio),
+      .ddr2_odt                         (ddr2_odt),
+      .ddr2_cke                         (ddr2_cke),
+      .ddr2_dm                          (ddr2_dm),
+      .ddr2_udm                         (ddr2_udm),
+      .ddr2_ck                          (ddr2_ck),
+      .ddr2_ck_n                        (ddr2_ck_n),
+      .ddr2_dq                          (ddr2_dq),
+      .ddr2_dqs                         (ddr2_dqs),
+      .ddr2_dqs_n                       (ddr2_dqs_n),
+      .ddr2_udqs                        (ddr2_udqs),
+      .ddr2_udqs_n                      (ddr2_udqs_n),
       .ddr2_if_clk                      (ddr2_if_clk),
       .ddr2_if_rst                      (ddr2_if_rst)
       );
@@ -1587,6 +1651,7 @@ module orpsoc_top
    // 
    ////////////////////////////////////////////////////////////////////////
 
+  wire        vga0_irq;
   wire        pclk;
   wire [7:0]  r;
   wire [7:0]  g;
@@ -1661,7 +1726,43 @@ module orpsoc_top
       .blue_data_i   (b)
     );
     
-`endif   
+`endif
+
+`ifdef AC97
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // AC97
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   wire ac97_irq;
+   wire ac97_dma_req;
+   wire ac97_dma_ack;
+   
+   ac97_top ac97(
+      .clk_i                (wb_clk),
+      .rst_i                (wb_rst),
+      .wb_data_i            (wbs_d_ac97_dat_i),
+      .wb_data_o            (wbs_d_ac97_dat_o),
+      .wb_addr_i            (wbs_d_ac97_adr_i[wbs_d_ac97_addr_width-1:0]),
+      .wb_sel_i             (wbs_d_ac97_sel_i), 
+      .wb_we_i              (wbs_d_ac97_we_i),
+      .wb_cyc_i             (wbs_d_ac97_cyc_i),
+      .wb_stb_i             (wbs_d_ac97_stb_i),
+      .wb_ack_o             (wbs_d_ac97_ack_o),
+      .wb_err_o             (wbs_d_ac97_err_o), 
+      .int_o                (ac97_irq),
+      .dma_req_o            (ac97_dma_req),
+      .dma_ack_i            (ac97_dma_ack),
+      .suspended_o          (),
+      .bit_clk_pad_i        (ac97_bit_clk_pad_i),
+      .sync_pad_o           (ac97_sync_pad_o),
+      .sdata_pad_o          (ac97_sdata_pad_o), 
+      .sdata_pad_i          (ac97_sdata_pad_i),
+      .ac97_reset_pad_o_    (ac97_reset_pad_o)
+    );
+
+`endif
+   
    ////////////////////////////////////////////////////////////////////////
    //
    // OR1200 Interrupt assignment
@@ -1703,8 +1804,12 @@ module orpsoc_top
    assign or1200_pic_ints[11] = i2c1_irq;
 `else   
    assign or1200_pic_ints[11] = 0;
-`endif   
+`endif
+`ifdef AC97
+   assign or1200_pic_ints[12] = ac97_irq;
+`else
    assign or1200_pic_ints[12] = 0;
+`endif
    assign or1200_pic_ints[13] = 0;
    assign or1200_pic_ints[14] = 0;
    assign or1200_pic_ints[15] = 0;
