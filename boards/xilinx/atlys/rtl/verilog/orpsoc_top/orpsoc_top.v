@@ -1603,7 +1603,7 @@ module orpsoc_top
     .wb_clk_i            (wb_clk), 
     .wb_rst_i            (wb_rst),  
     .rst_i               (1'b1), 
-    .wb_inta_o           (/* TODO */),
+    .wb_inta_o           (vga0_irq),
     .wbs_adr_i           (wbs_d_vga0_adr_i[wbs_d_vga0_addr_width-1:0]),
     .wbs_dat_i           (wbs_d_vga0_dat_i[31:0]), 
     .wbs_dat_o           (wbs_d_vga0_dat_o[31:0]), 
@@ -1688,7 +1688,11 @@ module orpsoc_top
    assign or1200_pic_ints[6] = 0;
 `endif
    assign or1200_pic_ints[7] = 0;
+`ifdef VGA0
+   assign or1200_pic_ints[8] = vga0_irq;
+`else
    assign or1200_pic_ints[8] = 0;
+`endif
    assign or1200_pic_ints[9] = 0;
 `ifdef I2C0
    assign or1200_pic_ints[10] = i2c0_irq;
