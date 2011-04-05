@@ -423,33 +423,33 @@ module orpsoc_top
    wire 				  wbm_eth0_err_i;
    wire 				  wbm_eth0_rty_i;
 
-   // dvi0 slave wires
-   wire [31:0]                      wbs_d_dvi0_adr_i;
-   wire [wbs_d_dvi0_data_width-1:0] wbs_d_dvi0_dat_i;
-   wire [3:0]                       wbs_d_dvi0_sel_i;
-   wire                             wbs_d_dvi0_we_i;
-   wire                             wbs_d_dvi0_cyc_i;
-   wire                             wbs_d_dvi0_stb_i;
-   wire [2:0]                       wbs_d_dvi0_cti_i;
-   wire [1:0]                       wbs_d_dvi0_bte_i;   
-   wire [wbs_d_dvi0_data_width-1:0] wbs_d_dvi0_dat_o;   
-   wire                             wbs_d_dvi0_ack_o;
-   wire                             wbs_d_dvi0_err_o;
-   wire                             wbs_d_dvi0_rty_o;
+   // vga0 slave wires
+   wire [31:0]                      wbs_d_vga0_adr_i;
+   wire [wbs_d_vga0_data_width-1:0] wbs_d_vga0_dat_i;
+   wire [3:0]                       wbs_d_vga0_sel_i;
+   wire                             wbs_d_vga0_we_i;
+   wire                             wbs_d_vga0_cyc_i;
+   wire                             wbs_d_vga0_stb_i;
+   wire [2:0]                       wbs_d_vga0_cti_i;
+   wire [1:0]                       wbs_d_vga0_bte_i;   
+   wire [wbs_d_vga0_data_width-1:0] wbs_d_vga0_dat_o;   
+   wire                             wbs_d_vga0_ack_o;
+   wire                             wbs_d_vga0_err_o;
+   wire                             wbs_d_vga0_rty_o;
 
-   // dvi0 master wires
-   wire [wbm_dvi0_addr_width-1:0] 	wbm_dvi0_adr_o;
-   wire [wbm_dvi0_data_width-1:0] 	wbm_dvi0_dat_o;
-   wire [3:0]                       wbm_dvi0_sel_o;
-   wire                             wbm_dvi0_we_o;
-   wire                             wbm_dvi0_cyc_o;
-   wire                             wbm_dvi0_stb_o;
-   wire [2:0]                       wbm_dvi0_cti_o;
-   wire [1:0]                       wbm_dvi0_bte_o;
-   wire [wbm_dvi0_data_width-1:0]   wbm_dvi0_dat_i;
-   wire                             wbm_dvi0_ack_i;
-   wire                             wbm_dvi0_err_i;
-   wire                             wbm_dvi0_rty_i;
+   // vga0 master wires
+   wire [wbm_vga0_addr_width-1:0] 	wbm_vga0_adr_o;
+   wire [wbm_vga0_data_width-1:0] 	wbm_vga0_dat_o;
+   wire [3:0]                       wbm_vga0_sel_o;
+   wire                             wbm_vga0_we_o;
+   wire                             wbm_vga0_cyc_o;
+   wire                             wbm_vga0_stb_o;
+   wire [2:0]                       wbm_vga0_cti_o;
+   wire [1:0]                       wbm_vga0_bte_o;
+   wire [wbm_vga0_data_width-1:0]   wbm_vga0_dat_i;
+   wire                             wbm_vga0_ack_i;
+   wire                             wbm_vga0_err_i;
+   wire                             wbm_vga0_rty_i;
 
 
    //
@@ -594,18 +594,18 @@ module orpsoc_top
       .wbs2_err_o			(wbm_b_d_err_i),
       .wbs2_rty_o			(wbm_b_d_rty_i),
 
-      .wbs3_adr_i           (wbs_d_dvi0_adr_i),
-      .wbs3_dat_i           (wbs_d_dvi0_dat_i),
-      .wbs3_sel_i           (wbs_d_dvi0_sel_i),
-      .wbs3_we_i            (wbs_d_dvi0_we_i),
-      .wbs3_cyc_i           (wbs_d_dvi0_cyc_i),
-      .wbs3_stb_i           (wbs_d_dvi0_stb_i),
-      .wbs3_cti_i           (wbs_d_dvi0_cti_i),
-      .wbs3_bte_i           (wbs_d_dvi0_bte_i),
-      .wbs3_dat_o           (wbs_d_dvi0_dat_o),
-      .wbs3_ack_o           (wbs_d_dvi0_ack_o),
-      .wbs3_err_o           (wbs_d_dvi0_err_o),
-      .wbs3_rty_o           (wbs_d_dvi0_rty_o),
+      .wbs3_adr_i           (wbs_d_vga0_adr_i),
+      .wbs3_dat_i           (wbs_d_vga0_dat_i),
+      .wbs3_sel_i           (wbs_d_vga0_sel_i),
+      .wbs3_we_i            (wbs_d_vga0_we_i),
+      .wbs3_cyc_i           (wbs_d_vga0_cyc_i),
+      .wbs3_stb_i           (wbs_d_vga0_stb_i),
+      .wbs3_cti_i           (wbs_d_vga0_cti_i),
+      .wbs3_bte_i           (wbs_d_vga0_bte_i),
+      .wbs3_dat_o           (wbs_d_vga0_dat_o),
+      .wbs3_ack_o           (wbs_d_vga0_ack_o),
+      .wbs3_err_o           (wbs_d_vga0_err_o),
+      .wbs3_rty_o           (wbs_d_vga0_rty_o),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -1008,18 +1008,18 @@ module orpsoc_top
       .wbm2_rty_o                       (wbs_i_mc0_rty_o), 
       .wbm2_dat_o                       (wbs_i_mc0_dat_o),
       
-      .wbm3_adr_i                       (wbm_dvi0_adr_o), 
-      .wbm3_bte_i                       (wbm_dvi0_bte_o), 
-      .wbm3_cti_i                       (wbm_dvi0_cti_o), 
-      .wbm3_cyc_i                       (wbm_dvi0_cyc_o), 
-      .wbm3_dat_i                       (wbm_dvi0_dat_o), 
-      .wbm3_sel_i                       (wbm_dvi0_sel_o),
-      .wbm3_stb_i                       (wbm_dvi0_stb_o), 
-      .wbm3_we_i                        (wbm_dvi0_we_o),
-      .wbm3_ack_o                       (wbm_dvi0_ack_i), 
-      .wbm3_err_o                       (wbm_dvi0_err_i), 
-      .wbm3_rty_o                       (wbm_dvi0_rty_i), 
-      .wbm3_dat_o                       (wbm_dvi0_dat_i),
+      .wbm3_adr_i                       (wbm_vga0_adr_o), 
+      .wbm3_bte_i                       (wbm_vga0_bte_o), 
+      .wbm3_cti_i                       (wbm_vga0_cti_o), 
+      .wbm3_cyc_i                       (wbm_vga0_cyc_o), 
+      .wbm3_dat_i                       (wbm_vga0_dat_o), 
+      .wbm3_sel_i                       (wbm_vga0_sel_o),
+      .wbm3_stb_i                       (wbm_vga0_stb_o), 
+      .wbm3_we_i                        (wbm_vga0_we_o),
+      .wbm3_ack_o                       (wbm_vga0_ack_i), 
+      .wbm3_err_o                       (wbm_vga0_err_i), 
+      .wbm3_rty_o                       (wbm_vga0_rty_i), 
+      .wbm3_dat_o                       (wbm_vga0_dat_i),
 
       .wb_clk                           (wb_clk),
       .wb_rst                           (wb_rst),
@@ -1123,18 +1123,18 @@ module orpsoc_top
       .wbm2_err_o                       (wbm_eth0_err_i),
       .wbm2_rty_o                       (wbm_eth0_rty_i),       
       // Wishbone slave interface 3
-      .wbm3_dat_i           (wbm_dvi0_dat_o),
-      .wbm3_adr_i           (wbm_dvi0_adr_o),
-      .wbm3_sel_i           (wbm_dvi0_sel_o),
-      .wbm3_cti_i           (wbm_dvi0_cti_o),
-      .wbm3_bte_i           (wbm_dvi0_bte_o),
-      .wbm3_we_i            (wbm_dvi0_we_o ),
-      .wbm3_cyc_i           (wbm_dvi0_cyc_o),
-      .wbm3_stb_i           (wbm_dvi0_stb_o),
-      .wbm3_dat_o           (wbm_dvi0_dat_i),
-      .wbm3_ack_o           (wbm_dvi0_ack_i),
-      .wbm3_err_o           (wbm_dvi0_err_i),
-      .wbm3_rty_o           (wbm_dvi0_rty_i),       
+      .wbm3_dat_i           (wbm_vga0_dat_o),
+      .wbm3_adr_i           (wbm_vga0_adr_o),
+      .wbm3_sel_i           (wbm_vga0_sel_o),
+      .wbm3_cti_i           (wbm_vga0_cti_o),
+      .wbm3_bte_i           (wbm_vga0_bte_o),
+      .wbm3_we_i            (wbm_vga0_we_o ),
+      .wbm3_cyc_i           (wbm_vga0_cyc_o),
+      .wbm3_stb_i           (wbm_vga0_stb_o),
+      .wbm3_dat_o           (wbm_vga0_dat_i),
+      .wbm3_ack_o           (wbm_vga0_ack_i),
+      .wbm3_err_o           (wbm_vga0_err_i),
+      .wbm3_rty_o           (wbm_vga0_rty_i),       
       // Clock, reset
       .wb_clk_i				(wb_clk),
       .wb_rst_i				(wb_rst));
@@ -1604,26 +1604,26 @@ module orpsoc_top
     .wb_rst_i            (wb_rst),  
     .rst_i               (1'b1), 
     .wb_inta_o           (/* TODO */),
-    .wbs_adr_i           (wbs_d_dvi0_adr_i[wbs_d_dvi0_addr_width-1:0]),
-    .wbs_dat_i           (wbs_d_dvi0_dat_i[31:0]), 
-    .wbs_dat_o           (wbs_d_dvi0_dat_o[31:0]), 
-    .wbs_sel_i           (wbs_d_dvi0_sel_i[3:0]), 
-    .wbs_we_i            (wbs_d_dvi0_we_i), 
-    .wbs_stb_i           (wbs_d_dvi0_stb_i), 
-    .wbs_cyc_i           (wbs_d_dvi0_cyc_i), 
-    .wbs_ack_o           (wbs_d_dvi0_ack_o), 
-    .wbs_rty_o           (wbs_d_dvi0_rty_o), 
-    .wbs_err_o           (wbs_d_dvi0_err_o),
-    .wbm_adr_o           (wbm_dvi0_adr_o[31:0]),
-    .wbm_dat_i           (wbm_dvi0_dat_i[31:0]), 
-    .wbm_cti_o           (wbm_dvi0_cti_o[2:0]), 
-    .wbm_bte_o           (wbm_dvi0_bte_o[1:0]), 
-    .wbm_sel_o           (wbm_dvi0_sel_o[3:0]), 
-    .wbm_we_o            (wbm_dvi0_we_o), 
-    .wbm_stb_o           (wbm_dvi0_stb_o), 
-    .wbm_cyc_o           (wbm_dvi0_cyc_o), 
-    .wbm_ack_i           (wbm_dvi0_ack_i), 
-    .wbm_err_i           (wbm_dvi0_err_i),
+    .wbs_adr_i           (wbs_d_vga0_adr_i[wbs_d_vga0_addr_width-1:0]),
+    .wbs_dat_i           (wbs_d_vga0_dat_i[31:0]), 
+    .wbs_dat_o           (wbs_d_vga0_dat_o[31:0]), 
+    .wbs_sel_i           (wbs_d_vga0_sel_i[3:0]), 
+    .wbs_we_i            (wbs_d_vga0_we_i), 
+    .wbs_stb_i           (wbs_d_vga0_stb_i), 
+    .wbs_cyc_i           (wbs_d_vga0_cyc_i), 
+    .wbs_ack_o           (wbs_d_vga0_ack_o), 
+    .wbs_rty_o           (wbs_d_vga0_rty_o), 
+    .wbs_err_o           (wbs_d_vga0_err_o),
+    .wbm_adr_o           (wbm_vga0_adr_o[31:0]),
+    .wbm_dat_i           (wbm_vga0_dat_i[31:0]), 
+    .wbm_cti_o           (wbm_vga0_cti_o[2:0]), 
+    .wbm_bte_o           (wbm_vga0_bte_o[1:0]), 
+    .wbm_sel_o           (wbm_vga0_sel_o[3:0]), 
+    .wbm_we_o            (wbm_vga0_we_o), 
+    .wbm_stb_o           (wbm_vga0_stb_o), 
+    .wbm_cyc_o           (wbm_vga0_cyc_o), 
+    .wbm_ack_i           (wbm_vga0_ack_i), 
+    .wbm_err_i           (wbm_vga0_err_i),
     .clk_p_i             (pclk),
 `ifdef VGA_12BIT_DVI
     .dvi_pclk_p_o        (), 
