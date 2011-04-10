@@ -179,7 +179,7 @@ always @(adr or csr or occ0 or occ1 or icc or crac or intm or ints)
 	endcase
 
 always @(posedge clk or negedge rst)
-	if(!rst)			csr_r <= #1 1'b0;
+	if(!rst)			csr_r <= 0;
 	else
 	if(rf_we & (adr[2:0]==3'h0))	csr_r <= #1 rf_din;
 
@@ -192,24 +192,24 @@ always @(posedge clk)
 	else				resume_req <= #1 1'b0;
 
 always @(posedge clk or negedge rst)
-	if(!rst)			occ0_r <= #1 1'b0;
+	if(!rst)			occ0_r <= 0;
 	else
 	if(rf_we & (adr[2:0]==3'h1))	occ0_r <= #1 rf_din;
 
 always @(posedge clk or negedge rst)
-	if(!rst)			occ1_r <= #1 1'b0;
+	if(!rst)			occ1_r <= 0;
 	else
 	if(rf_we & (adr[2:0]==3'h2))	occ1_r <= #1 rf_din[23:0];
 
 always @(posedge clk or negedge rst)
-	if(!rst)			icc_r <= #1 1'b0;
+	if(!rst)			icc_r <= 0;
 	else
 	if(rf_we & (adr[2:0]==3'h3))	icc_r <= #1 rf_din[23:0];
 
 assign crac_we = rf_we & (adr[2:0]==3'h4);
 
 always @(posedge clk or negedge rst)
-	if(!rst)			crac_r <= #1 1'b0;
+	if(!rst)			crac_r <= 0;
 	else
 	if(crac_we) 			crac_r <= #1 {rf_din[31], rf_din[22:16]};
 
@@ -217,15 +217,15 @@ always @(posedge clk)
 	if(crac_we)			crac_dout_r <= #1 rf_din[15:0];
 
 always @(posedge clk or negedge rst)
-	if(!rst)			intm_r <= #1 1'b0;
+	if(!rst)			intm_r <= 0;
 	else
 	if(rf_we & (adr[2:0]==3'h5))	intm_r <= #1 rf_din[28:0];
 
 // Interrupt Source Register
 always @(posedge clk or negedge rst)
-	if(!rst)			ints_r <= #1 1'b0;
+	if(!rst)			ints_r <= 0;
 	else
-	if(rf_re & (adr[2:0]==3'h6))	ints_r <= #1 1'b0;
+	if(rf_re & (adr[2:0]==3'h6))	ints_r <= 0;
 	else
 	   begin
 		if(crac_rd_done)	ints_r[0] <= #1 1'b1;
