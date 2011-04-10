@@ -1740,7 +1740,7 @@ module orpsoc_top
    
    ac97_top ac97(
       .clk_i                (wb_clk),
-      .rst_i                (wb_rst),
+      .rst_i                (!wb_rst),
       .wb_data_i            (wbs_d_ac97_dat_i),
       .wb_data_o            (wbs_d_ac97_dat_o),
       .wb_addr_i            (wbs_d_ac97_adr_i[wbs_d_ac97_addr_width-1:0]),
