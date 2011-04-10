@@ -353,7 +353,7 @@ module arbiter_dbus
 
    parameter wb_addr_match_width = 8;
 
-   parameter wb_num_slaves = 4; // must also (un)comment things if changing
+   parameter wb_num_slaves = 5; // must also (un)comment things if changing
 
    // Slave addresses - these should be defparam'd from top level
    // Declare them as you need them
@@ -878,7 +878,7 @@ module arbiter_dbus
    assign wb_slave_sel[4] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave4_adr;
    
    // Auto select slave2 when others are not selected
-   assign wb_slave_sel[2] = !(wb_slave_sel_r[0] | wb_slave_sel_r[1] | wb_slave_sel_r[3]);
+   assign wb_slave_sel[2] = !(wb_slave_sel_r[0] | wb_slave_sel_r[1] | wb_slave_sel_r[3] | wb_slave_sel_r[4]);
 
 /*
    assign wb_slave_sel[2] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave2_adr;   
@@ -1189,9 +1189,9 @@ module arbiter_dbus
    // Master out mux from slave in data
    assign wbm_dat_i = wb_slave_sel_r[0] ? wbs_dat_o_mux_i[0] :
 		      wb_slave_sel_r[1] ? wbs_dat_o_mux_i[1] :
-		      wb_slave_sel_r[2] ? wbs_dat_o_mux_i[2] :
 		      wb_slave_sel_r[3] ? wbs_dat_o_mux_i[3] :
  		      wb_slave_sel_r[4] ? wbs_dat_o_mux_i[4] :
+		      wb_slave_sel_r[2] ? wbs_dat_o_mux_i[2] :
 /*		      wb_slave_sel_r[5] ? wbs_dat_o_mux_i[5] :
 		      wb_slave_sel_r[6] ? wbs_dat_o_mux_i[6] :
 		      wb_slave_sel_r[7] ? wbs_dat_o_mux_i[7] :
