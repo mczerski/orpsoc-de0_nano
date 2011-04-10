@@ -85,13 +85,13 @@
 // are always supported. 
 
 // Surround Left + Right
-`define AC97_SURROUND		1
+//`define AC97_SURROUND		1
 
 // Center Channel
-`define AC97_CENTER		1
+//`define AC97_CENTER		1
 
 // LFE Channel
-`define AC97_LFE		1
+//`define AC97_LFE		1
 
 // Stereo Input
 `define AC97_SIN		1
@@ -105,7 +105,11 @@
 // the internal register file is selected.
 // This should be a simple address decoder. "wb_addr_i" is the
 // WISHBONE address bus (32 bits wide).
-`define	AC97_REG_SEL		(wb_addr_i[31:29] == 3'h0)
+//`define	AC97_REG_SEL		(wb_addr_i[31:29] == 3'h0)
+// In orpsoc we have address decoders elsewhere, 
+// so we set this to always true
+`define	AC97_REG_SEL		1
+
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -113,7 +117,7 @@
 // The value here should one less than the actually calculated
 // value.
 // For a 200 MHz wishbone clock, this value is 49 (50-1).
-`define	AC97_250_PS	6'h31
+`define	AC97_250_PS	6'h12
 
 /////////////////////////////////////////////////////////////////////
 //
