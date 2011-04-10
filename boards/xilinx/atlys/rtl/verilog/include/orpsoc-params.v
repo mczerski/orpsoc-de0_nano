@@ -101,7 +101,7 @@ parameter wbm_vga0_data_width = 32;
 parameter wbm_vga0_addr_width = 32;
 
 // AC97 defines
-parameter ac97_wb_adr = 8'h98;
+parameter ac97_wb_adr = 8'h93;
 parameter wbs_d_ac97_data_width = 32;
 parameter wbs_d_ac97_addr_width = 32;
 parameter wbm_ac97_data_width = 32;
