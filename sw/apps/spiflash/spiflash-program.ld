@@ -16,8 +16,7 @@ MEMORY
  * Allocate the stack to be at the top of memory, since the stack
  * grows down.
  */
-PROVIDE (_stack = 64K - 4);
-PROVIDE (__stack = 64K - 4);
+_min_stack      = 0x2000;   /* 8K - minimum stack space to reserve */
 
 SECTIONS
 {	
@@ -52,15 +51,7 @@ SECTIONS
 	} > ram
 
 	/* Section we'll use for storing the program to load into the SPI flash */
-	.spiprogram : {
-		    spiprogram_data = .;
-		    _spiprogram_data = .;
-		    *(.spiprogram)
-		    end_spiprogram_data = .;
-		    _end_spiprogram_data = .;
 
-	} > ram
-	
 	.shbss :
 	{
 		*(.shbss)
@@ -86,6 +77,28 @@ SECTIONS
 		_bss_end = .;
 	}
 	
+	/* ensure there is enough room for stack */
+        .stack (NOLOAD): {
+                . = ALIGN(4);
+		sstack = . ;
+                _sstack = . ;                
+                . = . + _min_stack ;
+                . = ALIGN(4);
+                stack = . ;
+                _stack = . ;
+                estack = . ;
+                _estack = . ;
+        } > ram
+
+	.spiprogram : {
+		    spiprogram_data = .;
+		    _spiprogram_data = .;
+		    *(.spiprogram)
+		    end_spiprogram_data = .;
+		    _end_spiprogram_data = .;
+
+	} > ram
+
 	.stab  0 (NOLOAD) : 
 	{
 		[ .stab ]
