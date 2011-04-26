@@ -45,6 +45,7 @@
 #include "printf.h"
 #include "eth-phy-mii.h"
 
+
 volatile unsigned tx_done;
 static int next_tx_buf_num;
 
@@ -63,16 +64,22 @@ static int next_tx_buf_num;
 //#define OUR_IP_BYTES 0xac,0x1e,0x0,0x2 // 172.30.0.2
 //#define OUR_IP_LONG 0xac1e0002
 
+//#define OUR_IP_BYTES 0xa,0x0,0x0,0x14 // 10.0.0.20
+//#define OUR_IP_LONG 0x0a000014
+
+
 static char our_ip[4] = {OUR_IP_BYTES};
 
 #define DEST_IP_BYTES 0xc0,0xa8,0x64,0x69 // 192 .168.100.105
 //#define DEST_IP_BYTES 0xc0,0xa8,0x01,0x08 // 192 .168.1.8
 //#define DEST_IP_BYTES 0xc0,0xa8,0x00,0x0f // 192 .168.0.15
 //#define DEST_IP_BYTES 0xac,0x1e,0x0,0x01 // 172.30.0.1
+//#define DEST_IP_BYTES 0xa,0x0,0x0,0x1 // 10.0.0.1
 
 #define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x64,0xff // 192.168.100.255
 //#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x01,0xff // 192.168.1.255
 //#define BCAST_DEST_IP_BYTES 0xc0,0xa8,0x00,0xff // 192.168.0.255
+//#define BCAST_DEST_IP_BYTES 0xa,0x0,0x0,0xff // 10.0.0.255
 
 /* Functions in this file */
 void ethmac_setup(void);
@@ -88,6 +95,8 @@ unsigned short calculate_checksum(char* dats, unsigned int len) ;
 
 // Global used to control whether we print out packets as we receive them
 int print_packet_contents;
+int packet_inspect_debug;
+int print_ethmac_debug_reg;
 
 /* Let the ethernet packets use a space beginning here for buffering */
 #define ETH_BUFF_BASE 0x01000000
@@ -104,8 +113,8 @@ int print_packet_contents;
 
 /* Buffer number (must be 2^n) 
 */
-#define OETH_RXBD_NUM		64
-#define OETH_TXBD_NUM		64
+#define OETH_RXBD_NUM		124
+#define OETH_TXBD_NUM		4
 #define OETH_RXBD_NUM_MASK	(OETH_RXBD_NUM-1)
 #define OETH_TXBD_NUM_MASK	(OETH_TXBD_NUM-1)
 
@@ -137,6 +146,82 @@ struct oeth_private {
   //	struct net_device_stats stats;
 };
 
+#define PRINT_BIT_NAME(bit,name) printf("%02d:"name" %d\n",bit,!!(reg&(1<<bit)))
+void oeth_print_moder(unsigned long reg)
+{
+	PRINT_BIT_NAME(16,"RECSMALL");
+	PRINT_BIT_NAME(15,"PAD");
+	PRINT_BIT_NAME(14,"HUGEN");
+	PRINT_BIT_NAME(13,"CRCEN");
+	PRINT_BIT_NAME(12,"DLYCRCEN");
+	PRINT_BIT_NAME(10,"FULLD");
+	PRINT_BIT_NAME(9,"EXDFREN");
+	PRINT_BIT_NAME(8,"NOBCKOF");
+	PRINT_BIT_NAME(7,"LOOPBCK");
+	PRINT_BIT_NAME(6,"IFG");
+	PRINT_BIT_NAME(5,"PRO");
+	PRINT_BIT_NAME(4,"IAM");
+	PRINT_BIT_NAME(3,"BRO");
+	PRINT_BIT_NAME(2,"NOPRE");
+	PRINT_BIT_NAME(1,"TXEN");
+	PRINT_BIT_NAME(0,"RXEN");
+}
+
+void oeth_print_intsource(unsigned long reg)
+{
+	PRINT_BIT_NAME(6,"RXCtrlFrame");
+	PRINT_BIT_NAME(5,"TXCtrlFrame");
+	PRINT_BIT_NAME(4,"BUSY");
+	PRINT_BIT_NAME(3,"RXE");
+	PRINT_BIT_NAME(2,"RXB");
+	PRINT_BIT_NAME(1,"TXE");
+	PRINT_BIT_NAME(0,"TXB");
+}
+
+void oeth_print_ctrlmoder(unsigned long reg)
+{
+	PRINT_BIT_NAME(2,"TXFLOW");
+	PRINT_BIT_NAME(1,"RXFLOW");
+	PRINT_BIT_NAME(0,"PASSALL");
+}
+
+void oeth_print_txbuf(unsigned long reg)
+{
+	printf("RD%d ",!!(reg&(1<<15)));
+	printf("IQ%d ",!!(reg&(1<<14)));
+	printf("WP%d ",!!(reg&(1<<13)));
+	printf("PD%d ",!!(reg&(1<<12)));
+	printf("CC%d ",!!(reg&(1<<11)));
+	printf("UN%d ",!!(reg&(1<<8)));
+	printf("RY%d ",!!(reg&(1<<3)));
+	printf("LC%d ",!!(reg&(1<<2)));
+	printf("DF%d ",!!(reg&(1<<1)));
+	printf("CS%d ",!!(reg&(1<<0)));
+	printf("\n");
+
+}
+
+
+void oeth_print_rxbuf(unsigned long reg)
+{
+	printf("EM%d ",!!(reg&(1<<15)));
+	printf("IQ%d ",!!(reg&(1<<14)));
+	printf("WP%d ",!!(reg&(1<<13)));
+	printf("PD%d ",!!(reg&(1<<12)));
+	printf("CF%d ",!!(reg&(1<<8)));
+	//printf("MS%d ",!!(reg&(1<<7)));
+	printf("OR%d ",!!(reg&(1<<6)));
+	printf("IS%d ",!!(reg&(1<<5)));
+	printf("DN%d ",!!(reg&(1<<4)));
+	printf("TL%d ",!!(reg&(1<<3)));
+	printf("SF%d ",!!(reg&(1<<2)));
+	printf("CE%d ",!!(reg&(1<<1)));
+	printf("LC%d ",!!(reg&(1<<0)));
+	printf("\n");
+
+}
+
+//	PRINT_BIT_NAME(,"");
 void oeth_printregs(void)
 {
   volatile oeth_regs *regs;
@@ -144,8 +229,10 @@ void oeth_printregs(void)
 	
   printf("Oeth regs: Mode Register : 0x%lx\n",
 	 (unsigned long) regs->moder);          /* Mode Register */
+  oeth_print_moder((unsigned long) regs->moder);
   printf("Oeth regs: Interrupt Source Register 0x%lx\n", 
 	 (unsigned long) regs->int_src);        /* Interrupt Source Register */
+  oeth_print_intsource((unsigned long) regs->int_src);
   printf("Oeth regs: Interrupt Mask Register 0x%lx\n",
 	 (unsigned long) regs->int_mask);       /* Interrupt Mask Register */
   printf("Oeth regs: Back to Bak Inter Packet Gap Register 0x%lx\n",
@@ -162,6 +249,7 @@ void oeth_printregs(void)
 	 (unsigned long) regs->tx_bd_num);      /* Transmit Buffer Descriptor Number Register */
   printf("Oeth regs: Control Module Mode Register 0x%lx\n",
 	 (unsigned long) regs->ctrlmoder);      /* Control Module Mode Register */
+  oeth_print_ctrlmoder((unsigned long) regs->ctrlmoder);
   printf("Oeth regs: MII Mode Register 0x%lx\n",
 	 (unsigned long) regs->miimoder);       /* MII Mode Register */
   printf("Oeth regs: MII Command Register 0x%lx\n",
@@ -182,7 +270,21 @@ void oeth_printregs(void)
 	 (unsigned long) regs->hash_addr0);     /* Hash Register 0 */
   printf("Oeth regs: Hash Register 1  0x%lx\n",
 	 (unsigned long) regs->hash_addr1);     /* Hash Register 1 */    
+  printf("Oeth regs: TXCTRL  0x%lx\n",
+	 (unsigned long) regs->txctrl);     /* TX ctrl reg */    
+  printf("Oeth regs: RXCTRL  0x%lx\n",
+	 (unsigned long) regs->rxctrl);     /* RX ctrl reg */    
+  printf("Oeth regs: WBDBG  0x%lx\n",
+	 (unsigned long) regs->wbdbg);     /* Wishbone debug reg */    
 	
+}
+
+void oeth_print_wbdebug(void)
+{
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
+	printf("Oeth regs: WBDBG  0x%lx\n",
+	       (unsigned long) regs->wbdbg);     /* Wishbone debug reg */    
 }
 
 static int last_char;
@@ -909,6 +1011,60 @@ void ethmac_setup(void)
   return;
 }
 
+void oeth_ctrlmode_switch(void)
+{
+	volatile oeth_regs *regs;
+	
+	regs = (oeth_regs *)(OETH_REG_BASE);
+
+	if (regs->ctrlmoder & (OETH_CTRLMODER_TXFLOW | OETH_CTRLMODER_RXFLOW))
+	{
+		printf("Disabling TX/RX flow control");
+
+		regs->ctrlmoder = 0;
+	}
+	else
+	{
+		printf("Enabling TX/RX flow control");
+
+		regs->ctrlmoder = (OETH_CTRLMODER_TXFLOW | 
+				   OETH_CTRLMODER_RXFLOW);
+		
+	}
+		
+}
+
+void
+oeth_toggle_promiscuous(void)
+{
+	// from arch/or32/drivers/open_eth.c
+	volatile oeth_regs *regs;
+  	regs = (oeth_regs *)(OETH_REG_BASE);
+	
+	if (  regs->moder & OETH_MODER_PRO )
+	{
+		printf("Disabling ");
+		regs->moder &= ~OETH_MODER_PRO;
+
+	}
+	else
+	{
+		printf("Enabling ");
+		regs->moder |= OETH_MODER_PRO;
+
+	}
+	printf("promisucous mode\n");
+}
+
+void oeth_transmit_pause(void)
+{
+	
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
+	regs->txctrl = 0x1fffe;
+}
+
+
 void
 ethmac_togglehugen(void)
 {
@@ -982,14 +1138,14 @@ struct oeth_bd* get_next_tx_bd()
 
 /* print packet contents */
 static void
-oeth_print_packet(unsigned long add, int len)
+oeth_print_packet(int bd, unsigned long add, int len)
 {
 
   int truncate = (len > 256);
   int length_to_print = truncate ? 256 : len;
 
   int i;
-  printf("\nipacket: add = %lx len = %d\n", add, len);
+  printf("\nbd%03d packet: add = %lx len = %d\n", bd,add, len);
   for(i = 0; i < length_to_print; i++) {
     if(!(i % 8))
       printf(" ");
@@ -1062,7 +1218,13 @@ void tx_packet(void* data, int length)
   */
   tx_bd->len_status |= (OETH_TX_BD_READY  | OETH_TX_BD_CRC | OETH_TX_BD_IRQ);
 
-  next_tx_buf_num = (next_tx_buf_num + 1) & OETH_TXBD_NUM_MASK;
+  //next_tx_buf_num = (next_tx_buf_num + 1) & OETH_TXBD_NUM_MASK;
+  next_tx_buf_num++;
+  if (next_tx_buf_num == OETH_TXBD_NUM)
+  {
+	  next_tx_buf_num = 0;
+  }
+	  
 
   return;
 
@@ -1090,7 +1252,7 @@ void oeth_monitor_rx(void)
 	{
 	  // Something in this buffer!
 	  printf("Oeth: RX in buf %d - len_status: 0x%lx\n",i, rx_bd[i].len_status);
-	  oeth_print_packet(rx_bd[i].addr, rx_bd[i].len_status >> 16);
+	  oeth_print_packet(i,rx_bd[i].addr, rx_bd[i].len_status >> 16);
 	  /* Clear recieved bit */
 	  rx_bd[i].len_status |=  OETH_RX_BD_EMPTY;	      
 	  printf("\t end of packet\n\n");
@@ -1098,23 +1260,36 @@ void oeth_monitor_rx(void)
     }
 }
 
+#include "spr-defs.h"
+
 /* Print out all buffer descriptors */
 void oeth_dump_bds()
 {
-  unsigned long* bd_base = (unsigned long*) OETH_BD_BASE;
+	// Disable interrupts
+	mtspr (SPR_SR, mfspr (SPR_SR) & ~SPR_SR_IEE);
 
-  int i;
-  for(i=0;i<OETH_TXBD_NUM;i++)
-    {
-      printf("oeth: tx_bd%d: len_status: %lx ",i,*bd_base++);
-      printf("addr: %lx\n", *bd_base++);
-    }
+	unsigned long* bd_base = (unsigned long*) OETH_BD_BASE;
 
-  for(i=0;i<OETH_RXBD_NUM;i++)
-    {
-      printf("oeth: rx_bd%d: len_status: %lx ",i,*bd_base++);
-      printf("addr: %lx\n", *bd_base++);
-    }
+	int i;
+	for(i=0;i<OETH_TXBD_NUM;i++)
+	{
+		printf("TXBD%03d len_status %08lx ",i,*bd_base);
+		oeth_print_txbuf(*bd_base++);
+		//printf("addr: %lx\n", *bd_base++);
+		*bd_base++;
+	}
+
+	for(i=0;i<OETH_RXBD_NUM;i++)
+	{
+		printf("RXBD%03d len_status %08lx ",i,*bd_base);
+		oeth_print_rxbuf(*bd_base++);
+		*bd_base++;
+      
+		//printf("addr: %lx\n", *bd_base++);
+	}
+
+	// Enable interrupts
+	mtspr (SPR_SR, mfspr (SPR_SR) | SPR_SR_IEE);
   
 }
 
@@ -1318,70 +1493,89 @@ void
 oeth_interrupt(void)
 {
 
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
 
-  uint	int_events;
-  int serviced;
+	uint int_events;
+	int  serviced;
   
-  serviced = 0;
+	serviced = 0;
 
-  /* Get the interrupt events that caused us to be here.
-  */
-  int_events = regs->int_src;
-  regs->int_src = int_events;
+	/* Get the interrupt events that caused us to be here.
+	 */
+	int_events = regs->int_src;
+	regs->int_src = int_events;
 
 
-  /* Indicate busy */
-  if (int_events & OETH_INT_BUSY)
-    {
-      printf("\tBusy flag\n");
-      /*
-      printf("\n=tx_ | %x | %x | %x | %x | %x | %x | %x | %x\n",
-      ((oeth_bd *)(OETH_BD_BASE))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+8))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+16))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+24))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+32))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+40))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+48))->len_status,
-      ((oeth_bd *)(OETH_BD_BASE+56))->len_status);
-      */	
-      printf("=rx_ | %x | %x | %x | %x | %x | %x | %x | %x\n",
-	     ((oeth_bd *)(OETH_BD_BASE+64))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+8))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+16))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+24))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+32))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+40))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+48))->len_status,
-	     ((oeth_bd *)(OETH_BD_BASE+64+56))->len_status);
+	/* Indicate busy */
+	if (int_events & OETH_INT_BUSY)
+	{
+		printf("\tBusy flag\n");
+		/*
+		  printf("\n=tx_ | %x | %x | %x | %x | %x | %x | %x | %x\n",
+		  ((oeth_bd *)(OETH_BD_BASE))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+8))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+16))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+24))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+32))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+40))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+48))->len_status,
+		  ((oeth_bd *)(OETH_BD_BASE+56))->len_status);
+		*/	
+		printf("=rx_ | %x | %x | %x | %x | %x | %x | %x | %x\n",
+		       ((oeth_bd *)(OETH_BD_BASE+64))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+8))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+16))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+24))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+32))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+40))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+48))->len_status,
+		       ((oeth_bd *)(OETH_BD_BASE+64+56))->len_status);
       
-      printf("=int | txb %d | txe %d | rxb %d | rxe %d | busy %d\n",
-	     (int_events & OETH_INT_TXB) > 0,
-	     (int_events & OETH_INT_TXE) > 0,
-	     (int_events & OETH_INT_RXF) > 0,
-	     (int_events & OETH_INT_RXE) > 0,
-	     (int_events & OETH_INT_BUSY) > 0);
-    }
-	
-  /* Handle receive event in its own function.
-  */
-  if (int_events & (OETH_INT_RXF | OETH_INT_RXE)) {
-    serviced |= 0x1; 
-    oeth_rx();
-  }
+		printf("=int | rxc %d | txc %d | txb %d | txe %d | rxb %d | rxe %d | busy %d\n",
+		       (int_events & OETH_INT_RXC) > 0,
+		       (int_events & OETH_INT_TXC) > 0,
+		       (int_events & OETH_INT_TXB) > 0,
+		       (int_events & OETH_INT_TXE) > 0,
+		       (int_events & OETH_INT_RXF) > 0,
+		       (int_events & OETH_INT_RXE) > 0,
+		       (int_events & OETH_INT_BUSY) > 0);
+	}/*
+	else 
+		printf("=int | rxc %d | txc %d | txb %d | txe %d | rxb %d | rxe %d | busy %d\n",
+		       (int_events & OETH_INT_RXC) > 0,
+		       (int_events & OETH_INT_TXC) > 0,
+		       (int_events & OETH_INT_TXB) > 0,
+		       (int_events & OETH_INT_TXE) > 0,
+		       (int_events & OETH_INT_RXF) > 0,
+		       (int_events & OETH_INT_RXE) > 0,
+		       (int_events & OETH_INT_BUSY) > 0);
+	     */
+	/* Handle receive event in its own function.
+	 */
+	if (int_events & (OETH_INT_RXF | OETH_INT_RXE)) {
+		serviced |= 0x1; 
+		if (print_ethmac_debug_reg)
+			oeth_print_wbdebug();
+		oeth_rx();
+		if (print_ethmac_debug_reg)
+			oeth_print_wbdebug();
+	}
 
-  /* Handle transmit event in its own function.
-  */
-  if (int_events & (OETH_INT_TXB | OETH_INT_TXE)) {
-    serviced |= 0x2;
-    oeth_tx();
-    serviced |= 0x2;
+	/* Handle transmit event in its own function.
+	 */
+	if (int_events & (OETH_INT_TXB | OETH_INT_TXE)) {
+		if (print_ethmac_debug_reg)
+			oeth_print_wbdebug();
+		serviced |= 0x2;
+		oeth_tx();
+		serviced |= 0x2;
+		if (print_ethmac_debug_reg)
+			oeth_print_wbdebug();
 		
-  }
+	}
 	
-  return;
+	return;
 }
 
 // ARP stuff
@@ -1552,6 +1746,10 @@ packet_check_icmp_header(void * pkt)
   // Check for ICMP echo request type
   if (!(icmp->type == ICMP_TYPE_ECHO_REQ))
     return;
+
+  // Skip forward to the target I.P address
+  if (packet_inspect_debug)
+	  printf("Ping packet\n");
   
   // Go ahead and construct a response packet
   // Setup pointers
@@ -1701,11 +1899,15 @@ packet_check_arp_header(void * pkt)
 
       if (arp->ar_hrd == ARP_ETHER && arp->ar_op == ARPOP_REQUEST)
 	{
-	  // Skip forward to the target I.P address
+		// Skip forward to the target I.P address
+		if (packet_inspect_debug)
+			printf("ARP packet\n");
 	  
-	  char * internet_protocol_adr = (((unsigned long)&arp->ar_data[0]) + (arp->ar_hln * 2) + (arp->ar_pln));
+	  char * internet_protocol_adr = (((unsigned long)&arp->ar_data[0]) + 
+					  (arp->ar_hln * 2) + (arp->ar_pln));
 	  
-	  //printf("Is ARP ethernet request\ncheck adr at 0x%.8x\n",internet_protocol_adr);
+	  //printf("Is ARP ethernet request\ncheck adr at 0x%.8x\n",
+	  // internet_protocol_adr);
 	  if ((internet_protocol_adr[0] == our_ip[0]) &&
 	      (internet_protocol_adr[1] == our_ip[1]) &&
 	      (internet_protocol_adr[2] == our_ip[2]) &&
@@ -1731,15 +1933,18 @@ packet_check_arp_header(void * pkt)
 	      reply_arp->ar_pln = 0x04;
 	      reply_arp->ar_op = ARPOP_REPLY;
 	      // My MAC
-	      memcpy( (void*)&reply_arp->ar_data[0] , (void*)&reply_pkt->et_src , 6);
+	      memcpy( (void*)&reply_arp->ar_data[0] , 
+		      (void*)&reply_pkt->et_src , 6);
 	      // My IP
 	      memcpy( (void*)&reply_arp->ar_data[6] , (void*)&our_ip , 4);
 	      // Their MAC
-	      memcpy( (void*)&reply_arp->ar_data[10] , (void*)&eth_pkt->et_src , 6);
+	      memcpy( (void*)&reply_arp->ar_data[10] , 
+		      (void*)&eth_pkt->et_src , 6);
 	      // Their IP
 	      char * their_internet_protocol_adr = 
 		(((unsigned long)&arp->ar_data[0]) + arp->ar_hln );
-	      memcpy( (void*)&reply_arp->ar_data[16] , (void*)&their_internet_protocol_adr[0] , 4);
+	      memcpy( (void*)&reply_arp->ar_data[16] , 
+		      (void*)&their_internet_protocol_adr[0] , 4);
 
 	      tx_packet((void*)arp_reply_packet,(ETHER_HDR_SIZE+ARP_HDR_SIZE) );
 	      
@@ -1753,74 +1958,84 @@ packet_check_arp_header(void * pkt)
 static void
 oeth_rx(void)
 {
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
 
-  volatile oeth_bd *rx_bdp;
-  int	pkt_len, i;
-  int	bad = 0;
+	volatile oeth_bd *rx_bdp;
+	int	pkt_len, i;
+	int	bad = 0;
   
-  rx_bdp = ((oeth_bd *)OETH_BD_BASE) + OETH_TXBD_NUM;
+	rx_bdp = ((oeth_bd *)OETH_BD_BASE) + OETH_TXBD_NUM;
   
-  if (print_packet_contents)
-    printf("rx");
+	if (print_packet_contents)
+		printf("rx ");
   
-  /* Find RX buffers marked as having received data */
-  for(i = 0; i < OETH_RXBD_NUM; i++)
-    {
-      if(!(rx_bdp[i].len_status & OETH_RX_BD_EMPTY)){ /* Looking for NOT empty buffers desc. */
-	/* Check status for errors.
-	*/
-	if (rx_bdp[i].len_status & (OETH_RX_BD_TOOLONG | OETH_RX_BD_SHORT)) {
-	  bad = 1;
-	}
-	if (rx_bdp[i].len_status & OETH_RX_BD_DRIBBLE) {
-	  bad = 1;
-	}
-	if (rx_bdp[i].len_status & OETH_RX_BD_CRCERR) {
-	  bad = 1;
-	}
-	if (rx_bdp[i].len_status & OETH_RX_BD_OVERRUN) {
-	  bad = 1;
-	}
-	if (rx_bdp[i].len_status & OETH_RX_BD_MISS) {
+	/* Find RX buffers marked as having received data */
+	for(i = 0; i < OETH_RXBD_NUM; i++)
+	{
+		/* Looking for NOT empty buffers desc. */
+		if(!(rx_bdp[i].len_status & OETH_RX_BD_EMPTY)){ 
+			/* Check status for errors.
+			 */
+			if (rx_bdp[i].len_status & (OETH_RX_BD_TOOLONG | 
+						    OETH_RX_BD_SHORT)) {
+				bad = 1;
+			}
+			if (rx_bdp[i].len_status & OETH_RX_BD_DRIBBLE) {
+				bad = 1;
+			}
+			if (rx_bdp[i].len_status & OETH_RX_BD_CRCERR) {
+				bad = 1;
+			}
+			if (rx_bdp[i].len_status & OETH_RX_BD_OVERRUN) {
+				bad = 1;
+			}
+			if (rx_bdp[i].len_status & OETH_RX_BD_MISS) {
 	  
-	}
-	if (rx_bdp[i].len_status & OETH_RX_BD_LATECOL) {
-	  bad = 1;
-	}
+			}
+			if (rx_bdp[i].len_status & OETH_RX_BD_LATECOL) {
+				bad = 1;
+			}
 	
-	if (bad) {
-	  printf("RXE: 0x%x\n",rx_bdp[i].len_status & OETH_RX_BD_STATS);
-	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS;
-	  rx_bdp[i].len_status |= OETH_RX_BD_EMPTY;
-	  bad = 0;
-	  continue;
+			if (bad) {
+				printf("RXE: 0x%x\n",rx_bdp[i].len_status & 
+				       OETH_RX_BD_STATS);
+				rx_bdp[i].len_status &= ~OETH_RX_BD_STATS;
+				rx_bdp[i].len_status |= OETH_RX_BD_EMPTY;
+				bad = 0;
+				continue;
+			}
+			else {
+	  
+				/* Process the incoming frame.
+				 */
+				pkt_len = rx_bdp[i].len_status >> 16;
+	  
+				/* Do something here with the data - copy it 
+				   into userspace, perhaps. */
+				// See if it's an ARP packet
+				packet_check_arp_header((void*)rx_bdp[i].addr);
+				// See if it's an ICMP echo request
+				packet_check_icmp_header((void*)rx_bdp[i].addr);
+				if (print_packet_contents)
+				{
+					oeth_print_packet(i, rx_bdp[i].addr, 
+							  rx_bdp[i].len_status 
+							  >> 16);
+					printf("\t end of packet\n\n");
+				}
+				/* finish up */
+				/* Clear stats */
+				rx_bdp[i].len_status &= ~OETH_RX_BD_STATS;
+				 /* Mark RX BD as empty */
+				rx_bdp[i].len_status |= OETH_RX_BD_EMPTY;
+
+				oeth_transmit_pause(); //try this!
+	  
+	  
+			}
+		}
 	}
-	else {
-	  
-	  /* Process the incoming frame.
-	  */
-	  pkt_len = rx_bdp[i].len_status >> 16;
-	  
-	  /* Do something here with the data - copy it into userspace, perhaps. */
-	  // See if it's an ARP packet
-	  packet_check_arp_header((void *)rx_bdp[i].addr );
-	  // See if it's an ICMP echo request
-	  packet_check_icmp_header((void *)rx_bdp[i].addr );
-	  if (print_packet_contents)
-	    {
-	      oeth_print_packet(rx_bdp[i].addr, rx_bdp[i].len_status >> 16);
-	      printf("\t end of packet\n\n");
-	    }
-	  /* finish up */
-	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS; /* Clear stats */
-	  rx_bdp[i].len_status |= OETH_RX_BD_EMPTY; /* Mark RX BD as empty */
-	  
-	  
-	}
-      }
-    }
 }
 
 
@@ -1828,159 +2043,194 @@ oeth_rx(void)
 static void
 oeth_tx(void)
 {
-  volatile oeth_bd *tx_bd;
-  int i;
-  if (print_packet_contents)
-    printf("tx");
+	volatile oeth_bd *tx_bd;
+	int i;
+	if (print_packet_contents)
+		printf("tx");
 
-  tx_bd = (volatile oeth_bd *)OETH_BD_BASE; /* Search from beginning*/
+	tx_bd = (volatile oeth_bd *)OETH_BD_BASE; /* Search from beginning*/
   
-  /* Go through the TX buffs, search for one that was just sent */
-  for(i = 0; i < OETH_TXBD_NUM; i++)
-    {
-      /* Looking for buffer NOT ready for transmit. and IRQ enabled */
-      if( (!(tx_bd[i].len_status & (OETH_TX_BD_READY))) && (tx_bd[i].len_status & (OETH_TX_BD_IRQ)) )
+	/* Go through the TX buffs, search for one that was just sent */
+	for(i = 0; i < OETH_TXBD_NUM; i++)
 	{
-	  //oeth_print_packet(tx_bd[i].addr, (tx_bd[i].len_status >> 16));
-	  /* Single threaded so no chance we have detected a buffer that has had its IRQ bit set but not its BD_READ flag. Maybe this won't work in linux */
-	  tx_bd[i].len_status &= ~OETH_TX_BD_IRQ;
+		/* Looking for buffer NOT ready for transmit. and IRQ enabled */
+		if( (!(tx_bd[i].len_status & (OETH_TX_BD_READY))) && 
+		    (tx_bd[i].len_status & (OETH_TX_BD_IRQ)) )
+		{
+			/* Single threaded so no chance we have detected a 
+			   buffer that has had its IRQ bit set but not its 
+			   BD_READ flag. Maybe this won't work in linux */
+			tx_bd[i].len_status &= ~OETH_TX_BD_IRQ;
 
-	  /* Probably good to check for TX errors here */
-	  // Check if either carrier sense lost or colission indicated
-	  if (tx_bd[i].len_status & OETH_TX_BD_STATS)
-	    printf("TXER: 0x%x\n",(tx_bd[i].len_status & OETH_TX_BD_STATS));
+			/* Probably good to check for TX errors here */
+			// Check if either carrier sense lost or colission 
+			// indicated
+			if (tx_bd[i].len_status & OETH_TX_BD_STATS)
+				printf("TXER: 0x%x\n",
+				       (tx_bd[i].len_status &OETH_TX_BD_STATS));
 	  
-	  if (print_packet_contents)
-	    printf("T%d",i);
+			if (print_packet_contents)
+				printf("T%d",i);
+		}
 	}
-    }
-  return;  
+	return;  
 }
 
 
 int main ()
 {
   
-  print_packet_contents = 0; // Default to not printing packet contents.
-  
-  /* Initialise vector handler */
-  int_init();
+	print_packet_contents = 0; // Default to not printing packet contents.
+	packet_inspect_debug = 0;
+	print_ethmac_debug_reg = 0;
 
-  /* Install ethernet interrupt handler, it is enabled here too */
-  int_add(ETH0_IRQ, oeth_interrupt, 0);
+	/* Initialise vector handler */
+	int_init();
 
-  /* Enable interrupts */
-  cpu_enable_user_interrupts();
+	/* Install ethernet interrupt handler, it is enabled here too */
+	int_add(ETH0_IRQ, oeth_interrupt, 0);
+
+	/* Enable interrupts */
+	cpu_enable_user_interrupts();
     
-  last_char=0; /* Variable init for spin_cursor() */
-  next_tx_buf_num = 4; /* init for tx buffer counter */
+	last_char=0; /* Variable init for spin_cursor() */
+	next_tx_buf_num = 4; /* init for tx buffer counter */
 
-  uart_init(DEFAULT_UART); // init the UART before we can printf
-  printf("\n\teth ping program\n\n");
-  printf("\n\tboard IP: %d.%d.%d.%d\n",our_ip[0]&0xff,our_ip[1]&0xff,
-	 our_ip[2]&0xff,our_ip[3]&0xff);
+	uart_init(DEFAULT_UART); // init the UART before we can printf
+	printf("\n\teth ping program\n\n");
+	printf("\n\tboard IP: %d.%d.%d.%d\n",our_ip[0]&0xff,our_ip[1]&0xff,
+	       our_ip[2]&0xff,our_ip[3]&0xff);
   
-  ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX and TX in MODER */
+	ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX and TX in 
+			   MODER */
   
-  //scan_ethphys(); /* Scan MIIM bus for PHYs */
-  //ethphy_init(); /* Attempt reset and configuration of PHY via MIIM */
-  //ethmac_scanstatus(); /* Enable scanning of status register via MIIM */
+	//scan_ethphys(); /* Scan MIIM bus for PHYs */
+	//ethphy_init(); /* Attempt reset and configuration of PHY via MIIM */
+	//ethmac_scanstatus(); /* Enable scanning of status register via MIIM */
 
-  /* Loop, monitoring user input from TTY */
-  while(1)  
-    {
-      char c;
+	/* Loop, monitoring user input from TTY */
+	while(1)  
+	{
+		char c;
       
-      while(!uart_check_for_char(DEFAULT_UART))
-	{
-	  spin_cursor();
-	  //oeth_monitor_rx();
-	}
+		while(!uart_check_for_char(DEFAULT_UART))
+		{
+			
+			spin_cursor();
+			
+			if (print_ethmac_debug_reg)
+				oeth_print_wbdebug();
+		}
       
-      c = uart_getc(DEFAULT_UART);
+		c = uart_getc(DEFAULT_UART);
 
-      if (c == 's')
-	tx_packet((void*) ping_packet, 98);
-      else if (c == 'S')
-	tx_packet((void*)big_ping_packet, 1514);
-      else if (c == 'h')
-	scan_ethphys();
-      else if (c == 'i')
-	ethphy_init();
-      else if (c == 'P')
-	{
-	  print_packet_contents = print_packet_contents ? 0 : 1;
-	  if (print_packet_contents)
-	    printf("Enabling packet dumping\n");
-	  else
-	    printf("Packet dumping disabled\n");
-	}
-      else if (c == 'p')
-	oeth_printregs();
-      else if (c == '0')
-	scan_ethphy(0);
-      else if (c == '1')
-	scan_ethphy(1);
-      else if (c == '7')
-	{
-	  //scan_ethphy(7);
-	  //ethphy_print_status(7);
-	  printf("ext_sr 0x%x\n",eth_mii_read(0x7, 0x1b));
-	}
-      else if (c == 'r')
-	{
-	  ethphy_reset(7);
-	  printf("PHY reset\n");
-	}
-      else if (c == 'R')
-	{
-	  //oeth_reset_tx_bd_pointer();
-	  ethmac_setup();
-	  printf("MAC reset\n");
-	}
-      else if (c == 'n')
-	ethphy_reneg(7);
-      else if (c == 'N')
-	ethphy_set_autoneg(7);
-      else if (c == 'm')
-	ethmac_togglehugen();
-      else if (c == 't')
-	ethphy_set_10mbit(0);
-      else if (c == 'w')
-	{
-	  // Play with HWCFG mode of Alaska 88e1111 Phy
-	  c = uart_getc(DEFAULT_UART);
-	  short newvalue;
-	  // c is an ascii char, let's convert it to actual hex value
-	  if (c >= 'A' && c <= 'F')
-	    newvalue = c - (65 - 10);
-	  else if (c >= 'a' && c <= 'f')
-	    newvalue  = c - (99 - 10);
-	  else if (c >= '0' && c <= '9')
-	    newvalue  = c - 48;
+		if (c == 's')
+			tx_packet((void*) ping_packet, 98);
+		else if (c == 'S')
+			tx_packet((void*)big_ping_packet, 1514);
+		else if (c == 'h')
+			scan_ethphys();
+		else if (c == 'i')
+			ethphy_init();
+		else if (c == 'c')
+			oeth_ctrlmode_switch();
+		else if (c == 'P')
+		{
+			print_packet_contents = print_packet_contents ? 0 : 1;
+			if (print_packet_contents)
+				printf("Enabling packet dumping\n");
+			else
+				printf("Packet dumping disabled\n");
+		}
+		else if (c == 'p')
+			oeth_printregs();
+		else if (c == '0')
+			scan_ethphy(0);
+		else if (c == '1')
+			scan_ethphy(1);
+		else if (c == '7')
+		{
+			//scan_ethphy(7);
+			//ethphy_print_status(7);
+			printf("ext_sr 0x%x\n",eth_mii_read(0x7, 0x1b));
+		}
+		else if (c == 'r')
+		{
+			ethphy_reset(7);
+			printf("PHY reset\n");
+		}
+		else if (c == 'R')
+		{
+			//oeth_reset_tx_bd_pointer();
+			ethmac_setup();
+			printf("MAC reset\n");
+		}
+		else if (c == 'n')
+			ethphy_reneg(7);
+		else if (c == 'N')
+			ethphy_set_autoneg(7);
+		else if (c == 'm')
+			ethmac_togglehugen();
+		else if (c == 't')
+			ethphy_set_10mbit(0);
+		else if (c == 'w')
+		{
+			// Play with HWCFG mode of Alaska 88e1111 Phy
+			c = uart_getc(DEFAULT_UART);
+			short newvalue;
+			// c is an ascii char, let's convert it to actual hex 
+			// value
+			if (c >= 'A' && c <= 'F')
+				newvalue = c - (65 - 10);
+			else if (c >= 'a' && c <= 'f')
+				newvalue  = c - (99 - 10);
+			else if (c >= '0' && c <= '9')
+				newvalue  = c - 48;
 
-	  // Take this value and or it into the bottom bit (supposedly ext_sr)
+			// Take this value and or it into the bottom bit 
+			// (supposedly ext_sr)
 #define MII_M1111_PHY_EXT_SR		0x1b
-	  short ext_sr;
-	  ext_sr = eth_mii_read(0x7, MII_M1111_PHY_EXT_SR);
+			short ext_sr;
+			ext_sr = eth_mii_read(0x7, MII_M1111_PHY_EXT_SR);
 #define MII_M1111_HWCFG_MODE_MASK		0xf	  
-	  ext_sr &= ~MII_M1111_HWCFG_MODE_MASK;
-	  ext_sr |= (short) newvalue;
-	  eth_mii_write(0x7, MII_M1111_PHY_EXT_SR, ext_sr);
-	  printf("ext_sr updated to - 0x%x\n",eth_mii_read(0x7, MII_M1111_PHY_EXT_SR));
-	}
-      else if ( c == 'b' )
-	{
-	  printf("\n\t---\n");
-	  oeth_dump_bds();
-	  printf("\t---\n");
-	}
+			ext_sr &= ~MII_M1111_HWCFG_MODE_MASK;
+			ext_sr |= (short) newvalue;
+			eth_mii_write(0x7, MII_M1111_PHY_EXT_SR, ext_sr);
+			printf("ext_sr updated to - 0x%x\n",
+			       eth_mii_read(0x7, MII_M1111_PHY_EXT_SR));
+		}
+		else if ( c == 'b' )
+		{
+			printf("\n\t---\n");
+			oeth_dump_bds();
+			printf("\t---\n");
+		}
       
-      else if ( c == 'B' )
-	{
-	  tx_packet((void*) broadcast_ping_packet, 298);
-	}
+		else if ( c == 'B' )
+		{
+			tx_packet((void*) broadcast_ping_packet, 298);
+		}
+		else if (c == 'u' )
+			oeth_transmit_pause();
+		else if (c == 'd' )
+		{
+			oeth_print_wbdebug();
+			print_ethmac_debug_reg = !print_ethmac_debug_reg;
+		}
+		else if (c == 'v' )
+		{
+			if (packet_inspect_debug)
+				printf("Disabling ");
+			else 
+				printf("Enabling ");
+			
+			printf("packet type announcments\n");
+			
+			packet_inspect_debug = !packet_inspect_debug;
+		}
+		else if ( c == 'o' )
+			oeth_toggle_promiscuous();
 
-    }
+	}
 
 }

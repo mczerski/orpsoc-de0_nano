@@ -284,7 +284,7 @@ $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(EDIF_FILE): $(SYN_WORK_DIR)/$(SYN_SCRIPT)
 ##
 # Generate a report for each module, and for whole thing
 ##
-MODULES ?=arbiter_ibus arbiter_dbus arbiter_bytebus jtag_tap or1200_top dbg_if rom ram_wb uart16550 spacewire_wb_if mp2_top simple_spi i2c_core_wb_if usbslave scet gpio versatile_mem_ctrl urtu_top
+MODULES ?= or1200_top
 MODULES_SRR=$(shell for mod in $(MODULES); do echo $(SYN_WORK_DIR)"/"$(SYN_PROJ_NAME)"/"$$mod".srr"; done)
 
 syn-report: $(MODULES_SRR)

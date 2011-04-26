@@ -364,6 +364,7 @@
 //
 //`define OR1200_IMPL_ALU_COMP1
 `define OR1200_IMPL_ALU_COMP2
+//`define OR1200_IMPL_ALU_COMP3
 
 //
 // Implement Find First/Last '1'

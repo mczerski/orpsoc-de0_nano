@@ -95,7 +95,7 @@ _bus_handler:
 	l.mfspr	r3,r0,SPR_EEAR_BASE	/* Get EEA */
 	l.nop	2
 	l.addi	r11,r11,1		/* Increment 1st exception counter */
-	l.sfeqi r30, 0xd /* Is this a data bus test, if so return with l.rfe */
+	l.sfeqi r2, 0xd /* Is this a data bus test, if so return with l.rfe */
 	l.bf 1f
 	l.movhi r5, 0    /* r5 should be the one causing the error on dbus */
 	/* Instruction bus error test return */
@@ -138,27 +138,32 @@ _illinsn_handler:
 	.global _dtlb_handler
 /* Exception handler - DMMU TLB miss */
 /* Assume 64-entry TLB cache */	
-_dtlb_handler:	
-	l.mfspr r20, r0, SPR_EEAR_BASE
+_dtlb_handler:
+	l.sw	-4(r1),r4
+	l.sw	-8(r1),r5
+	l.sw	-12(r1),r6
+	l.sw	-16(r1),r7
+	l.sw	-20(r1),r8
+	l.mfspr r2, r0, SPR_EEAR_BASE
 	/* Find the entry/set for this address */
-	l.srli r21, r20, 13 /* r21 = VPN, shift by size 8192 = 2**13 */
-	l.andi r22, r21, 0x3f /* 64 entries = 6 bit mask, r22 = set number */
+	l.srli r13, r2, 13 /* r13 = VPN, shift by size 8192 = 2**13 */
+	l.andi r4, r13, 0x3f /* 64 entries = 6 bit mask, r4 = set number */
 	/* If page is in the 0xc0000000 space we map to 16MB part of
 	memory, ie 0x0 => 0x01000000, otherwise 1-1 mapping */
-	l.movhi r23, hi(0xc0000000)
-	l.ori r23, r23, lo(0xc0000000)
-	l.srli r23, r23, 13 /* Get page address, shift by page size, 13 bits */
-	l.movhi r24, hi(0xff << 11) /* Mask for top byte of VPN */
-	l.ori r24, r24, lo(0xff << 11)
-	l.and r24, r24, r21 /* Mask in only top byte of VPN */
-	l.sfeq r23, r24 /* Decide if it's in our special mapped region or not*/
+	l.movhi r5, hi(0xc0000000)
+	l.ori r5, r5, lo(0xc0000000)
+	l.srli r5, r5, 13 /* Get page address, shift by page size, 13 bits */
+	l.movhi r6, hi(0xff << 11) /* Mask for top byte of VPN */
+	l.ori r6, r6, lo(0xff << 11)
+	l.and r6, r6, r13 /* Mask in only top byte of VPN */
+	l.sfeq r5, r6 /* Decide if it's in our special mapped region or not*/
 	
 	/* First, Setup value for DTLBM (match) reg, is same for both cases */
-	l.movhi r24, hi(SPR_ITLBMR_VPN) /* VPN mask into r24 */
-	l.ori r24, r24, lo(SPR_ITLBMR_VPN)
-	l.and r25, r20, r24 /* AND address with VPN mask */
-	l.ori r25, r25, SPR_DTLBMR_V /* OR in valid bit */
-	l.mtspr r22, r25, SPR_DTLBMR_BASE(0) /* Write to DTLBR register */
+	l.movhi r6, hi(SPR_ITLBMR_VPN) /* VPN mask into r6 */
+	l.ori r6, r6, lo(SPR_ITLBMR_VPN)
+	l.and r7, r2, r6 /* AND address with VPN mask */
+	l.ori r7, r7, SPR_DTLBMR_V /* OR in valid bit */
+	l.mtspr r4, r7, SPR_DTLBMR_BASE(0) /* Write to DTLBR register */
 
 	l.bf _highmem_map
 	l.nop
@@ -166,31 +171,35 @@ _dtlb_handler:
 _lomem_map:
 	/* Do 1:1 mapping for this request */
 	/* Setup value for translate register */
-	l.movhi r24, hi(SPR_ITLBTR_PPN) /* PPN mask into r24 */
-	l.ori r24, r24, lo(SPR_ITLBTR_PPN)
-	l.and r25, r20, r24 /* AND address with PPN mask */
-	l.ori r25, r25, DTLB_PR_NOLIMIT /* Set all execute enables, no lims. */
-	l.mtspr r22, r25, SPR_DTLBTR_BASE(0) /* Write to DTLTR register */
+	l.movhi r6, hi(SPR_ITLBTR_PPN) /* PPN mask into r6 */
+	l.ori r6, r6, lo(SPR_ITLBTR_PPN)
+	l.and r7, r2, r6 /* AND address with PPN mask */
+	l.ori r7, r7, DTLB_PR_NOLIMIT /* Set all execute enables, no lims. */
+	l.mtspr r4, r7, SPR_DTLBTR_BASE(0) /* Write to DTLTR register */
 	l.j _dtlb_done
-	l.addi r18, r18, 1 /* Incremement low-mapping counter */
+	l.addi r14, r14, 1 /* Incremement low-mapping counter */
 
 _highmem_map:
 	/* Do top byte, 0xc0->0x01, mapping for this request */
 	/* Setup value for translate register */
-	l.movhi r24, hi(SPR_ITLBTR_PPN) /* PPN mask into r24 */
-	l.ori r24, r24, lo(SPR_ITLBTR_PPN)
-	l.and r25, r20, r24 /* AND address with PPN mask */
-	l.movhi r26, hi(0xff000000) /* Top byte address mask */
-	l.or r25, r26, r25 /* Set top byte to 0xff */
-	l.xor r25, r26, r25 /* Now clear top byte with XOR */
-	l.movhi r26, hi(0x01000000) /* Top address byte */
-	l.or r25, r26, r25 /* Set top address byte */
-	l.ori r25, r25, DTLB_PR_NOLIMIT /* Set all execute enables, no lims. */
-	l.mtspr r22, r25, SPR_DTLBTR_BASE(0) /* Write to DTLTR register */
-	l.addi r19, r19, 1 /* Incremement low-mapping counter */
+	l.movhi r6, hi(SPR_ITLBTR_PPN) /* PPN mask into r6 */
+	l.ori r6, r6, lo(SPR_ITLBTR_PPN)
+	l.and r7, r2, r6 /* AND address with PPN mask */
+	l.movhi r8, hi(0xff000000) /* Top byte address mask */
+	l.or r7, r8, r7 /* Set top byte to 0xff */
+	l.xor r7, r8, r7 /* Now clear top byte with XOR */
+	l.movhi r8, hi(0x01000000) /* Top address byte */
+	l.or r7, r8, r7 /* Set top address byte */
+	l.ori r7, r7, DTLB_PR_NOLIMIT /* Set all execute enables, no lims. */
+	l.mtspr r4, r7, SPR_DTLBTR_BASE(0) /* Write to DTLTR register */
+	l.addi r15, r15, 1 /* Incremement low-mapping counter */
 	
 _dtlb_done:
-	
+	l.lwz	r4,-4(r1)
+	l.lwz	r5,-8(r1)
+	l.lwz	r6,-12(r1)
+	l.lwz	r7,-16(r1)
+	l.lwz	r8,-20(r1)
 	l.rfe
 
 
@@ -202,110 +211,8 @@ _dtlb_done:
 
 	.global _start
 _start:	
-
-	/* Instruction cache enable */
-	/* Check if IC present and skip enabling otherwise */
-	l.mfspr r24,r0,SPR_UPR
-	l.andi  r26,r24,SPR_UPR_ICP
-	l.sfeq  r26,r0
-	l.bf    .L8
+	l.jal 	_cache_init
 	l.nop
-	
-	/* Disable IC */
-	l.mfspr r6,r0,SPR_SR
-	l.addi  r5,r0,-1
-	l.xori  r5,r5,SPR_SR_ICE
-	l.and   r5,r6,r5
-	l.mtspr r0,r5,SPR_SR
-	
-	/* Establish cache block size
-	If BS=0, 16;
-	If BS=1, 32;
-	r14 contain block size
-	*/
-	l.mfspr r24,r0,SPR_ICCFGR
-	l.andi  r26,r24,SPR_ICCFGR_CBS
-	l.srli  r28,r26,7
-	l.ori   r30,r0,16
-	l.sll   r14,r30,r28
-	
-	/* Establish number of cache sets
-	r16 contains number of cache sets
-	r28 contains log(# of cache sets)
-	*/
-	l.andi  r26,r24,SPR_ICCFGR_NCS
-	l.srli  r28,r26,3
-	l.ori   r30,r0,1
-	l.sll   r16,r30,r28
-	
-	/* Invalidate IC */
-	l.addi  r6,r0,0
-	l.sll   r5,r14,r28
-	
-.L7:
-	l.mtspr r0,r6,SPR_ICBIR
-	l.sfne  r6,r5
-	l.bf    .L7
-	l.add   r6,r6,r14
-	
-	/* Enable IC */
-	l.mfspr r6,r0,SPR_SR
-	l.ori   r6,r6,SPR_SR_ICE
-	l.mtspr r0,r6,SPR_SR
-	l.nop
-	l.nop
-	l.nop
-	l.nop
-	l.nop
-	l.nop
-	l.nop
-	l.nop
-
-.L8:
-	/* Data cache enable */
-        /* Check if DC present and skip enabling otherwise */
-        l.mfspr r24,r0,SPR_UPR
-        l.andi  r26,r24,SPR_UPR_DCP
-        l.sfeq  r26,r0
-        l.bf    .L10
-        l.nop
-        /* Disable DC */
-        l.mfspr r6,r0,SPR_SR
-        l.addi  r5,r0,-1
-        l.xori  r5,r5,SPR_SR_DCE
-	l.and   r5,r6,r5
-        l.mtspr r0,r5,SPR_SR
-        /* Establish cache block size
-           If BS=0, 16;
-           If BS=1, 32;
-           r14 contain block size
-        */
-        l.mfspr r24,r0,SPR_DCCFGR
-        l.andi  r26,r24,SPR_DCCFGR_CBS
-        l.srli  r28,r26,7
-        l.ori   r30,r0,16
-        l.sll   r14,r30,r28
-        /* Establish number of cache sets
-           r16 contains number of cache sets
-           r28 contains log(# of cache sets)
-        */
-	l.andi  r26,r24,SPR_DCCFGR_NCS
-	l.srli  r28,r26,3
-        l.ori   r30,r0,1
-        l.sll   r16,r30,r28
-        /* Invalidate DC */
-        l.addi  r6,r0,0
-        l.sll   r5,r14,r28
-.L9:
-        l.mtspr r0,r6,SPR_DCBIR
-        l.sfne  r6,r5
-        l.bf    .L9
-	l.add   r6,r6,r14
-        /* Enable DC */
-        l.mfspr r6,r0,SPR_SR
-        l.ori   r6,r6,SPR_SR_DCE
-        l.mtspr r0,r6,SPR_SR
-.L10:
 	// Kick off test
 	l.jal   _main
 	l.nop
@@ -323,8 +230,8 @@ _main:
         l.addi	r11,r0,0 /* exception counter 1 */
         l.addi	r12,r0,0 /* exception counter 2 */
         l.addi	r13,r0,0
-	l.addi	r18,r0,0 /* DMMU exception counter for low mem mapping */
-	l.addi	r19,r0,0 /* DMMU exception counter for hi mem mapping */
+	l.addi	r14,r0,0 /* DMMU exception counter for low mem mapping */
+	l.addi	r15,r0,0 /* DMMU exception counter for hi mem mapping */
 	l.sw	0x0(r0),r0	/* Initialize RAM */	
 	l.sw	0x4(r0),r0	/* Initialize RAM */	
 	l.sw	0x8(r0),r0	/* Initialize RAM */	
@@ -553,7 +460,7 @@ _dbus1:
 	l.nop
 	l.movhi r12, 0 /* Reset exception counters */
 	l.movhi r11, 0
-	l.ori r30, r0, 0xd /* put 0xd in r30, indicate it's databus test */
+	l.ori r2, r0, 0xd /* put 0xd in r2, indicate it's databus test */
 	/* Cause access error */
 	/* Load word */	
 	l.movhi r5, 0xee00 /* Address to cause an error */
@@ -636,7 +543,7 @@ _ibus1:
 	/* TODO: do this it with cache enabled/disabled */	
 	l.movhi r12, 0 /* Reset exception counters */
 	l.movhi r11, 0
-	l.movhi r30, 0x0 /* put 0x0 in r30,indicate it's instruction bus test*/
+	l.movhi r2, 0x0 /* put 0x0 in r2,indicate it's instruction bus test*/
 	/* Cause access error */
 	l.movhi r5, 0xee00 /* Address to cause an error */
 	l.jalr r5 /* Jump and link to bad address */
@@ -673,10 +580,10 @@ _dmmu_except1:
 	l.movhi r7, hi(0xaabbccdd)
 	l.ori r7, r7, lo(0xaabbccdd)
 	l.sw 0(r5), r7 /* Shouldn't trigger MMU */
-	l.sfne r18, r0
+	l.sfne r14, r0
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfne r19, r0
+	l.sfne r15, r0
 	l.bf _dmmu_test_error
 	l.nop
 	
@@ -692,10 +599,10 @@ _dmmu_except1:
 	l.sfne r7, r8
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r18, 0x1 /* Check for lo mem mapping */
+	l.sfnei r14, 0x1 /* Check for lo mem mapping */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfne r19, r0 /* hi-mem counter should still be 0 */
+	l.sfne r15, r0 /* hi-mem counter should still be 0 */
 	l.bf _dmmu_test_error
 	l.nop
 
@@ -706,10 +613,10 @@ _dmmu_except1:
 	l.sfne r7, r8
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r18, 0x1 /* Check for lo mem mapping */
+	l.sfnei r14, 0x1 /* Check for lo mem mapping */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r19, 0x1 /* hi-mem counter should still be 0 */
+	l.sfnei r15, 0x1 /* hi-mem counter should still be 0 */
 	l.bf _dmmu_test_error
 	l.nop
 
@@ -719,20 +626,20 @@ _dmmu_except1:
 	l.sfne r7, r8
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r18, 0x2 /* Check for lo mem mapping increment */
+	l.sfnei r14, 0x2 /* Check for lo mem mapping increment */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r19, 0x1 /* hi-mem counter should still be 1 */
+	l.sfnei r15, 0x1 /* hi-mem counter should still be 1 */
 	l.bf _dmmu_test_error
 	l.nop
 
 	l.addi r7, r7, 0x1111 /* Incremement value we're writing */
 	
 	l.sw 4(r6), r7 /* Should cause DMMU miss, himem */	
-	l.sfnei r18, 0x2 /* Check for lo mem mapping */
+	l.sfnei r14, 0x2 /* Check for lo mem mapping */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r19, 0x2 /* hi-mem counter should be 2 */
+	l.sfnei r15, 0x2 /* hi-mem counter should be 2 */
 	l.bf _dmmu_test_error
 	l.nop
 
@@ -741,10 +648,10 @@ _dmmu_except1:
 	l.sfne r7, r8
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r18, 0x3 /* Check for lo mem mapping increment */
+	l.sfnei r14, 0x3 /* Check for lo mem mapping increment */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r19, 0x2 /* hi-mem counter should still be 2 */
+	l.sfnei r15, 0x2 /* hi-mem counter should still be 2 */
 	l.bf _dmmu_test_error
 	l.nop
 
@@ -777,10 +684,10 @@ _dmmu_except1:
 	l.sfne r7, r8
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r18, 0xb /* Check for lo mem mapping increment to 11 */
+	l.sfnei r14, 0xb /* Check for lo mem mapping increment to 11 */
 	l.bf _dmmu_test_error
 	l.nop
-	l.sfnei r19, 0xa /* hi-mem counter should be 10 */
+	l.sfnei r15, 0xa /* hi-mem counter should be 10 */
 	l.bf _dmmu_test_error
 	l.nop
 	
