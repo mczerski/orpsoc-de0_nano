@@ -72,14 +72,10 @@ SECTIONS
 	/* ensure there is enough room for stack */
         .stack (NOLOAD): {
                 . = ALIGN(4);
-		sstack = . ;
-                _sstack = . ;                
-                . = . + _min_stack ;
+		. = . + _min_stack ;
                 . = ALIGN(4);
                 stack = . ;
                 _stack = . ;
-                estack = . ;
-                _estack = . ;
         } > ram
 	
 	.stab  0 (NOLOAD) : 

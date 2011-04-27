@@ -102,38 +102,13 @@ TODO:	 Substraction carry out testing.
 
 	.global _start
 _start:
-	// Clear all regs
+	// Clear regs
 	l.movhi r1, 0
 	l.movhi	r2, 0
 	l.movhi	r3, 0
 	l.movhi	r4, 0
 	l.movhi	r5, 0
 	l.movhi	r6, 0
-	l.movhi	r7, 0
-	l.movhi	r8, 0
-	l.movhi	r9, 0
-	l.movhi	r10, 0
-	l.movhi	r11, 0
-	l.movhi	r12, 0
-	l.movhi	r13, 0
-	l.movhi	r14, 0
-	l.movhi	r15, 0
-	l.movhi	r16, 0
-	l.movhi	r17, 0
-	l.movhi	r18, 0
-	l.movhi	r19, 0
-	l.movhi	r20, 0
-	l.movhi	r21, 0
-	l.movhi	r22, 0
-	l.movhi	r23, 0
-	l.movhi	r24, 0
-	l.movhi	r25, 0
-	l.movhi	r26, 0
-	l.movhi	r27, 0
-	l.movhi	r28, 0
-	l.movhi	r29, 0
-	l.movhi	r30, 0
-	l.movhi	r31, 0
 	
 #ifdef OR1200_IMPL_CY
 	// Kick off test
@@ -149,16 +124,16 @@ _start:
 
 
 #define CHECK_CY_CLEAR			\
-	l.mfspr	r20, r0, SPR_SR	;	\
-	l.andi	r21, r20, SPR_SR_CY ;	\
-	l.sfne	r21, r0		  ;	\
+	l.mfspr	r6, r0, SPR_SR	;	\
+	l.andi	r6, r6, SPR_SR_CY ;	\
+	l.sfne	r6, r0		  ;	\
 	l.bf	_fail		  ;	\
 	l.nop				
 
 #define CHECK_CY_SET			\
-	l.mfspr	r20, r0, SPR_SR	;	\
-	l.andi	r21, r20, SPR_SR_CY ;	\
-	l.sfnei	r21, SPR_SR_CY	  ;	\
+	l.mfspr	r6, r0, SPR_SR	;	\
+	l.andi	r6, r6, SPR_SR_CY ;	\
+	l.sfnei	r6, SPR_SR_CY	  ;	\
 	l.bf	_fail		  ;	\
 	l.nop				
 	

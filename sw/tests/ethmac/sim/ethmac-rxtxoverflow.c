@@ -3,7 +3,7 @@
 ////  Interrupt-driven Ethernet MAC transmit test code            ////
 ////                                                              ////
 ////  Description                                                 ////
-////  Send packets while receiving packets                        ////
+////  Attempt to overflow the RX path in MAC                      ////
 ////                                                              ////
 ////  Author(s):                                                  ////
 ////      - jb, jb@orsoc.se, with parts taken from Linux kernel   ////
@@ -36,6 +36,15 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
+
+// Test sends the test code (0x1) for overflow test in first packet, which is
+// read by Verilog stimulus module.
+
+// SW is setup to echo back all packets it receives. TB sends 16 packets, as
+// fast as possible, which should saturate the MAC's buffers.
+// TB then waits for a BD to be ready and sends one more packet, and ensures
+// that arrives in memory OK.
+// Test is over when this software manages to send back 4 reply packets.
 
 #include "cpu-utils.h"
 #include "board.h"
@@ -103,11 +112,6 @@ struct oeth_private {
 };
 
 #define PHYNUM 7
-
-// Data array of data to transmit, tx_data_array[]
-//#include "eth-rxtx-data.h" // Not used
-int tx_data_pointer;
-	  
 
 void 
 eth_mii_write(char phynum, short regnum, short data)
@@ -350,19 +354,7 @@ void tx_packet(void* data, int length)
   else
     tx_bd->len_status &= ~OETH_TX_BD_PAD;
   
-#ifdef _ETH_RXTX_DATA_H_
-  // Set the address pointer to the place
-  // in memory where the data is and transmit from there
-  
-  tx_bd->addr = (char*) &tx_data_array[tx_data_pointer&~(0x3)];
-
-  tx_data_pointer += length + 1;
-  if (tx_data_pointer > (255*1024))
-    tx_data_pointer = 0;
-  
-
-#else
-  if (data){
+  if ((int) data != 0){
     //Copy the data into the transmit buffer, byte at a time 
     char* data_p = (char*) data;
     char* data_b = (char*) tx_bd->addr;
@@ -371,7 +363,6 @@ void tx_packet(void* data, int length)
 	data_b[i] = data_p[i];
       }
   }
-#endif
 
   /* Set the length of the packet's data in the buffer descriptor */
   tx_bd->len_status = (tx_bd->len_status & 0x0000ffff) | 
@@ -383,6 +374,15 @@ void tx_packet(void* data, int length)
   tx_bd->len_status |= (OETH_TX_BD_READY  | OETH_TX_BD_CRC | OETH_TX_BD_IRQ);
   
   next_tx_buf_num = (next_tx_buf_num + 1) & OETH_TXBD_NUM_MASK;
+  
+  tx_done++;
+  
+  // This test over after 4 packets sent.
+  if (tx_done == 4)
+  {
+	  report(0x8000000d);
+	  exit(0);
+  }
 
   return;
 
@@ -493,6 +493,9 @@ oeth_rx(void)
 	  /* Process the incoming frame.
 	  */
 	  pkt_len = rx_bdp[i].len_status >> 16;
+
+	  // Attempt to transmit it back
+	  tx_packet((void*)rx_bdp[i].addr,pkt_len);
 	  
 	  /* finish up */
 	  rx_bdp[i].len_status &= ~OETH_RX_BD_STATS; /* Clear stats */
@@ -526,68 +529,31 @@ oeth_tx(void)
 	  
 	  /* set our test variable */
 	  tx_done++;
+	  
+	  // This test over after 4 packets sent.
+	  if (tx_done == 4)
+	  {
+		  report(0x8000000d);
+		  exit(0);
+	  }
 
 	}
     }
   return;  
 }
 
-// A function and defines to fill and transmit a packet
-#define MAX_TX_BUFFER 1532
-static char tx_buffer[MAX_TX_BUFFER];
-
-void
-fill_and_tx_call_packet(int size, int response_time)
-{
-  int i;
-
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-  
-  volatile oeth_bd *tx_bd;
-  
-  tx_bd = (volatile oeth_bd *)OETH_BD_BASE;
-  tx_bd = (volatile oeth_bd*) &tx_bd[next_tx_buf_num];
-
-  // If it's in use - wait
-  while ((tx_bd->len_status & OETH_TX_BD_IRQ));
-
-  // Use rand() function to generate data for transmission
-  // Assumption: ethernet buffer descriptors are 4byte aligned
-  char* data_b = (char*) tx_bd->addr;
-  // We will fill with words until there' less than a word to go
-  int words_to_fill = size / sizeof(unsigned int);
-
-  unsigned int* data_w = (unsigned int*) data_b;
-
-  // Put first word as size of packet, second as response time
-  data_w[0] = size;
-  data_w[1] = response_time;
-
-  for(i=2;i<words_to_fill;i++)
-    data_w[i] = rand();
-
-  // Point data_b to offset wher word fills ended
-  data_b += (words_to_fill * sizeof(unsigned int));
-
-  int leftover_size = size - (words_to_fill * sizeof(unsigned int));
-
-  for(i=0;i<leftover_size;i++)
-    {
-      data_b[i] = rand() & 0xff;
-    }
-
-  tx_packet((void*)0, size);
-}
-
 // Send a packet, the very first byte of which will be read by the testbench
 // and used to indicate which test we'll use.
+static char cmd_tx_buffer[40];
 void
 send_ethmac_rxtx_test_init_packet(char test)
 {
-  char cmd_tx_buffer[40];
-  cmd_tx_buffer[0] = test;
-  tx_packet(cmd_tx_buffer,  40); // Smallest packet that can be sent (I think)
+	int i;
+	
+	cmd_tx_buffer[0] = test;
+	// Clear rest of buffer
+	for(i=0;i<40;i++) cmd_tx_buffer[i] = test;
+	tx_packet(cmd_tx_buffer,  40); // Smallest packet that can be sent
 }
 
 // Loop to check if a number is prime by doing mod divide of the number
@@ -607,72 +573,30 @@ is_prime_number(unsigned long n)
 int 
 main ()
 {
-  tx_data_pointer = 0;  
+	
+	/* Initialise handler vector */
+	int_init();
 
-  /* Initialise handler vector */
-  int_init();
+	/* Install ethernet interrupt handler, it is enabled here too */
+	int_add(ETH0_IRQ, oeth_interrupt, 0);
 
-  /* Install ethernet interrupt handler, it is enabled here too */
-  int_add(ETH0_IRQ, oeth_interrupt, 0);
+	/* Enable interrupts in supervisor register */
+	cpu_enable_user_interrupts();
 
-  /* Enable interrupts in supervisor register */
-  cpu_enable_user_interrupts();
+	/* Enable CPU timer */
+	cpu_enable_timer();
 
-  /* Enable CPU timer */
-  cpu_enable_timer();
+	ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX and TX */
 
-  ethmac_setup(); /* Configure MAC, TX/RX BDs and enable RX and TX in MODER */
+	/* clear tx_done, the tx interrupt handler will set it when it's been
+	   transmitted */
+	tx_done = 0;
+	rx_done = 0;
 
-  /* clear tx_done, the tx interrupt handler will set it when it's been
-     transmitted */
-  tx_done = 0;
-  rx_done = 0;
-
-  ethphy_set_100mbit(0);
+	ethphy_set_100mbit(0);
   
-  send_ethmac_rxtx_test_init_packet(0x0); // 0x0 - call response test
- 
-#define ETH_TX_MIN_PACKET_SIZE 512
-#define ETH_TX_NUM_PACKETS  20
+	send_ethmac_rxtx_test_init_packet(0x1); // 0x1 - overflow test
 
-  //int response_time = 150000; // Response time before response packet it sent
-                              // back (should be in nanoseconds).
-  int response_time  = 0;
-  
-  unsigned long num_to_check;
-  for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
-      num_to_check<ETH_TX_MIN_PACKET_SIZE + ETH_TX_NUM_PACKETS;
-      num_to_check++)
-    fill_and_tx_call_packet(num_to_check, response_time);
-
-  
-  // Wait a moment for the RX packet check to complete before switching off RX
-  for(num_to_check=0;num_to_check=1000;num_to_check++);
-  
-  oeth_disable_rx();
-
-  // Now for 10mbit mode...
-  ethphy_set_10mbit(0);  
-
-  oeth_enable_rx();
-
-  for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
-      num_to_check<ETH_TX_MIN_PACKET_SIZE + ETH_TX_NUM_PACKETS;
-      num_to_check++)
-    fill_and_tx_call_packet(num_to_check, response_time);
-    
-  oeth_disable_rx();
-
-  // Go back to 100-mbit mode
-  ethphy_set_100mbit(0);
-  
-  oeth_enable_rx();
-
-  for(num_to_check=ETH_TX_MIN_PACKET_SIZE;
-      num_to_check<ETH_TX_NUM_PACKETS;
-      num_to_check++)
-    fill_and_tx_call_packet(num_to_check, response_time);
-
-  exit(0x8000000d);
+	while(1); // Sit and wait for test to finish in interrupt-triggered code
   
 }

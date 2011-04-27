@@ -25,37 +25,37 @@ int int_init()
 }
 
 /* Add interrupt handler */ 
-int int_add(unsigned long vect, void (* handler)(void *), void *arg)
+int int_add(unsigned long irq, void (* handler)(void *), void *arg)
 {
-  if(vect >= MAX_INT_HANDLERS)
+  if(irq >= MAX_INT_HANDLERS)
     return -1;
 
-  int_handlers[vect].handler = handler;
-  int_handlers[vect].arg = arg;
+  int_handlers[irq].handler = handler;
+  int_handlers[irq].arg = arg;
 
-  mtspr(SPR_PICMR, mfspr(SPR_PICMR) | (0x00000001L << vect));
+  mtspr(SPR_PICMR, mfspr(SPR_PICMR) | (0x00000001L << irq));
     
   return 0;
 }
 
 /* Disable interrupt */ 
-int int_disable(unsigned long vect)
+int int_disable(unsigned long irq)
 {
-  if(vect >= MAX_INT_HANDLERS)
+  if(irq >= MAX_INT_HANDLERS)
     return -1;
   
-  mtspr(SPR_PICMR, mfspr(SPR_PICMR) & ~(0x00000001L << vect));
+  mtspr(SPR_PICMR, mfspr(SPR_PICMR) & ~(0x00000001L << irq));
   
   return 0;
 }
 
 /* Enable interrupt */ 
-int int_enable(unsigned long vect)
+int int_enable(unsigned long irq)
 {
-  if(vect >= MAX_INT_HANDLERS)
+  if(irq >= MAX_INT_HANDLERS)
     return -1;
 
-  mtspr(SPR_PICMR, mfspr(SPR_PICMR) | (0x00000001L << vect));
+  mtspr(SPR_PICMR, mfspr(SPR_PICMR) | (0x00000001L << irq));
   
   return 0;
 }
@@ -71,7 +71,12 @@ void int_main()
   while(i < 32) {
     if((picsr & (0x01L << i)) && (int_handlers[i].handler != 0)) {
       (*int_handlers[i].handler)(int_handlers[i].arg); 
-      mtspr(SPR_PICSR, mfspr(SPR_PICSR) & ~(0x00000001L << i));
+#ifdef OR1200_INT_CHECK_BIT_CLEARED
+      // Ensure PICSR bit is cleared, incase it takes some time for the
+      // IRQ line going low to propagate back to PIC
+      while (mfspr(SPR_PICSR) & (0x00000001L << i))
+#endif
+	      mtspr(SPR_PICSR, mfspr(SPR_PICSR) & ~(0x00000001L << i));
     }
     i++;
   }

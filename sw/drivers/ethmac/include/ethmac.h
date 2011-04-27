@@ -64,7 +64,11 @@ typedef struct _oeth_regs {
         uint    mac_addr0;      /* MAC Individual Address Register 0 */
         uint    mac_addr1;      /* MAC Individual Address Register 1 */
         uint    hash_addr0;     /* Hash Register 0 */
-        uint    hash_addr1;     /* Hash Register 1 */                           
+        uint    hash_addr1;     /* Hash Register 1 */  
+	uint    txctrl;         /* Transmit control frame Register */
+	uint    rxctrl;         /* Rx control frame Register */
+	uint    wbdbg;          /* Wishbone state machine debug information */
+
 } oeth_regs;
 
 /* Ethernet buffer descriptor */

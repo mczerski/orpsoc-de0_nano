@@ -140,7 +140,7 @@ $(MAPPED_NCD): $(NGD_FILE)
 $(PARRED_NCD): $(MAPPED_NCD)
 	@echo; echo "\t#### PAR'ing ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	par -w -pl high -rl high $(XILINX_FLAGS) $< $@ $(PCD_FILE) )
+	par -w -ol high $(XILINX_FLAGS) $< $@ $(PCD_FILE) )
 
 #This target uses Xilinx tools to generate a bitstream for download
 $(BIT_FILE): $(PARRED_NCD)

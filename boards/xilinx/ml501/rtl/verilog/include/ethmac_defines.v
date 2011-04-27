@@ -46,23 +46,10 @@
 
 // Generic FIFO implementation - hopefully synthesizable with Synplify
 //`define ETH_FIFO_GENERIC
-// Ethernet implemented in Xilinx Chips (uncomment following lines)
- `define ETH_FIFO_XILINX             // Use Xilinx distributed ram for tx and rx fifo
-// `define ETH_XILINX_RAMB4            // Selection of the used memory for Buffer descriptors
-                                      // Core is going to be implemented in Virtex FPGA and contains Virtex 
-                                      // specific elements. 
+                                      // specific elements.
+`define ETH_FIFO_XILINX
+//`define ETH_FIFO_RAMB18
 
-// Ethernet implemented in Altera Chips (uncomment following lines)
-//`define ETH_ALTERA_ALTSYNCRAM
-
-// Ethernet implemented in ASIC with Virtual Silicon RAMs
-// `define ETH_VIRTUAL_SILICON_RAM     // Virtual Silicon RAMS used storing buffer decriptors (ASIC implementation)
-
-// Ethernet implemented in ASIC with Artisan RAMs
-// `define ETH_ARTISAN_RAM             // Artisan RAMS used storing buffer decriptors (ASIC implementation)
-
-// Uncomment when Avalon bus is used
-//`define ETH_AVALON_BUS
 
 `define ETH_MODER_ADR         8'h0    // 0x0 
 `define ETH_INT_SOURCE_ADR    8'h1    // 0x4 
@@ -185,48 +172,49 @@
 `define ETH_TX_FIFO_DATA_WIDTH 32
 
 // Defines for ethernet TX fifo size - impacts FPGA resource usage
-//`define ETH_TX_FULL_PACKET_FIFO  // Full 1500 byte TX buffer - uncomment this
+
+//`define ETH_TX_64BYTE_FIFO     // 64 byte TX buffer - uncomment this
 //`define ETH_TX_128BYTE_FIFO  // 128 byte TX buffer - uncomment this
 `define ETH_TX_256BYTE_FIFO  // 256 byte TX buffer - uncomment this
 //`define ETH_TX_512BYTE_FIFO  // 512 byte TX buffer - uncomment this
 //`define ETH_TX_1KBYTE_FIFO     // 1024 byte TX buffer - uncomment this
+//`define ETH_TX_FULL_PACKET_FIFO  // Full 1500 byte TX buffer - uncomment this
 
 `ifdef  ETH_TX_FULL_PACKET_FIFO
  `define ETH_TX_FIFO_CNT_WIDTH  9
  `define ETH_TX_FIFO_DEPTH      375
-`else
- `ifdef ETH_TX_1KBYTE_FIFO
-  `define ETH_TX_FIFO_CNT_WIDTH  8
-  `define ETH_TX_FIFO_DEPTH      256
- `else
-  `ifdef ETH_TX_512BYTE_FIFO
-   `define ETH_TX_FIFO_CNT_WIDTH  7
-   `define ETH_TX_FIFO_DEPTH      128
-  `else
-   `ifdef ETH_TX_256BYTE_FIFO
-    `define ETH_TX_FIFO_CNT_WIDTH  6
-    `define ETH_TX_FIFO_DEPTH      64
-   `else
-    `ifdef ETH_TX_128BYTE_FIFO
-     `define ETH_TX_FIFO_CNT_WIDTH  5
-     `define ETH_TX_FIFO_DEPTH      32
-    `else
-// Default is 64 bytes
-     `define ETH_TX_FIFO_CNT_WIDTH  4
-     `define ETH_TX_FIFO_DEPTH      16
-    `endif
-   `endif
-  `endif
-`endif // !`ifdef ETH_TX_512BYTE_FIFO
-`endif // !`ifdef ETH_TX_FULL_PACKET_FIFO
+`endif
+`ifdef ETH_TX_1KBYTE_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  8
+ `define ETH_TX_FIFO_DEPTH      256
+`endif
+`ifdef ETH_TX_512BYTE_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  7
+ `define ETH_TX_FIFO_DEPTH      128
+`endif
+`ifdef ETH_TX_256BYTE_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  6
+ `define ETH_TX_FIFO_DEPTH      64
+`endif 
+`ifdef ETH_TX_128BYTE_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  5
+ `define ETH_TX_FIFO_DEPTH      32
+`endif
+`ifdef ETH_TX_128BYTE_FIFO
+ `define ETH_TX_FIFO_CNT_WIDTH  4
+ `define ETH_TX_FIFO_DEPTH      16
+`endif
+
+
+
 
 // Settings for RX FIFO
 //`define ETH_RX_FIFO_CNT_WIDTH  8
 //`define ETH_RX_FIFO_DEPTH      256
 //`define ETH_RX_FIFO_CNT_WIDTH  7
-//`define ETH_RX_FIFO_DEPTH      128
+`define ETH_RX_FIFO_DEPTH      128
 `define ETH_RX_FIFO_CNT_WIDTH  6
-`define ETH_RX_FIFO_DEPTH      64
+//`define ETH_RX_FIFO_DEPTH      64
 //`define ETH_RX_FIFO_CNT_WIDTH  5
 //`define ETH_RX_FIFO_DEPTH      32
 //`define ETH_RX_FIFO_CNT_WIDTH  4

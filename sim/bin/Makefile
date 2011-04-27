@@ -66,6 +66,7 @@ TESTS ?= or1200-simple \
 	or1200-ext \
 	or1200-cy	\
 	or1200-ov	\
+	or1200-sf	\
 	or1200-ffl1 \
 	or1200-linkregtest \
 	or1200-tick \

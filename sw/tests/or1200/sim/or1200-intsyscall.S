@@ -8,9 +8,9 @@
 	Within the test we'll use following global variables:
 
 	r15 syscall interrupt counter
-	r16 syscall function counter	
-	r17 irq interrupt counter
-	r18 intgen's base address
+	r6 syscall function counter	
+	r10 irq interrupt counter
+	r12 intgen's base address
 
 
 	The test does the following:
@@ -77,15 +77,15 @@
 	.org 0x800
 	.global _user_irq_handler
 _user_irq_handler:	
-	l.addi r17, r17, 1
+	l.addi r10, r10, 1
 	/* Report values , 0x00000800 == user interrupt report*/
 	l.ori r3, r0, 0x0800
 	l.nop 2
-	l.or r3, r0, r17
+	l.or r3, r0, r10
 	l.nop 2
 	/* TODO - propably confirm it was intgen's IRQ that caused this */
 	/* Clear interrupt source */
-	l.ori	r7, r18, 0x1 	/* intgen IRQ clear address */
+	l.ori	r7, r12, 0x1 	/* intgen IRQ clear address */
 	l.sb	0(r7), r0 	/* Any write clears the bit */
 	/* Clear OR1200 PICSR */
 	l.mfspr r7, r0, SPR_PICSR
@@ -107,7 +107,7 @@ _syscall_handler:
 	l.xor r5, r5, r4
 	l.and r5, r7, r5 /* New SR without interrupt bits set */
 	l.mtspr r0, r5, SPR_ESR_BASE /* SR after l.rfe */
-	/* Report values , 0x00000c00 == tick timer report*/
+	/* Report values , 0x00000c00 == system call report*/
 	l.ori r3, r0, 0x0c00
 	l.nop 2
 	/* Get syscall number */
@@ -135,9 +135,6 @@ _start:
 /* =================================================== [ main ] === */	
 .global _main
 _main:
-	l.movhi r15, 0
-	l.movhi r16, 0
-	l.movhi r17, 0
 	
 	#
 	# unmask (enable) all ints
@@ -151,13 +148,18 @@ _main:
         l.ori   r6,r6,SPR_SR_IEE
         l.mtspr r0,r6,SPR_SR
 
+	l.movhi r15, 0
+	l.movhi r6, 0
+	l.movhi r10, 0
+
+
 	
-	// Assumes r18 is intgen's base address
-	l.movhi	r18,hi(INTGEN_BASE)
+	// Assumes r12 is intgen's base address
+	l.movhi	r12,hi(INTGEN_BASE)
 	
 #define INTGEN_LOAD(x)	\
 	l.ori	r5,r0,lo(x)	;\
-	l.sb	0(r18),r5
+	l.sb	0(r12),r5
 	
 	
 	/* Test begin */
@@ -179,11 +181,11 @@ _main:
 	l.nop
 	l.ori	r5,r0,1	
 	l.sys 0x5
-	l.sb	0(r18),r5
+	l.sb	0(r12),r5
 	l.nop
 	l.nop
 	l.nop
-	l.sfnei r16, 0xf /* Should equal 15, 0xf */
+	l.sfnei r6, 0xf /* Should equal 15, 0xf */
 	l.bf _fail
 	l.nop
 
@@ -204,15 +206,15 @@ _syscall_function:
 	/* We'll restore them now */
 	l.mtspr r0, r7, SPR_ESR_BASE /* SR before syscall */
 	l.mtspr r0, r8, SPR_EPCR_BASE
-	l.add r16, r16, r3 /* Add syscall number to our counter */
+	l.add r6, r6, r3 /* Add syscall number to our counter */
 	l.movhi r4, hi(0x00400000) /* 4MB mark of memory */
 	/* Ensure memory access OK */
 	l.slli r3, r3, 2 /* Turn syscall number into a word address (<< 2) */
 	l.add r4, r4, r3 /* Access this offset from 4MB mark */
-	l.sw 0(r4), r16 /* Do a write to memory */
-	l.lwz r16, 0(r4) /* Do a read from memory */
+	l.sw 0(r4), r6 /* Do a write to memory */
+	l.lwz r6, 0(r4) /* Do a read from memory */
 	/* Report running value of syscall counter */
-	l.or r3, r0, r16
+	l.or r3, r0, r6
 	l.nop 2
 	l.rfe /* Now continue from where we had the l.sys */
 	

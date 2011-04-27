@@ -100,9 +100,9 @@ The next section in this document outlines the organisation and structure of the
 
 The @value{ORPSOC} project is intended to serve dual purposes. One is to act as a development platform for OpenRISC processors, and as a development platform of OpenRISC-based SoCs targeted at specific hardware. 
 
-Organising a single project to satisfy these requirements can lead to some confusion. This section is intended to make the organisation of the project clear.
+Organising a single project to satisfy these requirements can lead to some overlap and redundancy. This section is intended to make the organisation of the project clear.
 
-The reference implementation based in the root (base directory) of the project contains enough componenets to create a simple OpenRISC-based SoC. Each board build is intended to implement as fully-featured a system as possible, depending on the targeted hardware. 
+The reference implementation based in the root (base directory) of the project contains enough components to create a simple OpenRISC-based SoC. Each board build is intended to implement as fully-featured a system as possible, depending on the targeted hardware. 
 
 The project is organised in such a way that each board build can use both the reference implementation's RTL modules and software, as well as its own set of RTL and software. The reference implementation is limited to what is available in the RTL and software directories in the root of the project, and is not technology dependent.
 
@@ -111,17 +111,19 @@ The following sections outline the organisation of the software, RTL, and board 
 @node Software Organisation 
 @section Software
 
-The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor.) Thre is also a path, @code{sw/utils} containing custom tools, intended to be run on the host, for manipulation of binary software images.
+The @code{sw} path contains primarily target software (code intended for cross-compilation and execution on an OpenRISC processor.) There is also a path, @code{sw/utils} containing custom tools, intended to be run on the host, for manipulation of binary software images.
 
-Driver software, implementing access functions for hardware modules, are found under @code{sw/drivers}. 
+Driver software, implementing access functions for hardware modules, are found under @code{sw/drivers}.
 
 There is a minimal support library under the @code{sw/lib} path. Both drivers and support library are compiled together to create a library called @code{liborpsoc} which is placed in @code{sw/lib}.
 
 All CPU-related functions are made available through the file @code{cpu-utils.h} which is located in @code{sw/lib/include} and depending on the CPU being used, can be used to switch between different CPU driver functions. All CPU drivers are under the @code{sw/drivers} path.
 
+@emph{Note:} It is expected in the future that the OpenRISC toolchain based on newlib will provide all of the necessary support software provided in this CPU-specific driver path. When the first release of the newlib-based toolchain occurs it is expected the software in ORPSoC will be changed to use this toolchain instead.
+
 Test software is found under @code{sw/tests}. Typically, each is for a specific module, or for a particular capability (eg. tests for the UART capability are under @code{sw/tests/uart}, rather than @code{sw/tests/uart16550} which.) There are no specific rules here.
 
-Under each test directory are two directories, @code{board} and @code{sim}, containing appropriate test software. Code for simulation will produce less printfs and aim to execute within realistic timeframes for RTL simulation. Board targeted test software is obviously written with the opposite considerations in mind.
+Under each test directory are two directories, @code{board} and @code{sim}, containing appropriate test software. Code for simulation will produce less printfs and aim to execute within realistic timeframes for RTL simulation. Board targeted test software is obviously written with the opposite considerations in mind and be more verbose and perhaps run orders of magnitudes more tests.
 
 @node Software Test Naming
 
@@ -136,7 +138,7 @@ The HDL code layout conforms to those outlined in the OpenCores.org coding guide
 
 There are, however, some naming restrictions for this project. 
 
-The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...}.
+The directory name (presumably the name of the module, something like @code{uart16550}) should also be the name of the top level file, eg. @code{uart16550.v}, and the top level module should also be simply this name, eg. @code{module uart16550 (...);}.
 
 This will avoid confusion and help the scripts locate modules.
 
@@ -150,6 +152,8 @@ All RTL included in the project at this point is Verilog HDL, although it would 
 For each design in @value{ORPSOC} there will be a testbench instantiating the top level, and any required peripherals.
 
 Despite this being far from a thorough verification platform, it is considered useful to be able to perform enough simulation to ensure that the fundamental system is correctly assembled and can communicate with the peripherals. 
+
+It is expected that by running the command @code{make rtl-test} in each board's simulation run path, a basic simulation of the system initialising should be run.
 
 @node Organisation of Reference And Board Designs
 @section Reference And Board Designs
@@ -214,7 +218,7 @@ The required tools can be divided into four groups.
 Host system tools - things like gcc, make, texinfo.
 
 @item
-Target system toolchain and software - the OpenRISC GNU toolchain, with gcc crosscompiler, support libraries, the GNU debugger (gdb), OpenRISC port of various OSes and RTOS, etc.
+Target system toolchain and software - the OpenRISC GNU toolchain, with gcc cross-compiler, support libraries, the GNU debugger (gdb), OpenRISC port of various OSes and RTOS, etc.
 
 @item
 Electronic design automation (EDA) tools - preprocessors, simulators, FPGA tool suites, etc.
@@ -438,7 +442,7 @@ Specify simulator to use. Default is Icarus Verilog, can be set to @code{modelsi
 When using Modelsim (specifying @code{SIMULATOR=modelsim}), if the version does not include the individual @code{vopt} executable, specify @code{MGC_NO_VOPT=1} when compiling.
 
 @item VPI
-Pass @code{VPI=1} to have the an external JTAG debug module stall the processor just after bootup, and then provide a GDB stub (interacting with the Verilog sim via the VPI) to allow control of the system in a similar fashtion to that of a physical target controlled over JTAG via a debug proxy application. The port for GDB is hardcoded to 50002. See the code in @code{bench/verilog/vpi/c} for more details. 
+Pass @code{VPI=1} to have the an external JTAG debug module stall the processor just after bootup, and then provide a GDB stub (interacting with the Verilog sim via the VPI) to allow control of the system in a similar fashion to that of a physical target controlled over JTAG via a debug proxy application. The port for GDB is hard-coded to 50002. See the code in @code{bench/verilog/vpi/c} for more details. 
 If running with Modelsim, ensure the path @code{MGC_PATH} is set and points to a directory containing a path named @code{modeltech}, which should be the Modelsim install.
 
 @end table
@@ -643,7 +647,7 @@ Synthesis: Synopsys Synplify (included in Actel Libero Suite)
 Backend: Actel Designer (included in Actel Libero Suite)
 Programming: Actel FlashPRO (included in Actel Libero Suite)
 
-This has been tested with with Libero v8.6 and v9.0sp1 under Ubuntu Linux.
+This has been tested with with Libero versions 8.6, 9.0sp1 and 9.1 under Ubuntu Linux. It is recommended the very latest version available be used.
 
 @node ORDB1A3PE1500 Debug Tools
 @subsection Debug Tools
@@ -869,7 +873,7 @@ The rest are optional, depending on what is defined in the board's @code{rtl/ver
 
 Inspect that file to see which modules are able to be included. At present the list includes USB 1.1 host controller and/or slave interface, I2C master/slave core, and SPI master cores.
 
-These cores should be supported and ready to go by just defining them (uncomment in the @code{orspco-defines.v} file.)
+These cores should be supported and ready to go by just defining them (uncomment in the @code{orpsoc-defines.v} file.)
 
 @node ORDB1A3PE1500 Customising Adding Modules
 @subsection Adding RTL Modules
@@ -914,7 +918,7 @@ If any I/O is added, or special timing specified, the board's backend main Makef
 
 The section in @code{backend/par/bin/Makefile} mapping signals to Makefile variables will need to have these new signals added to them. The section in the file begins with @code{$(PDC_FILE):} and is actually a set of long bash lines.
 
-Continuing the format already there should be easy enough. Remember that the @code{orspoc-defines.v} file is parsed and it's possible to tell if the module is included by testing if the variable is defined. 
+Continuing the format already there should be easy enough. Remember that the @code{orpsoc-defines.v} file is parsed and it's possible to tell if the module is included by testing if the variable is defined. 
 
 For example, to add I/Os for a module called @code{foo}, and in @code{orpsoc-defines.v} a value @code{FOO1} is defined, we can add I/Os @code{foo1_srx_i} and @code{foo1_tx_o[3:0]} with the following.
 
@@ -984,7 +988,7 @@ Not all peripherals are supported, and adding support for each is a goal.
 
 At present the build contains a memory controller for the DDR2 SDRAM (based around a Xilinx MIG derived controller) and SSRAM. None of the other peripherals (VGA/AC97/PS2/USB/LCD) have controllers in the design yet.
 
-The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but only with the PHY in 10/100 mode using the MII interface to the Marvel Alaska Ethernet PHY IC. There still may be bugs in the FIFO buffer configuration in the ethmac module when the Xilinx FIFO option is enabled via the ethmac_defines.v file. Adding GMII support to the MAC, is a TODO task.
+The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but only with the PHY in 10/100 mode using the MII interface to the Marvel Alaska Ethernet PHY IC. There still may be bugs in the FIFO buffer configuration in the ML501's @code{ethmac_defines.v} file should not be changed.
 
 The project is configured to generate either a @code{.bit} file for direct programming via JTAG, or a @code{.mcs} file with inbuilt bootloader software for the processor, meaning the board can be powered up and an application like ORPmon loaded without having to reprogram it from iMPACT between power cycles.
 
@@ -1007,6 +1011,8 @@ Backend files, mainly binary NGC files for mapping, are found in the board's @co
 Be sure to set the environment variable @code{XILINX_PATH} to the path of the ISE path on the host machine. This can be done with something like @kbd{export XILINX_PATH=/software/xilinx_11.1/ISE} and additionally a symbolic link to the Verilog simulation library sources will be required - see the simulation section on this. Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
 
 If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
+
+This build has been tested with ISE versions 11.1 and 12.3.
 
 @node ML501 Tools
 @section Tools
@@ -1052,7 +1058,7 @@ or_debug_proxy, ORPmon
 @section Simulating
 @cindex simulating ML501 
 
-Ensure the @code{XILINX_PATH} environment variable is set correcetly. @xref{ML501 XILINX_PATH} for information.
+Ensure the @code{XILINX_PATH} environment variable is set correctly. @xref{ML501 XILINX_PATH} for information.
 
 Note that if this path is not set, simulations will not compile.
 
@@ -1361,7 +1367,7 @@ UART TX - HDR2_4
 
 Again, supply and ground leads for the UART drivers on the USB debugger can be sourced from J7/left-column J4 as per the debug interface subsection.
 
-If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up witht he first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
+If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up with the first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
 
 See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
 
@@ -1408,7 +1414,7 @@ The bulk of the software library consists of drivers and tests for the included 
 
 Each board port may contain additional software drivers and tests in its own software directory, the structure of which mimics that of the main software directory.
 
-@node Software Componenets
+@node Software Components
 @section Components
 
 This section outlines the different components of the software library in the @code{sw/} path in the root of @value{ORPSOC}.
@@ -1452,7 +1458,7 @@ Each test subdirectory contains directories for each target. Usually there's jus
 
 Test names are referenced using this @code{module}-@code{testname} pair. The automated testing mechanism implemented by the Makefile scripts will always search the @code{sim} paths for tests, rather than the @code{board} paths.
 
-@emph{Note:} There is no automated testing mechnism for the board-targeted software yet. It is anticipated that a testing harness for these will be developed, and we encourage users to help solve this problem.
+@emph{Note:} There is no automated testing mechanism for the board-targeted software yet. It is anticipated that a testing harness for these will be developed, and we encourage users to help solve this problem.
 
 @node Software Components Library
 @subsection Library
@@ -1481,7 +1487,7 @@ It may also contain drivers and tests specific to peripherals for that board.
 
 @emph{Note:} For any tests or drivers named the same found in both a board's software path and the root software path, the @emph{board's} software will be used instead.
 
-@emph{Note:} When compiling any software in the @emph{root} software path (such as in the applications folder) intended to run on a particular board, make use of the @code{BOARD} variable to indicat which board's configuration (@code{board.h} file, and any board-specific drivers) to use. For example:
+@emph{Note:} When compiling any software in the @emph{root} software path (such as in the applications folder) intended to run on a particular board, make use of the @code{BOARD} variable to indicate which board's configuration (@code{board.h} file, and any board-specific drivers) to use. For example:
 
 @example
 @kbd{orpsoc/sw/apps/app1$ make app1.elf BOARD=xilinx/ml501}
