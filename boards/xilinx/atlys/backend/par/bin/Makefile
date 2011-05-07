@@ -137,7 +137,7 @@ $(MAPPED_NCD): $(NGD_FILE)
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
 	map -p $(FPGA_PART) -detail -pr b \
 	-timing -ol high -w $(XILINX_FLAGS) -o $@ -xe n $(NGD_FILE) $(PCF_FILE))
-	@echo; echo "test";
+
 #This target uses Xilinx tools to Place & Route the design
 $(PARRED_NCD): $(MAPPED_NCD)
 	@echo; echo "\t#### PAR'ing ####";
@@ -154,16 +154,18 @@ $(BIT_FILE_FOR_SPI): $(PARRED_NCD)
 	@echo; echo "\t#### Generating .bit file for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
 	bitgen -w $(XILINX_FLAGS) -g StartUpClk:CClk $< $@ )
+
+# Generate MCS with bootloader specified by user, if BOOTLOADER_BIN defined.
 ifeq ($(BOOTLOADER_BIN),)
 $(MCS_FILE): $(BIT_FILE_FOR_SPI)
 	@echo; echo "\t#### Generating .mcs file for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	promgen -spi -p mcs -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< )
+	promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< )
 else
 $(MCS_FILE): $(BIT_FILE_FOR_SPI)
-	@echo; echo "\t#### Generating .mcs file for SPI load ####";
+	@echo; echo "\t#### Generating .mcs file with bootloader for SPI load ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	promgen -spi -p mcs -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< \
+	promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< \
 	-data_file up $(SPI_BOOTLOADER_SW_OFFSET_HEX) $(BOOTLOADER_BIN) \
 	 )
 endif
@@ -187,7 +189,7 @@ timingreport: $(PARRED_NCD)
 
 
 clean:
-	$(Q)rm -rf *.*
+	$(Q)rm -rf *.* xlnx_auto*
 
 clean-syn:
 	$(Q)$(MAKE) -C $(SYN_RUN_DIR) distclean

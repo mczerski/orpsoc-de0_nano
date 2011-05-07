@@ -72,15 +72,15 @@ reg [31:0] lfsr;
 integer lfsr_last_byte;
 
 // Is number of ethernet packets to send if doing the eth-rx test.
-parameter eth_stim_num_rx_only_num_packets = 500; // Set to 0 for continuous RX
-parameter eth_stim_num_rx_only_packet_size = 512;
+parameter eth_stim_num_rx_only_num_packets = 12; // Set to 0 for continuous RX
+parameter eth_stim_num_rx_only_packet_size = 60;
 parameter eth_stim_num_rx_only_packet_size_change = 2'b01;  // 2'b01: Increment
-parameter eth_stim_num_rx_only_packet_size_change_amount = 1;
-parameter eth_stim_num_rx_only_IPG = 800000000; // ns
+parameter eth_stim_num_rx_only_packet_size_change_amount = 127;
+parameter eth_stim_num_rx_only_IPG = 800_000; // ps
 
 // Do call/response test
 reg eth_stim_do_rx_reponse_to_tx;
-
+reg eth_stim_do_overflow_test;
   
 parameter num_tx_bds = 16;
 parameter num_tx_bds_mask = 4'hf;
@@ -95,10 +95,10 @@ parameter rx_while_tx_min_packet_size = 32;
 
 // Use the smallest possible IPG
 parameter eth_stim_use_min_IPG = 0;
-parameter eth_stim_IPG_delay_max = 500_000; // Maximum 500uS ga
+parameter eth_stim_IPG_delay_max = 100_000_000; // Maximum 100 us
 //parameter eth_stim_IPG_delay_max = 100_000_000; // Maximum 100mS between packets
-parameter eth_stim_IPG_min_10mb = 9600; // 9.6 uS
-parameter eth_stim_IPG_min_100mb = 800; // 860+~100 = 960 nS 100MBit min IPG
+parameter eth_stim_IPG_min_10mb = 9600_000; // 9.6 uS
+parameter eth_stim_IPG_min_100mb = 800_000; // 860+~100 = 960 nS 100MBit min IPG
 parameter eth_stim_check_rx_packet_contents = 1;
 parameter eth_stim_check_tx_packet_contents = 1;
 
@@ -114,8 +114,6 @@ parameter eth_stim_disable_rx_stim = 0;
 //parameter  Td_rx_packet_check = (`BOARD_CLOCK_PERIOD * 2000);
 // For 64MHz sdram controller, use following:
 parameter  Td_rx_packet_check = (`BOARD_CLOCK_PERIOD * 500);
-
-
 
 integer expected_rxbd;// init to 0
 integer expected_txbd;
@@ -151,7 +149,7 @@ initial
      expected_rxbd = num_tx_bds; // init this here
 
      eth_stim_do_rx_reponse_to_tx = 0;
-     
+     eth_stim_do_overflow_test = 0;     
      
      while (eth_stim_waiting) // Loop, waiting for enabling of MAC by software
        begin
@@ -179,7 +177,7 @@ initial
 				     eth_phy0.eth_speed,     // Speed
 				     eth_stim_num_rx_only_IPG, // IPG
 			       48'h0012_3456_789a, 48'h0708_090A_0B0C, 1, 
-			       0, 0);
+			       0, 0, 0);
 		    
 		    eth_stim_waiting = 0;	    
 		 end
@@ -200,6 +198,11 @@ initial
 		     begin
 			// kickoff call/response here
 			eth_stim_do_rx_reponse_to_tx = 1;
+		     end
+		   1:
+		     begin
+			// kickoff overflow test here
+			eth_stim_do_overflow_test = 1;
 		     end
 		   default:
 		     begin
@@ -229,7 +232,7 @@ initial
 	      send_packet_loop(num_packets, start_packet_size, 2'b01, 1, 
 			       speed_loop[0], 10000,
 			       48'h0012_3456_789a, 48'h0708_090A_0B0C, 1, 
-			       inject_errors, inject_errors_mod);
+			       inject_errors, inject_errors_mod, 0);
 	      
 	   end
 	 
@@ -290,7 +293,7 @@ initial
 	      $display("do_rx_while_tx packet_size = %0d", packet_size);
 	      send_packet_loop(1, packet_size, 2'b01, 1, eth_phy0.eth_speed, 
 			       IPG, 48'h0012_3456_789a, 
-			       48'h0708_090A_0B0C, 1, 1'b0, 0);
+			       48'h0708_090A_0B0C, 1, 1'b0, 0, 0);
 
 	      // If RX enable went low, wait for it go high again
 	      if (ethmac_rxen===1'b0)
@@ -323,6 +326,15 @@ initial
 	if (eth_stim_do_rx_reponse_to_tx & ethmac_rxen)
 	  // Continue if we are enabled
 	  do_rx_response_to_tx();
+     end
+
+
+   // If in call-response mode, whenever we receive a TX packet, we generate
+   // one and send it back
+   always @(posedge eth_stim_do_overflow_test)
+     begin
+	  // Continue if we are enabled
+	  do_overflow_stimulus();
      end
    
    // Generate RX packet in rsponse to TX packet
@@ -360,7 +372,7 @@ initial
 	 $display("do_rx_response_to_tx packet_size = %0d", packet_size);
 	 send_packet_loop(1, packet_size, 2'b01, 1, eth_phy0.eth_speed, 
 			  IPG, 48'h0012_3456_789a, 
-			  48'h0708_090A_0B0C, 1, 1'b0, 0);
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 0);
 	 
 	 // If RX enable went low, wait for it go high again
 	 if (ethmac_rxen===1'b0)
@@ -381,8 +393,115 @@ initial
       end
    endtask // do_rx_response_to_tx
    
+   // Generate RX packet in rsponse to TX packet
+   task do_overflow_stimulus;
+      //input unused;
+      reg [31:0] IPG; // Inter-packet gap
+      reg [31:0] packet_size;
+      
+      integer 	 j;
+      
+      begin
 
-   
+	 // Maximum packet size
+	 packet_size = 1500;
+	 
+	 // Minimum IPG
+	 IPG = eth_stim_IPG_min_100mb;
+	 
+	 $display("do_overflow_stimulus IPG = %0d", IPG);
+	
+	 
+	 $display("do_overflow_stimulus packetsize = %0d", packet_size);
+
+	 send_packet_loop(num_rx_bds, packet_size, 2'b01, 1, 
+			  eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 0);
+
+	 // This one should cause overflow, don't check it gets there OK
+	 send_packet_loop(1, packet_size, 2'b01, 1, 
+			  eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 1);
+
+	 // Wind back expected RXBD number
+	 if (expected_rxbd == num_tx_bds)
+	   expected_rxbd = num_tx_bds + num_rx_bds - 1;
+	 else
+	   expected_rxbd = expected_rxbd - 1;
+
+	 // This one should cause overflow, don't check it gets there OK
+	 send_packet_loop(1, packet_size, 2'b01, 1, 
+			  eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 1);
+
+	 // Wind back expected RXBD number
+	 if (expected_rxbd == num_tx_bds)
+	   expected_rxbd = num_tx_bds + num_rx_bds - 1;
+	 else
+	   expected_rxbd = expected_rxbd - 1;
+
+
+	 // This one should cause overflow, don't check it gets there OK
+	 send_packet_loop(1, packet_size, 2'b01, 1, 
+			  eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 1);
+
+	 // Wind back expected RXBD number
+	 if (expected_rxbd == num_tx_bds)
+	   expected_rxbd = num_tx_bds + num_rx_bds - 1;
+	 else
+	   expected_rxbd = expected_rxbd - 1;
+
+	 
+	 // This one should cause overflow, don't check it gets there OK
+	 send_packet_loop(1, packet_size, 2'b01, 1, 
+			  eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 1);
+	 
+	 // Wind back expected RXBD number
+	 if (expected_rxbd == num_tx_bds)
+	   expected_rxbd = num_tx_bds + num_rx_bds - 1;
+	 else
+	   expected_rxbd = expected_rxbd - 1;
+
+
+	 // Wait until a buffer descriptor becomes available
+	 while(`ETH_TOP.wishbone.RxBDRead==1'b1)
+	   #1000;
+	 
+	 $display("%t: RxBDRead gone low",$time);
+	 #10000;
+
+	 
+	 
+	 send_packet_loop(1, packet_size, 2'b01, 1, eth_phy0.eth_speed, 
+			  IPG, 48'h0012_3456_789a, 
+			  48'h0708_090A_0B0C, 1, 1'b0, 0, 0);
+	 
+	 
+	 // If RX enable went low, wait for it go high again
+	 if (ethmac_rxen===1'b0)
+	   begin
+	      
+	      while (ethmac_rxen===1'b0)
+		begin
+		   @(posedge ethmac_rxen);
+		   #10000;
+		end
+	      
+	      // RX disabled and when re-enabled we reset the buffer 
+	      // descriptor number
+	      expected_rxbd = num_tx_bds;
+
+	   end
+
+      end
+   endtask // do_overflow_stimulus
    
    
    //
@@ -490,6 +609,24 @@ initial
 
 `endif   
 
+`ifdef XILINX_DDR2
+   task sync_controller_cache_xilinx_ddr;
+      begin
+	 // Sync cache (writeback dirty lines) with external memory
+	 dut.xilinx_ddr2_0.xilinx_ddr2_if0.do_sync;
+	 // Wait for it to occur.
+	 while (dut.xilinx_ddr2_0.xilinx_ddr2_if0.sync)
+	   #100;
+
+	 // Wait just incase writeback of all data hasn't fully occurred.
+	 // 4uS, in case RAM needs to refresh while writing back.
+	 #4_000_000;
+	 
+	 
+      end
+   endtask // sync_controller_cache_xilinx_ddr
+`endif
+     
 
    //
    // Check packet TX'd by MAC was good
@@ -511,7 +648,7 @@ initial
       integer 	   failure;
       begin
 	 failure = 0;
-	
+	 
 	 get_bd_lenstat(tx_bd_num, tx_len_bd);
 	
 	 tx_len_bd = {15'd0,tx_len_bd[31:16]};
@@ -525,6 +662,10 @@ initial
 	      #100;
 	      $finish;
 	   end
+
+`ifdef XILINX_DDR2
+	 sync_controller_cache_xilinx_ddr;
+`endif
 	 
 	 get_bd_addr(tx_bd_num, tx_bd_addr);
 	 
@@ -542,28 +683,27 @@ initial
 	      //$display("Checking address in tx bd 0x%0h",txpnt_sdram);
 	      sdram_byte = 8'hx;
 `ifdef RAM_WB
-	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(txpnt_sdram);      
-`endif	      
-`ifdef VERSATILE_SDRAM	      
-	      sdram0.get_byte(txpnt_sdram,sdram_byte);      
-`endif
-`ifdef XILINX_DDR2
+	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_mem8(txpnt_sdram);      
+`else
+ `ifdef VERSATILE_SDRAM	      
+	      sdram0.get_byte(txpnt_sdram,sdram_byte);
+ `else
+  `ifdef XILINX_DDR2
 	      get_byte_from_xilinx_ddr2(txpnt_sdram, sdram_byte);
-`endif	      
-	      if (sdram_byte === 8'hx)
-		begin
-		   $display(" * Error: sdram_byte was %x", sdram_byte);
-		   
-		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
-		   $display(" * RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-			    tx_bd_addr, txpnt_wb);
-		   $finish;
-		end
-
+  `else
+	      $display(" * Error: sdram_byte was %x", sdram_byte);
+	      
+	      $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+	      $finish;
+	      
+  `endif
+ `endif
+`endif
 
 	      phy_byte = eth_phy0.tx_mem[buffer];
 	      // Debugging output
 	      //$display("txpnt_sdram = 0x%h, sdram_byte = 0x%h, buffer = 0x%h, phy_byte = 0x%h", txpnt_sdram,  sdram_byte, buffer, phy_byte);
+	      
 	      if (phy_byte !== sdram_byte)
 		begin
 		   `TIME;		  
@@ -597,6 +737,17 @@ initial
       end
    endtask // check_tx_packet
 
+   
+   // Local buffer of "sent" data to the ethernet MAC, we will check against
+   // Size of our local buffer in bytes
+   parameter eth_rx_sent_circbuf_size = (16*1024);
+   parameter eth_rx_sent_circbuf_size_mask = eth_rx_sent_circbuf_size - 1;
+   integer eth_rx_sent_circbuf_fill_ptr = 0;
+   integer eth_rx_sent_circbuf_read_ptr = 0;
+   // The actual buffer
+   reg [7:0] eth_rx_sent_circbuf [0:eth_rx_sent_circbuf_size-1];
+
+   
    //
    // Task to send a set of packets
    //
@@ -611,8 +762,9 @@ initial
       input [47:0] src_mac;
       input 	   random_fill;
       input 	   random_errors;
-      input [31:0] random_error_mod;      
-      integer 	   j;
+      input [31:0] random_error_mod;   
+      input 	   dont_confirm_rx;
+      integer 	   j, k;
       reg 	   error_this_time;
       integer 	   error_type; // 0 = rxerr, 1=bad preamble 2=bad crc 3=TODO
       reg [31:0]   rx_bd_lenstat;
@@ -686,9 +838,16 @@ initial
 	      // if RX enable still set (might have gone low during this packet
 	      if (ethmac_rxen)
 		begin
-		   if (error_this_time)
+		   if (error_this_time || dont_confirm_rx) begin
 		     // Put in dummy length, checking function will skip...
 		     rx_packet_lengths[(eth_rx_num_packets_sent& 12'h3ff)]=32'heeeeeeee;
+
+		      for(k=0;k<length;k=k+1)
+		      // skip data  in verify buffer
+			eth_rx_sent_circbuf_read_ptr = (eth_rx_sent_circbuf_read_ptr+1)& 
+						       eth_rx_sent_circbuf_size_mask;
+		      
+		   end
 		   else
 		     rx_packet_lengths[(eth_rx_num_packets_sent & 12'h3ff)] = length;
 		   
@@ -739,15 +898,6 @@ initial
 	   end // for (j=0;j<num_packets | length <32;j=j+1)
       end
    endtask // send_packet_loop
-
-   // Local buffer of "sent" data to the ethernet MAC, we will check against
-   // Size of our local buffer in bytes
-   parameter eth_rx_sent_circbuf_size = (16*1024);
-   parameter eth_rx_sent_circbuf_size_mask = eth_rx_sent_circbuf_size - 1;
-   integer eth_rx_sent_circbuf_fill_ptr = 0;
-   integer eth_rx_sent_circbuf_read_ptr = 0;
-   // The actual buffer
-   reg [7:0] eth_rx_sent_circbuf [0:eth_rx_sent_circbuf_size-1];
    
    /*   
     TASKS for set and check RX packets:
@@ -1016,7 +1166,6 @@ initial
       reg [24:0]   rxpnt_sdram; // byte address from CPU in RAM
       reg [15:0]   sdram_short;
       reg [7:0]    sdram_byte;
-      //reg [7:0]    phy_rx_mem [0:2000];
       
       integer 	   i;
       integer 	   failure;
@@ -1040,6 +1189,10 @@ initial
 	 // Delay some time - takes a bit for the Wishbone FSM to pipe out the
 	 // packet over Wishbone and into whatever memory it's going into
 	 #Td_rx_packet_check;
+
+`ifdef XILINX_DDR2
+	 sync_controller_cache_xilinx_ddr;
+`endif
 	
 	 // Ok, buffer filled, let's get its offset in memory
 	 get_bd_addr(rx_bd_num, rx_bd_addr);
@@ -1063,31 +1216,26 @@ initial
 	   begin
 
 	      sdram_byte = 8'hx;
-`ifdef RAM_WB
-	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_byte(rxpnt_sdram);      
-`endif	      	      
-`ifdef VERSATILE_SDRAM	      
-	      sdram0.get_byte(rxpnt_sdram,sdram_byte);      
-`endif	      
-`ifdef XILINX_DDR2
-	      get_byte_from_xilinx_ddr2(rxpnt_sdram, sdram_byte);
-`endif	      
-	      if (sdram_byte === 8'hx)
-		begin
-		   $display(" * Error:");
-		   
-		   $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
-		   $display("RAM pointer for BD is 0x%h, bank offset we'll use is 0x%h",
-			    rx_bd_addr, rxpnt_wb);
-		   $finish;
-		end
 
-	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];//phy_rx_mem[buffer]; //eth_phy0.rx_mem[buffer];
+`ifdef RAM_WB
+	      sdram_byte = dut.ram_wb0.ram_wb_b3_0.get_mem8(rxpnt_sdram);      
+`else	      
+ `ifdef XILINX_DDR2
+	      get_byte_from_xilinx_ddr2(rxpnt_sdram, sdram_byte);
+ `else
+	      $display(" * Error:");
+	      
+	      $display(" * eth_stim needs to be able to access the main memory to check packet rx/tx");
+	      $finish;
+ `endif
+`endif
+	      
+	      phy_byte = eth_rx_sent_circbuf[eth_rx_sent_circbuf_read_ptr];
 
 	      if (phy_byte !== sdram_byte)
 		begin
 //		   `TIME;		  
-		   $display("*E Wrong byte (%5d) of RX packet %5d! phy = %h, ram = %h",
+		   $display("*E Wrong byte (%5d) of RX packet %5d. phy mem = %h, ram = %h",
 			    i, eth_rx_num_packets_checked, phy_byte, sdram_byte);
 		   failure = 1;
 		end
