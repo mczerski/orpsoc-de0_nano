@@ -114,16 +114,16 @@ module orpsoc_top
 `endif
 `ifdef XILINX_SSRAM
    // ZBT SSRAM
-    output 	   sram_clk,
-    input 	   sram_clk_fb,
-    output [21:1]  sram_flash_addr,
-    inout [31:0]   sram_flash_data,
-    output 	   sram_cen,
-    output 	   sram_flash_oe_n,    
-    output 	   sram_flash_we_n,
-    output [3:0]   sram_bw,
-    output 	   sram_adv_ld_n,
-    output 	   sram_mode,
+    output 	   sram_clk;
+    input 	   sram_clk_fb;
+    output [21:1]  sram_flash_addr;
+    inout [31:0]   sram_flash_data;
+    output 	   sram_cen;
+    output 	   sram_flash_oe_n;    
+    output 	   sram_flash_we_n;
+    output [3:0]   sram_bw;
+    output 	   sram_adv_ld_n;
+    output 	   sram_mode;
 `endif
 `ifdef UART0
    input 	 uart0_srx_pad_i;

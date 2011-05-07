@@ -263,7 +263,7 @@ module clkgen
 /* SJK
    reg [15:0] 	   ddr2_if_rst_shr;
    always @(posedge ddr2_if_clk_o or posedge async_rst)
-    if (async_rst)
+     if (async_rst)
        ddr2_if_rst_shr <= 16'hffff;
      else
        ddr2_if_rst_shr <= {ddr2_if_rst_shr[14:0], ~(sync_ddr2_rst_n)};

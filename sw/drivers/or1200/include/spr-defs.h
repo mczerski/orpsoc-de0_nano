@@ -281,7 +281,7 @@
 #define SPR_DTLBMR_PL1	   0x00000002  /* Page Level 1 (if 0 then PL2) */
 #define SPR_DTLBMR_CID	   0x0000003c  /* Context ID */
 #define SPR_DTLBMR_LRU	   0x000000c0  /* Least Recently Used */
-#define SPR_DTLBMR_VPN	   0xfffff000  /* Virtual Page Number */
+#define SPR_DTLBMR_VPN	   0xffffe000  /* Virtual Page Number */
 
 /*
  * Bit definitions for the Data TLB Translate Register
@@ -297,7 +297,7 @@
 #define SPR_DTLBTR_UWE	   0x00000080  /* User Write Enable */
 #define SPR_DTLBTR_SRE	   0x00000100  /* Supervisor Read Enable */
 #define SPR_DTLBTR_SWE	   0x00000200  /* Supervisor Write Enable */
-#define SPR_DTLBTR_PPN	   0xfffff000  /* Physical Page Number */
+#define SPR_DTLBTR_PPN	   0xffffe000  /* Physical Page Number */
 
 #define DTLB_PR_NOLIMIT  ( SPR_DTLBTR_URE  | \
 			   SPR_DTLBTR_UWE  | \
@@ -312,7 +312,7 @@
 #define SPR_ITLBMR_PL1	   0x00000002  /* Page Level 1 (if 0 then PL2) */
 #define SPR_ITLBMR_CID	   0x0000003c  /* Context ID */
 #define SPR_ITLBMR_LRU	   0x000000c0  /* Least Recently Used */
-#define SPR_ITLBMR_VPN	   0xfffff000  /* Virtual Page Number */
+#define SPR_ITLBMR_VPN	   0xffffe000  /* Virtual Page Number */
 
 /*
  * Bit definitions for the Instruction TLB Translate Register
@@ -326,7 +326,7 @@
 #define SPR_ITLBTR_D	   0x00000020  /* Dirty */
 #define SPR_ITLBTR_SXE	   0x00000040  /* User Read Enable */
 #define SPR_ITLBTR_UXE	   0x00000080  /* User Write Enable */
-#define SPR_ITLBTR_PPN	   0xfffff000  /* Physical Page Number */
+#define SPR_ITLBTR_PPN	   0xffffe000  /* Physical Page Number */
 
 #define ITLB_PR_NOLIMIT  ( SPR_ITLBTR_SXE  |	\
 			   SPR_ITLBTR_UXE  )

@@ -29,8 +29,6 @@
 ####                                                              ####
 ######################################################################
 
-DESIGN_NAME ?=orpsoc
-
 OR32_TOOL_PREFIX=or32-elf-
 
 OR32_LD=$(OR32_TOOL_PREFIX)ld
@@ -46,11 +44,17 @@ OR32_OBJCOPY=$(OR32_TOOL_PREFIX)objcopy
 # Special case for CPU drivers
 CPU_DRIVER ?=$(SW_ROOT)/drivers/or1200
 
-# If BOARD_PATH is set, we'll first scan that path for which drivers they have
+DESIGN_NAME ?=orpsoc
+
+# If BOARD is set, we'll first scan that path for which drivers they have
 # and will override any locally named driver directories here.
 ifdef BOARD
 BOARD_PATH=$(SW_ROOT)/../boards/$(BOARD)
-#$(info BOARD is being used: $(BOARD_PATH))
+
+ifeq ($(V), 1)
+$(info BOARD is set to : $(BOARD_PATH))
+endif
+
 BOARD_SPECIFIC_DRIVERS=$(shell if [ -e \
 	$(BOARD_PATH)/sw/drivers ]; then \
 	ls $(BOARD_PATH)/sw/drivers; \
@@ -58,6 +62,12 @@ BOARD_SPECIFIC_DRIVERS=$(shell if [ -e \
 BOARD_SW_TESTS=$(shell if [ -e $(BOARD_PATH)/sw/tests ]; then\
 	ls $(BOARD_PATH)/sw/tests; \
 	fi)
+
+# Set RTL_VERILOG_INCLUDE_DIR
+RTL_VERILOG_INCLUDE_DIR=$(BOARD_PATH)/rtl/verilog/include
+#We don't actually want this
+#DESIGN_NAME ?=$(strip $(shell echo $(BOARD)|  cut -d '/' -f 2))
+
 endif
 
 COMMON_SW_DRIVERS=$(shell ls $(SW_ROOT)/drivers )
@@ -199,10 +209,10 @@ $(OR1200_PROCESSED_VERILOG_DEFINES): $(OR1200_VERILOG_DEFINES)
 %.elf: %.S $(ELF_DEPENDS) $(SUPPORT_LIBS)
 	$(Q)$(OR32_CC) $< $(ELF_DEPENDS) $(OR32_CFLAGS) $(OR32_LDFLAGS) -o $@
 
-%.o: %.S
+%.o: %.S processed-verilog-headers
 	$(Q)$(OR32_CC) $(OR32_CFLAGS) -c $< -o $@
 
-%.o: %.c
+%.o: %.c processed-verilog-headers
 	$(Q)$(OR32_CC) $(OR32_CFLAGS) -c $< -o $@
 
 COMPILE_SRCS_BASENAMES=$(basename $(COMPILE_SRCS))
@@ -213,11 +223,11 @@ $(DRIVER_OBJ): $(COMPILE_OBJS)
 
 # Rule to make all necessary driver objects
 
-$(ORPSOC_LIB): $(PROCESSED_DEFINES)
+$(ORPSOC_LIB): 
 	$(Q)echo; echo "\t### Building software support library ###"; echo
 	$(Q)$(MAKE) -C $(SW_ROOT)/lib liborpsoc.a
 
-$(VECTORS_OBJ):
+$(VECTORS_OBJ): 
 	$(Q)$(MAKE) -C $(CPU_DRIVER) crt0.o
 
 
