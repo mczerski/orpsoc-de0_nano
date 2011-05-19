@@ -72,7 +72,8 @@ architecture rtl of ps2 is
         signal shift_cnt         : std_logic_vector(2 downto 0);
         signal shift_cao         : std_logic;  -- Shift counter carry out
         signal shift_reg         : std_logic_vector(8 downto 0);
-        signal shift_in          : std_logic;  -- Shift register to right
+        signal shift_in_read     : std_logic;  -- Shift register to right
+        signal shift_in_write    : std_logic;  -- Shift register to right
         signal shift_load        : std_logic;  -- Shift register parallel load
         signal shift_calc_parity : std_logic;  -- Shift register set parity
         signal wdt_cnt           : std_logic_vector(WATCHDOG_BITS-1 downto 0);
@@ -83,7 +84,10 @@ architecture rtl of ps2 is
         signal obf               : std_logic;  -- OBF, Out Buffer Full
         signal parity_err        : std_logic;  -- Parity error
         signal frame_err         : std_logic;  -- Frame error
-
+        signal data_i_reg        : std_logic_vector(7 downto 0);
+        signal data_o_reg        : std_logic_vector(7 downto 0);
+        signal obf_set           : std_logic;
+        
 begin  -- rtl
 
         -- Sincronize input signals
@@ -104,7 +108,7 @@ begin  -- rtl
                 if rst_i = '0' then     -- asynchronous reset (active low)
                         debounce_cnt <= (others => '0');
                 elsif clk_i'event and clk_i = '1' then  -- rising clock edge
-                        if (ps2_clk_fall or ps2_clk_rise or debounce_cao) = '1' then
+                        if ((debounce_state = fall) or (debounce_state = rise) or debounce_cao = '1') then
                                 debounce_cnt <= (others => '0');
                         else
                                 debounce_cnt <= debounce_cnt + 1;
@@ -174,13 +178,20 @@ begin  -- rtl
                         shift_reg <= (others => '0');
                 elsif clk_i'event and clk_i = '1' then  -- rising clock edge
                         if shift_load = '1' then
-                                shift_reg(7 downto 0) <= data_i;
+                                shift_reg(7 downto 0) <= data_i_reg;
                                 shift_reg(8)          <= '0';
                         elsif shift_calc_parity = '1' then
                                 shift_reg(8) <= not shift_parity;
-                        elsif shift_in = '1' then
-                                shift_reg(7 downto 0) <= shift_reg(8 downto 1);
-                                shift_reg(8)          <= ps2_data_syn;
+                        elsif writing = '0' then
+                                if shift_in_read = '1' then
+                                        shift_reg(7 downto 0) <= shift_reg(8 downto 1);
+                                        shift_reg(8)          <= ps2_data_syn;
+                                end if;
+                        elsif writing = '1' then
+                                if shift_in_write = '1' then
+                                        shift_reg(7 downto 0) <= shift_reg(8 downto 1);
+                                        shift_reg(8)          <= '1';
+                                end if;
                         end if;
                 end if;
         end process;
@@ -193,7 +204,9 @@ begin  -- rtl
                 elsif clk_i'event and clk_i = '1' then  -- rising clock edge
                         if state = start then
                                 shift_cnt <= (others => '0');
-                        elsif state = data and ps2_clk_fall = '1' then
+                        elsif state = data and 
+                            ((ps2_clk_fall = '1' and writing = '0') or
+                             (ps2_clk_rise = '1' and writing = '1')) then
                                 shift_cnt <= shift_cnt + 1;
                         end if;
                 end if;
@@ -221,43 +234,75 @@ begin  -- rtl
                         case state is
 
                                 -- Waiting for clk
-                                when idle => if obf_set_i = '1' and writing = '0' then
-                                                     state <= write_request;
-                                                     writing <= '1';
-                                             elsif ps2_clk_fall = '1' then
-                                                     state <= start;
-                                             end if;
+                                when idle => 
+                                        if obf_set = '1' and writing = '0' then
+                                                state <= write_request;
+                                                writing <= '1';
+                                        elsif ps2_clk_fall = '1' then
+                                                state <= start;
+                                        elsif wdt_cao = '1' and writing = '1' then
+                                                writing <= '0';
+                                        end if;
 
                                 -- Write request, clk low
-                                when write_request => if wdt_cao = '1' then
-                                                              state <= idle;
-                                                      end if;
+                                when write_request => 
+                                        if wdt_cao = '1' then
+                                                state <= idle;
+                                        end if;
 
                                 -- Clock 1, start bit
-                                when start => if wdt_cao = '1' then
-                                                            state <= idle;
-                                                    elsif ps2_clk_fall = '1' then
-                                                            state <= data;
-                                                    end if;
+                                when start => 
+                                        if wdt_cao = '1' then
+                                                writing <= '0';
+                                                state <= idle;
+                                        elsif writing = '1' then
+                                                if ps2_clk_rise = '1' then
+                                                        state <= data;
+                                                end if;
+                                        elsif ps2_clk_fall = '1' then
+                                                state <= data;
+                                        end if;
 
                                 -- Clocks 2-9, Data bits (LSB first)
-                                when data => if wdt_cao = '1' then
-                                                            state <= idle;
-                                                    elsif ps2_clk_fall = '1' and
-                                                            shift_cao = '1' then
-                                                            state <= parity;
-                                                    end if;
+                                when data => 
+                                        if wdt_cao = '1' then
+                                                writing <= '0';
+                                                state <= idle;
+                                        elsif writing = '1' then
+                                                if ps2_clk_rise = '1' and
+                                                   shift_cao    = '1' then
+                                                        state <= parity;
+                                                end if;
+                                        elsif ps2_clk_fall = '1' and
+                                              shift_cao    = '1' then
+                                                state <= parity;
+                                        end if;
 
                                 -- Clock 10, Parity bit
-                                when parity => if wdt_cao = '1' then
-                                                            state <= idle;
-                                                    elsif ps2_clk_fall = '1' then
-                                                            state <= stop;
-                                                    end if;
-
+                                when parity => 
+                                        if wdt_cao = '1' then
+                                                writing <= '0';
+                                                state <= idle;
+                                        elsif writing = '1' then
+                                                if ps2_clk_rise = '1' then
+                                                        state <= stop;
+                                                end if;
+                                        elsif ps2_clk_fall = '1' then
+                                                state <= stop;
+                                        end if;
                                 -- Clock 11, Stop bit
-                                when stop   => writing <= '0';
-                                               state <= idle;
+                                when stop => 
+                                        if writing = '1' then
+                                                -- ack
+                                                if (ps2_clk_fall = '1' and ps2_data_syn = '0') or
+                                                   (wdt_cao = '1') then
+                                                        state <= idle;
+                                                        writing <= '0';
+                                                end if;
+                                        else
+                                                data_o_reg <= shift_reg(7 downto 0);
+                                                state <= idle;
+                                        end if;
                                 when others => null;
                         end case;
                 end if;
@@ -312,9 +357,10 @@ begin  -- rtl
         obf <= writing;
 
         -- Shift register control
-        shift_load        <= '1' when obf_set_i = '1' else '0';
+        shift_load        <= '1' when obf_set = '1' and state = write_request else '0';
         shift_calc_parity <= '1' when state = idle and writing = '1' else '0';
-        shift_in          <= ps2_clk_fall when state = data or state = start else '0';
+        shift_in_read     <= ps2_clk_fall when (state = data or state = start)  else '0';
+        shift_in_write    <= ps2_clk_rise when (state = data or state = parity) else '0';
 
 
         -- PS2 Registered outputs
@@ -327,9 +373,9 @@ begin  -- rtl
 
                         -- PS2 Data out
                         if writing = '1' then
-                                if state = idle then
+                                if state = idle or state = start then
                                         ps2_data_out <= '0';
-                                elsif state = data or state = start then
+                                elsif state = data or state = parity then
                                         ps2_data_out <= shift_reg(0);
                                 else
                                         ps2_data_out <= '1';
@@ -344,8 +390,23 @@ begin  -- rtl
                         end if;
                 end if;
         end process;
-
-        data_o       <= shift_reg(7 downto 0);
+        
+        indata : process (clk_i, rst_i)
+        begin
+                if rst_i = '0' then
+                        data_i_reg <= (others => '0');
+                        obf_set    <= '0';
+                elsif clk_i'event and clk_i = '1' then
+                        if obf_set_i = '1' then
+                                data_i_reg <= data_i;
+                                obf_set    <= '1';
+                        elsif state = write_request then
+                                obf_set    <= '0';
+                        end if;
+                end if;
+        end process;
+        
+        data_o       <= data_o_reg;
         ibf_o        <= ibf;
         obf_o        <= obf;
         busy_o       <= '0' when state = idle and writing = '0' else '1';
