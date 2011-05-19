@@ -52,6 +52,7 @@
 // `define RAM_WB
  `define XILINX_DDR2
  `define UART0
+// `define UART0_EXPHEADER
  `define GPIO0
  `define SPI0
 // `define I2C0

@@ -53,7 +53,9 @@ module orpsoc_top
 `endif    
 `ifdef UART0
     uart0_srx_pad_i, uart0_stx_pad_o,
+`ifdef UART0_EXPHEADER
     uart0_srx_expheader_pad_i, uart0_stx_expheader_pad_o,
+`endif
 `endif
 `ifdef SPI0
     spi0_mosi_o, spi0_ss_o, spi0_sck_o, spi0_miso_i,
@@ -121,8 +123,10 @@ module orpsoc_top
    input 	 uart0_srx_pad_i;
    output 	 uart0_stx_pad_o;
    // Duplicates of the UART signals, this time to the USB debug cable
+`ifdef UART0_EXPHEADER
    input 	 uart0_srx_expheader_pad_i;
    output 	 uart0_stx_expheader_pad_o;
+`endif
 `endif
 `ifdef SPI0
    output 	 spi0_mosi_o;
@@ -1230,7 +1234,11 @@ module orpsoc_top
    assign wbs_d_uart0_rty_o = 0;
 
    // Two UART lines coming to single one (ensure they go high when unconnected)
-   assign uart0_srx = uart0_srx_pad_i/* & uart0_srx_expheader_pad_i */; // SJK TODO: Make this ifdefable
+`ifdef UART0_EXPHEADER   
+   assign uart0_srx = uart0_srx_pad_i & uart0_srx_expheader_pad_i;
+`else
+   assign uart0_srx = uart0_srx_pad_i;
+`endif
    assign uart0_stx_pad_o = uart0_stx;
    assign uart0_stx_expheader_pad_o = uart0_stx;
    
