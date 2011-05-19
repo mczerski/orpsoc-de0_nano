@@ -1237,18 +1237,39 @@ If once the FPGA configuration image, and a bootloader image is embedded in the 
 @node ML501 SPI flash programming
 @subsection SPI flash programming
 
+There are two ways to program the M25P16 2MByte SPI flash from the Xilinx iMPACT tool - @emph{direct} and @emph{indirect}. Direct programming means the Xilinx programmer has a direct connection from its pins to the SPI bus. It then performs SPI accesses on the bus to erase and program the part. Indirect programming involves the FPGA and sets up connections to the SPI via it. Indirect programming may be slower, but it is the only supported method as of ISE 12 onwards.
+
+There may be a way of programming directly using the open source @emph{xc3sprog} tool, http://sourceforge.net/projects/xc3sprog/ , but the author is yet to figure out how, and would greatly appreciate anyone who can provide a quick rundown on how this could be achieved.
+
+Once programmed, booting from the SPI flash to ORPmon prompt is about 3 to 4 seconds.
+
+@node ML501 Direct SPI flash programming
+@subsubsection Direct SPI flash programming
+
+@emph{Note}: As of ISE 12, direct SPI flash programming is no longer supported. ISE 11 must be used if this method is to be used. Indirect SPI flash programming is the recommended method by Xilinx now. How annoying.
+
 For a guide on how to actually set up the ML501 board to program the SPI flash, see the section under ``@emph{My Own SPI Flash Image Demonstration}'' on page 26 of the Xilinx UG228 document, http://www.xilinx.com/support/documentation/boards_and_kits/ug228.pdf . Follow steps 1 to 4, and then 9 to 16, and supply the @code{.mcs} file generated here.
+
+A more general explanation of direct SPI flash programming can be found in XAPP951- http://www.xilinx.com/support/documentation/application\_notes/xapp951.pdf
 
 Be sure to set the @emph{CONFIG} switches to @code{00010101} (left-to-right when Xilinx logo in North-West of board) before attempting to program the SPI flash. The be sure to switch them back to @code{00000101} before attempting to boot the image.
 
-@emph{Note}: SPI flash programming will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf .
+@emph{Note}: Direct SPI flash programming will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf .
 
 @emph{Note}: If leaving the SPI programming fly leads in place and attempting to boot the image, be sure to remove the @code{Vref} (@code{VCC3V3} on JP2) connection before attempting to boot. Be sure the configuration DIP SW15 is set back to the @code{00000101} position!
 
 @emph{Note:} The other cable from the programmer (going to the JP1 header) @emph{must} be unplugged from the board before attempting to program the SPI flash.
 
+@node ML501 Inirect SPI flash programming
+@subsubsection Indirect SPI flash programming
 
-Booting from the SPI flash to ORPmon prompt is about 3 to 4 seconds.
+The indirect method of programming the SPI flash has the memory show up as an extrnal module off the FPGA when performing an automatic JTAG boundary scan.
+
+The following page has more information about the steps required. http://www.xilinx.com/support/documentation/sw\_manuals/xilinx11/pim\_p\_configure\_spi\_bpi\_through\_fpga.htm The @code{.mcs} file required is the one generated in previous steps in this guide.
+
+@emph{Note:} As we generate the @code{.mcs} file with bit/byte swapping disabled (with the use of the @code{-spi} option when running the promgen tool) we must disable iMPACT's automatic bit/byte swapping when programming the SPI flash. In ISE 12 this option is found by going to the @emph{Edit menu -> Preferences}, and  in the @emph{Configuration Preferences} category, set the @emph{SPI Byte Swap} option to @emph{Ignore Setting}.
+
+@emph{Note:} iMPACT from ISE 12 introduced errors in the software image when being programmed. It is advisable that versions of iMPACT from ISEs other than 12 are used until this bug is fixed.
 
 
 @node ML501 Customising
