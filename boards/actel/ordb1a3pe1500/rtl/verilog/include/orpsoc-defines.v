@@ -184,7 +184,7 @@
 // `define I2C1
 // `define I2C2
 // `define I2C3
-// `define USB0
+ `define USB0
 // `define USB1
 //`define GPIO0
 `define ETH0

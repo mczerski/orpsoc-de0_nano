@@ -12,98 +12,11 @@
 # Name of the directory we're currently in
 CUR_DIR=$(shell pwd)
 
-# The root path of the board build
-BOARD_DIR ?=$(CUR_DIR)/../../..
-PROJECT_ROOT=$(BOARD_DIR)/../../..
+# The root path of the whole project
+BOARD_ROOT ?=$(CUR_DIR)/../../..
+# Makefile fragment with most of the setup
+include $(BOARD_ROOT)/Makefile.inc
 
-# Export BOARD for the software makefiles
-BOARD=actel/ordb1a3pe1500
-export BOARD
-
-DESIGN_NAME=orpsoc
-
-# Paths to other important parts of this test suite
-
-# Paths to other important parts of this test suite
-COMMON_RTL_DIR = $(PROJECT_ROOT)/rtl
-COMMON_RTL_VERILOG_DIR = $(COMMON_RTL_DIR)/verilog
-#COMMON_RTL_VHDL_DIR = $(COMMON_RTL_DIR)/vhdl
-
-BOARD_RTL_DIR=$(BOARD_DIR)/rtl
-BOARD_RTL_VERILOG_DIR=$(BOARD_RTL_DIR)/verilog
-# Only 1 include path for board builds - their own!
-BOARD_RTL_VERILOG_INCLUDE_DIR=$(BOARD_RTL_VERILOG_DIR)/include
-#BOARD_RTL_VHDL_DIR = $(BOARD_RTL_DIR)/vhdl
-
-
-BACKEND_DIR=$(BOARD_DIR)/backend
-BACKEND_VERILOG_DIR=$(BACKEND_DIR)/rtl/verilog
-
-# Set V=1 when calling make to enable verbose output
-# mainly for debugging purposes.
-ifeq ($(V), 1)
-Q=
-else
-Q ?=@
-endif
-
-
-#
-# Verilog DUT source variables
-#
-# First we get a list of modules in the RTL path of the board's path.
-# Next we check which modules not in the board's RTL path are in the root RTL
-# path (modules which can be commonly instantiated, but over which board 
-# build-specific versions take precedence.)
-
-# Paths under board/***/rtl/verilog we wish to exclude when getting modules
-BOARD_VERILOG_MODULES_EXCLUDE= include
-BOARD_VERILOG_MODULES_DIR_LIST=$(shell ls $(BOARD_RTL_VERILOG_DIR))
-# Apply exclude to list of modules
-BOARD_RTL_VERILOG_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_VERILOG_MODULES_DIR_LIST))
-
-# Rule for debugging this script
-print-board-modules:
-	@echo echo; echo "\t### Board verilog modules ###"; echo;
-	@echo $(BOARD_RTL_VERILOG_MODULES)
-
-# Now get list of modules that we don't have a version of in the board path
-COMMON_VERILOG_MODULES_EXCLUDE= include
-COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_RTL_VERILOG_MODULES)
-
-COMMON_RTL_VERILOG_MODULES_DIR_LIST=$(shell ls $(COMMON_RTL_VERILOG_DIR))
-COMMON_RTL_VERILOG_MODULES=$(filter-out $(COMMON_VERILOG_MODULES_EXCLUDE), $(COMMON_RTL_VERILOG_MODULES_DIR_LIST))
-
-# Rule for debugging this script
-print-common-modules-exclude:
-	@echo echo; echo "\t### Common verilog modules being excluded due to board versions ###"; echo;
-	@echo "$(COMMON_VERILOG_MODULES_EXCLUDE)"
-
-print-common-modules:
-	@echo echo; echo "\t###  Verilog modules from common RTL dir ###"; echo
-	@echo $(COMMON_RTL_VERILOG_MODULES)
-
-# List of verilog source files (only .v files!)
-# Board RTL modules first
-RTL_VERILOG_SRC=$(shell for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then ls $(BOARD_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
-# Common RTL module source
-RTL_VERILOG_SRC +=$(shell for module in $(COMMON_RTL_VERILOG_MODULES); do if [ -d $(COMMON_RTL_VERILOG_DIR)/$$module ]; then ls $(COMMON_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
-
-# List of verilog includes from board RTL path - only for rule sensitivity
-RTL_VERILOG_INCLUDES=$(shell ls $(BOARD_RTL_VERILOG_INCLUDE_DIR)/*.*)
-
-#
-# Add backend files here, except for the proasic3 library
-#
-RTL_VERILOG_SRC+=$(shell ls $(BACKEND_VERILOG_DIR)/*.v)
-
-#
-# VHDL DUT source variables
-#
-# VHDL modules
-#RTL_VHDL_MODULES=$(shell ls $(RTL_VHDL_DIR))
-# VHDL sources
-#RTL_VHDL_SRC=$(shell for module in $(RTL_VHDL_MODULES); do if [ -d $(RTL_VHDL_DIR)/$$module ]; then ls $(RTL_VHDL_DIR)/$$module/*.vhd; fi; done)
 
 # Tool settings
 # For Linux, the Actel licenses only support Synplify Pro
@@ -173,14 +86,6 @@ $(SYN_WORK_DIR):
 # Dynamically created files included by different parts of the defines
 #
 
-BOOTROM_FILE=bootrom.v
-BOARD_SW_DIR=$(BOARD_DIR)/sw
-BOARD_BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
-BOOTROM_VERILOG=$(BOARD_BOOTROM_SW_DIR)/$(BOOTROM_FILE)
-bootrom: $(BOOTROM_VERILOG)
-$(BOOTROM_VERILOG):
-	$(MAKE) -C $(BOARD_BOOTROM_SW_DIR) $(BOOTROM_FILE)
-
 SYNDIR_BOOTROM_VERILOG=$(SYN_WORK_DIR)/$(BOOTROM_FILE)
 $(SYNDIR_BOOTROM_VERILOG): $(BOOTROM_VERILOG)
 	cp $^ $@
@@ -212,6 +117,9 @@ $(SYN_WORK_DIR)/$(SYN_SCRIPT): $(SYN_WORK_DIR) $(RTL_VERILOG_SRC) $(RTL_VERILOG_
 	done
 	$(Q)for file in $(RTL_VHDL_SRC); do \
 		echo "add_file -vhdl "$$file >> $@; \
+	done
+	$(Q)for file in $(BOARD_BACKEND_VERILOG_SRC); do \
+		echo "add_file -verilog "$$file >> $@; \
 	done
 	$(Q)echo "add_file -constraint "$(SDC_FILE) >> $@
 	$(Q)echo "set_option -include_path "$(BOARD_RTL_VERILOG_INCLUDE_DIR) >> $@
@@ -309,7 +217,7 @@ $(EDIF_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(EDIF_FILE)
 $(VLOG_NETLIST_FILE_OUT): $(SYN_WORK_DIR)/$(SYN_PROJ_NAME)/$(VLOG_NETLIST_FILE)
 	cp $^ $@
 
-distclean: clean-sw clean clean-edifs
+distclean: clean-sw clean clean-bootrom clean-edifs
 
 clean-sw:
 	$(MAKE) -C $(PROJECT_ROOT)/sw/lib distclean

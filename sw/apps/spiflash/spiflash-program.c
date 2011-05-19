@@ -246,6 +246,163 @@ program_spi(int core, char slave_sel, char * data, unsigned int length)
 }
 
 
+int
+console_get_num(void)
+{
+	char c = 0x30;
+	int num_nums = 0;
+	int num_nums_total;
+	char nums[16]; // up to 16 decimal digits long
+	int retval = 0;
+	int decimal_multiplier;
+	int i;
+	
+	printf("Enter decimal value: ");
+	
+	while (c >= 0x30 && c < 0x40)
+	{
+		c = uart_getc(DEFAULT_UART);  
+		
+		if (c >= 0x30 && c < 0x40)
+		{
+			printf("%d", c-0x30);
+			nums[num_nums] = c-0x30;
+			num_nums++;
+		}
+		
+	}
+	printf("\n");
+
+	num_nums_total = num_nums;
+
+	while(num_nums--)
+	{
+		decimal_multiplier = 1;
+		for(i=1;i<num_nums_total - num_nums;i++)
+			decimal_multiplier *= 10;
+		//printf("%d * %d\n",decimal_multiplier,nums[num_nums]);
+		
+		retval += (decimal_multiplier * nums[num_nums]);
+	}
+	//printf("%d\n",retval);
+	return retval;
+}
+
+
+// HEX chars in ASCII:
+// 0: 0x30 (48), 1: 0x31 ... 9: 0x39
+// A: 0x41 (65), B: 0x42 ... F: 0x46
+// a: 0x61 (97), b: 0x62 ... f: 0x66
+
+#define IS_ASCII_HEX_CHAR(x) ((x>=0x41 && x<=0x46) || (x>=0x61 && x<=0x66) || \
+			      (x>=0x30 && x<=0x39))
+
+#define ASCII_TO_HEX_VAL(x) (x>=0x41 && x<=0x46) ? x - 55 :	\
+	(x>=0x61 && x<=0x66) ? x - 87 : x - 48;
+unsigned long
+console_get_hex_num(void)
+{
+	char c = 0x30;
+	char hexchar;
+	int num_nums = 0;
+	int num_nums_total;
+	char nums[8]; // up to 8 decimal digits long
+	unsigned long retval = 0;
+	int base_multiplier;
+	int i;
+	
+	printf("Enter hex value: ");
+	
+	while (IS_ASCII_HEX_CHAR(c))
+	{
+		c = uart_getc(DEFAULT_UART);  
+		
+		if (IS_ASCII_HEX_CHAR(c) && num_nums < 8)
+		{
+			//printf("%c 0x%02x", c&0xff, c&0xff);
+			hexchar = ASCII_TO_HEX_VAL(c);
+			printf("%1x", hexchar&0xff);
+			nums[num_nums] = hexchar;
+			num_nums++;
+		}
+		if (c==0x7f) //delete
+		{
+			if (num_nums>0)
+			{
+				printf("%c %c",0x8, 0x8);
+				num_nums--;
+			}
+			c = 0x30;
+		}
+		
+	}
+	printf("\n");
+
+	num_nums_total = num_nums;
+
+	while(num_nums--)
+	{
+		base_multiplier = 1;
+		for(i=1;i<num_nums_total - num_nums;i++)
+			base_multiplier *= 16;
+		//printf("%d * %d\n",base_multiplier,nums[num_nums]);
+		
+		retval += (base_multiplier * nums[num_nums]);
+	}
+	//printf("%d\n",retval);
+	
+	return retval;
+}
+
+
+void
+console_browse_buffer(char* buf)
+{
+	char c = 0;
+	int offset = 0;
+	const int linesize = 16;
+	int i;
+	printf("Press space to scroll through buffer, q to return\n");
+	printf("+/- alter address offset\n");
+	while (1)
+	{
+		c = uart_getc(DEFAULT_UART);  
+
+		if (c == 'q')
+			return;
+		else if (c == 'r')
+			offset=0;
+		else if (c == '+')
+		{
+			if (offset <= (256 - linesize))
+				offset+=linesize;
+			printf("%04x:\r",offset);
+		}
+		else if (c == '-')
+		{
+			if (offset >=linesize)
+				offset-=linesize;
+
+			printf("%04x:\r",offset);
+		}
+		else if (c == 0x20 && (offset < 256)) // space, print al ine
+		{
+			printf("%04x:",offset);
+			// print another line of the buffer
+			for (i=0;i<linesize;i++)
+			{
+				printf(" %02x", buf[offset+i]&0xff);
+			}
+			printf("\n");
+			if (offset <= (256 - linesize))
+				offset += linesize;
+			
+		}
+	}
+	
+}
+
+
 int 
 main()
 {
@@ -254,6 +411,7 @@ main()
   
   volatile char c;
   int i,j;
+  char browse_buf[256];
   spi_master = 0;
   slave = 1;
 
@@ -286,6 +444,14 @@ main()
       program_spi(spi_master, slave, (char *) &spiprogram_data, programming_file_length);
     else if (c == 'v')
       verify_spi(spi_master, slave, (char *) &spiprogram_data, programming_file_length);
+    else if ( c== 'r')
+    {
+	    printf("Read page\n");
+	    spi_read_block(spi_master, slave, ((console_get_num())<<8), 
+			   256, 
+			   browse_buf);
+	    console_browse_buffer(browse_buf);
+    }
     
 
   }

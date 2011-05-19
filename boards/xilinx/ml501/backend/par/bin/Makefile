@@ -8,7 +8,7 @@
 ####                                                              ####
 ######################################################################
 ####                                                              ####
-#### Copyright (C) 2009,2010 Authors and OPENCORES.ORG            ####
+#### Copyright (C) 2009,2010,2011 Authors and OPENCORES.ORG       ####
 ####                                                              ####
 #### This source file may be used and distributed without         ####
 #### restriction provided that this copyright statement is not    ####
@@ -37,52 +37,8 @@
 CUR_DIR=$(shell pwd)
 
 # The root path of the board build
-BOARD_DIR ?=$(CUR_DIR)/../../..
-PROJECT_ROOT=$(BOARD_DIR)/../../..
-
-SYN_DIR=$(BOARD_DIR)/syn/xst
-SYN_RUN_DIR=$(SYN_DIR)/run
-
-BOARD_BACKEND_DIR=$(BOARD_DIR)/backend/bin
-
-DESIGN_NAME=orpsoc
-BOARD_NAME=ml501
-
-# Set V=1 when calling make to enable verbose output
-# mainly for debugging purposes.
-ifeq ($(V), 1)
-Q=
-else
-Q ?=@
-endif
-
-BOARD_RTL_DIR=$(BOARD_DIR)/rtl
-BOARD_RTL_VERILOG_DIR=$(BOARD_RTL_DIR)/verilog
-# Only 1 include path for board builds - their own!
-BOARD_RTL_VERILOG_INCLUDE_DIR=$(BOARD_RTL_VERILOG_DIR)/include
-BOARD_DESIGN_VERILOG_DEFINES=$(BOARD_RTL_VERILOG_INCLUDE_DIR)/$(DESIGN_NAME)-defines.v
-
-DEFINES_FILE_CUTOFF=$(shell grep -n "end of included module defines" $(BOARD_DESIGN_VERILOG_DEFINES) | cut -d ':' -f 1)
-DESIGN_DEFINES=$(shell cat $(BOARD_DESIGN_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
-
-# Rule to look at what defines are being extracted from main file
-print-defines:
-	@echo; echo "\t### Design defines ###"; echo
-	@echo "\tParsing "$(BOARD_DESIGN_VERILOG_DEFINES)" and exporting:"
-	@echo $(DESIGN_DEFINES)
-
-
-# Backend tool path
-# Check that the XILINX_PATH variable is set
-ifeq ($(XILINX_PATH),)
-$(error XILINX_PATH environment variable not set. Set it and rerun)
-endif
-XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/settings32.sh
-XILINX_SETTINGS_SCRIPT_EXISTS=$(shell if [ -e $(XILINX_SETTINGS_SCRIPT) ]; then echo 1; else echo 0; fi)
-ifeq ($(XILINX_SETTINGS_SCRIPT_EXISTS),0)
-$(error XILINX_PATH variable not set correctly. Cannot find $$XILINX_PATH/settings32.sh)
-endif
-
+BOARD_ROOT ?=$(CUR_DIR)/../../..
+include $(BOARD_ROOT)/Makefile.inc
 
 #
 # Options for Xilinx PAR tools
@@ -105,9 +61,7 @@ print-config:
 	$(Q)echo "\tSPI_FLASH_SIZE_KBYTES="$(SPI_FLASH_SIZE_KBYTES)
 	$(Q)echo "\tSPI_BOOTLOADER_SW_OFFSET_HEX="$(SPI_BOOTLOADER_SW_OFFSET_HEX)
 
-
-
-NGC_FILE=$(SYN_RUN_DIR)/$(DESIGN_NAME).ngc
+NGC_FILE=$(BOARD_SYN_RUN_DIR)/$(DESIGN_NAME).ngc
 NGD_FILE=$(DESIGN_NAME).ngd
 UCF_FILE=../bin/$(BOARD_NAME).ucf
 MAPPED_NCD=$(DESIGN_NAME)_mapped.ncd
@@ -119,12 +73,12 @@ BATCH_FILE=$(DESIGN_NAME).batch
 MCS_FILE=$(DESIGN_NAME).mcs
 
 $(NGC_FILE):
-	$(Q)$(MAKE) -C $(SYN_RUN_DIR) $(DESIGN_NAME).ngc
+	$(Q)$(MAKE) -C $(BOARD_SYN_RUN_DIR) $(DESIGN_NAME).ngc
 
 $(NGD_FILE): $(UCF_FILE) $(NGC_FILE)
 	@echo; echo "\t#### Running NGDBuild ####";
 	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
-	ngdbuild -p $(FPGA_PART) -sd $(BOARD_BACKEND_DIR) -uc $(UCF_FILE) \
+	ngdbuild -p $(FPGA_PART) -sd $(BOARD_BACKEND_BIN_DIR) -uc $(UCF_FILE) \
 	$(NGC_FILE) $@ )
 
 #This target uses Xilinx tools to perform Mapping
@@ -190,7 +144,7 @@ clean:
 	$(Q)rm -rf *.* xlnx_auto*
 
 clean-syn:
-	$(Q)$(MAKE) -C $(SYN_RUN_DIR) distclean
+	$(Q)$(MAKE) -C $(BOARD_SYN_RUN_DIR) distclean
 
 distclean: clean-syn clean
 
