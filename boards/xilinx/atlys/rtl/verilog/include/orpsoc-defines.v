@@ -61,6 +61,8 @@
  `define ETH0_PHY_RST
  `define VGA0
  `define AC97
+ `define PS2_0
+ `define PS2_1
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 

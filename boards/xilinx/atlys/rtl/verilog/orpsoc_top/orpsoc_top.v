@@ -87,7 +87,13 @@ module orpsoc_top
 `ifdef AC97
     ac97_bit_clk_pad_i, ac97_sync_pad_o, ac97_sdata_pad_o, 
     ac97_sdata_pad_i, ac97_reset_pad_o,
-`endif  
+`endif
+`ifdef PS2_0
+    ps2_0_clk, ps2_0_dat,
+`endif
+`ifdef PS2_1
+    ps2_1_clk, ps2_1_dat,
+`endif
     sys_clk_in,
 
     rst_n_pad_i  
@@ -180,6 +186,15 @@ module orpsoc_top
    input              ac97_sdata_pad_i;
    output             ac97_reset_pad_o;
 `endif
+`ifdef PS2_0
+   inout              ps2_0_clk;
+   inout              ps2_0_dat;
+`endif
+`ifdef PS2_1
+   inout              ps2_1_clk;
+   inout              ps2_1_dat;
+`endif
+
    ////////////////////////////////////////////////////////////////////////
    //
    // Clock and reset generation module
@@ -409,6 +424,34 @@ module orpsoc_top
    wire 			     wbs_d_gpio0_ack_o;
    wire 			     wbs_d_gpio0_err_o;
    wire 			     wbs_d_gpio0_rty_o;
+
+   // ps2_0 wires
+   wire [31:0]               wbs_d_ps2_0_adr_i;
+   wire [wbs_d_ps2_0_data_width-1:0] wbs_d_ps2_0_dat_i;
+   wire [3:0]                wbs_d_ps2_0_sel_i;
+   wire                  wbs_d_ps2_0_we_i;
+   wire                  wbs_d_ps2_0_cyc_i;
+   wire                  wbs_d_ps2_0_stb_i;
+   wire [2:0]                wbs_d_ps2_0_cti_i;
+   wire [1:0]                wbs_d_ps2_0_bte_i;   
+   wire [wbs_d_ps2_0_data_width-1:0] wbs_d_ps2_0_dat_o;   
+   wire                  wbs_d_ps2_0_ack_o;
+   wire                  wbs_d_ps2_0_err_o;
+   wire                  wbs_d_ps2_0_rty_o;
+
+   // ps2_1 wires
+   wire [31:0]               wbs_d_ps2_1_adr_i;
+   wire [wbs_d_ps2_1_data_width-1:0] wbs_d_ps2_1_dat_i;
+   wire [3:0]                wbs_d_ps2_1_sel_i;
+   wire                  wbs_d_ps2_1_we_i;
+   wire                  wbs_d_ps2_1_cyc_i;
+   wire                  wbs_d_ps2_1_stb_i;
+   wire [2:0]                wbs_d_ps2_1_cti_i;
+   wire [1:0]                wbs_d_ps2_1_bte_i;   
+   wire [wbs_d_ps2_1_data_width-1:0] wbs_d_ps2_1_dat_o;   
+   wire                  wbs_d_ps2_1_ack_o;
+   wire                  wbs_d_ps2_1_err_o;
+   wire                  wbs_d_ps2_1_rty_o;
 
    // eth0 slave wires
    wire [31:0] 				  wbs_d_eth0_adr_i;
@@ -758,6 +801,30 @@ module orpsoc_top
       .wbs4_err_o			(wbs_d_spi0_err_o),
       .wbs4_rty_o			(wbs_d_spi0_rty_o),
 
+      .wbs5_adr_i           (wbs_d_ps2_0_adr_i),
+      .wbs5_dat_i           (wbs_d_ps2_0_dat_i),
+      .wbs5_we_i            (wbs_d_ps2_0_we_i), 
+      .wbs5_cyc_i           (wbs_d_ps2_0_cyc_i),
+      .wbs5_stb_i           (wbs_d_ps2_0_stb_i),
+      .wbs5_cti_i           (wbs_d_ps2_0_cti_i),
+      .wbs5_bte_i           (wbs_d_ps2_0_bte_i),
+      .wbs5_dat_o           (wbs_d_ps2_0_dat_o),
+      .wbs5_ack_o           (wbs_d_ps2_0_ack_o),
+      .wbs5_err_o           (wbs_d_ps2_0_err_o),
+      .wbs5_rty_o           (wbs_d_ps2_0_rty_o),
+
+      .wbs6_adr_i           (wbs_d_ps2_1_adr_i),
+      .wbs6_dat_i           (wbs_d_ps2_1_dat_i),
+      .wbs6_we_i            (wbs_d_ps2_1_we_i), 
+      .wbs6_cyc_i           (wbs_d_ps2_1_cyc_i),
+      .wbs6_stb_i           (wbs_d_ps2_1_stb_i),
+      .wbs6_cti_i           (wbs_d_ps2_1_cti_i),
+      .wbs6_bte_i           (wbs_d_ps2_1_bte_i),
+      .wbs6_dat_o           (wbs_d_ps2_1_dat_o),
+      .wbs6_ack_o           (wbs_d_ps2_1_ack_o),
+      .wbs6_err_o           (wbs_d_ps2_1_err_o),
+      .wbs6_rty_o           (wbs_d_ps2_1_rty_o),
+
       // Clock, reset inputs
       .wb_clk			(wb_clk),
       .wb_rst			(wb_rst));
@@ -770,6 +837,8 @@ module orpsoc_top
    defparam arbiter_bytebus0.slave2_adr = bbus_arb_slave2_adr;
    defparam arbiter_bytebus0.slave3_adr = bbus_arb_slave3_adr;
    defparam arbiter_bytebus0.slave4_adr = bbus_arb_slave4_adr;
+   defparam arbiter_bytebus0.slave5_adr = bbus_arb_slave5_adr;
+   defparam arbiter_bytebus0.slave6_adr = bbus_arb_slave6_adr;
 
 
 `ifdef JTAG_DEBUG   
@@ -1770,7 +1839,75 @@ module orpsoc_top
     );
 
 `endif
+
+`ifdef PS2_0
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // PS2_0
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   wire ps2_0_irq;
    
+   ps2_wb ps2_0(
+      .wb_clk_i             (wb_clk),
+      .wb_rst_i             (wb_rst),
+      .wb_dat_i             (wbs_d_ps2_0_dat_i),
+      .wb_dat_o             (wbs_d_ps2_0_dat_o),
+      .wb_adr_i             (wbs_d_ps2_0_adr_i[ps2_0_wb_adr_width-1:0]),
+      .wb_stb_i             (wbs_d_ps2_0_cyc_i & wbs_d_ps2_0_stb_i),
+      .wb_we_i              (wbs_d_ps2_0_we_i),
+      .wb_ack_o             (wbs_d_ps2_0_ack_o),
+
+      //IRQ output
+      .irq_o                 (ps2_0_irq),
+
+      // PS2 signals
+      .ps2_clk               (ps2_0_clk),
+      .ps2_dat               (ps2_0_dat)
+   );
+   assign wbs_d_ps2_0_err_o = 0;
+   assign wbs_d_ps2_0_rty_o = 0;
+`else
+   assign wbs_d_ps2_0_dat_o = 0;
+   assign wbs_d_ps2_0_ack_o = 0;
+   assign wbs_d_ps2_0_err_o = 0;
+   assign wbs_d_ps2_0_rty_o = 0;
+`endif // PS2_0
+
+`ifdef PS2_1
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // PS2_1
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   wire ps2_1_irq;
+   
+   ps2_wb ps2_1(
+      .wb_clk_i             (wb_clk),
+      .wb_rst_i             (wb_rst),
+      .wb_dat_i             (wbs_d_ps2_1_dat_i),
+      .wb_dat_o             (wbs_d_ps2_1_dat_o),
+      .wb_adr_i             (wbs_d_ps2_1_adr_i[ps2_1_wb_adr_width-1:0]),
+      .wb_stb_i             (wbs_d_ps2_1_cyc_i & wbs_d_ps2_1_stb_i),
+      .wb_we_i              (wbs_d_ps2_1_we_i),
+      .wb_ack_o             (wbs_d_ps2_1_ack_o),
+
+      //IRQ output
+      .irq_o                 (ps2_1_irq),
+
+      // PS2 signals
+      .ps2_clk               (ps2_1_clk),
+      .ps2_dat               (ps2_1_dat)
+   );
+   assign wbs_d_ps2_1_err_o = 0;
+   assign wbs_d_ps2_1_rty_o = 0;
+`else
+   assign wbs_d_ps2_1_dat_o = 0;
+   assign wbs_d_ps2_1_ack_o = 0;
+   assign wbs_d_ps2_1_err_o = 0;
+   assign wbs_d_ps2_1_rty_o = 0;
+`endif // PS2_1 
+ 
    ////////////////////////////////////////////////////////////////////////
    //
    // OR1200 Interrupt assignment
@@ -1790,7 +1927,11 @@ module orpsoc_top
 `else
    assign or1200_pic_ints[4] = 0;
 `endif
+`ifdef PS2_0
+   assign or1200_pic_ints[5] = ps2_0_irq;
+`else
    assign or1200_pic_ints[5] = 0;
+`endif
 `ifdef SPI0
    assign or1200_pic_ints[6] = spi0_irq;
 `else   
@@ -1818,7 +1959,11 @@ module orpsoc_top
 `else
    assign or1200_pic_ints[12] = 0;
 `endif
+`ifdef PS2_1
+   assign or1200_pic_ints[13] = ps2_1_irq;
+`else
    assign or1200_pic_ints[13] = 0;
+`endif
    assign or1200_pic_ints[14] = 0;
    assign or1200_pic_ints[15] = 0;
    assign or1200_pic_ints[16] = 0;

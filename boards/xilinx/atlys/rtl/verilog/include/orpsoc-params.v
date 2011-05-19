@@ -66,7 +66,7 @@ parameter wbs_d_i2c1_data_width = 8;
 // GPIO 0 params
 parameter wbs_d_gpio0_data_width = 8;
 parameter gpio0_wb_adr_width = 3;
-parameter gpio0_io_width = 24;
+parameter gpio0_io_width = 8;
 parameter gpio0_wb_adr = 8'h91;
 parameter gpio0_dir_reset_val = 0;
 parameter gpio0_o_reset_val = 0;
@@ -76,6 +76,16 @@ parameter wbs_d_uart0_data_width = 8;
 parameter uart0_wb_adr = 8'h90;
 parameter uart0_data_width = 8;
 parameter uart0_addr_width = 3;
+
+// PS2_0 params
+parameter wbs_d_ps2_0_data_width = 8;
+parameter ps2_0_wb_adr = 8'h94;
+parameter ps2_0_wb_adr_width = 1;
+
+// PS2_1 params
+parameter wbs_d_ps2_1_data_width = 8;
+parameter ps2_1_wb_adr = 8'h95;
+parameter ps2_1_wb_adr_width = 1;
 
 // ROM
 parameter wbs_i_rom0_data_width = 32;
@@ -155,15 +165,15 @@ parameter dbus_arb_slave4_adr = ac97_wb_adr;
 //                           //
 ///////////////////////////////
 parameter bbus_arb_wb_addr_match_width = 8;
-parameter bbus_arb_wb_num_slaves = 5; // Update this when changing slaves!
+parameter bbus_arb_wb_num_slaves = 7; // Update this when changing slaves!
 // Slave addresses
 parameter bbus_arb_slave0_adr  = uart0_wb_adr;
 parameter bbus_arb_slave1_adr  = gpio0_wb_adr;
 parameter bbus_arb_slave2_adr  = i2c_0_wb_adr;
 parameter bbus_arb_slave3_adr  = i2c_1_wb_adr;
 parameter bbus_arb_slave4_adr  = spi0_wb_adr; 
-parameter bbus_arb_slave5_adr = 0 /* UNASSIGNED */;
-parameter bbus_arb_slave6_adr = 0 /* UNASSIGNED */;
+parameter bbus_arb_slave5_adr  = ps2_0_wb_adr;
+parameter bbus_arb_slave6_adr  = ps2_1_wb_adr;
 parameter bbus_arb_slave7_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave8_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave9_adr = 0 /* UNASSIGNED */;
