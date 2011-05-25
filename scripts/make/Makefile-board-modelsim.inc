@@ -3,7 +3,7 @@
 #
 # Modelsim-specific settings
 #
-VOPT_ARGS=$(QUIET) -suppress 2241
+VOPT_ARGS+=$(QUIET) -suppress 2241
 
 # If VCD dump is desired, tell Modelsim not to optimise
 # away everything.
@@ -16,7 +16,7 @@ endif
 # Suppressed warnings - 3009: Failed to open $readmemh() file
 # Suppressed warnings - 3009: Module 'blah' does not have a `timescale directive in effect, but previous modules do.
 # Suppressed warnings - 8598: Non-positive replication multiplier inside concat. Replication will be ignored
-VSIM_ARGS=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
+VSIM_ARGS+=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdArithNoWarnings 1; run -all; exit"
 
 # VPI debugging interface set up
 VPI_SRC_C_DIR=$(COMMON_BENCH_VERILOG_DIR)/vpi/c
@@ -63,8 +63,8 @@ modelsim_dut.scr: $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
 		echo "+libext+.vm" >> $@; \
 	fi
 ifeq ($(FPGA_VENDOR), xilinx)
-	$(Q)echo "-y "$(XILINX_PATH)"/verilog/src/unisims" >> $@;
-	$(Q)echo "-y "$(XILINX_PATH)"/verilog/src/XilinxCoreLib" >> $@;
+	$(Q)echo "-y "$(TECHNOLOGY_LIBRARY_VERILOG_DIR)"/src/unisims" >> $@;
+	$(Q)echo "-y "$(TECHNOLOGY_LIBRARY_VERILOG_DIR)"/src/XilinxCoreLib" >> $@;
 endif
 	$(Q)echo >> $@
 
@@ -78,7 +78,7 @@ modelsim_bench.scr: $(BOARD_BENCH_VERILOG_SRC) $(COMMON_BENCH_VERILOG_SRC)
 	$(Q)for vsrc in $(BOARD_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
 	$(Q)for vsrc in $(COMMON_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
 ifeq ($(FPGA_VENDOR), xilinx)
-	$(Q)echo "+incdir+"$(XILINX_PATH)"/verilog/src" >> $@;
+	$(Q)echo "+incdir+"$(TECHNOLOGY_LIBRARY_VERILOG_DIR)"/src" >> $@;
 endif
 	$(Q)echo >> $@
 
@@ -118,6 +118,9 @@ endif
 ifeq ($(FPGA_VENDOR), xilinx)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
+ifeq ($(FPGA_ARCH), spartan6)
+	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
+endif
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
 	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
