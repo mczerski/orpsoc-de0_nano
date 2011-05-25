@@ -193,14 +193,6 @@ module i2c_master_bit_ctrl (
    // state machine variable
    reg [17:0] 	      c_state; // synopsys enum_state
    reg [4:0] 	      slave_state;
-   // A counter to indicate a too-long wait has occurred for the next set
-   // of clocks for the read, and in fact it's likely the master has simply
-   // released SCL and wants to issue a stop.
-   reg [3:0] 	      slave_read_timeout_cnt;
-   wire 	      slave_read_timeout;
-   
-   
-   
    //
    // module body
    //
@@ -210,15 +202,11 @@ module i2c_master_bit_ctrl (
    always @(posedge clk)
      dscl_oen <=  scl_oen;
 
-   // slave_wait is asserted when master wants to drive SCL high, but the 
-   // slave pulls it low.
+   // slave_wait is asserted when master wants to drive SCL high, but the slave pulls it low
    // slave_wait remains asserted until the slave releases SCL
    always @(posedge clk or negedge nReset)
-     if (!nReset) 
-       slave_wait <= 1'b0;
-     else         
-       slave_wait <= (scl_oen & ~dscl_oen & ~sSCL) | 
-		     (slave_wait & ~sSCL) ;
+     if (!nReset) slave_wait <= 1'b0;
+     else         slave_wait <= (scl_oen & ~dscl_oen & ~sSCL) | (slave_wait & ~sSCL);
 
    // master drives SCL high, but another master pulls it low
    // master start counting down its low cycle now (clock synchronization)
@@ -247,6 +235,7 @@ module i2c_master_bit_ctrl (
           cnt    <=  cnt - 16'h1;
           clk_en <=  1'b0;
        end
+
 
    // generate bus status controller
 
@@ -641,7 +630,9 @@ module i2c_master_bit_ctrl (
 	   slave_act <=  1'b0;
 	end    
      end    
-      
+   
+   
+   
    parameter [4:0] slave_idle    = 5'b0_0000;
    parameter [4:0] slave_wr      = 5'b0_0001;
    parameter [4:0] slave_wr_a    = 5'b0_0010;
@@ -649,20 +640,6 @@ module i2c_master_bit_ctrl (
    parameter [4:0] slave_rd_a    = 5'b0_1000;
    parameter [4:0] slave_wait_next_cmd_1   = 5'b1_0000;
    parameter [4:0] slave_wait_next_cmd_2   = 5'b1_0001;
-
-   
-   // Slave timeout counter during read
-   always @(posedge clk or negedge nReset)
-     if (~nReset)
-       slave_read_timeout_cnt <= 0;
-     else if (rst)
-       slave_read_timeout_cnt <= 0;
-     else if (slave_state==slave_wr)
-       slave_read_timeout_cnt <= 0;
-     else if (slave_state==slave_wr_a && sSCL && cnt==1)
-       slave_read_timeout_cnt <= slave_read_timeout_cnt + 1;
-
-   assign slave_read_timeout =  (&slave_read_timeout_cnt) & cnt==1;
    
    always @(posedge clk or negedge nReset)
      if (!nReset)
@@ -695,7 +672,12 @@ module i2c_master_bit_ctrl (
                  
                  case (slave_cmd) // synopsys full_case parallel_case                             
                    `I2C_SLAVE_CMD_WRITE: slave_state <=  slave_wr;
-                   `I2C_SLAVE_CMD_READ:  slave_state <=  slave_rd;
+                   `I2C_SLAVE_CMD_READ:
+		     begin
+			slave_state <=  slave_rd;
+			// Restore SDA high here in case we're got it low
+			sda_oen_slave <=  1'b1;
+		     end
                    default:
 		     begin
 			slave_state <=  slave_idle;
@@ -706,7 +688,7 @@ module i2c_master_bit_ctrl (
             
             slave_wr:  
               begin
-                 if (~sSCL & ~dSCL)  begin //SCL = LOW                         
+                 if (~sSCL & ~dSCL)  begin //SCL == LOW                         
                     slave_state <=  slave_wr_a;
                     sda_oen_slave <=  din;                      
                  end                      
@@ -717,11 +699,6 @@ module i2c_master_bit_ctrl (
                  if (~sSCL & dSCL)  begin //SCL FALLING EDGE
                     cmd_slave_ack <=  1'b1; 
                     slave_state <=  slave_wait_next_cmd_1;
-		 end
-		 // Timeout! Go back to idle, release SDA
-		 else if(slave_read_timeout) begin
-		    slave_state <= slave_idle;
-		    sda_oen_slave <= 1;
                  end
               end  
 
@@ -734,14 +711,14 @@ module i2c_master_bit_ctrl (
             
             slave_rd:  
               begin
-                 if (sSCL & ~dSCL)  begin                
+                 if (sSCL & ~dSCL)  begin   // SCL Rising edge             
                     slave_state <=  slave_rd_a;  
                  end                      
               end
             
             slave_rd_a:  
               begin
-                 if (~sSCL & dSCL)  begin                         
+                 if (~sSCL & dSCL)  begin       // SCL falling edge                  
                     cmd_slave_ack <=  1'b1; 
                     slave_state <=  slave_wait_next_cmd_1;   
                  end                      
