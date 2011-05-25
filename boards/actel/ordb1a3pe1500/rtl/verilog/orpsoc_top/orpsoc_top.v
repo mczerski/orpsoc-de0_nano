@@ -104,12 +104,15 @@ module orpsoc_top
 `ifdef ETH_CLK
     eth_clk_pad_i,   
 `endif
-  
+`ifdef SDC_CONTROLLER
+    sdc_cmd_pad_io , sdc_dat_pad_io ,  sdc_clk_pad_o, 
+    sdc_card_detect_pad_i,
+`endif  
     sys_clk_pad_i,
 
     rst_n_pad_i  
 
-    )/* synthesis syn_global_buffers = 8; */;
+    )/* synthesis syn_global_buffers = 18; */;
 
 `include "orpsoc-params.v"   
 
@@ -215,7 +218,12 @@ module orpsoc_top
 `ifdef ETH_CLK
    input 		      eth_clk_pad_i;
 `endif
-   
+`ifdef SDC_CONTROLLER
+   inout 		      sdc_cmd_pad_io; 
+   input 		      sdc_card_detect_pad_i;
+   inout [3:0] 		      sdc_dat_pad_io ;
+   output 		      sdc_clk_pad_o ;
+`endif     
    ////////////////////////////////////////////////////////////////////////
    //
    // Clock and reset generation module
@@ -523,6 +531,35 @@ module orpsoc_top
    wire 			     wbs_d_usb1_ack_o;
    wire 			     wbs_d_usb1_err_o;
    wire 			     wbs_d_usb1_rty_o;
+
+   // sdcard slave wires
+   wire [31:0] 			     wbs_d_sdc_adr_i;
+   wire [wbs_d_sdc_data_width-1:0]   wbs_d_sdc_dat_i;
+   wire [3:0] 			     wbs_d_sdc_sel_i;
+   wire 			     wbs_d_sdc_we_i;
+   wire 			     wbs_d_sdc_cyc_i;
+   wire 			     wbs_d_sdc_stb_i;
+   wire [2:0] 			     wbs_d_sdc_cti_i;
+   wire [1:0] 			     wbs_d_sdc_bte_i;   
+   wire [wbs_d_sdc_data_width-1:0]   wbs_d_sdc_dat_o;   
+   wire 			     wbs_d_sdc_ack_o;
+   wire 			     wbs_d_sdc_err_o;
+   wire 			     wbs_d_sdc_rty_o;
+
+   // sdcard master wires
+   wire [wbm_sdc_addr_width-1:0]     wbm_sdc_adr_o;
+   wire [wbm_sdc_data_width-1:0]     wbm_sdc_dat_o;
+   wire [3:0] 			     wbm_sdc_sel_o;
+   wire 			     wbm_sdc_we_o;
+   wire 			     wbm_sdc_cyc_o;
+   wire 			     wbm_sdc_stb_o;
+   wire [2:0] 			     wbm_sdc_cti_o;
+   wire [1:0] 			     wbm_sdc_bte_o;   
+   wire [wbm_sdc_data_width-1:0]     wbm_sdc_dat_i;   
+   wire 			     wbm_sdc_ack_i;
+   wire 			     wbm_sdc_err_i;
+   wire 			     wbm_sdc_rty_i;    
+
    
    // gpio0 wires
    wire [31:0] 			     wbs_d_gpio0_adr_i;
@@ -579,6 +616,7 @@ module orpsoc_top
    wire 				  wbm_eth0_err_i;
    wire 				  wbm_eth0_rty_i;
 
+   
 
 
    //
@@ -709,19 +747,32 @@ module orpsoc_top
       .wbs1_ack_o			(wbs_d_eth0_ack_o),
       .wbs1_err_o			(wbs_d_eth0_err_o),
       .wbs1_rty_o			(wbs_d_eth0_rty_o),
+
+      .wbs2_adr_i			(wbs_d_sdc_adr_i),
+      .wbs2_dat_i			(wbs_d_sdc_dat_i),
+      .wbs2_sel_i			(wbs_d_sdc_sel_i),
+      .wbs2_we_i			(wbs_d_sdc_we_i),
+      .wbs2_cyc_i			(wbs_d_sdc_cyc_i),
+      .wbs2_stb_i			(wbs_d_sdc_stb_i),
+      .wbs2_cti_i			(wbs_d_sdc_cti_i),
+      .wbs2_bte_i			(wbs_d_sdc_bte_i),
+      .wbs2_dat_o			(wbs_d_sdc_dat_o),
+      .wbs2_ack_o			(wbs_d_sdc_ack_o),
+      .wbs2_err_o			(wbs_d_sdc_err_o),
+      .wbs2_rty_o			(wbs_d_sdc_rty_o),
       
-      .wbs2_adr_i			(wbm_b_d_adr_o),
-      .wbs2_dat_i			(wbm_b_d_dat_o),
-      .wbs2_sel_i			(wbm_b_d_sel_o),
-      .wbs2_we_i			(wbm_b_d_we_o),
-      .wbs2_cyc_i			(wbm_b_d_cyc_o),
-      .wbs2_stb_i			(wbm_b_d_stb_o),
-      .wbs2_cti_i			(wbm_b_d_cti_o),
-      .wbs2_bte_i			(wbm_b_d_bte_o),
-      .wbs2_dat_o			(wbm_b_d_dat_i),
-      .wbs2_ack_o			(wbm_b_d_ack_i),
-      .wbs2_err_o			(wbm_b_d_err_i),
-      .wbs2_rty_o			(wbm_b_d_rty_i),
+      .wbs3_adr_i			(wbm_b_d_adr_o),
+      .wbs3_dat_i			(wbm_b_d_dat_o),
+      .wbs3_sel_i			(wbm_b_d_sel_o),
+      .wbs3_we_i			(wbm_b_d_we_o),
+      .wbs3_cyc_i			(wbm_b_d_cyc_o),
+      .wbs3_stb_i			(wbm_b_d_stb_o),
+      .wbs3_cti_i			(wbm_b_d_cti_o),
+      .wbs3_bte_i			(wbm_b_d_bte_o),
+      .wbs3_dat_o			(wbm_b_d_dat_i),
+      .wbs3_ack_o			(wbm_b_d_ack_i),
+      .wbs3_err_o			(wbm_b_d_err_i),
+      .wbs3_rty_o			(wbm_b_d_rty_i),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -732,6 +783,7 @@ module orpsoc_top
    defparam arbiter_dbus0.wb_num_slaves = dbus_arb_wb_num_slaves;
    defparam arbiter_dbus0.slave0_adr = dbus_arb_slave0_adr;
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
+   defparam arbiter_dbus0.slave2_adr = dbus_arb_slave2_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1009,7 +1061,7 @@ module orpsoc_top
    // Assigns
    //
    assign or1200_clk = wb_clk;
-   assign or1200_rst = wb_rst | or1200_dbg_rst;
+   assign or1200_rst = wb_rst /* | or1200_dbg_rst*/;
 
    // 
    // Instantiation
@@ -1206,8 +1258,22 @@ module orpsoc_top
       .sdram_clk			(sdram_clk),           
       .sdram_rst                        (sdram_rst),
  `ifdef ETH0
+  `ifdef SDC_CONTROLLER
       // Wishbone slave interface 0
-      .wb_dat_i_0			({{wbm_eth0_dat_o, wbm_eth0_sel_o},{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},{wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
+      .wb_dat_i_0			({{wbm_eth0_dat_o, wbm_eth0_sel_o},{wbm_sdc_dat_o, wbm_sdc_sel_o},
+					  {wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},{wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
+      .wb_adr_i_0			({{wbm_eth0_adr_o[31:2], wbm_eth0_we_o, wbm_eth0_bte_o, wbm_eth0_cti_o},
+					  {wbm_sdc_adr_o[31:2], wbm_sdc_we_o,   wbm_sdc_bte_o,   wbm_sdc_cti_o},
+					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
+					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
+      .wb_cyc_i_0			({wbm_eth0_cyc_o,wbm_sdc_cyc_o,wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
+      .wb_stb_i_0			({wbm_eth0_stb_o,wbm_sdc_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
+      .wb_dat_o_0			({wbm_eth0_dat_i,wbm_sdc_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
+      .wb_ack_o_0			({wbm_eth0_ack_i,wbm_sdc_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
+  `else
+      // Wishbone slave interface 0
+      .wb_dat_i_0			({{wbm_eth0_dat_o, wbm_eth0_sel_o},{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},
+					  {wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
       .wb_adr_i_0			({{wbm_eth0_adr_o[31:2], wbm_eth0_we_o, wbm_eth0_bte_o, wbm_eth0_cti_o},
 					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
 					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
@@ -1215,7 +1281,20 @@ module orpsoc_top
       .wb_stb_i_0			({wbm_eth0_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
       .wb_dat_o_0			({wbm_eth0_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
       .wb_ack_o_0			({wbm_eth0_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
+  `endif      
  `else // !`ifdef ETH0
+  `ifdef SDC_CONTROLLER
+      // Wishbone slave interface 0
+      .wb_dat_i_0			({{wbm_sdc_dat_o, wbm_sdc_sel_o},{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},
+					  {wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
+      .wb_adr_i_0			({{wbm_sdc_adr_o[31:2]  , wbm_sdc_we_o  ,   wbm_sdc_bte_o,   wbm_sdc_cti_o},
+					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
+					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
+      .wb_cyc_i_0			({wbm_sdc_cyc_o,wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
+      .wb_stb_i_0			({wbm_sdc_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
+      .wb_dat_o_0			({wbm_sdc_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
+      .wb_ack_o_0			({wbm_sdc_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
+  `else      
       // Wishbone slave interface 0
       .wb_dat_i_0			({{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},{wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
       .wb_adr_i_0			({{wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
@@ -1224,6 +1303,7 @@ module orpsoc_top
       .wb_stb_i_0			({wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
       .wb_dat_o_0			({wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
       .wb_ack_o_0			({wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
+  `endif
  `endif // !`ifdef ETH0
       
       // Wishbone slave interface 1
@@ -1258,10 +1338,18 @@ module orpsoc_top
    // Hard-set here to just 2 ports from the same domain
 
    defparam versatile_mem_ctrl0.nr_of_wb_clk_domains = 1;
- `ifdef ETH0   
+ `ifdef ETH0
+  `ifdef SDC_CONTROLLER
+   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 4;
+  `else
    defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 3;
+  `endif
  `else
+  `ifdef SDC_CONTROLLER
+   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 3;
+  `else
    defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 2;
+  `endif
  `endif   
    defparam versatile_mem_ctrl0.nr_of_wb_ports_clk1  = 0;
    defparam versatile_mem_ctrl0.nr_of_wb_ports_clk2  = 0;
@@ -2307,6 +2395,73 @@ module orpsoc_top
 
 `endif // !`ifdef USB1
 
+`ifdef SDC_CONTROLLER
+   wire 			     sdc_cmd_oe;
+   wire 			     sdc_dat_oe;
+   wire 			     sdc_cmdIn;
+   wire [3:0] 			     sdc_datIn ;
+   wire 			     sdc_irq_a;
+   wire 			     sdc_irq_b;
+   wire 			     sdc_irq_c;
+
+   assign sdc_cmd_pad_io = sdc_cmd_oe ? sdc_cmdIn : 1'bz;
+   assign sdc_dat_pad_io = sdc_dat_oe  ? sdc_datIn : 4'bz;
+   
+   assign wbs_d_sdc_err_o = 0;   
+   assign wbs_d_sdc_rty_o= 0;	
+    
+   assign wbm_sdc_err_i = 0;
+   assign wbm_sdc_rty_i = 0;
+
+   sdc_controller sdc_controller_0
+	(
+	 .wb_clk_i (wb_clk),
+	 .wb_rst_i (wb_rst),
+	 .wb_dat_i (wbs_d_sdc_dat_i),
+	 .wb_dat_o (wbs_d_sdc_dat_o),
+	 .wb_adr_i (wbs_d_sdc_adr_i[7:0]),
+	 .wb_sel_i (4'hf),
+	 .wb_we_i  (wbs_d_sdc_we_i),
+	 .wb_stb_i (wbs_d_sdc_stb_i),
+	 .wb_cyc_i (wbs_d_sdc_cyc_i),
+	 .wb_ack_o (wbs_d_sdc_ack_o),
+	 
+	 .m_wb_adr_o (wbm_sdc_adr_o),
+	 .m_wb_sel_o (wbm_sdc_sel_o),
+	 .m_wb_we_o  (wbm_sdc_we_o),
+	 .m_wb_dat_o (wbm_sdc_dat_o),
+	 .m_wb_dat_i (wbm_sdc_dat_i),
+	 .m_wb_cyc_o (wbm_sdc_cyc_o),
+	 .m_wb_stb_o (wbm_sdc_stb_o),
+	 .m_wb_ack_i (wbm_sdc_ack_i),
+	 .m_wb_cti_o (wbm_sdc_cti_o),
+	 .m_wb_bte_o (wbm_sdc_bte_o),
+	 
+	 .sd_cmd_dat_i (sdc_cmd_pad_io),
+   	 .sd_cmd_out_o (sdc_cmdIn ),
+	 .sd_cmd_oe_o  (sdc_cmd_oe),
+	 .sd_dat_dat_i (sdc_dat_pad_io  ),
+	 .sd_dat_out_o (sdc_datIn  ) ,
+  	 .sd_dat_oe_o  (sdc_dat_oe  ),
+	 .sd_clk_o_pad (sdc_clk_pad_o),
+	 .card_detect  (sdc_card_detect_pad_i),
+
+	 .sd_clk_i_pad (wb_clk),
+	
+	 .int_a (sdc_irq_a),
+	 .int_b (sdc_irq_b),
+	 .int_c (sdc_irq_c) 
+	 );
+
+`else
+
+   assign wbs_sdc_err_o = 0;   
+   assign wbs_sdc_rty_o= 0;
+   assign wbs_sdc_ack_o = 0;
+   assign wbs_sdc_dat_o = 0;
+
+`endif   
+
 `ifdef GPIO0
    ////////////////////////////////////////////////////////////////////////
    //
@@ -2411,10 +2566,16 @@ module orpsoc_top
    assign or1200_pic_ints[13] = i2c3_irq;
 `else   
    assign or1200_pic_ints[13] = 0;
-`endif   
+`endif
+`ifdef SDC_CONTROLLER
+   assign or1200_pic_ints[14] = sdc_irq_a;
+   assign or1200_pic_ints[15] = sdc_irq_b;
+   assign or1200_pic_ints[16] = sdc_irq_c;
+`else   
    assign or1200_pic_ints[14] = 0;
    assign or1200_pic_ints[15] = 0;
    assign or1200_pic_ints[16] = 0;
+`endif  
    assign or1200_pic_ints[17] = 0;
    assign or1200_pic_ints[18] = 0;
    assign or1200_pic_ints[19] = 0;

@@ -103,22 +103,14 @@ module clkgen
    wire   async_rst;
    wire   async_rst_n;
 
-   reset_buffer reset_gbuf
-     (
-      .GL(async_rst_n),
-      .CLK(rst_n_pad_i)
-      );
+   assign async_rst_n  = rst_n_pad_i;
    
    // Everyone likes active-high reset signals...
    assign async_rst = ~async_rst_n;
    
    
-`ifdef JTAG_DEBUG   
-   gbuf dbg_tck_gbuf
-     (
-      .CLK(tck_pad_i),
-      .GL(dbg_tck_o)
-      );
+`ifdef JTAG_DEBUG
+   assign  dbg_tck_o = tck_pad_i;
 `endif
 
    //
