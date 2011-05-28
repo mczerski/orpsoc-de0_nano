@@ -120,13 +120,13 @@
 // Target FPGA memories
 //
 //`define OR1200_ALTERA_LPM
-//`define OR1200_XILINX_RAMB16
+`define OR1200_XILINX_RAMB16
 //`define OR1200_XILINX_RAMB4
 //`define OR1200_XILINX_RAM32X1D
 //`define OR1200_USE_RAM16X1D_FOR_RAM32X1D
 // Generic models should infer RAM blocks at synthesis time (not only effects 
 // single port ram.)
-`define OR1200_GENERIC
+//`define OR1200_GENERIC
 
 //
 // Do not implement Data cache
@@ -441,10 +441,10 @@
 // Type of register file RAM
 //
 // Memory macro w/ two ports (see or1200_tpram_32x32.v)
-//`define OR1200_RFRAM_TWOPORT
+`define OR1200_RFRAM_TWOPORT
 //
 // Memory macro dual port (see or1200_dpram.v)
-`define OR1200_RFRAM_DUALPORT
+//`define OR1200_RFRAM_DUALPORT
 
 //
 // Generic (flip-flop based) register file (see or1200_rfram_generic.v)
