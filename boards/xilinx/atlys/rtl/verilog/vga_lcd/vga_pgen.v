@@ -82,9 +82,6 @@ module vga_pgen (
 `ifdef VGA_12BIT_DVI
 	dvi_pclk_p_o, dvi_pclk_m_o, dvi_hsync_o, dvi_vsync_o, dvi_de_o, dvi_d_o,
 `endif
-//SJK
-    gate_i,
-//SJK END
 	pclk_o, hsync_o, vsync_o, csync_o, blank_o, r_o, g_o, b_o
 );
 
@@ -178,10 +175,6 @@ module vga_pgen (
 	    output        dvi_de_o;      // dvi data enable
 	    output [11:0] dvi_d_o;       // dvi 12bit output
 	`endif
-    //SJK
-    input gate_i;
-    //SJK END
-
 
 	//
 	// variable declarations
@@ -510,7 +503,7 @@ module vga_pgen (
 
 	assign rgb_fifo_full = rgb_fifo_nword[3]; // actually half full
 
-	assign line_fifo_rreq = gate & pclk_ena; //SJK gate_i from dvi_gen, gate internal
+	assign line_fifo_rreq = gate & pclk_ena;
 
 	assign rgb_fifo_rreq = ~line_fifo_full & ~rgb_fifo_empty;
 	assign line_fifo_wreq = rgb_fifo_rreq;
