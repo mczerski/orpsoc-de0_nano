@@ -523,19 +523,34 @@ module orpsoc_top
    wire                             wbs_d_ac97_err_o;
    wire                             wbs_d_ac97_rty_o;
 
-   // ac97 master wires
-   wire [wbm_ac97_addr_width-1:0] 	wbm_ac97_adr_o;
-   wire [wbm_ac97_data_width-1:0] 	wbm_ac97_dat_o;
-   wire [3:0]                       wbm_ac97_sel_o;
-   wire                             wbm_ac97_we_o;
-   wire                             wbm_ac97_cyc_o;
-   wire                             wbm_ac97_stb_o;
-   wire [2:0]                       wbm_ac97_cti_o;
-   wire [1:0]                       wbm_ac97_bte_o;
-   wire [wbm_ac97_data_width-1:0]   wbm_ac97_dat_i;
-   wire                             wbm_ac97_ack_i;
-   wire                             wbm_ac97_err_i;
-   wire                             wbm_ac97_rty_i;
+   // dma0 slave wires
+   wire [31:0]                      wbs_d_dma0_adr_i;
+   wire [wbs_d_dma0_data_width-1:0] wbs_d_dma0_dat_i;
+   wire [3:0]                       wbs_d_dma0_sel_i;
+   wire                             wbs_d_dma0_we_i;
+   wire                             wbs_d_dma0_cyc_i;
+   wire                             wbs_d_dma0_stb_i;
+   wire [2:0]                       wbs_d_dma0_cti_i;
+   wire [1:0]                       wbs_d_dma0_bte_i;   
+   wire [wbs_d_dma0_data_width-1:0] wbs_d_dma0_dat_o;   
+   wire                             wbs_d_dma0_ack_o;
+   wire                             wbs_d_dma0_err_o;
+   wire                             wbs_d_dma0_rty_o;
+
+   // dma0 master wires
+   wire [wbm_dma0_addr_width-1:0] 	wbm_dma0_adr_o;
+   wire [wbm_dma0_data_width-1:0] 	wbm_dma0_dat_o;
+   wire [3:0]                       wbm_dma0_sel_o;
+   wire                             wbm_dma0_we_o;
+   wire                             wbm_dma0_cyc_o;
+   wire                             wbm_dma0_stb_o;
+   wire [2:0]                       wbm_dma0_cti_o;
+   wire [1:0]                       wbm_dma0_bte_o;
+   wire [wbm_dma0_data_width-1:0]   wbm_dma0_dat_i;
+   wire                             wbm_dma0_ack_i;
+   wire                             wbm_dma0_err_i;
+   wire                             wbm_dma0_rty_i;
+
    //
    // Wishbone instruction bus arbiter
    //
@@ -704,6 +719,19 @@ module orpsoc_top
       .wbs4_err_o           (wbs_d_ac97_err_o),
       .wbs4_rty_o           (wbs_d_ac97_rty_o),
 
+      .wbs5_adr_i           (wbs_d_dma0_adr_i),
+      .wbs5_dat_i           (wbs_d_dma0_dat_i),
+      .wbs5_sel_i           (wbs_d_dma0_sel_i),
+      .wbs5_we_i            (wbs_d_dma0_we_i),
+      .wbs5_cyc_i           (wbs_d_dma0_cyc_i),
+      .wbs5_stb_i           (wbs_d_dma0_stb_i),
+      .wbs5_cti_i           (wbs_d_dma0_cti_i),
+      .wbs5_bte_i           (wbs_d_dma0_bte_i),
+      .wbs5_dat_o           (wbs_d_dma0_dat_o),
+      .wbs5_ack_o           (wbs_d_dma0_ack_o),
+      .wbs5_err_o           (wbs_d_dma0_err_o),
+      .wbs5_rty_o           (wbs_d_dma0_rty_o),
+
       // Clock, reset inputs
       .wb_clk			(wb_clk),
       .wb_rst			(wb_rst));
@@ -715,6 +743,7 @@ module orpsoc_top
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
    defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
    defparam arbiter_dbus0.slave4_adr = dbus_arb_slave4_adr;
+   defparam arbiter_dbus0.slave5_adr = dbus_arb_slave5_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1145,18 +1174,18 @@ module orpsoc_top
       .wbm3_rty_o                       (wbm_vga0_rty_i), 
       .wbm3_dat_o                       (wbm_vga0_dat_i),
 
-      .wbm4_adr_i                       (wbm_ac97_adr_o), 
-      .wbm4_bte_i                       (wbm_ac97_bte_o), 
-      .wbm4_cti_i                       (wbm_ac97_cti_o), 
-      .wbm4_cyc_i                       (wbm_ac97_cyc_o), 
-      .wbm4_dat_i                       (wbm_ac97_dat_o), 
-      .wbm4_sel_i                       (wbm_ac97_sel_o),
-      .wbm4_stb_i                       (wbm_ac97_stb_o), 
-      .wbm4_we_i                        (wbm_ac97_we_o),
-      .wbm4_ack_o                       (wbm_ac97_ack_i), 
-      .wbm4_err_o                       (wbm_ac97_err_i), 
-      .wbm4_rty_o                       (wbm_ac97_rty_i), 
-      .wbm4_dat_o                       (wbm_ac97_dat_i),
+      .wbm4_adr_i                       (wbm_dma0_adr_o), 
+      .wbm4_bte_i                       (wbm_dma0_bte_o), 
+      .wbm4_cti_i                       (wbm_dma0_cti_o), 
+      .wbm4_cyc_i                       (wbm_dma0_cyc_o), 
+      .wbm4_dat_i                       (wbm_dma0_dat_o), 
+      .wbm4_sel_i                       (wbm_dma0_sel_o),
+      .wbm4_stb_i                       (wbm_dma0_stb_o), 
+      .wbm4_we_i                        (wbm_dma0_we_o),
+      .wbm4_ack_o                       (wbm_dma0_ack_i), 
+      .wbm4_err_o                       (wbm_dma0_err_i), 
+      .wbm4_rty_o                       (wbm_dma0_rty_i), 
+      .wbm4_dat_o                       (wbm_dma0_dat_i),
 
       .wb_clk                           (wb_clk),
       .wb_rst                           (wb_rst),
@@ -1907,6 +1936,79 @@ module orpsoc_top
    assign wbs_d_ps2_1_err_o = 0;
    assign wbs_d_ps2_1_rty_o = 0;
 `endif // PS2_1 
+
+`ifdef DMA0
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // DMA0
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   wire [31:0] dma_req;
+   wire [31:0] dma_ack;   
+   
+   assign dma_req[31:1] = 0;
+   assign dma_req[0]    = ac97_dma_req;
+   
+   assign ac97_dma_ack  = dma_ack[0];
+   
+   wb_dma_top wb_dma0(
+      .clk_i            (wb_clk), 
+      .rst_i            (wb_rst),
+      
+      .wb0s_data_i      (wbs_d_dma0_dat_i),
+      .wb0s_data_o      (wbs_d_dma0_dat_o),      
+      .wb0_addr_i       (wbs_d_dma0_adr_i),
+      .wb0_sel_i        (wbs_d_dma0_sel_i),
+      .wb0_we_i         (wbs_d_dma0_we_i),
+      .wb0_cyc_i        (wbs_d_dma0_cyc_i),      
+      .wb0_stb_i        (wbs_d_dma0_stb_i),
+      .wb0_ack_o        (wbs_d_dma0_ack_o),
+      .wb0_err_o        (wbs_d_dma0_err_o),
+      .wb0_rty_o        (wbs_d_dma0_rty_o),
+    
+      .wb0m_data_i      (wbm_dma0_dat_i),
+      .wb0m_data_o      (wbm_dma0_dat_o),
+      .wb0_addr_o       (wbm_dma0_adr_o),
+      .wb0_sel_o        (wbm_dma0_sel_o),
+      .wb0_we_o         (wbm_dma0_we_o), 
+      .wb0_cyc_o        (wbm_dma0_cyc_o),
+      .wb0_stb_o        (wbm_dma0_stb_o),
+      .wb0_ack_i        (wbm_dma0_ack_i),
+      .wb0_err_i        (wbm_dma0_err_i),
+      .wb0_rty_i        (wbm_dma0_rty_i),
+
+      .wb1s_data_i      (),
+      .wb1s_data_o      (),
+      .wb1_addr_i       (),
+      .wb1_sel_i        (),
+      .wb1_we_i         (),
+      .wb1_cyc_i        (),
+      .wb1_stb_i        (),
+      .wb1_ack_o        (),
+      .wb1_err_o        (),
+      .wb1_rty_o        (),
+      
+      .wb1m_data_i      (),
+      .wb1m_data_o      (),
+      .wb1_addr_o       (),
+      .wb1_sel_o        (),
+      .wb1_we_o         (),
+      .wb1_cyc_o        (),
+      .wb1_stb_o        (),
+      .wb1_ack_i        (),
+      .wb1_err_i        (),
+      .wb1_rty_i        (),
+
+      .dma_req_i        (dma_req), 
+      .dma_ack_o        (dma_ack), 
+      .dma_nd_i         (), 
+      .dma_rest_i       (),
+
+      .inta_o           (), 
+      .intb_o           ()
+    );
+    
+`endif
  
    ////////////////////////////////////////////////////////////////////////
    //

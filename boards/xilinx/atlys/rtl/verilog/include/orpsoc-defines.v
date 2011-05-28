@@ -63,6 +63,7 @@
  `define AC97
  `define PS2_0
  `define PS2_1
+ `define DMA0
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 

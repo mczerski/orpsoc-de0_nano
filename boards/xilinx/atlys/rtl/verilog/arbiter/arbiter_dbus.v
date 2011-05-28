@@ -150,7 +150,6 @@ module arbiter_dbus
    wbs4_err_o,
    wbs4_rty_o,
 
-   /*
     // Slave six
     // Wishbone Slave interface
     wbs5_adr_i,
@@ -167,6 +166,7 @@ module arbiter_dbus
     wbs5_err_o,
     wbs5_rty_o,
 
+   /*
     // Slave seven
     // Wishbone Slave interface
     wbs6_adr_i,
@@ -353,7 +353,7 @@ module arbiter_dbus
 
    parameter wb_addr_match_width = 8;
 
-   parameter wb_num_slaves = 5; // must also (un)comment things if changing
+   parameter wb_num_slaves = 6; // must also (un)comment things if changing
 
    // Slave addresses - these should be defparam'd from top level
    // Declare them as you need them
@@ -482,7 +482,6 @@ module arbiter_dbus
    input 		     wbs4_err_o;
    input 		     wbs4_rty_o;
 
-/* 
  
    // Wishbone Slave interface
    output [wb_adr_width-1:0] wbs5_adr_i;
@@ -499,6 +498,7 @@ module arbiter_dbus
    input 		     wbs5_rty_o;
    
 
+/* 
    // Wishbone Slave interface
    output [wb_adr_width-1:0] wbs6_adr_i;
    output [wb_dat_width-1:0] wbs6_dat_i;
@@ -876,13 +876,17 @@ module arbiter_dbus
    assign wb_slave_sel[1] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave1_adr;
    assign wb_slave_sel[3] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave3_adr;   
    assign wb_slave_sel[4] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave4_adr;
+   assign wb_slave_sel[5] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave5_adr;
    
    // Auto select slave2 when others are not selected
-   assign wb_slave_sel[2] = !(wb_slave_sel_r[0] | wb_slave_sel_r[1] | wb_slave_sel_r[3] | wb_slave_sel_r[4]);
+   assign wb_slave_sel[2] = !(wb_slave_sel_r[0] | 
+                              wb_slave_sel_r[1] | 
+                              wb_slave_sel_r[3] | 
+                              wb_slave_sel_r[4] | 
+                              wb_slave_sel_r[5]);
 
 /*
    assign wb_slave_sel[2] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave2_adr;   
-   assign wb_slave_sel[5] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave5_adr;
    assign wb_slave_sel[6] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave6_adr;
    assign wb_slave_sel[7] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave7_adr;
    assign wb_slave_sel[8] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] == slave8_adr;
@@ -1001,8 +1005,6 @@ module arbiter_dbus
    assign wbs_err_o_mux_i[4] = wbs4_err_o & wb_slave_sel_r[4];
    assign wbs_rty_o_mux_i[4] = wbs4_rty_o & wb_slave_sel_r[4];
 
-/*
-
    // Slave 5 inputs
    assign wbs5_adr_i = wbm_adr_o;
    assign wbs5_dat_i = wbm_dat_o;
@@ -1017,7 +1019,7 @@ module arbiter_dbus
    assign wbs_err_o_mux_i[5] = wbs5_err_o & wb_slave_sel_r[5];
    assign wbs_rty_o_mux_i[5] = wbs5_rty_o & wb_slave_sel_r[5];
 
-
+/*
    // Slave 6 inputs
    assign wbs6_adr_i = wbm_adr_o;
    assign wbs6_dat_i = wbm_dat_o;
@@ -1191,9 +1193,9 @@ module arbiter_dbus
 		      wb_slave_sel_r[1] ? wbs_dat_o_mux_i[1] :
 		      wb_slave_sel_r[3] ? wbs_dat_o_mux_i[3] :
  		      wb_slave_sel_r[4] ? wbs_dat_o_mux_i[4] :
+              wb_slave_sel_r[5] ? wbs_dat_o_mux_i[5] :
 		      wb_slave_sel_r[2] ? wbs_dat_o_mux_i[2] :
-/*		      wb_slave_sel_r[5] ? wbs_dat_o_mux_i[5] :
-		      wb_slave_sel_r[6] ? wbs_dat_o_mux_i[6] :
+/*		      wb_slave_sel_r[6] ? wbs_dat_o_mux_i[6] :
 		      wb_slave_sel_r[7] ? wbs_dat_o_mux_i[7] :
 		      wb_slave_sel_r[8] ? wbs_dat_o_mux_i[8] :
 		      wb_slave_sel_r[9] ? wbs_dat_o_mux_i[9] :
@@ -1212,8 +1214,8 @@ module arbiter_dbus
 		      wbs_ack_o_mux_i[1] |
 		      wbs_ack_o_mux_i[2] |
 		      wbs_ack_o_mux_i[3] |
-		      wbs_ack_o_mux_i[4] /*|
-		      wbs_ack_o_mux_i[5] |
+		      wbs_ack_o_mux_i[4] |
+		      wbs_ack_o_mux_i[5] /*|
 		      wbs_ack_o_mux_i[6] |
 		      wbs_ack_o_mux_i[7] |
 		      wbs_ack_o_mux_i[8] |
@@ -1232,8 +1234,8 @@ module arbiter_dbus
 		      wbs_err_o_mux_i[1] |
 		      wbs_err_o_mux_i[2] | 
 		      wbs_err_o_mux_i[3] |
-		      wbs_err_o_mux_i[4] |/*
-		      wbs_err_o_mux_i[5] |
+		      wbs_err_o_mux_i[4] |
+		      wbs_err_o_mux_i[5] |/*
 		      wbs_err_o_mux_i[6] |
 		      wbs_err_o_mux_i[7] |
 		      wbs_err_o_mux_i[8] |
@@ -1252,8 +1254,8 @@ module arbiter_dbus
 		      wbs_rty_o_mux_i[1] |
 		      wbs_rty_o_mux_i[2] |
 		      wbs_rty_o_mux_i[3] |
-		      wbs_rty_o_mux_i[4] /*|
-		      wbs_rty_o_mux_i[5] |
+		      wbs_rty_o_mux_i[4] |
+		      wbs_rty_o_mux_i[5] /*|
 		      wbs_rty_o_mux_i[6] |
 		      wbs_rty_o_mux_i[7] |
 		      wbs_rty_o_mux_i[8] |

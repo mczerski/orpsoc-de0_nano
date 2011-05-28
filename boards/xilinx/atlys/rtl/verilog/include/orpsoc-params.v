@@ -117,6 +117,13 @@ parameter wbs_d_ac97_addr_width = 32;
 parameter wbm_ac97_data_width = 32;
 parameter wbm_ac97_addr_width = 32;
 
+// DMA0 defines
+parameter dma0_wb_adr = 8'h98;
+parameter wbs_d_dma0_data_width = 32;
+parameter wbs_d_dma0_addr_width = 32;
+parameter wbm_dma0_data_width = 32;
+parameter wbm_dma0_addr_width = 32;
+
 // Memory sizing for synthesis (small)
 parameter internal_sram_mem_span = 32'h0080_0000;
 parameter internal_sram_adr_width_for_span = 23;   
@@ -153,12 +160,13 @@ parameter ibus_arb_slave1_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 ///////////////////////////
 // Has auto foward to slave2 when no address hits
 parameter dbus_arb_wb_addr_match_width = 8;
-parameter dbus_arb_wb_num_slaves = 5;
+parameter dbus_arb_wb_num_slaves = 6;
 // Slave addresses
 parameter dbus_arb_slave0_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 parameter dbus_arb_slave1_adr = eth0_wb_adr; // Ethernet 0
 parameter dbus_arb_slave3_adr = vga0_wb_adr;
 parameter dbus_arb_slave4_adr = ac97_wb_adr;
+parameter dbus_arb_slave5_adr = dma0_wb_adr;
 ///////////////////////////////
 //                           //
 // Byte-wide peripheral bus  //
@@ -184,7 +192,3 @@ parameter bbus_arb_slave13_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave14_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave15_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave16_adr = 0 /* UNASSIGNED */;
-
-
-
-
