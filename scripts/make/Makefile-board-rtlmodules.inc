@@ -47,3 +47,33 @@ print-common-modules:
 print-verilog-src:
 	@echo echo; echo "\t### Verilog source ###"; echo
 	@echo $(RTL_VERILOG_SRC)
+
+
+ifeq ($(HAVE_VHDL), 1)
+# We have some VHDL we should include.
+
+# Currently only supported for board builds - no common VHDL included at present
+BOARD_RTL_VHDL_DIR=$(BOARD_RTL_DIR)/vhdl
+BOARD_RTL_VHDL_MODULES=$(shell ls $(BOARD_RTL_VHDL_DIR))
+
+#
+# VHDL DUT source variables
+#
+VHDL_FILE_EXT=vhd
+
+RTL_VHDL_SRC=$(shell for module in $(BOARD_RTL_VHDL_MODULES); do if [ -d $(BOARD_RTL_VHDL_DIR)/$$module ]; then ls $(BOARD_RTL_VHDL_DIR)/$$module/*.$(VHDL_FILE_EXT); fi; done)
+
+
+# Rule for debugging this script
+print-vhdl-modules:
+	@echo echo; echo "\t### Board VHDL modules ###"; echo
+	@echo $(BOARD_RTL_VHDL_MODULES)
+
+print-vhdl-src:
+	@echo echo; echo "\t### VHDL modules and source ###"; echo
+	@echo "modules: "; echo $(BOARD_RTL_VHDL_MODULES); echo
+	@echo "file extension: "$(VHDL_FILE_EXT)
+	@echo "source: "$(RTL_VHDL_SRC)
+
+
+endif
