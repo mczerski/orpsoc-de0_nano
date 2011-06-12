@@ -122,7 +122,7 @@ ifeq ($(FPGA_VENDOR), xilinx)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
 ifeq ($(DO_XILINX_COMPXLIB), 1)
-        $(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
+	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
 endif
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
 	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -o tb
