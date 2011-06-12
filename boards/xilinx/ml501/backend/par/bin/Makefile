@@ -124,7 +124,7 @@ endif
 
 #this target downloads the bitstream to the target fpga
 download: $(BIT_FILE) $(BATCH_FILE)
-	$(Q)( . ${XILINX_PATH}/settings32.sh && \
+	$(Q)( . $(XILINX_SETTINGS_SCRIPT) && \
 	impact -batch $(BATCH_FILE) )
 
 #This target uses netgen to make a simulation netlist

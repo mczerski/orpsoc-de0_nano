@@ -258,6 +258,12 @@ module orpsoc_testbench;
 `ifdef ETH_CLK
       .eth_clk_pad_i                    (eth_clk),
 `endif
+`ifdef SDC_CONTROLLER
+      .sdc_cmd_pad_io                   (),
+      .sdc_dat_pad_io                   (),
+      .sdc_clk_pad_o                    (),
+      .sdc_card_detect_pad_i            (1'b0),
+`endif
       
       .sys_clk_pad_i			(clk),
       .rst_n_pad_i			(rst_n)      

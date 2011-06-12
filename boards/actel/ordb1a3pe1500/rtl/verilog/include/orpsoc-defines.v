@@ -189,6 +189,7 @@
 //`define GPIO0
 `define ETH0
 `define SMII0
+`define SDC_CONTROLLER
 
 `endif //  `ifdef CUSTOM_MODULES_CONFIG
 

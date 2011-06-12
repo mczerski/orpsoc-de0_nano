@@ -37,7 +37,7 @@ BENCH_VERILOG_SUBDIRS += $(BOARD_BENCH_VERILOG_DIR)/include
 
 ifeq ($(VPI), 1)
 # Manually add the VPI bench verilog path
-COMMON_BENCH_VERILOG_SUBDIRS += $(VPI_SRC_VERILOG_DIR)
+COMMON_BENCH_VERILOG_SUBDIRS += vpi/verilog
 endif
 
 print-board-bench-subdirs:

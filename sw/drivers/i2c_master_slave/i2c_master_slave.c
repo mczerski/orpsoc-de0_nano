@@ -243,6 +243,8 @@ int i2c_master_slave_master_read(int core, int check_prev_ack,
 	if (stop)
 		i2c_master_slave_write_reg(core, I2C_MASTER_SLAVE_CR,
 					   I2C_MASTER_SLAVE_CR_READ |
+					   // Final read, so send a NAK to slave
+					   I2C_MASTER_SLAVE_CR_ACK |
 					   I2C_MASTER_SLAVE_CR_STOP);
 	else
 		i2c_master_slave_write_reg(core, I2C_MASTER_SLAVE_CR,

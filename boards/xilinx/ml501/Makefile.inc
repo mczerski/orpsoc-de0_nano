@@ -22,10 +22,10 @@ include $(PROJECT_ROOT)/scripts/make/Makefile-board-definesparse.inc
 ifeq ($(XILINX_PATH),)
 $(error XILINX_PATH environment variable not set. Set it and rerun)
 endif
-XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/settings32.sh
+XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/ISE/settings32.sh
 XILINX_SETTINGS_SCRIPT_EXISTS=$(shell if [ -e $(XILINX_SETTINGS_SCRIPT) ]; then echo 1; else echo 0; fi)
 ifeq ($(XILINX_SETTINGS_SCRIPT_EXISTS),0)
-$(error XILINX_PATH variable not set correctly. Cannot find $$XILINX_PATH/settings32.sh)
+$(error XILINX_PATH variable not set correctly. Cannot find $(XILINX_SETTINGS_SCRIPT))
 endif
 
 # Backend directories
@@ -36,7 +36,7 @@ BOARD_BACKEND_BIN_DIR=$(BOARD_BACKEND_DIR)/bin
 # Technology backend (vendor-specific)
 TECHNOLOGY_BACKEND_DIR=$(BOARD_ROOT)/../backend
 # This path is for the technology library
-TECHNOLOGY_LIBRARY_VERILOG_DIR=$(XILINX_PATH)/verilog
+TECHNOLOGY_LIBRARY_VERILOG_DIR=$(XILINX_PATH)/ISE/verilog
 
 # Bootrom setup
 # BootROM code, which generates a verilog array select values

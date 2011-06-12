@@ -509,14 +509,6 @@ $(PDC_FILE): $(PROJECT_VERILOG_DEFINES)
 		echo "set_io i2c3_scl_io " $(I2C_BUS_SETTINGS) " -pinname "$(I2C_3_SCL_PIN) >> $@; \
 		echo "set_io i2c3_sda_io " $(I2C_BUS_SETTINGS) " -pinname "$(I2C_3_SDA_PIN) >> $@; \
 	fi
-	$(Q)if [ ! -z $$MP2_0 ]; then \
-		echo "set_io mp2_0_i -pinname "$(MP2_0_I_PIN) >> $@; \
-		echo "set_io mp2_0_o -pinname "$(MP2_0_O_PIN) >> $@; \
-	fi
-	$(Q)if [ ! -z $$MP2_1 ]; then \
-		echo "set_io mp2_1_i -pinname "$(MP2_1_I_PIN) >> $@; \
-		echo "set_io mp2_1_o -pinname "$(MP2_1_O_PIN) >> $@; \
-	fi
 	$(Q)if [ ! -z $$VERSATILE_SDRAM ]; then \
 		echo "set_io sdram_a_pad_o\\[0\\] "$(SDRAM_CTRL_BUS_SETTINGS)" -pinname "$(SDRAM_A0_PIN) >> $@; \
 		echo "set_io sdram_a_pad_o\\[1\\] "$(SDRAM_CTRL_BUS_SETTINGS)" -pinname "$(SDRAM_A1_PIN) >> $@; \
@@ -635,6 +627,15 @@ $(PDC_FILE): $(PROJECT_VERILOG_DEFINES)
 		if [ ! -z $$ETH0_PHY_RST ]; then \
 			echo "set_io eth0_rst_n_o  "$(RST_BUS_SETTING)" -pinname "$(ETH0_PHY_RSTN_PIN)  >> $@; \
 		fi; \
+	fi
+# Optimised away as it is not used: echo "set_io  sdc_card_detect_pad_i " $(SDC_BUS_IN_SETTINGS) " -pinname "$(SDC_CARD_DETECT_PIN) >> $@;
+	$(Q)if [ ! -z $$SDC_CONTROLLER ]; then \
+		echo "set_io  sdc_cmd_pad_io " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_CMD_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[0\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT0_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[1\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT1_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[2\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT2_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[3\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT3_PIN) >> $@; \
+		echo "set_io  sdc_clk_pad_o " $(SDC_BUS_OUT_SETTINGS) " -pinname "$(SDC_CLK_PIN) >> $@; \
 	fi
 	$(Q)echo "" >> $@
 

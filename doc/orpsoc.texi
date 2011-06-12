@@ -73,9 +73,9 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 
 @cindex introduction to this @value{ORPSOC}
 
-@value{ORPSOC} is intended to be a reference implementation of processors in the OpenRISC family. It provides a smallest-possible reference system, primarily for testing of the processors. It also provides systems intended to be synthesized and run on physical hardware.
+@value{ORPSOC} is intended to be a reference implementation of processors in the OpenRISC family. It provides a smallest-possible reference system, primarily for testing of the processors. It also provides systems intended to be synthesized and programmed on physical hardware.
 
-The reference system is the least complex implementation and consists of just enough to test the processor's functionality. The board-targeted builds include many additional peripherals.
+The reference system is the least complex implementation and consists of just enough to test the processor's functionality. The board-targeted builds typically include many additional peripherals.
 
 The next section in this document outlines the organisation and structure of the project. The section ``@emph{Getting Started}'' goes through getting the project source and setting up any necessary tools. Each following section outlines a particular implementation of an OpenRISC-based system, beginning with the reference system. Each implementation section has an overview of the structure of the project (which probably won't vary much between the implementations), a section on setting up the required tools, running simulation, and if applicable, backend and debugging steps. There may be additional sections on modifying or customising each implementation system.
 
@@ -990,9 +990,9 @@ At present the build contains a memory controller for the DDR2 SDRAM (based arou
 
 The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but only with the PHY in 10/100 mode using the MII interface to the Marvel Alaska Ethernet PHY IC. There still may be bugs in the FIFO buffer configuration in the ML501's @code{ethmac_defines.v} file should not be changed.
 
-The project is configured to generate either a @code{.bit} file for direct programming via JTAG, or a @code{.mcs} file with inbuilt bootloader software for the processor, meaning the board can be powered up and an application like ORPmon loaded without having to reprogram it from iMPACT between power cycles.
+The ML501 build's scripts are capable of generating either a programming bitstream, @code{.bit}, file for direct programming of the FPGA via JTAG, or a flash image , @code{.mcs}, file which can be programmed into the on-board SPI flash which the FPGA can configure itself from on power-on. This flash image file may also contain a software image the processor can load at reset to, for example, present the user with the prompt for a boot monitor at power-on.
 
-This guide is far from complete, but provides the basics on running simulations, and building the design.
+This guide is a work in progress, and provides the basics on simulating, building and modifying the design.
 
 @node ML501 Structure
 @section Structure
@@ -1008,7 +1008,13 @@ Backend files, mainly binary NGC files for mapping, are found in the board's @co
 @node ML501 XILINX_PATH
 @subsection ML501 XILINX_PATH
 
-Be sure to set the environment variable @code{XILINX_PATH} to the path of the ISE path on the host machine. This can be done with something like @kbd{export XILINX_PATH=/software/xilinx_11.1/ISE} and additionally a symbolic link to the Verilog simulation library sources will be required - see the simulation section on this. Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
+Be sure to set the environment variable @code{XILINX_PATH} to the path of the Xilinx tools' install path on the host machine. This path is usually the base install path for the Xilinx tool suite and contains subdirectories such as @code{ISE/}, @code{common/}, @code{PlanAhead/}, etc.
+
+Most bash-like shells can use the following line to set this environment variable.
+
+@example @kbd{export XILINX_PATH=/software/xilinx_12.3} @end example
+
+Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
 
 If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
 

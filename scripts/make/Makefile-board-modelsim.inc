@@ -9,7 +9,7 @@ VOPT_ARGS+=$(QUIET) -suppress 2241
 # away everything.
 ifeq ($(VCD), 1)
 #VOPT_ARGS=-voptargs="+acc=rnp"
-VOPT_ARGS=+acc=rnpqv
+VOPT_ARGS+=+acc=rnpqv
 endif
 
 # VSIM commands
@@ -20,7 +20,6 @@ VSIM_ARGS+=  -suppress 7 -suppress 3009 -suppress 8598 -c $(QUIET) -do "set StdA
 
 # VPI debugging interface set up
 VPI_SRC_C_DIR=$(COMMON_BENCH_VERILOG_DIR)/vpi/c
-VPI_SRC_VERILOG_DIR=vpi/verilog
 VPI_SRCS=$(shell ls $(VPI_SRC_C_DIR)/*.[ch])
 
 # Modelsim VPI compile variables
@@ -97,20 +96,24 @@ $(BACKEND_LIB): modelsim_backend.scr
 work: modelsim_dut.scr
 	$(Q)if [ ! -e $@ ]; then vlib $@; fi
 	$(Q)echo; echo "\t### Compiling Verilog design library ###"; echo
-	$(Q)vlog $(QUIET) -f $< $(DUT_TOP)
-
+	$(Q)vlog $(QUIET) -f $< $(DUT_TOP_FILE)
+	$(Q)if [ "$(RTL_VHDL_SRC)" != "" ]; then \
+		echo; echo "\t### Compiling VHDL design library ###"; \
+		echo; \
+		vcom -93 $(QUIET) $(RTL_VHDL_SRC); \
+	fi
 
 #
-# Run rule
+# Run rule, one for each vendor
 #
 
 .PHONY : $(MODELSIM)
 ifeq ($(FPGA_VENDOR), actel)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(BACKEND_LIB) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling testbench ###"; echo
-	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
-	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -L $(BACKEND_LIB) \
-	-o tb
+	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
+	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) \
+	-L $(BACKEND_LIB) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
 	$(Q)vsim $(VSIM_ARGS) tb
 endif
@@ -119,11 +122,20 @@ ifeq ($(FPGA_VENDOR), xilinx)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling Xilinx support libs, user design & testbench ###"; echo
 ifeq ($(DO_XILINX_COMPXLIB), 1)
-	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
+        $(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
 endif
-	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP) -f $<
-	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP) $(VOPT_ARGS) -o tb
+	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
+	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
 	$(Q)vsim $(VSIM_ARGS) tb
 endif
 
+ifeq ($(FPGA_VENDOR), altera)
+$(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(BACKEND_LIB) $(VPI_LIBS) work
+	$(Q)echo; echo "\t### Compiling testbench ###"; echo
+	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
+	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) \
+	-L $(BACKEND_LIB) -o tb
+	$(Q)echo; echo "\t### Launching simulation ###"; echo
+	$(Q)vsim $(VSIM_ARGS) tb
+endif
