@@ -113,10 +113,12 @@ always @(posedge clk or negedge rst)
 	if(!rst)	int_set[1] <= #1 1'b0;
 	else
 	if(empty & re)	int_set[1] <= #1 1'b1;
+	else int_set[1] <= #1 1'b0;
 
 always @(posedge clk or negedge rst)
 	if(!rst)	int_set[2] <= #1 1'b0;
 	else
 	if(full & we)	int_set[2] <= #1 1'b1;
+	else int_set[2] <= #1 1'b0;
 
 endmodule
