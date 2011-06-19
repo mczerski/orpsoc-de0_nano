@@ -161,9 +161,9 @@
 //
 // Select Input FIFO depth by uncommenting ONE of the following define
 // statements:
-`define AC97_IN_FIFO_DEPTH_4
+//`define AC97_IN_FIFO_DEPTH_4
 //`define AC97_IN_FIFO_DEPTH_8
-//`define AC97_IN_FIFO_DEPTH_16
+`define AC97_IN_FIFO_DEPTH_16
 //
 // Select Output FIFO depth by uncommenting ONE of the following define
 // statements:
