@@ -164,7 +164,7 @@ The goal of the reference design is to provide an environment to develop and tes
 
 Typically, a board-targeted design will wish to reuse common components (processor, debug interface, Wishbone arbiters, UART etc.) 
 
-The project has been configured so a board build will use modules in the ``common'' RTL path (@code{rtl/verilog/}) @emph{unless} there is a copy in the board's ``local'' RTL path ( @code{boards/vendor/boardname/rtl/verilog}). 
+The project has been configured so a board build will use modules in the ``common'' RTL path (@code{rtl/verilog/}) @emph{unless} there is a copy in the board's ``local'' RTL path ( @code{boards/vendor/boardname/rtl/verilog}) or the board includes an external module in @code{boards/vendor/boardname/modules}. 
 
 For example, in the event that modification to a module in the common RTL set is required for it to function correctly in a board build, it's advisable to copy that module to the board's @emph{local} RTL path and modify it there. Simulation and backend scripts should then use this board-specific version instead of the one in the common RTL path.
 
@@ -287,6 +287,8 @@ As synthesis and physical implementation is not intended for the reference desig
 At present only Verilog HDL is included in the reference implementation of @value{ORPSOC}, as the open source tools intended to simulate the design do not support VHDL.
 
 The directory structure consists of an @code{rtl} directory in the root, and a @code{verilog} path under that. Within the @code{rtl/verilog} path, each module has its own directory.
+
+External modules using the OpenCores structure can be put under each boards @code{modules} directory. The scripts will the look for verilog files under @code{modules/<module_name>/rtl/verilog}.
 
 A common Verilog include path, @code{rtl/verilog/include} directory is used. The Verilog HDL include files for each module should be moved here. This allows each @value{ORPSOC} implementation (board design) to maintain their own include path, and thus configure the modules for their specific implementation.
 
@@ -883,7 +885,9 @@ There are a number of steps to take when adding a new module to the design.
 @itemize @bullet 
 @item RTL Files
 
-Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module. 
+Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module.
+
+
 
 Ensure the module's top level file and actual name of the module when it will be instantiated are @emph{all the same}.
 
@@ -1310,12 +1314,17 @@ There are a number of steps to take when adding a new module to the design.
 @itemize @bullet 
 @item RTL Files
 
-Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module. 
+@itemize @bullet 
+@item Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module. 
 
-Ensure the module's top level file and actual name of the module when it will be instantiated are @emph{all the same}.
+@emph{or}
 
-Place any include files into the board's @code{rtl/verilog/include} path.
+Create a directory under the board's @code{modules} directory, containing a @code{rtl/verilog} directory, and name it the same as the top level of the module
 
+@item Ensure the module's top level file and actual name of the module when it will be instantiated are @emph{all the same}.
+
+@item Place any include files into the board's @code{rtl/verilog/include} path.
+@end itemize
 @item Instantiate in ORPSoC Top Level File
 
 Instantiate the module in the ORPSoC top level file, @code{rtl/verilog/orpsoc_top/orpsoc_top.v}, and be sure to take care of the following.
