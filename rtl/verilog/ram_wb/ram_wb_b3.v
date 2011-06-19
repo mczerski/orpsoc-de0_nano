@@ -62,8 +62,8 @@ module ram_wb_b3(
    assign wb_b3_trans_start = ((wb_cti_i == 3'b001)|(wb_cti_i == 3'b010)) & 
 			      wb_stb_i & !wb_b3_trans;
    
-   assign  wb_b3_trans_stop = (wb_cti_i == 3'b111) & 
-			      wb_stb_i & wb_b3_trans & wb_ack_o;
+   assign  wb_b3_trans_stop = ((wb_cti_i == 3'b111) & 
+			      wb_stb_i & wb_b3_trans & wb_ack_o) | wb_err_o;
    
    always @(posedge wb_clk_i)
      if (wb_rst_i)
@@ -161,7 +161,8 @@ module ram_wb_b3(
    // Ack Logic
    reg wb_ack_o_r;
 
-   assign wb_ack_o = wb_ack_o_r & wb_stb_i;
+   assign wb_ack_o = wb_ack_o_r & wb_stb_i & 
+		     !(burst_access_wrong_wb_adr | addr_err);
    
    always @ (posedge wb_clk_i)
      if (wb_rst_i)
@@ -213,7 +214,8 @@ module ram_wb_b3(
    assign addr_err  = wb_cyc_i & wb_stb_i & (|wb_adr_i[aw-1-8:mem_adr_width]);  
    
    // OR in other errors here...
-   assign wb_err_o = wb_ack_o & (burst_access_wrong_wb_adr | addr_err);
+   assign wb_err_o =  wb_ack_o_r & wb_stb_i & 
+		      (burst_access_wrong_wb_adr | addr_err);
 
    //
    // Access functions

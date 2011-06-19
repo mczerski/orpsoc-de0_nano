@@ -19,34 +19,19 @@
 # Name of the directory we're currently in
 CUR_DIR=$(shell pwd)
 
-VENDOR=actel
+# The root path of the whole project
+BOARD_ROOT ?=$(CUR_DIR)/../../..
+include $(BOARD_ROOT)/Makefile.inc
+
 VENDOR_TCL_SHELL=acttclsh
 
-PROJECT_NAME=orpsoc
-PROJECT_TOP_NAME=$(PROJECT_NAME)_top
-PROJ_ADB_FILE_NAME=$(PROJECT_NAME).adb
+DESIGN_TOP_NAME=$(DESIGN_NAME)_top
+PROJ_ADB_FILE_NAME=$(DESIGN_NAME).adb
 PROJ_ADB_FILE=$(PROJ_ADB_FILE_NAME)
 
-# The root path of the whole project
-BOARD_DIR ?=$(CUR_DIR)/../../..
-PROJECT_ROOT=$(BOARD_DIR)/../../..
-
-BOARD_RTL_PATH=$(BOARD_DIR)/rtl
-BOARD_RTL_VERILOG_PATH=$(BOARD_RTL_PATH)/verilog
-BOARD_RTL_VERILOG_INCLUDES=$(BOARD_RTL_VERILOG_PATH)/include
-PROJECT_VERILOG_DEFINES=$(BOARD_RTL_VERILOG_INCLUDES)/$(PROJECT_NAME)-defines.v
-
-SYN_PATH=$(BOARD_DIR)/syn/synplify
-
-SW_PATH=$(PROJECT_ROOT)/sw
-
-PAR_PATH=$(BOARD_DIR)/backend/par
-PAR_RUN_PATH=$(PAR_PATH)/run
-PAR_OUT_PATH=$(PAR_PATH)/out
-
 # Required EDIF file names
-EDIF_NAME=$(PROJECT_TOP_NAME).edn
-PROJ_EDF_FILE=$(SYN_PATH)/out/$(EDIF_NAME)
+EDIF_NAME=$(DESIGN_TOP_NAME).edn
+PROJ_EDF_FILE=$(BOARD_SYN_DIR)/out/$(EDIF_NAME)
 
 # TCL script names
 TCL_SCRIPT_START=start.tcl
@@ -80,17 +65,17 @@ PLACE_INCREMENTAL ?= off
 ROUTE_INCREMENTAL ?= off
 PLACER_HIGH_EFFORT ?= off
 
-PDC_FILE ?=$(PROJECT_NAME).pdc
-SDC_FILE ?=$(PROJECT_NAME).sdc
+PDC_FILE ?=$(DESIGN_NAME).pdc
+SDC_FILE ?=$(DESIGN_NAME).sdc
 
 
-DEFINES_FILE_CUTOFF=$(shell grep -n "end of included module defines" $(PROJECT_VERILOG_DEFINES) | cut -d ':' -f 1)
-DESIGN_DEFINES=$(shell cat $(PROJECT_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
+#DEFINES_FILE_CUTOFF=$(shell grep -n "end of included module defines" $(PROJECT_VERILOG_DEFINES) | cut -d ':' -f 1)
+#DESIGN_DEFINES=$(shell cat $(PROJECT_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
 # Rule to look at what defines are being extracted from main file
-print-defines:
-	@echo; echo "\t### Design defines ###"; echo
-	@echo "\tParsing "$(PROJECT_VERILOG_DEFINES)" and exporting:"
-	@echo $(DESIGN_DEFINES)
+#print-defines:
+#	@echo; echo "\t### Design defines ###"; echo
+#	@echo "\tParsing "$(PROJECT_VERILOG_DEFINES)" and exporting:"
+#	@echo $(DESIGN_DEFINES)
 
 # Rule to print out current config of current session
 print-config:
@@ -108,15 +93,6 @@ print-config:
 	@echo
 	@echo "\tBackend pinout script:"
 	@echo "\tBOARD_CONFIG="$(BOARD_CONFIG)
-
-
-# Set V=1 when calling make to enable verbose output
-# mainly for debugging purposes.
-ifeq ($(V), 1)
-Q=
-else
-Q ?=@
-endif
 
 TIME_CMD=time -p
 
@@ -150,7 +126,7 @@ $(PROJ_ADB_FILE): $(PROJ_EDF_FILE) $(TCL_SCRIPT_START)
 	$(TIME_CMD) $(VENDOR_TCL_SHELL) $(TCL_SCRIPT_START) 
 
 $(PROJ_EDF_FILE):
-	$(MAKE) -C $(SYN_PATH)/run all
+	$(MAKE) -C $(BOARD_SYN_DIR)/run all
 
 create-compile: create compile
 
@@ -158,11 +134,11 @@ clean:
 	rm -rf *.rpt *.log *~ *.tcl *.lok *.tmp *.dtf $(SDC_FILE) $(PDC_FILE) *.adb
 
 clean-syn:
-	$(MAKE) -C $(SYN_PATH)/run distclean
+	$(MAKE) -C $(BOARD_SYN_DIR)/run distclean
 
 clean-sw:
 	$(Q) echo; echo "\t### Cleaning simulation sw directories ###"; echo;
-	$(MAKE) -C $(SW_PATH)/lib distclean
+	$(MAKE) -C $(COMMON_SW_DIR)/lib distclean
 
 
 distclean: clean-sw clean-syn clean
@@ -245,8 +221,8 @@ tcl-common:
 	$(Q)rm -f $(TCL_FILE);
 	$(Q)echo; echo "\tGenerating "$(TCL_FILE); echo
 	$(Q)echo "set compile_directory     "$(COMP_DIR) >> $(TCL_FILE)
-	$(Q)echo "set proj_name             "$(PROJECT_NAME) >> $(TCL_FILE)
-	$(Q)echo "set top_name              "$(PROJECT_TOP_NAME) >> $(TCL_FILE)
+	$(Q)echo "set proj_name             "$(DESIGN_NAME) >> $(TCL_FILE)
+	$(Q)echo "set top_name              "$(DESIGN_TOP_NAME) >> $(TCL_FILE)
 	$(Q)echo "set family                "$(FPGA_FAMILY) >> $(TCL_FILE)
 	$(Q)echo "set part                  "$(FPGA_PART) >> $(TCL_FILE)
 	$(Q)echo "set package               "$(FPGA_PACKAGE) >> $(TCL_FILE)
@@ -341,7 +317,7 @@ dump-actel-report-project-tcl:
 	$(Q)echo "  -include_user_sets no " \\ >> $(TCL_FILE)
 	$(Q)echo "  -include_pin_to_pin yes " \\ >> $(TCL_FILE)
 	$(Q)echo "  -select_clock_domains no " \\ >> $(TCL_FILE)
-	$(Q)echo "   "$(PROJECT_NAME)"-timing.rpt " >> $(TCL_FILE)
+	$(Q)echo "   "$(DESIGN_NAME)"-timing.rpt " >> $(TCL_FILE)
 	$(Q)echo "  report " \\ >> $(TCL_FILE)
 	$(Q)echo "  -type timing_violations " \\ >> $(TCL_FILE)
 	$(Q)echo "  -analysis max " \\ >> $(TCL_FILE)
@@ -349,7 +325,7 @@ dump-actel-report-project-tcl:
 	$(Q)echo "  -limit_max_paths yes " \\ >> $(TCL_FILE)
 	$(Q)echo "  -max_paths 100 " \\ >> $(TCL_FILE)
 	$(Q)echo "  -max_expanded_paths 0 " \\ >> $(TCL_FILE)
-	$(Q)echo "   "$(PROJECT_NAME)"-timviol.rpt " >> $(TCL_FILE)
+	$(Q)echo "   "$(DESIGN_NAME)"-timviol.rpt " >> $(TCL_FILE)
 	$(Q)echo "  report " \\ >> $(TCL_FILE)
 	$(Q)echo "  -type timing_violations " \\ >> $(TCL_FILE)
 	$(Q)echo "  -analysis min " \\ >> $(TCL_FILE)
@@ -357,7 +333,7 @@ dump-actel-report-project-tcl:
 	$(Q)echo "  -limit_max_paths yes " \\ >> $(TCL_FILE)
 	$(Q)echo "  -max_paths 100 " \\ >> $(TCL_FILE)
 	$(Q)echo "  -max_expanded_paths 0 " \\ >> $(TCL_FILE)
-	$(Q)echo "  "$(PROJECT_NAME)"-timmindly.rpt " >> $(TCL_FILE)
+	$(Q)echo "  "$(DESIGN_NAME)"-timmindly.rpt " >> $(TCL_FILE)
 
 
 
@@ -533,14 +509,6 @@ $(PDC_FILE): $(PROJECT_VERILOG_DEFINES)
 		echo "set_io i2c3_scl_io " $(I2C_BUS_SETTINGS) " -pinname "$(I2C_3_SCL_PIN) >> $@; \
 		echo "set_io i2c3_sda_io " $(I2C_BUS_SETTINGS) " -pinname "$(I2C_3_SDA_PIN) >> $@; \
 	fi
-	$(Q)if [ ! -z $$MP2_0 ]; then \
-		echo "set_io mp2_0_i -pinname "$(MP2_0_I_PIN) >> $@; \
-		echo "set_io mp2_0_o -pinname "$(MP2_0_O_PIN) >> $@; \
-	fi
-	$(Q)if [ ! -z $$MP2_1 ]; then \
-		echo "set_io mp2_1_i -pinname "$(MP2_1_I_PIN) >> $@; \
-		echo "set_io mp2_1_o -pinname "$(MP2_1_O_PIN) >> $@; \
-	fi
 	$(Q)if [ ! -z $$VERSATILE_SDRAM ]; then \
 		echo "set_io sdram_a_pad_o\\[0\\] "$(SDRAM_CTRL_BUS_SETTINGS)" -pinname "$(SDRAM_A0_PIN) >> $@; \
 		echo "set_io sdram_a_pad_o\\[1\\] "$(SDRAM_CTRL_BUS_SETTINGS)" -pinname "$(SDRAM_A1_PIN) >> $@; \
@@ -659,6 +627,15 @@ $(PDC_FILE): $(PROJECT_VERILOG_DEFINES)
 		if [ ! -z $$ETH0_PHY_RST ]; then \
 			echo "set_io eth0_rst_n_o  "$(RST_BUS_SETTING)" -pinname "$(ETH0_PHY_RSTN_PIN)  >> $@; \
 		fi; \
+	fi
+# Optimised away as it is not used: echo "set_io  sdc_card_detect_pad_i " $(SDC_BUS_IN_SETTINGS) " -pinname "$(SDC_CARD_DETECT_PIN) >> $@;
+	$(Q)if [ ! -z $$SDC_CONTROLLER ]; then \
+		echo "set_io  sdc_cmd_pad_io " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_CMD_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[0\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT0_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[1\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT1_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[2\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT2_PIN) >> $@; \
+		echo "set_io  sdc_dat_pad_io\\[3\\] " $(SDC_BUS_IO_SETTINGS) " -pinname "$(SDC_DAT3_PIN) >> $@; \
+		echo "set_io  sdc_clk_pad_o " $(SDC_BUS_OUT_SETTINGS) " -pinname "$(SDC_CLK_PIN) >> $@; \
 	fi
 	$(Q)echo "" >> $@
 

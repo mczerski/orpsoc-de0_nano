@@ -8,7 +8,7 @@
 ####                                                              ####
 ######################################################################
 ####                                                              ####
-#### Copyright (C) 2009,2010 Authors and OPENCORES.ORG            ####
+#### Copyright (C) 2009,2010,2011 Authors and OPENCORES.ORG       ####
 ####                                                              ####
 #### This source file may be used and distributed without         ####
 #### restriction provided that this copyright statement is not    ####
@@ -36,136 +36,18 @@
 # Name of the directory we're currently in
 CUR_DIR=$(shell pwd)
 
-# The root path of the board build
-BOARD_DIR ?=$(CUR_DIR)/../../..
-PROJECT_ROOT=$(BOARD_DIR)/../../..
+# We don't want the usbhostslave module to be pulled in during synthesis because
+# we haven't copied the headers to our RTL director
+#COMMON_VERILOG_MODULES_EXCLUDE+= usbhostslave
 
-DESIGN_NAME ?=orpsoc
+
+# The root path of the board build
+BOARD_ROOT ?=$(CUR_DIR)/../../..
+include $(BOARD_ROOT)/Makefile.inc
+
 RTL_TOP ?=$(DESIGN_NAME)_top
 
-SYN_DIR=$(BOARD_DIR)/syn/xst
-SYN_RUN_DIR=$(SYN_DIR)/run
-
-# Paths to other important parts of this test suite
-COMMON_RTL_DIR = $(PROJECT_ROOT)/rtl
-COMMON_RTL_VERILOG_DIR = $(COMMON_RTL_DIR)/verilog
-#COMMON_RTL_VHDL_DIR = $(COMMON_RTL_DIR)/vhdl
-
-BOARD_RTL_DIR=$(BOARD_DIR)/rtl
-BOARD_RTL_VERILOG_DIR=$(BOARD_RTL_DIR)/verilog
-# Only 1 include path for board builds - their own!
-BOARD_RTL_VERILOG_INCLUDE_DIR=$(BOARD_RTL_VERILOG_DIR)/include
-BOARD_DESIGN_VERILOG_DEFINES=$(BOARD_RTL_VERILOG_INCLUDE_DIR)/$(DESIGN_NAME)-defines.v
-#BOARD_RTL_VHDL_DIR = $(BOARD_RTL_DIR)/vhdl
-
-BACKEND_DIR=$(BOARD_DIR)/backend
-BACKEND_BIN_DIR=$(BACKEND_DIR)/bin
-
-# Set V=1 when calling make to enable verbose output
-# mainly for debugging purposes.
-ifeq ($(V), 1)
-Q=
-else
-Q ?=@
-endif
-
-
-DEFINES_FILE_CUTOFF=$(shell grep -n "end of included module defines" $(BOARD_DESIGN_VERILOG_DEFINES) | cut -d ':' -f 1)
-DESIGN_DEFINES=$(shell cat $(BOARD_DESIGN_VERILOG_DEFINES) | sed s://.*::g | sed s:\`:\#:g | sed 's:^[ ]*::' | awk '{print};/^\#define/{printf "_%s=%s\n",$$2,$$2}' | grep -v PERIOD | cpp -P | sed s:^_::g | sed s:=$$::g )
-# Rule to look at what defines are being extracted from main file
-print-defines:
-	@echo; echo "\t### Design defines ###"; echo
-	@echo "\tParsing "$(BOARD_DESIGN_VERILOG_DEFINES)" and exporting:"
-	@echo $(DESIGN_DEFINES)
-
-
-# Backend tool path
-# Check that the XILINX_PATH variable is set
-ifeq ($(XILINX_PATH),)
-$(error XILINX_PATH environment variable not set. Set it and rerun)
-endif
-XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/settings32.sh
-XILINX_SETTINGS_SCRIPT_EXISTS=$(shell if [ -e $(XILINX_SETTINGS_SCRIPT) ]; then echo 1; else echo 0; fi)
-ifeq ($(XILINX_SETTINGS_SCRIPT_EXISTS),0)
-$(error XILINX_PATH variable not set correctly. Cannot find $$XILINX_PATH/settings32.sh)
-endif
-
-#
-# Verilog DUT source variables
-#
-# First we get a list of modules in the RTL path of the board's path.
-# Next we check which modules not in the board's RTL path are in the root RTL
-# path (modules which can be commonly instantiated, but over which board 
-# build-specific versions take precedence.)
-
-# Paths under board/***/rtl/verilog we wish to exclude when getting modules
-BOARD_VERILOG_MODULES_EXCLUDE= include
-BOARD_VERILOG_MODULES_DIR_LIST=$(shell ls $(BOARD_RTL_VERILOG_DIR))
-# Apply exclude to list of modules
-BOARD_RTL_VERILOG_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_VERILOG_MODULES_DIR_LIST))
-
-# Rule for debugging this script
-print-board-modules:
-	$(Q)echo echo; echo "\t### Board verilog modules ###"; echo;
-	$(Q)echo $(BOARD_RTL_VERILOG_MODULES)
-
-# Now get list of modules that we don't have a version of in the board path
-# List others that cause clahes (ie. source listed, due to utterly pathetic XST
-# not supporting ability to specify search paths, and requiring includes but
-# not used in this board build, hence its includes are not there and result
-# in error.)
-COMMON_VERILOG_MODULES_EXCLUDE= include usbhostslave
-COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_RTL_VERILOG_MODULES)
-
-COMMON_RTL_VERILOG_MODULES_DIR_LIST=$(shell ls $(COMMON_RTL_VERILOG_DIR))
-COMMON_RTL_VERILOG_MODULES=$(filter-out $(COMMON_VERILOG_MODULES_EXCLUDE), $(COMMON_RTL_VERILOG_MODULES_DIR_LIST))
-
-# Rule for debugging this script
-print-common-modules-exclude:
-	$(Q)echo echo; echo "\t### Common verilog modules being excluded due to board versions ###"; echo;
-	$(Q)echo "$(COMMON_VERILOG_MODULES_EXCLUDE)"
-
-print-common-modules:
-	$(Q)echo echo; echo "\t###  Verilog modules from common RTL dir ###"; echo
-	$(Q)echo $(COMMON_RTL_VERILOG_MODULES)
-
-# List of verilog source files (only .v files!)
-# Board RTL modules first
-VERILOG_SRC_PATHS=$(addprefix $(BOARD_RTL_VERILOG_DIR)/,$(BOARD_RTL_VERILOG_MODULES))
-VERILOG_SRC_PATHS +=$(addprefix $(COMMON_RTL_VERILOG_DIR)/,$(COMMON_RTL_VERILOG_MODULES))
-RTL_VERILOG_SRC=$(shell for modulepath in $(VERILOG_SRC_PATHS); do \
-	if [ -d $$modulepath ]; then \
-		ls $$modulepath/*.v; \
-	fi; done)
-
-# List of verilog includes from board RTL path - only for rule sensitivity
-RTL_VERILOG_INCLUDES=$(shell ls $(BOARD_RTL_VERILOG_INCLUDE_DIR)/*.*)
-
-#
-# VHDL DUT source variables
-#
-# VHDL modules
-#RTL_VHDL_MODULES=$(shell ls $(RTL_VHDL_DIR))
-# VHDL sources
-#RTL_VHDL_SRC=$(shell for module in $(RTL_VHDL_MODULES); do if [ -d $(RTL_VHDL_DIR)/$$module ]; then ls $(RTL_VHDL_DIR)/$$module/*.vhd; fi; done)
-
-
-#
-# Dynamically created files included by different parts of the defines
-#
-
-BOARD_SW_DIR=$(BOARD_DIR)/sw
-
-# BootROM code, which generates a verilog array select values
-BOOTROM_FILE=bootrom.v
-BOARD_BOOTROM_SW_DIR=$(BOARD_SW_DIR)/bootrom
-BOOTROM_VERILOG=$(BOARD_BOOTROM_SW_DIR)/$(BOOTROM_FILE)
-# Export BOARD for the software makefiles
-BOARD=xilinx/ml501
-export BOARD
-bootrom: $(BOOTROM_VERILOG)
-$(BOOTROM_VERILOG):
-	$(MAKE) -C $(BOARD_BOOTROM_SW_DIR) $(BOOTROM_FILE)
+SYN_RUN_DIR=$(BOARD_SYN_DIR)/run
 
 TIMESCALE_FILE=timescale.v
 SYNDIR_TIMESCALE_FILE=$(SYN_RUN_DIR)/$(TIMESCALE_FILE)
@@ -183,11 +65,9 @@ GENERATED_DEFINES = $(BOOTROM_VERILOG)
 GENERATED_DEFINES += $(SYNDIR_TIMESCALE_FILE)
 GENERATED_DEFINES += $(SYNDIR_SYN_VERILOG_DEFINES)
 
-
 FPGA_PART ?=xc5vlx50-ff676-1
 OPT_MODE ?=Speed
 OPT_LEVEL ?=2
-
 
 XILINX_FLAGS ?=-intstyle silent
 XILINX_XST_FLAGS ?= -power NO -glob_opt AllClockNets -write_timing_constraints NO -cross_clock_analysis NO -slice_utilization_ratio 100 -bram_utilization_ratio 100 -dsp_utilization_ratio 100 -safe_implementation No -fsm_style lut -ram_extract Yes -ram_style Auto -rom_extract Yes -rom_style Auto -auto_bram_packing NO -mux_extract YES -mux_style Auto -decoder_extract YES -priority_extract YES -shreg_extract YES -shift_extract YES -xor_collapse YES -resource_sharing YES -async_to_sync NO -use_dsp48 auto -iobuf YES -max_fanout 100000 -bufg 32 -register_duplication YES -equivalent_register_removal YES -register_balancing No -slice_packing YES -optimize_primitives NO -use_clock_enable Auto -use_sync_set Auto -use_sync_reset Auto -iob Auto -slice_utilization_ratio_maxmargin 5
@@ -234,7 +114,9 @@ $(XST_FILE):
 # option missing from XST - wtf?!	$(Q)for vlogpath in $(VERILOG_SRC_PATHS); do \
 		echo -n $$vlogpath" "; done >> $@
 #	$(Q)echo "\"" >> $@
-	$(Q)echo "-vlgincdir { "$(BOARD_RTL_VERILOG_INCLUDE_DIR)" "$(BOARD_BOOTROM_SW_DIR) " }" >> $@
+# Give board then common verilog include paths, hoping xst does a sensible thing
+# and searches them in order.
+	$(Q)echo "-vlgincdir { "$(BOARD_RTL_VERILOG_INCLUDE_DIR)" "$(COMMON_RTL_VERILOG_DIR)/include" "$(BOOTROM_SW_DIR) " }" >> $@
 	$(Q)echo >> $@
 
 # Generate Xilinx project (.prj) file

@@ -672,7 +672,12 @@ module i2c_master_bit_ctrl (
                  
                  case (slave_cmd) // synopsys full_case parallel_case                             
                    `I2C_SLAVE_CMD_WRITE: slave_state <=  slave_wr;
-                   `I2C_SLAVE_CMD_READ:  slave_state <=  slave_rd;
+                   `I2C_SLAVE_CMD_READ:
+		     begin
+			slave_state <=  slave_rd;
+			// Restore SDA high here in case we're got it low
+			sda_oen_slave <=  1'b1;
+		     end
                    default:
 		     begin
 			slave_state <=  slave_idle;
@@ -683,7 +688,7 @@ module i2c_master_bit_ctrl (
             
             slave_wr:  
               begin
-                 if (~sSCL & ~dSCL)  begin //SCL = LOW                         
+                 if (~sSCL & ~dSCL)  begin //SCL == LOW                         
                     slave_state <=  slave_wr_a;
                     sda_oen_slave <=  din;                      
                  end                      
@@ -706,14 +711,14 @@ module i2c_master_bit_ctrl (
             
             slave_rd:  
               begin
-                 if (sSCL & ~dSCL)  begin                
+                 if (sSCL & ~dSCL)  begin   // SCL Rising edge             
                     slave_state <=  slave_rd_a;  
                  end                      
               end
             
             slave_rd_a:  
               begin
-                 if (~sSCL & dSCL)  begin                         
+                 if (~sSCL & dSCL)  begin       // SCL falling edge                  
                     cmd_slave_ack <=  1'b1; 
                     slave_state <=  slave_wait_next_cmd_1;   
                  end                      

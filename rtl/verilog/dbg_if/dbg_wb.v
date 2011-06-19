@@ -241,12 +241,18 @@ begin
     begin
       dr[`DBG_WB_ACC_TYPE_LEN + `DBG_WB_ADR_LEN + `DBG_WB_LEN_LEN -1:0] <=  {acc_type, adr, len};
     end
-  else if (acc_type_read && curr_cmd_go && crc_cnt_31)  // Latchind first data (from WB)
+  else if (acc_type_read && curr_cmd_go && crc_cnt_31 && !busy_tck)  // Latchind first data (from WB)
     begin
       dr[31:0] <=  input_data[31:0];
       latch_data <=  1'b1;
     end
-  else if (acc_type_read && curr_cmd_go && crc_cnt_end) // Latching data (from WB)
+  else if (acc_type_read && curr_cmd_go && crc_cnt_end && !busy_tck && wb_end_tck_q)  
+    begin
+       // Had to wait for data from WB.
+       dr[31:0] <=  input_data[31:0];
+       latch_data <=  1'b1;
+    end
+  else if (acc_type_read && curr_cmd_go && crc_cnt_end && !busy_tck) // Latching data (from WB)
     begin
       if (acc_type == `DBG_WB_READ8)
         begin
@@ -758,7 +764,7 @@ always @ (posedge wb_clk_i or posedge rst_i)
 begin
   if (rst_i)
     wb_sel_dsff[3:0] <=  4'h0;
-  else
+  else if ((start_wb_wr && (!start_wb_wr_q)))
     begin
       case ({wb_adr_dsff[1:0], acc_type_8bit, acc_type_16bit, acc_type_32bit}) // synthesis parallel_case
         {2'd0, 3'b100} : wb_sel_dsff[3:0] <=  4'h8;
@@ -776,10 +782,21 @@ end
 
 assign wb_sel_o = wb_sel_dsff;
 
-
+/*
 always @ (posedge wb_clk_i)
 begin
   wb_we_dsff <=  curr_cmd_go && acc_type_write;
+end
+*/
+
+always @ (posedge wb_clk_i or posedge rst_i)
+begin
+  if (rst_i)
+     wb_we_dsff <=  1'b0;
+  else if ((start_wb_wr && (!start_wb_wr_q)))
+    wb_we_dsff <=  1'b1;
+  else if (wb_ack_i || wb_err_i)
+    wb_we_dsff <=  1'b0;
 end
 
 
@@ -963,12 +980,12 @@ begin
   if (wb_ack_i)
     begin
       case (wb_sel_dsff)    // synthesis parallel_case
-        4'b1000  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[31:24];            // byte
-        4'b0100  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[23:16];            // byte
-        4'b0010  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[15:08];            // byte
-        4'b0001  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[07:00];            // byte
-                                                                                               
-        4'b1100  :                                                      // half
+        4'b1000  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[31:24];// byte
+        4'b0100  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[23:16];// byte
+        4'b0010  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[15:08];// byte
+        4'b0001  :  mem[mem_ptr_dsff[1:0]] <=  wb_dat_i[07:00];// byte
+        
+	4'b1100  :                                                  // half
                     begin
                       mem[mem_ptr_dsff[1:0]]      <=  wb_dat_i[31:24];
                       mem[mem_ptr_dsff[1:0]+1'b1] <=  wb_dat_i[23:16];
@@ -978,13 +995,15 @@ begin
                       mem[mem_ptr_dsff[1:0]]      <=  wb_dat_i[15:08];
                       mem[mem_ptr_dsff[1:0]+1'b1] <=  wb_dat_i[07:00];
                     end
-        4'b1111  :                                                      // long
+        /*4'b1111  :                                                      // long*/
+	default:
                     begin
                       mem[0] <=  wb_dat_i[31:24];
                       mem[1] <=  wb_dat_i[23:16];
                       mem[2] <=  wb_dat_i[15:08];
                       mem[3] <=  wb_dat_i[07:00];
                     end
+	/*
         default  :                                                      // long
                     begin
                       mem[0] <=  8'hxx;
@@ -992,6 +1011,7 @@ begin
                       mem[2] <=  8'hxx;
                       mem[3] <=  8'hxx;
                     end
+	 */
       endcase
     end
 end
