@@ -10,12 +10,15 @@
 BOARD_VERILOG_MODULES_EXCLUDE += include
 BOARD_VERILOG_MODULES_EXCLUDE += $(GATELEVEL_MODULES)
 BOARD_VERILOG_MODULES_DIR_LIST=$(shell ls $(BOARD_RTL_VERILOG_DIR))
+BOARD_EXT_MODULES_DIR_LIST=$(shell ls $(BOARD_EXT_MODULES_DIR))
 # Apply exclude to list of modules
 BOARD_RTL_VERILOG_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_VERILOG_MODULES_DIR_LIST))
+BOARD_EXT_MODULES=$(filter-out $(BOARD_VERILOG_MODULES_EXCLUDE),$(BOARD_EXT_MODULES_DIR_LIST))
 
 # Now get list of modules that we don't have a version of in the board path
 COMMON_VERILOG_MODULES_EXCLUDE += include
 COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_RTL_VERILOG_MODULES)
+COMMON_VERILOG_MODULES_EXCLUDE += $(BOARD_EXT_MODULES)
 COMMON_VERILOG_MODULES_EXCLUDE += $(GATELEVEL_MODULES)
 
 COMMON_RTL_VERILOG_MODULES_DIR_LIST=$(shell ls $(COMMON_RTL_VERILOG_DIR))
@@ -24,6 +27,10 @@ COMMON_RTL_VERILOG_MODULES=$(filter-out $(COMMON_VERILOG_MODULES_EXCLUDE), $(COM
 # List of verilog source files (only .v files!)
 # Board RTL modules first
 RTL_VERILOG_SRC=$(shell for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then ls $(BOARD_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
+
+# External modules
+RTL_VERILOG_SRC +=$(shell for module in $(BOARD_EXT_MODULES); do if [ -d $(BOARD_EXT_MODULES_DIR)/$$module/rtl/verilog ]; then ls $(BOARD_EXT_MODULES_DIR)/$$module/rtl/verilog/*.v; fi; done)
+
 # Common RTL module source
 RTL_VERILOG_SRC +=$(shell for module in $(COMMON_RTL_VERILOG_MODULES); do if [ -d $(COMMON_RTL_VERILOG_DIR)/$$module ]; then ls $(COMMON_RTL_VERILOG_DIR)/$$module/*.v; fi; done)
 
@@ -35,6 +42,8 @@ RTL_VERILOG_INCLUDES=$(shell ls $(BOARD_RTL_VERILOG_INCLUDE_DIR)/*.*)
 print-board-modules:
 	@echo echo; echo "\t### Board verilog modules ###"; echo
 	@echo $(BOARD_RTL_VERILOG_MODULES)
+	@echo echo "\t### External verilog modules ###"; echo
+	@echo $(BOARD_EXT_MODULES)
 
 print-common-modules-exclude:
 	@echo echo; echo "\t### Common verilog modules being excluded due to board versions ###"; echo
