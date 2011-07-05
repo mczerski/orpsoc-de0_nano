@@ -32,7 +32,7 @@ Free Documentation License''.
 @c @subtitle second-subtitle
 @author Julius Baxter
 @author OpenCores
-@author Issue 1 for @value{ORPSOC}
+@author Issue 2 for @value{ORPSOC}
 
 @c  The following two commands
 @c  start the copyright page.
@@ -62,6 +62,7 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 * Board Designs::
 * ORDB1A3PE1500::
 * ML501::
+* S3ADSP1800::
 * Generic Designs::
 * Software::
 * GNU Free Documentation License::  The license for this documentation
@@ -1406,6 +1407,392 @@ Again, supply and ground leads for the UART drivers on the USB debugger can be s
 If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up with the first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
 
 See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
+
+
+
+@c ****************************************************************************
+@c S3ADSP1800 board build chapter
+@c **************************************************************************** 
+
+@node S3ADSP1800
+@chapter S3ADSP1800
+@cindex S3ADSP1800 board build information
+
+@menu
+* Overview::
+* Structure::
+* Tools::
+* Simulating::
+* Synthesis and Backend::
+* Programming File Generation::
+* Customising::
+* Running And Debugging Software::
+@end menu
+
+@node S3ADSP1800 Overview
+@section Overview
+
+The Xilinx XtremeDSP Starter Platform - Spartan-3A DSP 1800A Edition is known as the s3adsp1800 board in ORPSoC.
+
+All information and resources relating to the board were sourced from Xilinx's board portal page:
+
+http://www.xilinx.com/products/boards-and-kits/HW-SD1800A-DSP-SB-UNI-G.htm
+
+The build currently contains the bare essentials to get the board up and running some software on the OpenRISC processor.
+
+The system, at present contains the OpenRISC SoC system running at 25MHz with OR1200, Wishbone B3 arbiters, a Xilinx DDR2 memory controller (125MHz) with Wishbone wrapper and the OpenCores 10/100 Ethernet MAC. Debug capabilities are available via a ORSoC USB debug cable connected to pins on header J8.
+
+The S3ADSP1800 build's scripts are capable of generating a programming bitstream, @code{.bit}, file for direct programming of the FPGA via JTAG.
+
+@node S3ADSP1800 Structure
+@section Structure
+
+Note that in this chapter the term @emph{board path} refers to the path in the project for this board port; @code{boards/xilinx/s3adsp1800}.
+
+The board port's structure is similar to that of a standalone project which accords with the OpenCores coding guidelines. However, all software and RTL that is available in the reference design is also available to the board port, with any local (ie. in the board's @code{rtl} or @code{sw} paths) versions taking precedence over the versions available in the reference design.
+
+The Verilog RTL specific to this board is under @code{rtl/verilog} in the board path. The @code{include} path in there is the place where all required definitions files, configuring the RTL, are found.
+
+Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
+
+@node S3ADSP1800 XILINX_PATH
+@subsection S3ADSP1800 XILINX_PATH
+
+Be sure to set the environment variable @code{XILINX_PATH} to the path of the Xilinx tools' install path on the host machine. This path is usually the base install path for the Xilinx tool suite and contains subdirectories such as @code{ISE/}, @code{common/}, @code{PlanAhead/}, etc.
+
+Most bash-like shells can use the following line to set this environment variable.
+
+@example @kbd{export XILINX_PATH=/software/xilinx_13.1} @end example
+
+Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
+
+If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
+
+This build has been tested with ISE version 13.1
+
+Note: At present a variable named @code{XILINX_SETTINGS_SCRIPT} is hardcoded in the board's @code{Makefile.inc} file. This may need to be changed by hand to point to the correct settings32.sh script provided by Xilinx. This should be fixed at some point in the future.
+
+@node S3ADSP1800 Tools
+@section Tools
+
+@menu
+* Host Tools:: 
+* Target System Tools:: 
+* EDA Tools:: 
+* Debug Tools::
+@end menu
+
+@node S3ADSP1800 Host Tools
+@subsection Host Tools
+@cindex host tools required S3ADSP1800 
+
+Standard development suite of tools: gcc, make, etc.
+
+@node S3ADSP1800 Target System Tools
+@subsection Target System Tools
+@cindex target system tools required S3ADSP1800 
+
+OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
+
+@node S3ADSP1800 EDA Tools
+@subsection EDA Tools
+@cindex EDA tools required S3ADSP1800 
+
+RTL, gatelevel simulation: Mentor Graphics' Modelsim
+Synthesis: XST (from Xilinx ISE)
+Backend: ngdbuild/map/par/bitgen/promgen, etc. (from Xilinx ISE)
+Programming: iMPACT (from Xilinx ISE)
+
+This has been tested with Xilinx ISE 13.1 under Ubuntu 11.04.
+
+
+@node S3ADSP1800 Debug Tools
+@subsection Debug Tools
+@cindex Debug tools required S3ADSP1800 
+
+or_debug_proxy
+
+@node S3ADSP1800 Simulating
+@section Simulating
+@cindex simulating S3ADSP1800 
+
+Ensure the @code{XILINX_PATH} environment variable is set correctly. @xref{S3ADSP1800 XILINX_PATH} for information.
+
+Note that if this path is not set, simulations will not compile.
+
+@subheading Run RTL Regression Test
+
+To run the default set of regression tests for the build, run the following command in the board's @code{sw/run} path.
+
+@example
+@kbd{make rtl-tests}
+@end example
+
+The same set of options for RTL tests available in the reference design should be available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
+
+Note that no OpenCores 10/100 Ethernet MAC (``ethmac'') tests will function correctly for the time being.
+
+Options specific to the S3ADSP1800 build.
+
+@table @code
+
+@item PRELOAD_RAM
+Set to '1' to enable loading of the software image into RAM at the beginning of simulation.
+
+If the chosen bootROM program (set via a define in software header file in the board's @code{sw/board/include} path) will jump straight to RAM to begin execution, then the software image will need to be in RAM for the simulation to work. This define @emph{must} be used in that case for the simulation to do anything.
+
+
+@end table
+
+
+
+@node S3ADSP1800 Synthesis
+@section Synthesis
+
+Synthesis of the board port for the Actel technology with the Synplify tool can be run in the board's @code{syn/xst/run} path with the following command.
+
+@example
+@kbd{make all}
+@end example
+
+This will create an NGC file in @code{syn/xst/run} named @code{orpsoc.ngc}.
+
+Hopefully it's all automated enough so that, as long as the design is simulating as desired, the correct set of RTL will be picked up and synthesized without any need for customising scripts for the tool.
+
+@node S3ADSP1800 Synthesis Options
+@subsection Options
+
+Use the following command int the @code{syn/xst/run} path to get a list of the variables used during synthesis. Any can be set on the command line when running @code{make all}.
+
+@example
+@kbd{make print-config}
+@end example
+
+
+@node S3ADSP1800 Synthesis Warnings
+@subsection Checks
+
+The following is a list of some considerations before synthesis.
+
+@itemize @bullet 
+@item bootrom.v
+
+If the bootROM module is being used to provide the processor with a program at startup (reset address in processor's define file is set to @code{0xf0000100} or similar), check that board software include file, in the board's @code{sw/board/include} path, is selecting the correct bootROM program.
+
+Do a @kbd{make distclean} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
+
+
+@item Clean away old leftovers
+
+If the unwanted files from an old synthesis run are still there before the next run, it's best to clean them away with @kbd{make clean} from the synthesis run directory.
+
+
+
+@end itemize
+
+@node S3ADSP1800 Synthesised Netlist
+@subsection Netlist generation
+
+To create a Verilog HDL netlist of the post-synthesis design, run the following in the board's @code{syn/xst/run} path.
+
+@example
+@kbd{make orpsoc.v}
+@end example
+
+@node S3ADSP1800 Place and Route
+@section Place and Route
+
+Place and route of the design can be run from the board's @code{backend/par/run} path with the following command.
+
+@example
+@kbd{make orpsoc.ncd}
+@end example
+
+@node S3ADSP1800 Timing Report
+@section Post-PAR STA Report
+
+The @code{trce} tool can be used to generate a timing report of the post-place and route design.
+
+@example
+@kbd{make timingreport}
+@end example
+
+@node S3ADSP1800 Back-annotated Netlist
+@section Back-annotated Netlist
+
+A post-PAR back-annotated netlist can be generated with the following command.
+
+@example
+@kbd{make netlist}
+@end example
+
+This will make a new directory under the board's @code{backend/par/run} path named @code{netlist} and will contain a Verilog netlist and SDF file with timing information.
+
+
+@node S3ADSP1800 Place and route options
+@subsection Options
+
+To get a list of options that can be set when running the backend flow, run the following in the board's @code{backend/par/run} path.
+
+@example
+@kbd{make print-config}
+@end example
+
+@node S3ADSP1800 Constraints
+@subsection Constraints
+
+A Xilinx User Constraints File (UCF) file is in the board's @code{backend/par/bin} path. It is named @code{s3adsp1800.ucf}. It should be edited if any extra I/O or constraints are required.
+
+Note that if modules are enabled or disabled via their @code{`define} line in @code{orpsoc-defines.v} and they have I/O declared, then this I/O will need to be manually commented out of the UCF to avoid errors during mapping.
+
+@node S3ADSP1800 Programming File Generation
+@section Programming File Generation
+
+Programming file generation is run from the board's @code{backend/par/run} path with the following command.
+
+@example
+@kbd{make orpsoc.bit}
+@end example
+
+This file can then be loaded into the Xilinx iMPACT program and programmed onto the Spartan-3A part on the S3ADSP1800.
+
+
+@node S3ADSP1800 SPI flash programming
+@subsection SPI flash programming
+
+Unfortunately, it is particularly inconvient to program the flash memory that the FPGA can configure itself with at power-on.
+
+The iMPACT tool does not contain the appropriate facility to enable this, and a Windows-only tool provided from Avnet.
+
+See Avnet's page on this board. http://www.em.avnet.com/spartan3a-dsp and follow the links to ``Support Files & Downloads'' and the file named ``Programming the Intel S33 Flash'' is the guide. The following link may directly work to download the files: http://tinyurl.com/63k8r5c
+
+Another way is to load on a Microblaze design and somehow program the flash via the Xilinx GUI tool. This method will not be covered here. The XAPP number of the user guide to do this escapes me right now, but I'm pretty sure you don't want to have to do that.
+
+Potentially this flash could be programmed via the SPI core in this board build. This would result in having to flash the FPGA with the s3adsp18000 build image via JTAG first, before downloading SPI programming software with the FPGA configuration embedded in it, to be programmed into the SPI flash. This would probably be easy enough to do but the author did not have enough time to experiment it at the time of writing. Patches to this file's texinfo source describing how this could be done would be greatly appreciated.
+
+@node S3ADSP1800 Customising
+@section Customising
+
+The large amount of peripherals on the S3ADSP1800 means that things will want to be added or removed to suit the design.
+
+The following sections have information on how to configure the design.
+
+@node S3ADSP1800 Customising Enabling Existing Modules
+@subsection Enabling Existing RTL Modules
+
+The design relies on the Verilog HDL @emph{define} function to indicate which modules are included. See the board's @code{rtl/verilog/include/orpsoc-defines.v} file to determine which options are enabled by uncommented @code{`define} values.
+
+These @code{`defines} will correspond to defines in the board's top level RTL file @code{boardpath/rtl/verilog/orpsoc_top/orpsoc_top.v}.
+
+There are only a few modules included by default.
+
+@itemize @bullet 
+@item Processor - @emph{or1200}
+@item Clock and reset generation - @emph{clkgen}
+@item Bus arbiters - @emph{arbiter_ibus}, @emph{arbiter_dbus}, @emph{arbiter_bytebus}
+@end itemize
+
+The rest are optional, depending on what is defined in the board's @code{rtl/verilog/include/orpsoc-defines.v} file.
+
+@node S3ADSP1800 Customising Adding Modules
+@subsection Adding RTL Modules
+
+There are a number of steps to take when adding a new module to the design.
+
+@itemize @bullet 
+@item RTL Files
+
+@itemize @bullet 
+@item Create a directory under the board's @code{rtl/verilog} directory, and name it the same as the top level of the module. 
+
+@emph{or}
+
+Create a directory under the board's @code{modules} directory, containing a @code{rtl/verilog} directory, and name it the same as the top level of the module
+
+@item Ensure the module's top level file and actual name of the module when it will be instantiated are @emph{all the same}.
+
+@item Place any include files into the board's @code{rtl/verilog/include} path.
+@end itemize
+@item Instantiate in ORPSoC Top Level File
+
+Instantiate the module in the ORPSoC top level file, @code{rtl/verilog/orpsoc_top/orpsoc_top.v}, and be sure to take care of the following.
+@itemize @bullet 
+@item Create appropriate @emph{`define} in @code{orpsoc-defines.v} and surround module instantiation with it.
+@item Add required I/Os (surrounded by appropriate @emph{`ifdef })
+@item Attach to appropriate bus arbiter, declaring any signals required. Be sure to tie them off if modules is not included.
+@item Update appropriate bus arbiter (in board's @code{rtl/verilog/arbiters} path) adding (uncommenting) additional ports as needed.
+@item Update board's @code{rtl/verilog/include/orpsoc-params.v} file with appropriate set of parameters for new module, as well as arbiter memory mapping assignment.
+@item Attach appropriate clocks and resets, modify the board's @code{rtl/verilog/clkgen/clkgen.v} file generating appropriate clocks if required.
+@item Attach any interrupts to the processor's PIC vector in, assigned as the last thing in the file.
+@end itemize
+
+@item Update ORPSoC Testbench
+
+Update the board's @code{bench/verilog/orpsoc_testbench.v} file with appropriate ports (surrounded by appropriate @emph{`ifdef}.)
+
+Add any desired models to help test the module to the board's @code{bench/verilog} path and instantiate it correctly in the testbench.
+
+@item Add Software Drivers and Tests
+
+In a similar fashion to what is already in the board's @code{sw/drivers} and @code{sw/tests} path, create desired driver and test software to be used during simulation (and potentially on target.)
+
+@item Update Backend Scripts
+
+If any I/O is added, or special timing specified, the board's UCF file will need updating - see @code{backend/par/bin/s3adsp1800.ucf}.
+
+@end itemize
+
+@node S3ADSP1800 Running And Debugging Software
+@section Running And Debugging Software
+
+This section indicates how to connect a USB JTAG debugger to the board to control the system. At present this setup has only been tested with the ft2232-based ORSoC USB debugger  (http://opencores.com/shop,item,3).
+
+
+See the USB debugger documentation and schematics on orsoc.se: http://orsoc.se/usb-jtag-debugger/
+
+Find more information about the Spartan 3 board (schematics, user guide, etc.) on the Xilinx site: http://www.xilinx.com/support/documentation/spartan-3a_dsp_board_and_kit_documentation.htm
+
+@node S3ADSP1800 Debug Interface
+@subsection Debug Interface
+
+The debug interface uses a separate JTAG tap and some fly-leads must be connected from an @emph{ORSoC USB debugger} to J8 on the S3ADSP1800.
+
+From the USB debugger, a fly lead must take the following signals to the following pins on header J8 on the S3ADSP1800.
+
+@itemize @bullet
+@item
+tdo - D0
+@item
+tdi - D1
+@item
+tms - D2
+@item
+tck - D3
+@end itemize
+
+Supply and ground pins must also be hooked up for the USB debugger. They can also be found on the J8 header (either V2.5 or V3.3 should work for VCC.)
+
+Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See http://opencores.org/openrisc,debugging_physical for more information.
+
+@node S3ADSP1800 UART
+@subsection UART
+
+There are 2 ways of connecting to the UART in the design.
+
+One is via the DB89 connector, P2. This will obviously require a PC with a serial input and appropriate terminal application.
+
+There is also a connection available via the USB debugger mentioned in the previous subsection.
+
+The following pins on the J8 are connected to the same UART core as goes to the P2 connector. The two UART RX lines are logically ``AND''ed internally.
+
+@itemize @bullet
+@item
+UART RX - D4
+@item
+UART TX - D5
+@end itemize
+
+Again, supply and ground leads for the UART drivers on the USB debugger can be sourced from J8.
 
 
 @c ****************************************************************************
