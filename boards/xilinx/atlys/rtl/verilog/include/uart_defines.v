@@ -251,4 +251,7 @@
 // 66MHz: prescaler 36.1
 //`define PRESCALER_HIGH_PRESET 8'd0
 //`define PRESCALER_LOW_PRESET 8'd36
+// 70MHz: prescaler 38
+//`define PRESCALER_HIGH_PRESET 8'd0
+//`define PRESCALER_LOW_PRESET 8'd38
 
