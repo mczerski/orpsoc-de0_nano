@@ -1,18 +1,18 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  Interrupt-driven Ethernet MAC test code for use on board    ////
+////  OpenCores 10/100 Ethernet MAC test and diagnosis program    ////
 ////                                                              ////
 ////  Description                                                 ////
 ////  Controllable ping program - also responds to ARP requests   ////
 ////                                                              ////
 ////  Author(s):                                                  ////
-////      - jb, jb@orsoc.se, with parts taken from Linux kernel   ////
-////        open_eth driver.                                      ////
+////      - Julius Baxter, julius@opencores.org                   ////
+////        Parts from old Linux open_eth driver.                 ////
 ////                                                              ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009 Authors and OPENCORES.ORG                 ////
+//// Copyright (C) 2009,2011 Authors and OPENCORES.ORG            ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -145,6 +145,8 @@ struct oeth_private {
   
   //	struct net_device_stats stats;
 };
+
+int ethphy_found = -1;
 
 #define PRINT_BIT_NAME(bit,name) printf("%02d:"name" %d\n",bit,!!(reg&(1<<bit)))
 void oeth_print_moder(unsigned long reg)
@@ -295,7 +297,7 @@ void spin_cursor(void)
   return;
 #endif
   volatile unsigned int i; // So the loop doesn't get optimised away
-  printf(" \r");
+  printf("\r");
   if (last_char == 0)
     printf("/");
   else if (last_char == 1)
@@ -315,96 +317,28 @@ void spin_cursor(void)
       printf("|");
       last_char=-1;
     }
-  
+  printf("\r");  
   last_char++;
   
   for(i=0;i<150000;i++);
 
 }
 
-#define PHYNUM 7
-
-/* Scan the MIIM bus for PHYs */
-void scan_ethphys(void)
+static inline void ethphy_smi_read(void)
 {
-  unsigned int phynum,regnum, i;
-  
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-  
-  regs->miitx_data = 0;
- 
-  for(phynum=0;phynum<32;phynum++)
-    {
-      for (regnum=0;regnum<8;regnum++)
-	{
-	  printf("scan_ethphys: phy %d r%d ",phynum, regnum);
-	  
-	  /* Now actually perform the read on the MIIM bus*/
-	  regs->miiaddress = (regnum << 8) | phynum; /* Basic Control Register */
-	  regs->miicommand = OETH_MIICOMMAND_RSTAT;
-	  
-	  while(!(regs->miistatus & OETH_MIISTATUS_BUSY)); /* Wait for command to be registered*/
+
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
 	
-	  regs->miicommand = 0;
-	  
-	  while(regs->miistatus & OETH_MIISTATUS_BUSY);
-	  
-	  printf("%x\n",regs->miirx_data);
-	}
-    }
+	regs->miicommand = OETH_MIICOMMAND_RSTAT;
+	 /* Wait for command to be registered*/
+	while(!(regs->miistatus & OETH_MIISTATUS_BUSY));
+	
+	regs->miicommand = 0;
+	
+	while(regs->miistatus & OETH_MIISTATUS_BUSY);
 }
 
-
-/* Scan the MIIM bus for PHYs */
-void scan_ethphy(unsigned int phynum)
-{
-  unsigned int regnum, i;
-  
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-  
-  regs->miitx_data = 0;
- 
-  for (regnum=0;regnum<32;regnum++)
-    {
-      printf("scan_ethphy%d: r%x ",phynum, regnum);
-	  
-      /* Now actually perform the read on the MIIM bus*/
-      regs->miiaddress = (regnum << 8) | phynum; /* Basic Control Register */
-      regs->miicommand = OETH_MIICOMMAND_RSTAT;
-      
-      while(!(regs->miistatus & OETH_MIISTATUS_BUSY)); /* Wait for command to be registered*/
-      
-      regs->miicommand = 0;
-      
-      while(regs->miistatus & OETH_MIISTATUS_BUSY);
-      
-      printf("%x\n",regs->miirx_data);
-    }
-
-}
-
-
-	  
-void ethmac_scanstatus(void)
-{
-  volatile oeth_regs *regs;
-  regs = (oeth_regs *)(OETH_REG_BASE);
-
-  
-  printf("Oeth: regs->miistatus %x regs->miirx_data %x\n",regs->miistatus, regs->miirx_data);
-  regs->miiaddress = 0;
-  regs->miitx_data = 0;
-  regs->miicommand = OETH_MIICOMMAND_SCANSTAT;
-  printf("Oeth: regs->miiaddress %x regs->miicommand %x\n",regs->miiaddress, regs->miicommand);  
-  //regs->miicommand = 0; 
-  volatile int i; for(i=0;i<1000;i++);
-  while(regs->miistatus & OETH_MIISTATUS_BUSY) ;
-  //spin_cursor(); 
-  //printf("\r"); 
-  //or32_exit(0);
-}
 
 void 
 eth_mii_write(char phynum, short regnum, short data)
@@ -427,6 +361,154 @@ eth_mii_read(char phynum, short regnum)
   while(regs->miistatus & OETH_MIISTATUS_BUSY);
   
   return regs->miirx_data;
+}
+
+
+/* Scan the MIIM bus for PHYs */
+void scan_ethphys(void)
+{
+  unsigned int phynum,regnum, i;
+  
+  volatile oeth_regs *regs;
+  regs = (oeth_regs *)(OETH_REG_BASE);
+  
+  regs->miitx_data = 0;
+
+  printf("Locating Ethernet PHYs on MDIO bus\n");
+ 
+  for(phynum=0;phynum<32;phynum++)
+    {
+      for (regnum=0;regnum<8;regnum++)
+	{
+	  
+	  
+	  /* Now actually perform the read on the MIIM bus*/
+	  regs->miiaddress = (regnum << 8) | phynum; /* Basic Control Register */
+	  ethphy_smi_read();
+	  
+	  //printf("%x\n",regs->miirx_data);
+	  
+	  // Remember first phy found
+	  if (regnum==0 && regs->miirx_data!=0xffff)
+	  {
+		  // Save found phy address in global variable ethphy_found
+		  // for use elsewhere.
+		  ethphy_found = phynum;
+		  printf("PHY detected at address %d\n",phynum);
+		  return;
+	  }
+
+	}
+    }
+}
+
+
+/* Scan the MIIM bus for PHYs */
+void scan_ethphy(unsigned int phynum)
+{
+  unsigned int regnum, i;
+  
+  volatile oeth_regs *regs;
+  regs = (oeth_regs *)(OETH_REG_BASE);
+  
+  regs->miitx_data = 0;
+ 
+  for (regnum=0;regnum<32;regnum++)
+    {
+      printf("scan_ethphy%d: r%x ",phynum, regnum);
+	  
+      /* Now actually perform the read on the MIIM bus*/
+      regs->miiaddress = (regnum << 8) | phynum; /* Basic Control Register */
+
+      ethphy_smi_read();
+      
+      printf("%x\n",regs->miirx_data);
+    }
+
+}
+
+
+void ethphy_toggle_loopback(void)
+{
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
+
+	// First read the loopback bit from the basic control reg
+	if (eth_mii_read(ethphy_found%0xff, 0) & (1<<14))
+	{
+		printf("Disabling PHY loopback\n");
+		eth_mii_write(ethphy_found, 0, 
+			      eth_mii_read(ethphy_found,0) & ~(1<<14));
+	}
+	else
+	{
+		printf("Enabling PHY loopback\n");
+		eth_mii_write(ethphy_found, 0, 
+			      eth_mii_read(ethphy_found,0) | (1<<14));
+	}
+
+}
+
+void marvell_phy_toggle_delay(void)
+{
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
+
+	// First read the loopback bit from the basic control reg
+	if (eth_mii_read(ethphy_found%0xff, 20) & (1<<1))
+	{
+		printf("Disabling PHY GTX_CLK delay\n");
+		eth_mii_write(ethphy_found, 20, 
+			      eth_mii_read(ethphy_found,20) & ~(1<<1));
+	}
+	else
+	{
+		printf("Enabling PHY GTX_CLK delay\n");
+		eth_mii_write(ethphy_found, 20, 
+			      eth_mii_read(ethphy_found,20) | (1<<1));
+	}
+
+}
+
+void ethphy_toggle_gigadvertise()
+{
+	volatile oeth_regs *regs;
+	regs = (oeth_regs *)(OETH_REG_BASE);
+	// Are we advertising gige?
+	if (eth_mii_read(ethphy_found%0xff, 9) & (1<<8))
+	{
+		printf("Disabling 1000base-t advertisement\n");
+		eth_mii_write(ethphy_found, 9, 
+			      eth_mii_read(ethphy_found,9) & ~((1<<8)|(1<<9)));
+	}
+	else
+	{
+		printf("Enabling 1000base-t advertisement\n");
+		eth_mii_write(ethphy_found, 9, 
+			      eth_mii_read(ethphy_found,9) | ((1<<8)|(1<<9)));
+	}
+
+		
+	
+}
+	  
+void ethmac_scanstatus(void)
+{
+  volatile oeth_regs *regs;
+  regs = (oeth_regs *)(OETH_REG_BASE);
+
+  
+  printf("Oeth: regs->miistatus %x regs->miirx_data %x\n",regs->miistatus, regs->miirx_data);
+  regs->miiaddress = 0;
+  regs->miitx_data = 0;
+  regs->miicommand = OETH_MIICOMMAND_SCANSTAT;
+  printf("Oeth: regs->miiaddress %x regs->miicommand %x\n",regs->miiaddress, regs->miicommand);  
+  //regs->miicommand = 0; 
+  volatile int i; for(i=0;i<1000;i++);
+  while(regs->miistatus & OETH_MIISTATUS_BUSY) ;
+  //spin_cursor(); 
+  //printf("\r"); 
+  //or32_exit(0);
 }
 	
 
@@ -460,122 +542,36 @@ ethphy_set_100mbit(int phynum)
 {
   // Hardset PHY to just use 10Mbit mode
   short cr = eth_mii_read(phynum, MII_BMCR);
-  cr &= !BMCR_ANENABLE; // Clear auto negotiate bit
-  cr |= BMCR_SPEED100; // Clear fast eth. bit
+  cr &= ~(1<<6);
+  cr |= (1<<13);
   eth_mii_write(phynum, MII_BMCR, cr);
 }
 
 void 
-ethphy_set_autoneg(int phynum)
+ethphy_toggle_autoneg(int phynum)
 {
-  // Hardset PHY to just use 10Mbit mode
+
   short cr = eth_mii_read(phynum, MII_BMCR);
-  cr |= BMCR_ANENABLE; // Clear auto negotiate bit
+  if (cr & BMCR_ANENABLE)
+	  printf("Disabling PHY autonegotiation\n");
+  else
+	  printf("Enabling PHY autonegotiation\n");
+
+  cr ^= BMCR_ANENABLE; // Toggle auto negotiate bit
   eth_mii_write(phynum, MII_BMCR, cr);
-}
-
-
-
-void m88e111_config_init(int phyaddr)
-{
-  short ctl;
-  short adv;
-#if 1
-  // Soft reset
-  eth_mii_write(phyaddr, MII_BMCR, BMCR_RESET);
-  while(eth_mii_read(phyaddr, MII_BMCR) & BMCR_RESET);
-  
-  ctl = eth_mii_read(phyaddr, MII_BMCR);
-  ctl &= ~(BMCR_SPD2);  
-  eth_mii_write(phyaddr, MII_BMCR, ctl);
-  
-  eth_mii_read(phyaddr, MII_ADVERTISE);
-  adv &= ~(ADVERTISE_ALL | ADVERTISE_100BASE4 | ADVERTISE_1000XFULL
-	   |ADVERTISE_1000XHALF | ADVERTISE_1000XPAUSE |
-	   ADVERTISE_1000XPSE_ASYM);
-  adv |= ADVERTISE_10HALF;
-  adv |= ADVERTISE_10FULL;
-  adv |= ADVERTISE_100HALF;
-  adv |= ADVERTISE_100FULL;
-  eth_mii_write(phyaddr, MII_ADVERTISE, adv);
-  // Disable gigabit???
-  adv = eth_mii_read(phyaddr, MII_M1011_PHY_SPEC_CONTROL);
-  adv &= ~(MII_1000BASETCONTROL_FULLDUPLEXCAP |
-	   MII_1000BASETCONTROL_HALFDUPLEXCAP);
-  eth_mii_write(phyaddr, MII_M1011_PHY_SPEC_CONTROL, adv);
-  // Even more disable gigabit?!
-  adv = eth_mii_read(phyaddr, MII_CTRL1000);
-  adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
-  eth_mii_write(phyaddr, MII_CTRL1000, adv);
-
-  // Restart autoneg
-  printf("Resetting phy...\n");  
-  eth_mii_write(phyaddr, MII_BMCR, BMCR_RESET);
-  ctl = eth_mii_read(phyaddr, MII_BMCR);
-  ctl |= (BMCR_ANENABLE | BMCR_ANRESTART);
-  eth_mii_write(phyaddr, MII_BMCR, ctl);
-#endif
-
-#if 0
-  // Adapted from kernel: drivers/net/phy/marvell.c
-  // Soft reset
-  eth_mii_write(phyaddr, MII_BMCR, BMCR_RESET);
-  
-  eth_mii_write(phyaddr, 0x1d, 0x1f);
-  eth_mii_write(phyaddr, 0x1e, 0x200c);
-  eth_mii_write(phyaddr, 0x1d, 0x5);
-  eth_mii_write(phyaddr, 0x1e, 0);
-  eth_mii_write(phyaddr, 0x1e, 0x100);
-#define MII_M1011_PHY_SCR		0x10
-#define MII_M1011_PHY_SCR_AUTO_CROSS	0x0060
-  eth_mii_write(phyaddr, MII_M1011_PHY_SCR,
-		MII_M1011_PHY_SCR_AUTO_CROSS);
-#define MII_M1111_PHY_LED_CONTROL	0x18
-#define MII_M1111_PHY_LED_DIRECT	0x4100
-  eth_mii_write(phyaddr, MII_M1111_PHY_LED_CONTROL,
-		MII_M1111_PHY_LED_DIRECT);
-
-  adv &= ~(ADVERTISE_ALL | ADVERTISE_100BASE4 | ADVERTISE_PAUSE_CAP | 
-	   ADVERTISE_PAUSE_ASYM);
-  adv |= ADVERTISE_10HALF;
-  adv |= ADVERTISE_10FULL;
-  adv |= ADVERTISE_100HALF;
-  adv |= ADVERTISE_100FULL;
-  adv |= ADVERTISE_PAUSE_CAP;
-  adv |= ADVERTISE_PAUSE_ASYM;
-  eth_mii_write(phyaddr, MII_ADVERTISE, adv);
-
-
-  ctl = eth_mii_read(phyaddr, MII_BMCR);
-  ctl |= (BMCR_ANENABLE | BMCR_ANRESTART);
-  eth_mii_write(phyaddr, MII_BMCR, ctl);  
-
-#endif
-
-#if 0
-  ctl = eth_mii_read(phyaddr, MII_BMCR);
-  ctl &= ~(BMCR_ANENABLE); // Disable autoneg...
-  // Try forcing config
-  ctl = BMCR_SPEED100 | BMCR_FULLDPLX;
-  eth_mii_write(phyaddr, MII_BMCR, ctl);
-
-  
-  
-    
-#endif
-
 }
 
 
 void ethphy_print_status(int phyaddr)
 {
-  short regnum, ctl;
+  short regnum, value;
   int bitnum;
   int bitset;
+  short reg2;
   printf("phyaddr %d\n",phyaddr);
   for  (regnum = 0;regnum<16; regnum++)
     {
-      ctl = eth_mii_read(phyaddr, regnum);
+      value = eth_mii_read(phyaddr, regnum);
       printf("\treg 0x%x: ", regnum);
       switch(regnum)
 	{
@@ -583,7 +579,7 @@ void ethphy_print_status(int phyaddr)
 	  printf("basic control\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 0:
@@ -628,7 +624,7 @@ void ethphy_print_status(int phyaddr)
 	  printf("basic status\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 0:
@@ -673,11 +669,23 @@ void ethphy_print_status(int phyaddr)
 		}
 	    }
 	  break;
+	case 2:
+		// We'll do presentation of phy ID in reg 3
+		reg2 = value;
+		printf("\n");
+		break;
+	case 3:
+		printf("\t\tPHY Identifier (regs 2,3)\n");
+		printf("\t\tOrganizationally Unique Identifier (OUI): 0x%06x\n",
+		       ((reg2<<6) | ((value>>10)&0x3f)));
+		printf("\t\tManufacturer's Model: 0x%02x\n",(value>>4)&0x3f);
+		printf("\t\tRevision number: 0x%01x\n",value&0xf);
+		break;
 	case 4:
 	  printf("autoneg advertise reg\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 5:
@@ -714,7 +722,7 @@ void ethphy_print_status(int phyaddr)
 	  printf("autoneg link partner ability\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 5:
@@ -758,7 +766,7 @@ void ethphy_print_status(int phyaddr)
 	  printf("1000mbit advertise\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 8:
@@ -776,7 +784,7 @@ void ethphy_print_status(int phyaddr)
 	  printf("extended status\n");
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	    {
-	      bitset = !!(ctl & (1<<bitnum));
+	      bitset = !!(value & (1<<bitnum));
 	      switch(bitnum)
 		{
 		case 12:
@@ -793,7 +801,7 @@ void ethphy_print_status(int phyaddr)
 	  /*	case 1:
 	  for(bitnum = 0; bitnum<16;bitnum++)
 	  {
-	  bitset = !!(ctl & (1<<bitnum));
+	  bitset = !!(value & (1<<bitnum));
 	  switch(bitnum)
 	  {
 	  case 0:
@@ -817,68 +825,37 @@ void ethphy_print_status(int phyaddr)
  
 void ethphy_init(void)
 {
+	short ctl;
+	scan_ethphys();
 
-  /* Init the Alaska 88E1111 Phy */
-  char alaska88e1111_ml501_phynum = 0x7;
-  m88e111_config_init(alaska88e1111_ml501_phynum);
+	// Restart autoneg
+	printf("Resetting phy...\n");  
+	ctl = eth_mii_read(ethphy_found, MII_BMCR);
+	ctl |= (BMCR_ANENABLE | BMCR_ANRESTART);
+	eth_mii_write(ethphy_found, MII_BMCR, ctl);
 
-  return;
-
-  /* Init, reset */
-  short ctl = eth_mii_read(alaska88e1111_ml501_phynum, MII_BMCR);
-  ctl &= ~(BMCR_FULLDPLX|BMCR_SPEED100|BMCR_SPD2|BMCR_ANENABLE);
-  ctl |= BMCR_SPEED100; // 100MBit
-  ctl |= BMCR_FULLDPLX; // Full duplex
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_BMCR, ctl);
-
-  // Setup Autoneg
-  short adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_ADVERTISE);
-  adv &= ~(ADVERTISE_ALL | ADVERTISE_100BASE4 | ADVERTISE_1000XFULL
-	   |ADVERTISE_1000XHALF | ADVERTISE_1000XPAUSE |
-	   ADVERTISE_1000XPSE_ASYM);
-  adv |= ADVERTISE_10HALF;
-  adv |= ADVERTISE_10FULL;
-  adv |= ADVERTISE_100HALF;
-  adv |= ADVERTISE_100FULL;
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_ADVERTISE, adv);
-  // Disable gigabit???
-  adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_M1011_PHY_SPEC_CONTROL);
-  adv &= ~(MII_1000BASETCONTROL_FULLDUPLEXCAP |
-	   MII_1000BASETCONTROL_HALFDUPLEXCAP);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_M1011_PHY_SPEC_CONTROL, adv);
-  // Even more disable gigabit?!
-  adv = eth_mii_read(alaska88e1111_ml501_phynum, MII_CTRL1000);
-  adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_CTRL1000, adv);
-
-  // Restart autoneg
-  printf("Resetting phy...\n");  
-  ctl = eth_mii_read(alaska88e1111_ml501_phynum, MII_BMCR);
-  ctl |= (BMCR_ANENABLE | BMCR_ANRESTART);
-  eth_mii_write(alaska88e1111_ml501_phynum, MII_BMCR, ctl);
-
-  printf("\nOeth: PHY control reg: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_BMCR));
-  printf("Oeth: PHY control reg: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_BMSR));
-  printf("Oeth: PHY id0: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_PHYSID1));
-  printf("Oeth: PHY id1: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_PHYSID2));
-  printf("Oeth: PHY adv: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_ADVERTISE));
-  printf("Oeth: PHY lpa: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_LPA));
-  printf("Oeth: PHY physpec: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_M1011_PHY_SPEC_CONTROL));
-  printf("Oeth: PHY expansion: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_EXPANSION ));
-  printf("Oeth: PHY ctrl1000: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_CTRL1000));
-  printf("Oeth: PHY stat1000: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_STAT1000));
-  printf("Oeth: PHY estatus: 0x%.4x\n",
-	 eth_mii_read(alaska88e1111_ml501_phynum, MII_ESTATUS));
+	printf("\nOeth: PHY control reg: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_BMCR));
+	printf("Oeth: PHY control reg: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_BMSR));
+	printf("Oeth: PHY id0: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_PHYSID1));
+	printf("Oeth: PHY id1: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_PHYSID2));
+	printf("Oeth: PHY adv: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_ADVERTISE));
+	printf("Oeth: PHY lpa: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_LPA));
+	printf("Oeth: PHY physpec: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_M1011_PHY_SPEC_CONTROL));
+	printf("Oeth: PHY expansion: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_EXPANSION ));
+	printf("Oeth: PHY ctrl1000: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_CTRL1000));
+	printf("Oeth: PHY stat1000: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_STAT1000));
+	printf("Oeth: PHY estatus: 0x%.4x\n",
+	       eth_mii_read(ethphy_found, MII_ESTATUS));
  
   
 }
@@ -1141,7 +1118,7 @@ static void
 oeth_print_packet(int bd, unsigned long add, int len)
 {
 
-  int truncate = (len > 256);
+	int truncate = (len > 256);
   int length_to_print = truncate ? 256 : len;
 
   int i;
@@ -2002,6 +1979,15 @@ oeth_rx(void)
 				       OETH_RX_BD_STATS);
 				rx_bdp[i].len_status &= ~OETH_RX_BD_STATS;
 				rx_bdp[i].len_status |= OETH_RX_BD_EMPTY;
+
+				if (print_packet_contents)
+				{
+					oeth_print_packet(i, rx_bdp[i].addr, 
+							  rx_bdp[i].len_status 
+							  >> 16);
+					printf("\t end of packet\n\n");
+				}
+
 				bad = 0;
 				continue;
 			}
@@ -2070,7 +2056,7 @@ oeth_tx(void)
 				       (tx_bd[i].len_status &OETH_TX_BD_STATS));
 	  
 			if (print_packet_contents)
-				printf("T%d",i);
+				printf("T%d\n",i);
 		}
 	}
 	return;  
@@ -2144,19 +2130,13 @@ int main ()
 		}
 		else if (c == 'p')
 			oeth_printregs();
-		else if (c == '0')
-			scan_ethphy(0);
-		else if (c == '1')
-			scan_ethphy(1);
-		else if (c == '7')
-		{
-			//scan_ethphy(7);
-			//ethphy_print_status(7);
-			printf("ext_sr 0x%x\n",eth_mii_read(0x7, 0x1b));
-		}
+		else if (c == 'a')
+			ethphy_print_status(ethphy_found);
+		else if (c >= '0' && c <= '9')
+			scan_ethphy(c - 0x30);
 		else if (c == 'r')
 		{
-			ethphy_reset(7);
+			ethphy_reset(ethphy_found);
 			printf("PHY reset\n");
 		}
 		else if (c == 'R')
@@ -2166,39 +2146,15 @@ int main ()
 			printf("MAC reset\n");
 		}
 		else if (c == 'n')
-			ethphy_reneg(7);
+			ethphy_reneg(ethphy_found);
 		else if (c == 'N')
-			ethphy_set_autoneg(7);
+			ethphy_toggle_autoneg(ethphy_found);
 		else if (c == 'm')
 			ethmac_togglehugen();
 		else if (c == 't')
-			ethphy_set_10mbit(0);
-		else if (c == 'w')
-		{
-			// Play with HWCFG mode of Alaska 88e1111 Phy
-			c = uart_getc(DEFAULT_UART);
-			short newvalue;
-			// c is an ascii char, let's convert it to actual hex 
-			// value
-			if (c >= 'A' && c <= 'F')
-				newvalue = c - (65 - 10);
-			else if (c >= 'a' && c <= 'f')
-				newvalue  = c - (99 - 10);
-			else if (c >= '0' && c <= '9')
-				newvalue  = c - 48;
-
-			// Take this value and or it into the bottom bit 
-			// (supposedly ext_sr)
-#define MII_M1111_PHY_EXT_SR		0x1b
-			short ext_sr;
-			ext_sr = eth_mii_read(0x7, MII_M1111_PHY_EXT_SR);
-#define MII_M1111_HWCFG_MODE_MASK		0xf	  
-			ext_sr &= ~MII_M1111_HWCFG_MODE_MASK;
-			ext_sr |= (short) newvalue;
-			eth_mii_write(0x7, MII_M1111_PHY_EXT_SR, ext_sr);
-			printf("ext_sr updated to - 0x%x\n",
-			       eth_mii_read(0x7, MII_M1111_PHY_EXT_SR));
-		}
+			ethphy_set_10mbit(ethphy_found);
+		else if (c == 'H')
+			ethphy_set_100mbit(ethphy_found);
 		else if ( c == 'b' )
 		{
 			printf("\n\t---\n");
@@ -2217,6 +2173,10 @@ int main ()
 			oeth_print_wbdebug();
 			print_ethmac_debug_reg = !print_ethmac_debug_reg;
 		}
+		else if (c == 'D')
+		{
+			marvell_phy_toggle_delay();
+		}
 		else if (c == 'v' )
 		{
 			if (packet_inspect_debug)
@@ -2230,6 +2190,10 @@ int main ()
 		}
 		else if ( c == 'o' )
 			oeth_toggle_promiscuous();
+		else if (c == 'L')
+			ethphy_toggle_loopback();
+		else if (c == 'g')
+			ethphy_toggle_gigadvertise();
 
 	}
 
