@@ -551,6 +551,20 @@ module orpsoc_top
    wire                             wbm_dma0_err_i;
    wire                             wbm_dma0_rty_i;
 
+   // fdt0 slave wires
+   wire [31:0] 			    wbs_d_fdt0_adr_i;
+   wire [wbs_d_fdt0_data_width-1:0] 	    wbs_d_fdt0_dat_i;
+   wire [3:0] 				    wbs_d_fdt0_sel_i;
+   wire 				    wbs_d_fdt0_we_i;
+   wire 				    wbs_d_fdt0_cyc_i;
+   wire 				    wbs_d_fdt0_stb_i;
+   wire [2:0] 				    wbs_d_fdt0_cti_i;
+   wire [1:0] 				    wbs_d_fdt0_bte_i;
+   wire [wbs_d_fdt0_data_width-1:0] 	    wbs_d_fdt0_dat_o;
+   wire 				    wbs_d_fdt0_ack_o;
+   wire 				    wbs_d_fdt0_err_o;
+   wire 				    wbs_d_fdt0_rty_o;
+
    //
    // Wishbone instruction bus arbiter
    //
@@ -732,6 +746,19 @@ module orpsoc_top
       .wbs5_err_o           (wbs_d_dma0_err_o),
       .wbs5_rty_o           (wbs_d_dma0_rty_o),
 
+      .wbs6_adr_i           (wbs_d_fdt0_adr_i),
+      .wbs6_dat_i           (wbs_d_fdt0_dat_i),
+      .wbs6_sel_i           (wbs_d_fdt0_sel_i),
+      .wbs6_we_i            (wbs_d_fdt0_we_i),
+      .wbs6_cyc_i           (wbs_d_fdt0_cyc_i),
+      .wbs6_stb_i           (wbs_d_fdt0_stb_i),
+      .wbs6_cti_i           (wbs_d_fdt0_cti_i),
+      .wbs6_bte_i           (wbs_d_fdt0_bte_i),
+      .wbs6_dat_o           (wbs_d_fdt0_dat_o),
+      .wbs6_ack_o           (wbs_d_fdt0_ack_o),
+      .wbs6_err_o           (wbs_d_fdt0_err_o),
+      .wbs6_rty_o           (wbs_d_fdt0_rty_o),
+
       // Clock, reset inputs
       .wb_clk			(wb_clk),
       .wb_rst			(wb_rst));
@@ -744,6 +771,7 @@ module orpsoc_top
    defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
    defparam arbiter_dbus0.slave4_adr = dbus_arb_slave4_adr;
    defparam arbiter_dbus0.slave5_adr = dbus_arb_slave5_adr;
+   defparam arbiter_dbus0.slave6_adr = dbus_arb_slave6_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -2009,7 +2037,28 @@ module orpsoc_top
     );
     
 `endif
- 
+ `ifdef FDT0
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // FDT0
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   fdt fdt0(
+      .wb_rst_i             (wb_rst),
+      .wb_clk_i             (wb_clk),
+      .wb_dat_i             (wbs_d_fdt0_dat_i),
+      .wb_adr_i             (wbs_d_fdt0_adr_i[wbs_d_fdt0_addr_width-1:2]),
+      .wb_sel_i             (wbs_d_fdt0_sel_i),
+      .wb_we_i              (wbs_d_fdt0_we_i),
+      .wb_cyc_i             (wbs_d_fdt0_cyc_i),
+      .wb_stb_i             (wbs_d_fdt0_stb_i),
+      .wb_dat_o             (wbs_d_fdt0_dat_o),
+      .wb_ack_o             (wbs_d_fdt0_ack_o),
+      .wb_err_o             (wbs_d_fdt0_err_o), 
+      .wb_rty_o             (wbs_d_fdt0_rty_o)
+   );   
+`endif // FDT0
+
    ////////////////////////////////////////////////////////////////////////
    //
    // OR1200 Interrupt assignment

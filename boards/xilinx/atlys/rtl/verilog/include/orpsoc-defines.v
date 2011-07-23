@@ -64,6 +64,7 @@
  `define PS2_0
  `define PS2_1
  `define DMA0
+ `define FDT0
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 
