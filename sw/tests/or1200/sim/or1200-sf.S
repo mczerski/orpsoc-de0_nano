@@ -64,8 +64,10 @@
 
 /* =================================================== [ start ] === */	
 
-#define SHOULD_BE_SET	l.bnf	_fail
-#define	SHOULDNT_BE_SET	l.bf	_fail	
+#define SHOULD_BE_SET	l.bnf	_fail ;	\
+	l.nop 0
+#define	SHOULDNT_BE_SET	l.bf	_fail ;	\
+	l.nop 0
 
 #define MOVE_TO_R4R5_AND_REPORT(a,b)	\
 	l.movhi	r3,hi(a)	;	\
@@ -206,7 +208,19 @@ _start:
 	
 	SHOULD_BE_GREATER_THAN_UNSIGNED(UINT_MAX,UINT_MAX_MIN1)
 
+	SHOULD_BE_GREATER_THAN_UNSIGNED(UINT_MAX,0)
 
+	SHOULD_BE_GREATER_THAN_UNSIGNED(0x80000001, 0x80000000)
+
+	SHOULD_BE_LESS_THAN_UNSIGNED(0x80000000, 0x80000001)
+	
+	SHOULD_BE_GREATER_THAN_UNSIGNED(0x80000000,0x7fffffff)
+
+	SHOULD_BE_LESS_THAN_UNSIGNED(0x7fffffff, 0x80000000)
+
+	SHOULD_BE_GREATER_THAN_UNSIGNED(0x7fffffff, 0x7ffffffe)
+
+	SHOULD_BE_LESS_THAN_UNSIGNED(0x7ffffffe, 0x7fffffff)
 
 _finish:	
 	l.movhi r3, hi(0x8000000d)
