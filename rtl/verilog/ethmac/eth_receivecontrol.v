@@ -84,8 +84,6 @@ module eth_receivecontrol (MTxClk, MRxClk, TxReset, RxReset, RxData, RxValid, Rx
                            RxStatusWriteLatched_sync2, r_PassAll, SetPauseTimer
                           );
 
-parameter Tp = 1;
-
 
 input       MTxClk;
 input       MRxClk;

@@ -92,8 +92,6 @@ module eth_txcounters (StatePreamble, StateIPG, StateData, StatePAD, StateFCS, S
                        ExcessiveDefer, NibCntEq7, NibCntEq15, MaxFrame, NibbleMinFl, DlyCrcCnt
                       );
 
-parameter Tp = 1;
-
 input MTxClk;             // Tx clock
 input Reset;              // Reset
 input StatePreamble;      // Preamble state

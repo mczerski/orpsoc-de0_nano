@@ -126,8 +126,6 @@ module eth_macstatus(
 
 
 
-parameter Tp = 1;
-
 
 input         MRxClk;
 input         Reset;

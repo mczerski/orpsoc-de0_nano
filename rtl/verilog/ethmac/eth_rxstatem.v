@@ -90,8 +90,6 @@ module eth_rxstatem (MRxClk, Reset, MRxDV, ByteCntEq0, ByteCntGreat2, Transmitti
                      StateDrop
                     );
 
-parameter Tp = 1;
-
 input         MRxClk;
 input         Reset;
 input         MRxDV;

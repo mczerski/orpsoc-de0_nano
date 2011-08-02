@@ -79,8 +79,6 @@
 module eth_crc (Clk, Reset, Data, Enable, Initialize, Crc, CrcError);
 
 
-parameter Tp = 1;
-
 input Clk;
 input Reset;
 input [3:0] Data;
