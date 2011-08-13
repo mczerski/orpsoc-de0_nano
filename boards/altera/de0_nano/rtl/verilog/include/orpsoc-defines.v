@@ -37,7 +37,7 @@
  `define JTAG_DEBUG
  `define VERSATILE_SDRAM
 //`define RAM_WB
- `define UART0
+`define UART0
 //`define SPI0
 //`define SPI1
 //`define SPI2
@@ -50,8 +50,6 @@
 `define GPIO0
 //`define ETH0
 //`define SDC_CONTROLLER
-
-
 
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
