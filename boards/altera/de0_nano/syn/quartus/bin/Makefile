@@ -81,6 +81,9 @@ $(TCL_FILE):
 	$(Q)for file in $(BOARD_BACKEND_VERILOG_SRC); do \
 		echo "set_global_assignment -name VERILOG_FILE $$file" >> $@ ; \
 	done
+	$(Q)for file in $(RTL_VHDL_SRC); do \
+		echo "set_global_assignment -name VHDL_FILE $$file" >> $@ ; \
+	done
 	$(Q)echo "set_global_assignment -name SEARCH_PATH $(BOARD_RTL_VERILOG_INCLUDE_DIR)" >> $@
 	$(Q)echo "set_global_assignment -name SEARCH_PATH $(COMMON_RTL_VERILOG_DIR)" >> $@
 	$(Q)echo "set_global_assignment -name SEARCH_PATH $(BOOTROM_SW_DIR)" >> $@

@@ -15,6 +15,9 @@ SYNTHESIS_TOOL=quartus
 
 export BOARD
 
+# We have some VHDL
+HAVE_VHDL=1
+
 include $(PROJECT_ROOT)/scripts/make/Makefile-misc.inc
 include $(PROJECT_ROOT)/scripts/make/Makefile-board-paths.inc
 include $(PROJECT_ROOT)/scripts/make/Makefile-board-tops.inc

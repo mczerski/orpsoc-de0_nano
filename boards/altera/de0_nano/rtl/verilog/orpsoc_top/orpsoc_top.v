@@ -5,6 +5,8 @@
 /// Instantiates modules, depending on ORPSoC defines file        ////
 ///                                                               ////
 /// Julius Baxter, julius@opencores.org                           ////
+/// Contributor(s):                                               ////
+///   Stefan Kristiansson, stefan.kristiansson@saunalahti.fi      ////
 ///                                                               ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
@@ -36,10 +38,10 @@
 `include "orpsoc-defines.v"
 `include "synthesis-defines.v"
 module orpsoc_top
-  ( 
-`ifdef JTAG_DEBUG    
+  (
+`ifdef GENERIC_JTAG_TAP
     tdo_pad_o, tms_pad_i, tck_pad_i, tdi_pad_i,
-`endif     
+`endif
 `ifdef VERSATILE_SDRAM
     sdram_ba_pad_o,sdram_a_pad_o,sdram_cs_n_pad_o, sdram_ras_pad_o, 
     sdram_cas_pad_o, sdram_we_pad_o, sdram_dq_pad_io, sdram_dqm_pad_o, 
@@ -119,8 +121,7 @@ module orpsoc_top
    input sys_clk_pad_i;
    
    input rst_n_pad_i;
-   
-`ifdef JTAG_DEBUG    
+`ifdef GENERIC_JTAG_TAP
    output tdo_pad_o;
    input  tms_pad_i;
    input  tck_pad_i;
@@ -250,11 +251,10 @@ module orpsoc_top
 
       .wb_clk_o                  (wb_clk),
       .wb_rst_o                  (wb_rst),
-
-`ifdef JTAG_DEBUG
+`ifdef GENERIC_JTAG_TAP
       .tck_pad_i                 (tck_pad_i),
       .dbg_tck_o                 (dbg_tck),
-`endif      
+`endif
 `ifdef VERSATILE_SDRAM      
       .sdram_clk_o               (sdram_clk),
       .sdram_rst_o               (sdram_rst),
@@ -976,10 +976,10 @@ module orpsoc_top
    defparam arbiter_bytebus0.slave11_adr = bbus_arb_slave11_adr;
 
 
-`ifdef JTAG_DEBUG   
+`ifdef GENERIC_JTAG_TAP
    ////////////////////////////////////////////////////////////////////////
    //
-   // JTAG TAP
+   // GENERIC JTAG TAP
    // 
    ////////////////////////////////////////////////////////////////////////
 
@@ -991,6 +991,10 @@ module orpsoc_top
    wire 				  jtag_tap_tdo;   
    wire 				  jtag_tap_shift_dr, jtag_tap_pause_dr, 
 					  jtag_tap_upate_dr, jtag_tap_capture_dr;
+   wire					  test_logic_reset;
+
+   assign test_logic_reset = wb_rst;
+   
    //
    // Instantiation
    //
@@ -1026,7 +1030,34 @@ module orpsoc_top
       );
    
    ////////////////////////////////////////////////////////////////////////
-`endif //  `ifdef JTAG_DEBUG
+`elsif ALTERA_JTAG_TAP
+   //
+   // Altera virtual jtag tap from adv_debugsys
+   //
+  
+   wire 				  dbg_if_select;   
+   wire 				  dbg_if_tdo;
+   wire 				  jtag_tap_tdo;   
+   wire 				  jtag_tap_shift_dr;
+   wire					  jtag_tap_pause_dr;
+   wire 				  jtag_tap_upate_dr;
+   wire					  jtag_tap_capture_dr;
+   wire					  test_logic_reset;
+  
+   altera_virtual_jtag jtag_tap0
+     (
+      .tck_o                              (dbg_tck),
+      .debug_tdo_i                        (dbg_if_tdo),
+      .tdi_o                              (jtag_tap_tdo),
+      .test_logic_reset_o                 (test_logic_reset),
+      .run_test_idle_o                    (),
+      .shift_dr_o                         (jtag_tap_shift_dr),
+      .capture_dr_o                       (jtag_tap_capture_dr),
+      .pause_dr_o                         (jtag_tap_pause_dr),
+      .update_dr_o                        (jtag_tap_update_dr),
+      .debug_select_o                     (dbg_if_select)
+      );
+`endif
 
    ////////////////////////////////////////////////////////////////////////
    //
@@ -1150,9 +1181,9 @@ module orpsoc_top
    ////////////////////////////////////////////////////////////////////////
 
 
-`ifdef JTAG_DEBUG
+`ifdef LEGACY_DBG_IF
    ////////////////////////////////////////////////////////////////////////
-	 //
+   //
    // OR1200 Debug Interface
    // 
    ////////////////////////////////////////////////////////////////////////
@@ -1177,7 +1208,7 @@ module orpsoc_top
       .tck_i				(dbg_tck),
       .tdi_i				(jtag_tap_tdo),
       .tdo_o				(dbg_if_tdo),      
-      .rst_i				(wb_rst),
+      .rst_i				(test_logic_reset),
       .shift_dr_i			(jtag_tap_shift_dr),
       .pause_dr_i			(jtag_tap_pause_dr),
       .update_dr_i			(jtag_tap_update_dr),
@@ -1200,7 +1231,49 @@ module orpsoc_top
       );
    
    ////////////////////////////////////////////////////////////////////////   
-`else // !`ifdef JTAG_DEBUG
+`elsif ADV_DBG_IF
+
+   adv_dbg_if dbg_if0 
+     (
+      // OR1200 interface
+      .cpu0_clk_i			(or1200_clk),
+      .cpu0_rst_o			(or1200_dbg_rst),      
+      .cpu0_addr_o			(or1200_dbg_adr_i),
+      .cpu0_data_o			(or1200_dbg_dat_i),
+      .cpu0_stb_o			(or1200_dbg_stb_i),
+      .cpu0_we_o			(or1200_dbg_we_i),
+      .cpu0_data_i			(or1200_dbg_dat_o),
+      .cpu0_ack_i			(or1200_dbg_ack_o),      
+      .cpu0_stall_o			(or1200_dbg_stall_i),
+      .cpu0_bp_i			(or1200_dbg_bp_o),      
+
+      // TAP interface
+      .tck_i				(dbg_tck),
+      .tdi_i				(jtag_tap_tdo),
+      .tdo_o				(dbg_if_tdo),      
+      .rst_i				(test_logic_reset),
+      .capture_dr_i 			(jtag_tap_capture_dr),
+      .shift_dr_i			(jtag_tap_shift_dr),
+      .pause_dr_i			(jtag_tap_pause_dr),
+      .update_dr_i			(jtag_tap_update_dr),
+      .debug_select_i			(dbg_if_select),
+
+      // Wishbone debug master
+      .wb_clk_i				(wb_clk),
+      .wb_dat_i				(wbm_d_dbg_dat_i),
+      .wb_ack_i				(wbm_d_dbg_ack_i),
+      .wb_err_i				(wbm_d_dbg_err_i),
+      .wb_adr_o				(wbm_d_dbg_adr_o),
+      .wb_dat_o				(wbm_d_dbg_dat_o),
+      .wb_cyc_o				(wbm_d_dbg_cyc_o),
+      .wb_stb_o				(wbm_d_dbg_stb_o),
+      .wb_sel_o				(wbm_d_dbg_sel_o),
+      .wb_we_o				(wbm_d_dbg_we_o ),
+      .wb_cti_o				(wbm_d_dbg_cti_o),
+      .wb_bte_o				(wbm_d_dbg_bte_o)
+     );
+
+`else
 
    assign wbm_d_dbg_adr_o = 0;   
    assign wbm_d_dbg_dat_o = 0;   
@@ -1218,7 +1291,7 @@ module orpsoc_top
    assign or1200_dbg_stall_i = 0;
    
    ////////////////////////////////////////////////////////////////////////   
-`endif // !`ifdef JTAG_DEBUG
+`endif // !`ifdef LEGACY_DBG_IF
    
 `ifdef VERSATILE_SDRAM
    ////////////////////////////////////////////////////////////////////////
