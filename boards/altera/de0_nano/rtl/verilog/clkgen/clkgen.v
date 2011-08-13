@@ -46,7 +46,7 @@ module clkgen
    wb_rst_o,
 
    // JTAG clock
-`ifdef JTAG_DEBUG
+`ifdef GENERIC_JTAG_TAP
    tck_pad_i,
    dbg_tck_o,
 `endif      
@@ -76,7 +76,7 @@ module clkgen
    output wb_rst_o;
    output wb_clk_o;
 
-`ifdef JTAG_DEBUG
+`ifdef GENERIC_JTAG_TAP
    input  tck_pad_i;
    output dbg_tck_o;
 `endif      
@@ -109,7 +109,7 @@ module clkgen
    assign async_rst = ~async_rst_n;
    
    
-`ifdef JTAG_DEBUG
+`ifdef GENERIC_JTAG_TAP
    assign  dbg_tck_o = tck_pad_i;
 `endif
 

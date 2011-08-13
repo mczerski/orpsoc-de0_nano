@@ -34,8 +34,20 @@
 //////////////////////////////////////////////////////////////////////
 
 `define BOARD_CLOCK_PERIOD 20000 // 50MHz (pS accuracy)
- `define JTAG_DEBUG
- `define VERSATILE_SDRAM
+//
+// Debug interface
+// There are two options available, 
+// the older 'LEGACY_DBG_IF' by Igor Mohor or the newer 'ADV_DEBUG_IF'
+// by Nathan Yawn
+//
+`define LEGACY_DBG_IF
+//`define ADV_DBG_IF
+
+// JTAG TAP defines
+`define GENERIC_JTAG_TAP
+//`define ALTERA_JTAG_TAP
+
+`define VERSATILE_SDRAM
 //`define RAM_WB
 `define UART0
 //`define SPI0
