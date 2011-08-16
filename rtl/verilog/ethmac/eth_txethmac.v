@@ -103,8 +103,6 @@ module eth_txethmac (MTxClk, Reset, TxStartFrm, TxEndFrm, TxUnderRun, TxData, Ca
 
                     );
 
-parameter Tp = 1;
-
 
 input MTxClk;                   // Transmit clock (from PHY)
 input Reset;                    // Reset

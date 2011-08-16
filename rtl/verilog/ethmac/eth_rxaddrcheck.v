@@ -75,7 +75,6 @@ module eth_rxaddrcheck(MRxClk,  Reset, RxData, Broadcast ,r_Bro ,r_Pro,
                        ControlFrmAddressOK
                       );
 
-parameter Tp = 1;
 
   input        MRxClk; 
   input        Reset; 

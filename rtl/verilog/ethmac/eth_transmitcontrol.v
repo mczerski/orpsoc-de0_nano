@@ -88,8 +88,6 @@ module eth_transmitcontrol (MTxClk, TxReset, TxUsedDataIn, TxUsedDataOut, TxDone
                             ControlData, WillSendControlFrame, BlockTxDone
                            );
 
-parameter Tp = 1;
-
 
 input         MTxClk;
 input         TxReset;

@@ -94,8 +94,6 @@ module eth_maccontrol (MTxClk, MRxClk, TxReset, RxReset, TPauseRq, TxDataIn, TxS
                       );
 
 
-parameter   Tp = 1;
-
 
 input         MTxClk;                   // Transmit clock (from PHY)
 input         MRxClk;                   // Receive clock (from PHY)

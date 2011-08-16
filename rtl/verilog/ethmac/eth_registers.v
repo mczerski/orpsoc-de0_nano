@@ -182,8 +182,6 @@ module eth_registers( DataIn, Address, Rw, Cs, Clk, Reset, DataOut,
                       StartTxDone, TxClk, RxClk, SetPauseTimer
                     );
 
-parameter Tp = 1;
-
 input [31:0] DataIn;
 input [7:0] Address;
 
