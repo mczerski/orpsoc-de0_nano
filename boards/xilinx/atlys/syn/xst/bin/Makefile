@@ -84,6 +84,9 @@ PRJ_FILE=$(DESIGN_NAME).prj
 NGC_FILE=$(DESIGN_NAME).ngc
 NETLIST_FILE=$(DESIGN_NAME).v
 
+COREGEN_DIR=$(BOARD_SYN_DIR)/coregen
+COREGEN_CGP_FILE=$(COREGEN_DIR)/coregen.cgp
+COREGEN_XCO_FILES=$(shell ls $(COREGEN_DIR)/*.xco)
 
 XST_PRJ_FILE_SRC_DECLARE=verilog work
 
@@ -152,8 +155,18 @@ $(XCF_FILE):
 	$(Q)echo "#NET dcm0_clkdv TNM_NET=\"wb_clk\";" >> $@
 	$(Q)echo "#TIMESPEC \"TS_wb_clk\" = PERIOD \"wb_clk\" 20 ns HIGH 10;" >> $@
 
+# Generate coregen cores
+coregen:
+	$(Q)echo; echo "#### Running CORE Gen ####"; echo
+	$(Q)(. $(XILINX_SETTINGS_SCRIPT))
+	$(Q)$(shell cp $(COREGEN_XCO_FILES) .)
+	$(Q)$(shell cp $(COREGEN_CGP_FILE) .)
+	$(Q)for file in $(COREGEN_XCO_FILES); do \
+		coregen -b $(notdir $$file) -p $(notdir $(COREGEN_CGP_FILE)) $(XILINX_FLAGS); \
+	done
+
 # XST command
-$(NGC_FILE): $(PRJ_FILE) $(XST_FILE) $(XCF_FILE) $(GENERATED_DEFINES)
+$(NGC_FILE): $(PRJ_FILE) $(XST_FILE) $(XCF_FILE) $(GENERATED_DEFINES) coregen
 	$(Q)echo; echo "\t#### Running XST ####"; echo;
 	$(Q)(. $(XILINX_SETTINGS_SCRIPT) ; xst -ifn $(XST_FILE) $(XILINX_FLAGS) $(XST_FLAGS) )
 	$(Q)echo
@@ -168,7 +181,7 @@ $(NETLIST_FILE): $(NGC_FILE)
 
 
 clean:
-	$(Q)rm -rf *.* xst
+	$(Q)rm -rf *.* xst tmp _xmsgs xlnx_auto* *.lso
 
 clean-sw:
 	$(MAKE) -C $(PROJECT_ROOT)/sw/lib distclean
