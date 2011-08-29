@@ -79,8 +79,6 @@ module eth_shiftreg(Clk, Reset, MdcEn_n, Mdi, Fiad, Rgad, CtrlData, WriteOp, Byt
                     LatchByte, ShiftedBit, Prsd, LinkFail);
 
 
-parameter Tp=1;
-
 input       Clk;              // Input clock (Host clock)
 input       Reset;            // Reset signal
 input       MdcEn_n;          // Enable signal is asserted for one Clk period before Mdc falls.

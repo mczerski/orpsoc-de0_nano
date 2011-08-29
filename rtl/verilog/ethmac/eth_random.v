@@ -82,8 +82,6 @@
 module eth_random (MTxClk, Reset, StateJam, StateJam_q, RetryCnt, NibCnt, ByteCnt, 
                    RandomEq0, RandomEqByteCnt);
 
-parameter Tp = 1;
-
 input MTxClk;
 input Reset;
 input StateJam;

@@ -127,10 +127,14 @@ assign a_lt_b = (comp_a < comp_b);
 `endif
 `ifdef OR1200_IMPL_ALU_COMP3
 assign a_eq_b = !(|result_sum);
+// signed compare when comp_op[3] is set
 assign a_lt_b = comp_op[3] ? ((a[width-1] & !b[width-1]) |  
 			      (!a[width-1] & !b[width-1] & result_sum[width-1])|
 			      (a[width-1] & b[width-1] & result_sum[width-1])):
-		result_sum[width-1];
+// a < b if (a - b) subtraction wrapped and a[width-1] wasn't set
+		(result_sum[width-1] & !a[width-1]) |
+// or if (a - b) wrapped and both a[width-1] and b[width-1] were set
+		(result_sum[width-1] & a[width-1] & b[width-1] );
 `endif
    
 `ifdef OR1200_IMPL_SUB

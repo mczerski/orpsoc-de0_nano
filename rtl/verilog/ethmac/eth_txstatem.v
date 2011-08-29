@@ -96,8 +96,6 @@ module eth_txstatem  (MTxClk, Reset, ExcessiveDefer, CarrierSense, NibCnt, IPGT,
                       StartBackoff, StartDefer, DeferIndication, StartPreamble, StartData, StartIPG
                      );
 
-parameter Tp = 1;
-
 input MTxClk;
 input Reset;
 input ExcessiveDefer;

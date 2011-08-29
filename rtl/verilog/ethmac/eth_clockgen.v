@@ -70,8 +70,6 @@
 
 module eth_clockgen(Clk, Reset, Divider, MdcEn, MdcEn_n, Mdc);
 
-parameter Tp=1;
-
 input       Clk;              // Input clock (Host clock)
 input       Reset;            // Reset signal
 input [7:0] Divider;          // Divider (input clock will be divided by the Divider[7:0])

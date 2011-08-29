@@ -135,8 +135,6 @@ output        WCtrlDataStart;     // This signals resets the WCTRLDATA bit in th
 output        RStatStart;         // This signal resets the RSTAT BIT in the MIIM Command register
 output        UpdateMIIRX_DATAReg;// Updates MII RX_DATA register with read data
 
-parameter Tp = 1;
-
 
 reg           Nvalid;
 reg           EndBusy_d;          // Pre-end Busy signal

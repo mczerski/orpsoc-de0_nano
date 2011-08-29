@@ -70,8 +70,6 @@
 
 module eth_outputcontrol(Clk, Reset, InProgress, ShiftedBit, BitCounter, WriteOp, NoPre, MdcEn_n, Mdo, MdoEn);
 
-parameter Tp = 1;
-
 input         Clk;                // Host Clock
 input         Reset;              // General Reset
 input         WriteOp;            // Write Operation Latch (When asserted, write operation is in progress)
