@@ -158,7 +158,6 @@ $(XCF_FILE):
 # Generate coregen cores
 coregen:
 	$(Q)echo; echo "#### Running CORE Gen ####"; echo
-	$(Q)(. $(XILINX_SETTINGS_SCRIPT))
 	$(Q)$(shell cp $(COREGEN_XCO_FILES) .)
 	$(Q)$(shell cp $(COREGEN_CGP_FILE) .)
 	$(Q)for file in $(COREGEN_XCO_FILES); do \
@@ -168,7 +167,7 @@ coregen:
 # XST command
 $(NGC_FILE): $(PRJ_FILE) $(XST_FILE) $(XCF_FILE) $(GENERATED_DEFINES) coregen
 	$(Q)echo; echo "\t#### Running XST ####"; echo;
-	$(Q)(. $(XILINX_SETTINGS_SCRIPT) ; xst -ifn $(XST_FILE) $(XILINX_FLAGS) $(XST_FLAGS) )
+	$(Q)xst -ifn $(XST_FILE) $(XILINX_FLAGS) $(XST_FLAGS)
 	$(Q)echo
 
 netlist: $(NETLIST_FILE)
@@ -176,8 +175,7 @@ netlist: $(NETLIST_FILE)
 # Netlist generation command
 $(NETLIST_FILE): $(NGC_FILE)
 	$(Q)echo; echo "\t#### Generating verilog netlist ####"; echo;
-	$(Q)(. $(XILINX_SETTINGS_SCRIPT) ; \
-	netgen -sim -aka -dir . -ofmt verilog $< -w $@ )	
+	$(Q)netgen -sim -aka -dir . -ofmt verilog $< -w $@
 
 
 clean:

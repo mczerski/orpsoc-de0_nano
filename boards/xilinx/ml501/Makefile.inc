@@ -18,14 +18,10 @@ include $(PROJECT_ROOT)/scripts/make/Makefile-board-paths.inc
 include $(PROJECT_ROOT)/scripts/make/Makefile-board-tops.inc
 include $(PROJECT_ROOT)/scripts/make/Makefile-board-definesparse.inc
 
-# Check that the XILINX_PATH variable is set
-ifeq ($(XILINX_PATH),)
-$(error XILINX_PATH environment variable not set. Set it and rerun)
-endif
-XILINX_SETTINGS_SCRIPT=$(XILINX_PATH)/ISE/settings32.sh
-XILINX_SETTINGS_SCRIPT_EXISTS=$(shell if [ -e $(XILINX_SETTINGS_SCRIPT) ]; then echo 1; else echo 0; fi)
-ifeq ($(XILINX_SETTINGS_SCRIPT_EXISTS),0)
-$(error XILINX_PATH variable not set correctly. Cannot find $(XILINX_SETTINGS_SCRIPT))
+# Check that the Xilinx scripts have been sourced
+ifndef XILINX
+$(error The XILINX environment variable was not set, \
+please run: 'source /path/to/xilinx_ise/settings{32|64}.sh')
 endif
 
 # Backend directories
@@ -36,7 +32,7 @@ BOARD_BACKEND_BIN_DIR=$(BOARD_BACKEND_DIR)/bin
 # Technology backend (vendor-specific)
 TECHNOLOGY_BACKEND_DIR=$(BOARD_ROOT)/../backend
 # This path is for the technology library
-TECHNOLOGY_LIBRARY_VERILOG_DIR=$(XILINX_PATH)/ISE/verilog
+TECHNOLOGY_LIBRARY_VERILOG_DIR=$(XILINX)/verilog
 
 # Bootrom setup
 # BootROM code, which generates a verilog array select values
