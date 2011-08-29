@@ -125,7 +125,7 @@ $(XST_FILE):
 #	$(Q)echo "\"" >> $@
 # Give board then common verilog include paths, hoping xst does a sensible thing
 # and searches them in order.
-	$(Q)echo "-vlgincdir { "$(BOARD_RTL_VERILOG_INCLUDE_DIR)" "$(COMMON_RTL_VERILOG_DIR)/include" "$(BOOTROM_SW_DIR) " }" >> $@
+	$(Q)echo "-vlgincdir { "$(BOARD_RTL_VERILOG_INCLUDE_DIR)" "$(COMMON_RTL_VERILOG_DIR)/include" "$(BOOTROM_SW_DIR) " "$(DEVICE_TREE_DIR)" }" >> $@
 	$(Q)echo >> $@
 
 # Generate Xilinx project (.prj) file

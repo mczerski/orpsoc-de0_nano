@@ -45,6 +45,9 @@ VOPT_ARGS= -L secureip
 DO_XILINX_COMPXLIB=1
 XLIB_ARGS=-intstyle silent -s mti_se -l all -arch $(FPGA_ARCH) -lib all
 
+#Device tree blob
+DEVICE_TREE_DIR=$(BOARD_SW_DIR)/device_tree
+
 # Bootrom setup
 # BootROM code, which generates a verilog array select values
 BOOTROM_FILE=bootrom.v
