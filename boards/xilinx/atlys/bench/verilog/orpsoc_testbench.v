@@ -172,8 +172,10 @@ module orpsoc_testbench;
 `ifdef UART0      
       .uart0_stx_pad_o			(uart0_stx_pad_o),
       .uart0_srx_pad_i			(uart0_srx_pad_i),
+`ifdef UART0_EXPHEADER 
       .uart0_stx_expheader_pad_o	(uart0_stx_pad_o),
       .uart0_srx_expheader_pad_i	(uart0_srx_pad_i),
+`endif
 `endif
 `ifdef SPI0
        .spi0_sck_o			(spi0_sck_o),

@@ -13,5 +13,4 @@ dual-port memory, with different aspects on each size, and cannot be inferred.
 The NGC should be in the appropriate place in the synthesis or backend 
 directories.
 
-Wishbone B3-compliant bursting is yet to be implemented.
 

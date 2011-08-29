@@ -5,7 +5,8 @@
 /// Instantiates modules, depending on ORPSoC defines file        ////
 ///                                                               ////
 /// Julius Baxter, julius@opencores.org                           ////
-///                                                               ////
+/// Contributor(s):                                               ////
+///   Stefan Kristiansson, stefan.kristiansson@saunalahti.fi      ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
@@ -982,7 +983,6 @@ module orpsoc_top
       .ddr2_udqs			(ddr2_udqs),
       .ddr2_udqs_n			(ddr2_udqs_n),
       .ddr2_if_clk                      (ddr2_if_clk),
-      .clk100      		        (clk100),
       .ddr2_if_rst                      (ddr2_if_rst)
       );
    
