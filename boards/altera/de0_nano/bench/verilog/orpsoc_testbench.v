@@ -91,6 +91,7 @@ module orpsoc_testbench;
    wire [1:0] 		     sdram_ba_pad_o;
    wire 		     sdram_cas_pad_o;
    wire 		     sdram_cke_pad_o;
+   wire 		     sdram_clk_pad_o;
    wire 		     sdram_cs_n_pad_o;
    wire [15:0] 		     sdram_dq_pad_io;
    wire [1:0] 		     sdram_dqm_pad_o;
@@ -170,6 +171,7 @@ module orpsoc_testbench;
       .sdram_we_pad_o			(sdram_we_pad_o),
       .sdram_dqm_pad_o			(sdram_dqm_pad_o),
       .sdram_cke_pad_o			(sdram_cke_pad_o),
+      .sdram_clk_pad_o                  (sdram_clk_pad_o),
 `endif
 `ifdef UART0      
       .uart0_stx_pad_o			(uart0_stx_pad_o),
@@ -484,7 +486,7 @@ module orpsoc_testbench;
       // Inputs
       .Addr  (sdram_a_pad_o_to_sdram),
       .Ba    (sdram_ba_pad_o_to_sdram),
-      .Clk   (clk),
+      .Clk   (sdram_clk_pad_o),
       .Cke   (sdram_cke_pad_o_to_sdram),
       .Cs_n  (sdram_cs_n_pad_o_to_sdram),
       .Ras_n (sdram_ras_pad_o_to_sdram),
