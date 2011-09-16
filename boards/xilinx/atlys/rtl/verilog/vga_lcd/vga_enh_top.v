@@ -91,7 +91,7 @@ module vga_enh_top (
 	// parameters
 	//
 	parameter ARST_LVL = 1'b0;
-    parameter LINE_FIFO_AWIDTH = 7;
+	parameter LINE_FIFO_AWIDTH = 7;
 
 	//
 	// inputs & outputs
@@ -326,6 +326,7 @@ module vga_enh_top (
 		.dat1_o(ext_clut_q),
 		.we1_i(wbs_we_i)
 	);
+
 	// hookup pixel and video timing generator
 	vga_pgen pixel_generator (
 		.clk_i              ( wb_clk_i           ),
@@ -405,20 +406,8 @@ module vga_enh_top (
 
 	// hookup line-fifo
 	wire ctrl_ven_not = ~ctrl_ven;
-/* SJK TODO: add define
-	vga_fifo_dc #(LINE_FIFO_AWIDTH, 24) line_fifo (
-		.rclk  ( clk_p_i            ),
-		.wclk  ( wb_clk_i           ),
-		.rclr  ( 1'b0               ),
-		.wclr  ( ctrl_ven_not       ),
-		.wreq  ( line_fifo_wreq     ),
-		.d     ( line_fifo_d        ),
-		.rreq  ( line_fifo_rreq     ),
-		.q     ( line_fifo_q        ),
-		.empty ( line_fifo_empty_rd ),
-		.full  ( line_fifo_full_wr  )
-	);
-*/
+
+`ifdef VGA_SPARTAN6_COREGEN_FIFO_DC
 	vga_fifo_dc_gen line_fifo (
 	    .rst           (ctrl_ven_not),
 	    .wr_clk        (wb_clk_i),
@@ -432,6 +421,20 @@ module vga_enh_top (
 	    .empty         (),
 	    .almost_empty  (line_fifo_empty_rd)
 	);
+`else
+	vga_fifo_dc #(LINE_FIFO_AWIDTH, 24) line_fifo (
+		.rclk  ( clk_p_i            ),
+		.wclk  ( wb_clk_i           ),
+		.rclr  ( 1'b0               ),
+		.wclr  ( ctrl_ven_not       ),
+		.wreq  ( line_fifo_wreq     ),
+		.d     ( line_fifo_d        ),
+		.rreq  ( line_fifo_rreq     ),
+		.q     ( line_fifo_q        ),
+		.empty ( line_fifo_empty_rd ),
+		.full  ( line_fifo_full_wr  )
+	);
+`endif
 	// generate interrupt signal when reading line-fifo while it is empty (line-fifo under-run interrupt)
 	reg luint_pclk, sluint;
 
@@ -451,8 +454,3 @@ module vga_enh_top (
 	    end
 
 endmodule
-
-
-
-
-
