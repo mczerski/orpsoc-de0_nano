@@ -501,7 +501,9 @@ module orpsoc_testbench;
      begin
 	
  `ifdef VCD_DELAY
-	#(`VCD_DELAY);   
+	repeat(10000) begin
+		#(`VCD_DELAY);
+	end
  `endif
 
 	// Delay by x insns
