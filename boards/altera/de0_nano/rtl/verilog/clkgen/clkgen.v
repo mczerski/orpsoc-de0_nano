@@ -66,6 +66,10 @@ module clkgen
    usb_clk_o,
 `endif
 
+`ifdef VGA0
+   vga0_clk_o,
+`endif
+
    // Asynchronous, active low reset in
    rst_n_pad_i
    
@@ -94,6 +98,10 @@ module clkgen
    
 `ifdef USB_CLK
    output usb_clk_o;
+`endif
+
+`ifdef VGA0
+   output vga0_clk_o;
 `endif
 
    // Asynchronous, active low reset (pushbutton, typically)
@@ -136,6 +144,11 @@ module clkgen
     .c0     (),
 `endif      
     .c1     (wb_clk_o),
+`ifdef VGA0
+    .c2     (vga0_clk_o),
+`else
+    .c2     (),
+`endif    
     .locked (pll_lock)
    );
    

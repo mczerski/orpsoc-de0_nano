@@ -62,7 +62,7 @@
 `define GPIO0
 //`define ETH0
 //`define SDC_CONTROLLER
-
+`define VGA0
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 `ifdef SPI0
@@ -119,14 +119,14 @@
 //`define ARBITER_IBUS_REGISTERING
 `define ARBITER_IBUS_WATCHDOG
 // Watchdog timeout: 2^(ARBITER_IBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 12
+`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 13
 
 // Data bus arbiter
 
 //`define ARBITER_DBUS_REGISTERING
 `define ARBITER_DBUS_WATCHDOG
 // Watchdog timeout: 2^(ARBITER_DBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 12
+`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 13
 
 // Byte bus (peripheral bus) arbiter
 // Don't really need the watchdog here - the databus will pick it up

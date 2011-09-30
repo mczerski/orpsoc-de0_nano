@@ -109,7 +109,13 @@ module orpsoc_top
 `ifdef SDC_CONTROLLER
     sdc_cmd_pad_io , sdc_dat_pad_io ,  sdc_clk_pad_o, 
     sdc_card_detect_pad_i,
-`endif  
+`endif
+`ifdef VGA0
+    vga0_rst_n_o,
+    vga0_clk_p_o, vga0_hsync_pad_o, vga0_vsync_pad_o,
+    vga0_r_pad_o, vga0_g_pad_o, vga0_b_pad_o,
+    vga0_data_en_o,
+`endif
     sys_clk_pad_i,
 
     rst_n_pad_i  
@@ -225,7 +231,17 @@ module orpsoc_top
    input 		      sdc_card_detect_pad_i;
    inout [3:0] 		      sdc_dat_pad_io ;
    output 		      sdc_clk_pad_o ;
-`endif     
+`endif
+`ifdef VGA0
+   output 		      vga0_rst_n_o;
+   output 		      vga0_clk_p_o;
+   output 		      vga0_hsync_pad_o;
+   output 		      vga0_vsync_pad_o;
+   output 		      vga0_data_en_o;
+   output [7:0] 	      vga0_r_pad_o;
+   output [7:0]		      vga0_g_pad_o;
+   output [7:0]		      vga0_b_pad_o;   
+`endif
    ////////////////////////////////////////////////////////////////////////
    //
    // Clock and reset generation module
@@ -243,8 +259,8 @@ module orpsoc_top
    wire 		      spw_clk;
    wire 		      eth_smii_clk, eth_smii_rst;
    wire 		      dbg_tck;
+   wire 		      vga0_pclk;
 
-   
    clkgen clkgen0
      (
       .sys_clk_pad_i             (sys_clk_pad_i),
@@ -266,6 +282,9 @@ module orpsoc_top
 `endif
 `ifdef USB_CLK     
       .usb_clk_o                 (usb_clk),
+`endif
+`ifdef VGA0     
+      .vga0_clk_o                (vga0_pclk),
 `endif
 
       // Asynchronous active low reset
@@ -617,6 +636,34 @@ module orpsoc_top
    wire 				  wbm_eth0_err_i;
    wire 				  wbm_eth0_rty_i;
 
+   // vga0 slave wires
+   wire [31:0] 				  wbs_d_vga0_adr_i;
+   wire [wbs_d_vga0_data_width-1:0] 	  wbs_d_vga0_dat_i;
+   wire [3:0] 				  wbs_d_vga0_sel_i;
+   wire 				  wbs_d_vga0_we_i;
+   wire 				  wbs_d_vga0_cyc_i;
+   wire 				  wbs_d_vga0_stb_i;
+   wire [2:0] 				  wbs_d_vga0_cti_i;
+   wire [1:0] 				  wbs_d_vga0_bte_i;   
+   wire [wbs_d_vga0_data_width-1:0] 	  wbs_d_vga0_dat_o;   
+   wire 				  wbs_d_vga0_ack_o;
+   wire 				  wbs_d_vga0_err_o;
+   wire 				  wbs_d_vga0_rty_o;
+
+   // vga0 master wires
+   wire [wbm_vga0_addr_width-1:0] 	  wbm_vga0_adr_o;
+   wire [wbm_vga0_data_width-1:0] 	  wbm_vga0_dat_o;
+   wire [3:0] 				  wbm_vga0_sel_o;
+   wire 				  wbm_vga0_we_o;
+   wire 				  wbm_vga0_cyc_o;
+   wire 				  wbm_vga0_stb_o;
+   wire [2:0] 				  wbm_vga0_cti_o;
+   wire [1:0] 				  wbm_vga0_bte_o;
+   wire [wbm_vga0_data_width-1:0] 	  wbm_vga0_dat_i;
+   wire 				  wbm_vga0_ack_i;
+   wire 				  wbm_vga0_err_i;
+   wire 				  wbm_vga0_rty_i;
+
    
 
 
@@ -762,18 +809,32 @@ module orpsoc_top
       .wbs2_err_o			(wbs_d_sdc_err_o),
       .wbs2_rty_o			(wbs_d_sdc_rty_o),
       
-      .wbs3_adr_i			(wbm_b_d_adr_o),
-      .wbs3_dat_i			(wbm_b_d_dat_o),
-      .wbs3_sel_i			(wbm_b_d_sel_o),
-      .wbs3_we_i			(wbm_b_d_we_o),
-      .wbs3_cyc_i			(wbm_b_d_cyc_o),
-      .wbs3_stb_i			(wbm_b_d_stb_o),
-      .wbs3_cti_i			(wbm_b_d_cti_o),
-      .wbs3_bte_i			(wbm_b_d_bte_o),
-      .wbs3_dat_o			(wbm_b_d_dat_i),
-      .wbs3_ack_o			(wbm_b_d_ack_i),
-      .wbs3_err_o			(wbm_b_d_err_i),
-      .wbs3_rty_o			(wbm_b_d_rty_i),
+      .wbs3_adr_i			(wbs_d_vga0_adr_i),
+      .wbs3_dat_i			(wbs_d_vga0_dat_i),
+      .wbs3_sel_i			(wbs_d_vga0_sel_i),
+      .wbs3_we_i			(wbs_d_vga0_we_i),
+      .wbs3_cyc_i			(wbs_d_vga0_cyc_i),
+      .wbs3_stb_i			(wbs_d_vga0_stb_i),
+      .wbs3_cti_i			(wbs_d_vga0_cti_i),
+      .wbs3_bte_i			(wbs_d_vga0_bte_i),
+      .wbs3_dat_o			(wbs_d_vga0_dat_o),
+      .wbs3_ack_o			(wbs_d_vga0_ack_o),
+      .wbs3_err_o			(wbs_d_vga0_err_o),
+      .wbs3_rty_o			(wbs_d_vga0_rty_o),
+
+      .wbs4_adr_i			(wbm_b_d_adr_o),
+      .wbs4_dat_i			(wbm_b_d_dat_o),
+      .wbs4_sel_i			(wbm_b_d_sel_o),
+      .wbs4_we_i			(wbm_b_d_we_o),
+      .wbs4_cyc_i			(wbm_b_d_cyc_o),
+      .wbs4_stb_i			(wbm_b_d_stb_o),
+      .wbs4_cti_i			(wbm_b_d_cti_o),
+      .wbs4_bte_i			(wbm_b_d_bte_o),
+      .wbs4_dat_o			(wbm_b_d_dat_i),
+      .wbs4_ack_o			(wbm_b_d_ack_i),
+      .wbs4_err_o			(wbm_b_d_err_i),
+      .wbs4_rty_o			(wbm_b_d_rty_i),
+
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -785,6 +846,7 @@ module orpsoc_top
    defparam arbiter_dbus0.slave0_adr = dbus_arb_slave0_adr;
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
    defparam arbiter_dbus0.slave2_adr = dbus_arb_slave2_adr;
+   defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1316,7 +1378,21 @@ module orpsoc_top
    assign sdram_dq_pad_io = sdram_dq_oe ? sdram_dq_o : 16'bz;
    assign sdram_clk_pad_o = sdram_clk;
 
-   versatile_mem_ctrl versatile_mem_ctrl0
+   wb_sdram_ctrl 
+     #(
+       .CLK_FREQ_MHZ			(100),	// sdram_clk freq in MHZ
+       .POWERUP_DELAY			(200),	// power up delay in us
+       .WB_PORTS			(3),	// Number of wishbone ports
+       .ROW_WIDTH			(13),	// Row width
+       .COL_WIDTH			(9),	// Column width
+       .BA_WIDTH			(2),	// Ba width
+       .tCAC				(2),	// CAS Latency
+       .tRAC				(5),	// RAS Latency
+       .tRP				(2),	// Command Period (PRE to ACT)
+       .tRC				(7),	// Command Period (REF to REF / ACT to ACT)
+       .tMRD				(2)	// Mode Register Set To Command Delay time
+      )
+   wb_sdram_ctrl0
      (
       // External SDRAM interface
       .ba_pad_o				(sdram_ba_pad_o[1:0]),
@@ -1332,103 +1408,63 @@ module orpsoc_top
       .cke_pad_o			(sdram_cke_pad_o),
       .sdram_clk			(sdram_clk),           
       .sdram_rst                        (sdram_rst),
- `ifdef ETH0
-  `ifdef SDC_CONTROLLER
-      // Wishbone slave interface 0
-      .wb_dat_i_0			({{wbm_eth0_dat_o, wbm_eth0_sel_o},{wbm_sdc_dat_o, wbm_sdc_sel_o},
-					  {wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},{wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
-      .wb_adr_i_0			({{wbm_eth0_adr_o[31:2], wbm_eth0_we_o, wbm_eth0_bte_o, wbm_eth0_cti_o},
-					  {wbm_sdc_adr_o[31:2], wbm_sdc_we_o,   wbm_sdc_bte_o,   wbm_sdc_cti_o},
-					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
-					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
-      .wb_cyc_i_0			({wbm_eth0_cyc_o,wbm_sdc_cyc_o,wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
-      .wb_stb_i_0			({wbm_eth0_stb_o,wbm_sdc_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
-      .wb_dat_o_0			({wbm_eth0_dat_i,wbm_sdc_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
-      .wb_ack_o_0			({wbm_eth0_ack_i,wbm_sdc_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
-  `else
-      // Wishbone slave interface 0
-      .wb_dat_i_0			({{wbm_eth0_dat_o, wbm_eth0_sel_o},{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},
-					  {wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
-      .wb_adr_i_0			({{wbm_eth0_adr_o[31:2], wbm_eth0_we_o, wbm_eth0_bte_o, wbm_eth0_cti_o},
-					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
-					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
-      .wb_cyc_i_0			({wbm_eth0_cyc_o,wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
-      .wb_stb_i_0			({wbm_eth0_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
-      .wb_dat_o_0			({wbm_eth0_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
-      .wb_ack_o_0			({wbm_eth0_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
-  `endif      
- `else // !`ifdef ETH0
-  `ifdef SDC_CONTROLLER
-      // Wishbone slave interface 0
-      .wb_dat_i_0			({{wbm_sdc_dat_o, wbm_sdc_sel_o},{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},
-					  {wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
-      .wb_adr_i_0			({{wbm_sdc_adr_o[31:2]  , wbm_sdc_we_o  ,   wbm_sdc_bte_o,   wbm_sdc_cti_o},
-					  {wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
-					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
-      .wb_cyc_i_0			({wbm_sdc_cyc_o,wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
-      .wb_stb_i_0			({wbm_sdc_stb_o,wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
-      .wb_dat_o_0			({wbm_sdc_dat_i,wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
-      .wb_ack_o_0			({wbm_sdc_ack_i,wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
-  `else      
-      // Wishbone slave interface 0
-      .wb_dat_i_0			({{wbs_d_mc0_dat_i, wbs_d_mc0_sel_i},{wbs_i_mc0_dat_i,wbs_i_mc0_sel_i}}),
-      .wb_adr_i_0			({{wbs_d_mc0_adr_i[31:2], wbs_d_mc0_we_i, wbs_d_mc0_bte_i, wbs_d_mc0_cti_i},
-					  {wbs_i_mc0_adr_i[31:2], wbs_i_mc0_we_i, wbs_i_mc0_bte_i, wbs_i_mc0_cti_i}}),
-      .wb_cyc_i_0			({wbs_d_mc0_cyc_i,wbs_i_mc0_cyc_i}),
-      .wb_stb_i_0			({wbs_d_mc0_stb_i,wbs_i_mc0_stb_i}),
-      .wb_dat_o_0			({wbs_d_mc0_dat_o,wbs_i_mc0_dat_o}),
-      .wb_ack_o_0			({wbs_d_mc0_ack_o,wbs_i_mc0_ack_o}),
-  `endif
- `endif // !`ifdef ETH0
-      
-      // Wishbone slave interface 1
-      .wb_dat_i_1			(2'd0),
-      .wb_adr_i_1			(2'd0),
-      .wb_cyc_i_1			(2'd0),
-      .wb_stb_i_1			(2'd0),
-      .wb_dat_o_1			(),
-      .wb_ack_o_1			(),
-
-      // Wishbone slave interface 2
-      .wb_dat_i_2			(2'd0),
-      .wb_adr_i_2			(2'd0),
-      .wb_cyc_i_2			(2'd0),
-      .wb_stb_i_2			(2'd0),
-      .wb_dat_o_2			(),
-      .wb_ack_o_2			(),
-      
-      // Wishbone slave interface 3
-      .wb_dat_i_3			(2'd0),
-      .wb_adr_i_3			(2'd0),
-      .wb_cyc_i_3			(2'd0),
-      .wb_stb_i_3			(2'd0),
-      .wb_dat_o_3			(),
-      .wb_ack_o_3			(),
 
       .wb_clk				(wb_clk),
-      .wb_rst				(wb_rst)
+      .wb_rst				(wb_rst),
+
+      .wb_adr_i				({
+					  wbs_i_mc0_adr_i,
+					  wbs_d_mc0_adr_i,
+					  wbm_vga0_adr_o
+					  }),
+      .wb_stb_i				({
+					  wbs_i_mc0_stb_i,
+					  wbs_d_mc0_stb_i,
+					  wbm_vga0_stb_o
+					  }),
+      .wb_cyc_i				({
+					  wbs_i_mc0_cyc_i,
+					  wbs_d_mc0_cyc_i,
+					  wbm_vga0_cyc_o
+					  }),
+      .wb_cti_i				({
+					  wbs_i_mc0_cti_i,
+					  wbs_d_mc0_cti_i,
+					  wbm_vga0_cti_o
+					  }),
+      .wb_bte_i				({
+					  wbs_i_mc0_bte_i,
+					  wbs_d_mc0_bte_i,
+					  wbm_vga0_bte_o
+					  }),
+      .wb_we_i				({
+					  wbs_i_mc0_we_i,
+					  wbs_d_mc0_we_i,
+					  wbm_vga0_we_o
+					  }),
+      .wb_sel_i				({
+					  wbs_i_mc0_sel_i,
+					  wbs_d_mc0_sel_i,
+					  wbm_vga0_sel_o
+					  }),
+      .wb_dat_i				({
+					  wbs_i_mc0_dat_i,
+					  wbs_d_mc0_dat_i,
+					  wbm_vga0_dat_o
+					  }),      
+      .wb_dat_o				({
+					  wbs_i_mc0_dat_o,
+					  wbs_d_mc0_dat_o,
+					  wbm_vga0_dat_i
+					  }),
+      .wb_ack_o				({
+					  wbs_i_mc0_ack_o,
+					  wbs_d_mc0_ack_o,
+					  wbm_vga0_ack_i
+					  })
       );
-
-   // If not using gatelevel, define parameters
-   // Hard-set here to just 2 ports from the same domain
-
-   defparam versatile_mem_ctrl0.nr_of_wb_clk_domains = 1;
- `ifdef ETH0
-  `ifdef SDC_CONTROLLER
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 4;
-  `else
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 3;
-  `endif
- `else
-  `ifdef SDC_CONTROLLER
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 3;
-  `else
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk0  = 2;
-  `endif
- `endif   
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk1  = 0;
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk2  = 0;
-   defparam versatile_mem_ctrl0.nr_of_wb_ports_clk3  = 0;
+      
+      
 
    assign wbs_i_mc0_err_o = 0;
    assign wbs_i_mc0_rty_o = 0;
@@ -1439,6 +1475,8 @@ module orpsoc_top
    assign wbm_eth0_err_i = 0;
    assign wbm_eth0_rty_i = 0;
 
+   assign wbm_vga0_err_i = 0;
+   assign wbm_vga0_rty_i = 0;
    
    ////////////////////////////////////////////////////////////////////////
 `endif //  `ifdef VERSATILE_SDRAM
@@ -2577,6 +2615,73 @@ module orpsoc_top
    assign wbs_d_gpio0_rty_o = 0;
    ////////////////////////////////////////////////////////////////////////
 `endif // !`ifdef GPIO0
+
+`ifdef VGA0
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // VGA
+   // 
+   ////////////////////////////////////////////////////////////////////////
+
+   wire vga0_irq;
+   wire vga0_blank;
+   wire vga0_hsync;
+   wire vga0_vsync;   
+   wire vga0_pclk_o;
+   
+   assign vga0_data_en_o = ~vga0_blank;
+   assign vga0_rst_n_o = ~wb_rst;
+   // Invert polarity of hsync and vsync to negative
+   assign vga0_hsync_pad_o = ~vga0_hsync;
+   assign vga0_vsync_pad_o = ~vga0_vsync;
+   assign vga0_clk_p_o = vga0_pclk_o;
+   
+   vga_enh_top vga0
+    (
+    .wb_clk_i            (wb_clk), 
+    .wb_rst_i            (wb_rst),  
+    .rst_i               (1'b1), 
+    .wb_inta_o           (vga0_irq),
+    .wbs_adr_i           (wbs_d_vga0_adr_i[wbs_d_vga0_addr_width-1:0]),
+    .wbs_dat_i           (wbs_d_vga0_dat_i[31:0]), 
+    .wbs_dat_o           (wbs_d_vga0_dat_o[31:0]), 
+    .wbs_sel_i           (wbs_d_vga0_sel_i[3:0]), 
+    .wbs_we_i            (wbs_d_vga0_we_i), 
+    .wbs_stb_i           (wbs_d_vga0_stb_i), 
+    .wbs_cyc_i           (wbs_d_vga0_cyc_i), 
+    .wbs_ack_o           (wbs_d_vga0_ack_o), 
+    .wbs_rty_o           (wbs_d_vga0_rty_o), 
+    .wbs_err_o           (wbs_d_vga0_err_o),
+    .wbm_adr_o           (wbm_vga0_adr_o[31:0]),
+    .wbm_dat_i           (wbm_vga0_dat_i[31:0]), 
+    .wbm_cti_o           (wbm_vga0_cti_o[2:0]), 
+    .wbm_bte_o           (wbm_vga0_bte_o[1:0]), 
+    .wbm_sel_o           (wbm_vga0_sel_o[3:0]), 
+    .wbm_we_o            (wbm_vga0_we_o), 
+    .wbm_stb_o           (wbm_vga0_stb_o), 
+    .wbm_cyc_o           (wbm_vga0_cyc_o), 
+    .wbm_ack_i           (wbm_vga0_ack_i), 
+    .wbm_err_i           (wbm_vga0_err_i),
+    .clk_p_i             (vga0_pclk),
+`ifdef VGA_12BIT_DVI
+    .dvi_pclk_p_o        (), 
+    .dvi_pclk_m_o        (), 
+    .dvi_hsync_o         (), 
+    .dvi_vsync_o         (), 
+    .dvi_de_o            (), 
+    .dvi_d_o             (),
+`endif
+    .clk_p_o             (vga0_pclk_o), 
+    .hsync_pad_o         (vga0_hsync),
+    .vsync_pad_o         (vga0_vsync),
+    .csync_pad_o         (), 
+    .blank_pad_o         (vga0_blank),
+    .r_pad_o             (vga0_r_pad_o), 
+    .g_pad_o             (vga0_g_pad_o),
+    .b_pad_o             (vga0_b_pad_o)
+    );
+`endif //  `ifdef VGA0
+   assign wbm_vga0_dat_o = 0;
    
    ////////////////////////////////////////////////////////////////////////
    //
