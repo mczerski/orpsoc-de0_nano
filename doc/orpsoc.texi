@@ -32,7 +32,7 @@ Free Documentation License''.
 @c @subtitle second-subtitle
 @author Julius Baxter
 @author OpenCores
-@author Issue 2 for @value{ORPSOC}
+@author Issue 3 for @value{ORPSOC}
 
 @c  The following two commands
 @c  start the copyright page.
@@ -59,12 +59,13 @@ This document is the user guide for @value{ORPSOC}, the OpenRISC Reference Platf
 * Project Organisation::
 * Getting Started::
 * Reference Design::
-* Board Designs::
 * ORDB1A3PE1500::
 * ML501::
 * S3ADSP1800::
+* Atlys::
 * Generic Designs::
 * Software::
+* EDA tool notes::
 * GNU Free Documentation License::  The license for this documentation
 * Index::
 @end menu
@@ -127,15 +128,16 @@ Test software is found under @code{sw/tests}. Typically, each is for a specific 
 Under each test directory are two directories, @code{board} and @code{sim}, containing appropriate test software. Code for simulation will produce less printfs and aim to execute within realistic timeframes for RTL simulation. Board targeted test software is obviously written with the opposite considerations in mind and be more verbose and perhaps run orders of magnitudes more tests.
 
 @node Software Test Naming
+@subsection Software Test Naming
 
 The rules for naming software tests are important to adhere to, so the automation scripts can locate them. The test directory name must be a single word (potentially with underscores), and then the tests must be in files of the format @emph{testdirname}-@emph{testname}.extension, eg. @code{uart-simple.c} or @code{or1200-fp.S}.
 
-@xref{Software} for further details.
+@xref{Software}, for further details.
 
 @node RTL Organisation 
 @section RTL
 
-The HDL code layout conforms to those outlined in the OpenCores.org coding guidelines. http://cdn.opencores.org/downloads/opencores_coding_guidelines.pdf
+The HDL code layout conforms to those outlined in the OpenCores.org coding guidelines. @uref{http://cdn.opencores.org/downloads/opencores_coding_guidelines.pdf}
 
 There are, however, some naming restrictions for this project. 
 
@@ -268,16 +270,6 @@ The design is not intended for implementation on an FPGA or ASIC, rather purely 
 @node Reference Design Structure
 @section Structure
 
-@menu
-* Overview::
-* RTL::
-* Software::
-* Simulation::
-@end menu
-
-@node Reference Design Overview
-@subsection Overview
-
 The reference design's paths are all based in the root directory of @value{ORPSOC}. This is different from the board-targeted builds, which are based in their specific board paths.
 
 As synthesis and physical implementation is not intended for the reference design there are no @code{syn} or @code{backend} paths in the root directory of @value{ORPSOC}.
@@ -350,8 +342,7 @@ Cycle Accurate Simulation: Verilator, Verilog-Perl, System-Perl, SystemC
 
 None. The target is purely simulation, no extra utilities are required to debug.
 
-
-@node Reference Design Simulation
+@node Reference Design Simulation Instructions
 @section Simulation
 
 @menu
@@ -360,7 +351,7 @@ None. The target is purely simulation, no extra utilities are required to debug.
 * Results::
 @end menu
 
-@node Reference Design RTL
+@node Reference Design RTL Simulation
 @subsection RTL
 @cindex rtl simulation of reference design
 
@@ -985,7 +976,7 @@ The physical constraints file can be generated manually with the @kbd{make pdc-f
 
 The Xilinx ML501 board contains a Virtex LX50 part, varied memories and peripherals. See Xilinx's site for specific details: 
 
-http://www.xilinx.com/products/devkits/HW-V5-ML501-UNI-G.htm
+@uref{http://www.xilinx.com/products/devkits/HW-V5-ML501-UNI-G.htm}
 
 The OR1200 core and Wishbone bus is set to run at 66MHz. The OR1200 core, as defined here, is almost fully featured, with every hardware arithmetic option enabled, and the largest possible cache configuration, of 1024 sets with 8 words per line which is 32 kilobytes of cache each for instruction and data buses.
 
@@ -1010,20 +1001,11 @@ The Verilog RTL specific to this board is under @code{rtl/verilog} in the board 
 
 Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
 
-@node ML501 XILINX_PATH
-@subsection ML501 XILINX_PATH
+@node ML501 Xilinx Environment Setup
+@subsection ML501 Xilinx Environment Setup
 
-Be sure to set the environment variable @code{XILINX_PATH} to the path of the Xilinx tools' install path on the host machine. This path is usually the base install path for the Xilinx tool suite and contains subdirectories such as @code{ISE/}, @code{common/}, @code{PlanAhead/}, etc.
+Ensure the Xilinx environment has been setup before running all scripts for this board build. @xref{Xilinx Environment Setup}.
 
-Most bash-like shells can use the following line to set this environment variable.
-
-@example @kbd{export XILINX_PATH=/software/xilinx_12.3} @end example
-
-Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
-
-If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
-
-This build has been tested with ISE versions 11.1 and 12.3.
 
 @node ML501 Tools
 @section Tools
@@ -1069,9 +1051,8 @@ or_debug_proxy, ORPmon
 @section Simulating
 @cindex simulating ML501 
 
-Ensure the @code{XILINX_PATH} environment variable is set correctly. @xref{ML501 XILINX_PATH} for information.
+Ensure the Xilinx environment has been setup before running all simulations for this board build. @xref{Xilinx Environment Setup}.
 
-Note that if this path is not set, simulations will not compile.
 
 @subheading Run RTL Regression Test
 
@@ -1250,7 +1231,7 @@ If once the FPGA configuration image, and a bootloader image is embedded in the 
 
 There are two ways to program the M25P16 2MByte SPI flash from the Xilinx iMPACT tool - @emph{direct} and @emph{indirect}. Direct programming means the Xilinx programmer has a direct connection from its pins to the SPI bus. It then performs SPI accesses on the bus to erase and program the part. Indirect programming involves the FPGA and sets up connections to the SPI via it. Indirect programming may be slower, but it is the only supported method as of ISE 12 onwards.
 
-There may be a way of programming directly using the open source @emph{xc3sprog} tool, http://sourceforge.net/projects/xc3sprog/ , but the author is yet to figure out how, and would greatly appreciate anyone who can provide a quick rundown on how this could be achieved.
+There may be a way of programming directly using the open source @emph{xc3sprog} tool, @uref{http://sourceforge.net/projects/xc3sprog/} , but the author is yet to figure out how, and would greatly appreciate anyone who can provide a quick rundown on how this could be achieved.
 
 Once programmed, booting from the SPI flash to ORPmon prompt is about 3 to 4 seconds.
 
@@ -1259,13 +1240,13 @@ Once programmed, booting from the SPI flash to ORPmon prompt is about 3 to 4 sec
 
 @emph{Note}: As of ISE 12, direct SPI flash programming is no longer supported. ISE 11 must be used if this method is to be used. Indirect SPI flash programming is the recommended method by Xilinx now. How annoying.
 
-For a guide on how to actually set up the ML501 board to program the SPI flash, see the section under ``@emph{My Own SPI Flash Image Demonstration}'' on page 26 of the Xilinx UG228 document, http://www.xilinx.com/support/documentation/boards_and_kits/ug228.pdf . Follow steps 1 to 4, and then 9 to 16, and supply the @code{.mcs} file generated here.
+For a guide on how to actually set up the ML501 board to program the SPI flash, see the section under ``@emph{My Own SPI Flash Image Demonstration}'' on page 26 of the Xilinx UG228 document, @uref{http://www.xilinx.com/support/documentation/boards_and_kits/ug228.pdf} . Follow steps 1 to 4, and then 9 to 16, and supply the @code{.mcs} file generated here.
 
-A more general explanation of direct SPI flash programming can be found in XAPP951- http://www.xilinx.com/support/documentation/application\_notes/xapp951.pdf
+A more general explanation of direct SPI flash programming can be found in XAPP951- @uref{http://www.xilinx.com/support/documentation/application_notes/xapp951.pdf}
 
 Be sure to set the @emph{CONFIG} switches to @code{00010101} (left-to-right when Xilinx logo in North-West of board) before attempting to program the SPI flash. The be sure to switch them back to @code{00000101} before attempting to boot the image.
 
-@emph{Note}: Direct SPI flash programming will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf .
+@emph{Note}: Direct SPI flash programming will require fly-leads from the Xilinx programming cable to the the board. See page 6 of XAPP1053 for a picture of this for a @emph{different} board, but to get the idea: @uref{http://www.xilinx.com/support/documentation/application_notes/xapp1053.pdf}.
 
 @emph{Note}: If leaving the SPI programming fly leads in place and attempting to boot the image, be sure to remove the @code{Vref} (@code{VCC3V3} on JP2) connection before attempting to boot. Be sure the configuration DIP SW15 is set back to the @code{00000101} position!
 
@@ -1276,7 +1257,7 @@ Be sure to set the @emph{CONFIG} switches to @code{00010101} (left-to-right when
 
 The indirect method of programming the SPI flash has the memory show up as an extrnal module off the FPGA when performing an automatic JTAG boundary scan.
 
-The following page has more information about the steps required. http://www.xilinx.com/support/documentation/sw\_manuals/xilinx11/pim\_p\_configure\_spi\_bpi\_through\_fpga.htm The @code{.mcs} file required is the one generated in previous steps in this guide.
+The following page has more information about the steps required. @uref{http://www.xilinx.com/support/documentation/sw_manuals/xilinx11/pim_p_configure_spi_bpi_through_fpga.htm} The @code{.mcs} file required is the one generated in previous steps in this guide.
 
 @emph{Note:} As we generate the @code{.mcs} file with bit/byte swapping disabled (with the use of the @code{-spi} option when running the promgen tool) we must disable iMPACT's automatic bit/byte swapping when programming the SPI flash. In ISE 12 this option is found by going to the @emph{Edit menu -> Preferences}, and  in the @emph{Configuration Preferences} category, set the @emph{SPI Byte Swap} option to @emph{Ignore Setting}.
 
@@ -1361,7 +1342,7 @@ If any I/O is added, or special timing specified, the board's UCF file will need
 @node ML501 Debug Interface
 @subsection Debug Interface
 
-The debug interface uses a separate JTAG tap and some fly-leads must be connected from an @emph{ORSoC USB debugger} (http://opencores.com/shop,item,3) to the ML501.
+The debug interface uses a separate JTAG tap and some fly-leads must be connected from an @emph{ORSoC USB debugger} (@uref{http://opencores.com/shop,item,3}) to the ML501.
 
 From the USB debugger, a fly lead must take the following signals to the following pins on header J4 on the ML501.
 
@@ -1382,7 +1363,7 @@ Supply and ground pins must also be hooked up for the USB debugger.
 
 The left column of pins on J4 are all tied to ground. All pins on J7 (expansion header located adjacent to J4) are all tied to VCC2V5, 2.5V DC, and this is OK for supplying the buffers on the USB debug cable, and can be used. So essentially put the supply leads anywhere on J7 and ground leads anywhere on the left column of J4.
 
-Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See http://opencores.org/openrisc,debugging_physical for more information.
+Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See @uref{http://opencores.org/openrisc,debugging_physical} for more information.
 
 @node ML501 UART
 @subsection UART
@@ -1406,7 +1387,7 @@ Again, supply and ground leads for the UART drivers on the USB debugger can be s
 
 If both UART and debug interface are connected via the ORSoC USB debugger, this ultimately ends up with the first 2 pins on the right column of J4 as RX/TX for the UART then the JTAG TDO, TDI, TMS and TCK in succession down the right column of J4.
 
-See the ML501 schematic (http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
+See the ML501 schematic (@uref{http://www.xilinx.com/support/documentation/boards_and_kits/ml501_20061010_bw.pdf}) for more details on these headers, and refer to the pinouts in the ML501 UCF, in the board's @code{backend/par/bin/ml501.ucf} file.
 
 
 
@@ -1436,7 +1417,7 @@ The Xilinx XtremeDSP Starter Platform - Spartan-3A DSP 1800A Edition is known as
 
 All information and resources relating to the board were sourced from Xilinx's board portal page:
 
-http://www.xilinx.com/products/boards-and-kits/HW-SD1800A-DSP-SB-UNI-G.htm
+@uref{http://www.xilinx.com/products/boards-and-kits/HW-SD1800A-DSP-SB-UNI-G.htm}
 
 The build currently contains the bare essentials to get the board up and running some software on the OpenRISC processor.
 
@@ -1455,22 +1436,10 @@ The Verilog RTL specific to this board is under @code{rtl/verilog} in the board 
 
 Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
 
-@node S3ADSP1800 XILINX_PATH
-@subsection S3ADSP1800 XILINX_PATH
+@node S3ADSP1800 Xilinx Environment Setup
+@subsection S3ADSP1800 Xilinx Environment Setup
 
-Be sure to set the environment variable @code{XILINX_PATH} to the path of the Xilinx tools' install path on the host machine. This path is usually the base install path for the Xilinx tool suite and contains subdirectories such as @code{ISE/}, @code{common/}, @code{PlanAhead/}, etc.
-
-Most bash-like shells can use the following line to set this environment variable.
-
-@example @kbd{export XILINX_PATH=/software/xilinx_13.1} @end example
-
-Note that it helps to add the @code{XILINX_PATH} variable to the user's @code{.bashrc} script or similar to save setting it each time a new shell is opened.
-
-If the @code{XILINX_PATH} variable is not set correctly, the makefiles will not run.
-
-This build has been tested with ISE version 13.1
-
-Note: At present a variable named @code{XILINX_SETTINGS_SCRIPT} is hardcoded in the board's @code{Makefile.inc} file. This may need to be changed by hand to point to the correct settings32.sh script provided by Xilinx. This should be fixed at some point in the future.
+Ensure the Xilinx environment has been setup before running all scripts for this board build. @xref{Xilinx Environment Setup}.
 
 @node S3ADSP1800 Tools
 @section Tools
@@ -1515,8 +1484,6 @@ or_debug_proxy
 @node S3ADSP1800 Simulating
 @section Simulating
 @cindex simulating S3ADSP1800 
-
-Ensure the @code{XILINX_PATH} environment variable is set correctly. @xref{S3ADSP1800 XILINX_PATH} for information.
 
 Note that if this path is not set, simulations will not compile.
 
@@ -1664,7 +1631,7 @@ Unfortunately, it is particularly inconvient to program the flash memory that th
 
 The iMPACT tool does not contain the appropriate facility to enable this, and a Windows-only tool provided from Avnet.
 
-See Avnet's page on this board. http://www.em.avnet.com/spartan3a-dsp and follow the links to ``Support Files & Downloads'' and the file named ``Programming the Intel S33 Flash'' is the guide. The following link may directly work to download the files: http://tinyurl.com/63k8r5c
+See Avnet's page on this board. @uref{http://www.em.avnet.com/spartan3a-dsp} and follow the links to ``Support Files & Downloads'' and the file named ``Programming the Intel S33 Flash'' is the guide. The following link may directly work to download the files: @uref{http://tinyurl.com/63k8r5c}
 
 Another way is to load on a Microblaze design and somehow program the flash via the Xilinx GUI tool. This method will not be covered here. The XAPP number of the user guide to do this escapes me right now, but I'm pretty sure you don't want to have to do that.
 
@@ -1745,12 +1712,12 @@ If any I/O is added, or special timing specified, the board's UCF file will need
 @node S3ADSP1800 Running And Debugging Software
 @section Running And Debugging Software
 
-This section indicates how to connect a USB JTAG debugger to the board to control the system. At present this setup has only been tested with the ft2232-based ORSoC USB debugger  (http://opencores.com/shop,item,3).
+This section indicates how to connect a USB JTAG debugger to the board to control the system. At present this setup has only been tested with the ft2232-based ORSoC USB debugger  (@uref{http://opencores.com/shop,item,3}).
 
 
-See the USB debugger documentation and schematics on orsoc.se: http://orsoc.se/usb-jtag-debugger/
+See the USB debugger documentation and schematics on orsoc.se: @uref{http://orsoc.se/usb-jtag-debugger/}
 
-Find more information about the Spartan 3 board (schematics, user guide, etc.) on the Xilinx site: http://www.xilinx.com/support/documentation/spartan-3a_dsp_board_and_kit_documentation.htm
+Find more information about the Spartan 3 board (schematics, user guide, etc.) on the Xilinx site: @uref{http://www.xilinx.com/support/documentation/spartan-3a_dsp_board_and_kit_documentation.htm}
 
 @node S3ADSP1800 Debug Interface
 @subsection Debug Interface
@@ -1772,7 +1739,7 @@ tck - D3
 
 Supply and ground pins must also be hooked up for the USB debugger. They can also be found on the J8 header (either V2.5 or V3.3 should work for VCC.)
 
-Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See http://opencores.org/openrisc,debugging_physical for more information.
+Once the debug interface is connected, the @code{or_debug_proxy} application can be used to provide a stub for GDB to connect to. See @uref{http://opencores.org/openrisc,debugging_physical} for more information.
 
 @node S3ADSP1800 UART
 @subsection UART
@@ -1793,6 +1760,231 @@ UART TX - D5
 @end itemize
 
 Again, supply and ground leads for the UART drivers on the USB debugger can be sourced from J8.
+
+@c ****************************************************************************
+@c Atlys board build chapter
+@c **************************************************************************** 
+
+@node Atlys
+@chapter Atlys
+@cindex Atlys board build information
+
+@menu
+* Overview::
+* Structure::
+* Tools::
+* Simulating::
+* Synthesis and Backend::
+* Programming File Generation::
+@end menu
+
+@node Atlys Overview
+@section Overview
+
+The Atlys board is from Digilent and contains a Spartan 6 device.
+
+More informatino can be found on the manufacturer's website: @uref{http://www.digilentinc.com/atlys/}
+
+Note that this board port is based on the ML501 and structure and use are very similar.
+
+@node Atlys Structure
+@section Structure
+
+Note that in this chapter the term @emph{board path} refers to the path in the project for this board port; @code{boards/xilinx/atlys}.
+
+The board port's structure is similar to that of a standalone project which accords with the OpenCores coding guidelines. However, all software and RTL that is available in the reference design is also available to the board port, with any local (ie. in the board's @code{rtl} or @code{sw} paths) versions taking precedence over the versions available in the reference design.
+
+The Verilog RTL specific to this board is under @code{rtl/verilog} in the board path. The @code{include} path in there is the place where all required definitions files, configuring the RTL, are found.
+
+Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
+
+@node Atlys Xilinx Environment Setup
+@subsection Atlys Xilinx Environment Setup
+
+Ensure the Xilinx environment has been setup before running all scripts for this board build. @xref{Xilinx Environment Setup}.
+
+
+@node Atlys Tools
+@section Tools
+
+@menu
+* Host Tools:: 
+* Target System Tools:: 
+* EDA Tools:: 
+* Debug Tools::
+@end menu
+
+@node Atlys Host Tools
+@subsection Host Tools
+@cindex host tools required Atlys 
+
+Standard development suite of tools: gcc, make, etc.
+
+@node Atlys Target System Tools
+@subsection Target System Tools
+@cindex target system tools required Atlys 
+
+OpenRISC GNU toolchain. For installation, see OpenRISC GNU toolchain page on OpenCores.org.
+
+@node Atlys EDA Tools
+@subsection EDA Tools
+@cindex EDA tools required Atlys 
+
+RTL, gatelevel simulation: Mentor Graphics' Modelsim
+Synthesis: XST (from Xilinx ISE)
+Backend: ngdbuild/map/par/bitgen/promgen, etc. (from Xilinx ISE)
+Programming: iMPACT (from Xilinx ISE)
+
+This has been tested with Xilinx ISE 11.1 under Ubuntu Linux.
+
+
+@node Atlys Debug Tools
+@subsection Debug Tools
+@cindex Debug tools required Atlys 
+
+or_debug_proxy, ORPmon/u-boot
+
+@node Atlys Simulating
+@section Simulating
+@cindex simulating Atlys 
+
+Ensure the Xilinx environment has been setup before running all simulations for this board build. @xref{Xilinx Environment Setup}.
+
+
+@subheading Run RTL Regression Test
+
+To run the default set of regression tests for the build, run the following command in the board's @code{sw/run} path.
+
+@example
+@kbd{make rtl-tests}
+@end example
+
+The same set of options for RTL tests available in the reference design should be available in this build. @xref{Running A Set Of Specific Reference Design RTL Tests}.
+
+Options specific to the Atlys build.
+
+@table @code
+
+@item PRELOAD_RAM
+Set to '1' to enable loading of the software image into RAM at the beginning of simulation.
+
+If the chosen bootROM program (set via a define in software header file in the board's @code{sw/board/include} path) will jump straight to RAM to begin execution, then the software image will need to be in RAM for the simulation to work. This define @emph{must} be used in that case for the simulation to do anything.
+
+
+@end table
+
+
+
+@node Atlys Synthesis
+@section Synthesis
+
+Synthesis of the board port for the Actel technology with the Synplify tool can be run in the board's @code{syn/xst/run} path with the following command.
+
+@example
+@kbd{make all}
+@end example
+
+This will create an NGC file in @code{syn/xst/run} named @code{orpsoc.ngc}.
+
+Hopefully it's all automated enough so that, as long as the design is simulating as desired, the correct set of RTL will be picked up and synthesized without any need for customising scripts for the tool.
+
+@node Atlys Synthesis Options
+@subsection Options
+
+Use the following command int the @code{syn/xst/run} path to get a list of the variables used during synthesis. Any can be set on the command line when running @code{make all}.
+
+@example
+@kbd{make print-config}
+@end example
+
+
+@node Atlys Synthesis Warnings
+@subsection Checks
+
+The following is a list of some considerations before synthesis.
+
+@itemize @bullet 
+@item bootrom.v
+
+If the bootROM module is being used to provide the processor with a program at startup (reset address in processor's define file is set to @code{0xf0000100} or similar), check that board software include file, in the board's @code{sw/board/include} path, is selecting the correct bootROM program.
+
+Do a @kbd{make distclean} from the synthesis run directory to be sure that the previous bootROM file is cleared away and regenerated when synthesis is run.
+
+
+@item Clean away old leftovers
+
+If the unwanted files from an old synthesis run are still there before the next run, it's best to clean them away with @kbd{make clean} from the synthesis run directory.
+
+
+
+@end itemize
+
+@node Atlys Synthesised Netlist
+@subsection Netlist generation
+
+To create a Verilog HDL netlist of the post-synthesis design, run the following in the board's @code{syn/xst/run} path.
+
+@example
+@kbd{make orpsoc.v}
+@end example
+
+@node Atlys Place and Route
+@section Place and Route
+
+Place and route of the design can be run from the board's @code{backend/par/run} path with the following command.
+
+@example
+@kbd{make orpsoc.ncd}
+@end example
+
+@node Atlys Timing Report
+@section Post-PAR STA Report
+
+The @code{trce} tool can be used to generate a timing report of the post-place and route design.
+
+@example
+@kbd{make timingreport}
+@end example
+
+@node Atlys Back-annotated Netlist
+@section Back-annotated Netlist
+
+A post-PAR back-annotated netlist can be generated with the following command.
+
+@example
+@kbd{make netlist}
+@end example
+
+This will make a new directory under the board's @code{backend/par/run} path named @code{netlist} and will contain a Verilog netlist and SDF file with timing information.
+
+
+@node Atlys Place and route options
+@subsection Options
+
+To get a list of options that can be set when running the backend flow, run the following in the board's @code{backend/par/run} path.
+
+@example
+@kbd{make print-config}
+@end example
+
+@node Atlys Constraints
+@subsection Constraints
+
+A Xilinx User Constraints File (UCF) file is in the board's @code{backend/par/bin} path. It is named @code{atlys.ucf}. It should be edited if any extra I/O or constraints are required.
+
+Eventually it would be good to dynamically generated this, based on what is included in the design, but for now this must be hand modified if modules are added ore removed from the design.
+
+@node Atlys Programming File Generation
+@section Programming File Generation
+
+Programming file generation is run from the board's @code{backend/par/run} path with the following command.
+
+@example
+@kbd{make orpsoc.bit}
+@end example
+
+This file can then be loaded into the Xilinx iMPACT program and programmed onto the Spartan 6 part on the Atlys.
+
 
 
 @c ****************************************************************************
@@ -1850,7 +2042,7 @@ There are some included applications, which are neither drivers or tests.
 
 Typically these will contain a @code{README} file in their directories which contain information on the software and its use.
 
-In general, these are to be run on hardware, and thus will need to be compiled for a specific board. Be sure to pass the @code{BOARD} environment variable when compiling to pick up the appropriate board configuration. @xref{Software For Board Ports} for an example.
+In general, these are to be run on hardware, and thus will need to be compiled for a specific board. Be sure to pass the @code{BOARD} environment variable when compiling to pick up the appropriate board configuration. @xref{Software For Board Ports}.
 
 @node Software Components Drivers
 @subsection Drivers
@@ -1918,6 +2110,29 @@ It may also contain drivers and tests specific to peripherals for that board.
 
 It's also advisable to do a @code{make distclean} prior to clear out any preexisting libraries that may not contain software appropriate for the targeted board port (it may have been built with the reference design's @code{board.h}, for example.)
 
+
+@c ****************************************************************************
+@c EDA tool setup section
+@c **************************************************************************** 
+
+@node EDA tool notes
+@chapter EDA tool notes
+@cindex eda tool setup notes
+
+EDA tool installation, setup and use notes.
+
+@node Xilinx Environment Setup
+@section Xilinx Environment Setup
+
+Be sure to execute the Xilinx setup scripts prior to running the ORPSoC scripts of boards using that technology. 
+
+Find the script in your Xilinx tool suite install path (the installer tells you where this is at the end of installation) but it should be under the ISE_DS path in recent Xilinx ISE releases. 
+
+@example 
+@kbd{source /opt/Xilinx/13.2/ISE_DS/settings32.sh} 
+@end example
+
+Note that this affects the @kbd{LD_LIBRARY_PATH} environment variable and other programs may have issues caused by running this script.
 
 
 @c ****************************************************************************
