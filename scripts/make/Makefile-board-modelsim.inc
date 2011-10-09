@@ -5,6 +5,25 @@
 #
 VOPT_ARGS+=$(QUIET) -suppress 2241
 
+# If certain versions of modelsim don't have the vopt executable, define
+# MGC_NO_VOPT=1 when running to skip use of the vopt executable
+ifeq ($(MGC_NO_VOPT), 1)
+MGC_VOPT_EXE= \# skipped: vopt
+
+# When no vopt stage, actual vsim target changes, and extra options
+# must be passed depending on FPGA tech
+ifeq ($(FPGA_VENDOR), xilinx)
+MGC_VSIM_TGT=orpsoc_testbench glbl
+else
+MGC_VSIM_TGT=orpsoc_testbench -L $(BACKEND_LIB)
+endif
+
+else
+MGC_VOPT_EXE= vopt
+MGC_VSIM_TGT=tb
+endif
+
+
 # If VCD dump is desired, tell Modelsim not to optimise
 # away everything.
 ifeq ($(VCD), 1)
@@ -112,10 +131,9 @@ ifeq ($(FPGA_VENDOR), actel)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(BACKEND_LIB) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling testbench ###"; echo
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
-	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) \
-	-L $(BACKEND_LIB) -o tb
+	$(Q)$(MGC_VOPT_EXE) $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -L $(BACKEND_LIB) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
-	$(Q)vsim $(VSIM_ARGS) tb
+	$(Q)vsim $(VSIM_ARGS) $(MGC_VSIM_TGT)
 endif
 
 ifeq ($(FPGA_VENDOR), xilinx)
@@ -125,17 +143,16 @@ ifeq ($(DO_XILINX_COMPXLIB), 1)
 	$(Q)$(TECHNOLOGY_BACKEND_BIN_DIR)/compxlib $(XLIB_ARGS) 
 endif
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
-	$(Q)vopt $(QUIET) glbl $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -o tb
+	$(Q)$(MGC_VOPT_EXE) $(QUIET) glbl $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
-	$(Q)vsim $(VSIM_ARGS) tb
+	$(Q)vsim $(VSIM_ARGS) $(MGC_VSIM_TGT)
 endif
 
 ifeq ($(FPGA_VENDOR), altera)
 $(MODELSIM): modelsim_bench.scr $(TEST_DEFINES_VLG) $(BACKEND_LIB) $(VPI_LIBS) work
 	$(Q)echo; echo "\t### Compiling testbench ###"; echo
 	$(Q)vlog $(QUIET) -nologo -incr $(BENCH_TOP_FILE) -f $<
-	$(Q)vopt $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) \
-	-L $(BACKEND_LIB) -o tb
+	$(Q)$(MGC_VOPT_EXE) $(QUIET) $(RTL_TESTBENCH_TOP_NAME) $(VOPT_ARGS) -L $(BACKEND_LIB) -o tb
 	$(Q)echo; echo "\t### Launching simulation ###"; echo
-	$(Q)vsim $(VSIM_ARGS) tb
+	$(Q)vsim $(VSIM_ARGS) $(MGC_VSIM_TGT)
 endif
