@@ -165,7 +165,7 @@ $(TCL_SCRIPT_START):
 $(TCL_SCRIPT_COMPILE):
 	TCL_FILE=$@ $(MAKE) tcl-common
 	$(Q)echo "run_designer \"Compiling\" \" " >> $@
-	$(Q)echo "  open_design $$""proj_name.adb " >> $(TCL_FILE)
+	$(Q)echo "  open_design $$""proj_name.adb " >> $@
 	TCL_FILE=$@ $(MAKE) dump-actel-compile-project-tcl
 	$(Q)echo "\"">> $@
 
