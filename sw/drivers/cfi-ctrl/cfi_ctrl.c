@@ -6,6 +6,10 @@
 #include "cpu-utils.h"
 #include "cfi_ctrl.h"
 
+#ifndef CFI_CTRL_BASE
+#define CFI_CTRL_BASE -1
+#endif
+
 void cfi_ctrl_reset_flash(void)
 {
   //REG32((CFI_CTRL_BASE + CFI_CTRL_SCR_OFFSET)) = CFI_CTRL_SCR_RESET_DEVICE;
