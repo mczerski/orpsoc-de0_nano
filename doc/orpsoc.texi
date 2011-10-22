@@ -32,7 +32,7 @@ Free Documentation License''.
 @c @subtitle second-subtitle
 @author Julius Baxter
 @author OpenCores
-@author Issue 3 for @value{ORPSOC}
+@author Issue 4 for @value{ORPSOC}
 
 @c  The following two commands
 @c  start the copyright page.
@@ -982,7 +982,7 @@ The OR1200 core and Wishbone bus is set to run at 66MHz. The OR1200 core, as def
 
 Not all peripherals are supported, and adding support for each is a goal.
 
-At present the build contains a memory controller for the DDR2 SDRAM (based around a Xilinx MIG derived controller) and SSRAM. None of the other peripherals (VGA/AC97/PS2/USB/LCD) have controllers in the design yet.
+At present the build contains a memory controller for the DDR2 SDRAM (based around a Xilinx MIG derived controller), SSRAM (remains to be verified), and CFI flash. None of the other peripherals (VGA/AC97/PS2/USB/LCD) have controllers in the design yet.
 
 The OpenCores 10/100 Ethernet MAC can be used for Ethernet, but only with the PHY in 10/100 mode using the MII interface to the Marvel Alaska Ethernet PHY IC. There still may be bugs in the FIFO buffer configuration in the ML501's @code{ethmac_defines.v} file should not be changed.
 
@@ -998,6 +998,8 @@ Note that in this chapter the term @emph{board path} refers to the path in the p
 The board port's structure is similar to that of a standalone project which accords with the OpenCores coding guidelines. However, all software and RTL that is available in the reference design is also available to the board port, with any local (ie. in the board's @code{rtl} or @code{sw} paths) versions taking precedence over the versions available in the reference design.
 
 The Verilog RTL specific to this board is under @code{rtl/verilog} in the board path. The @code{include} path in there is the place where all required definitions files, configuring the RTL, are found.
+
+The default configuration will result in a design which executes from the RAM at reset. For simulation, the @code{PRELOAD_RAM} option will need to be used to ensure the processor starts up correctly. To configure and simulate the build to boot from flash, see below.
 
 Backend files, mainly binary NGC files for mapping, are found in the board's @code{backend/bin} path.
 
@@ -1076,7 +1078,48 @@ If the chosen bootROM program (set via a define in software header file in the b
 
 @end table
 
+@node ML501 Simulating Boot From Flash
+@subsection Simulating Boot From Flash
+@cindex simulating ML501 flash boot
 
+By default, the build will boot from RAM, but it is often useful to compile the design for FPGA so that it boots from a large software image in the 32MB CFI flash part (u-boot bootloader or a Linux kernel image, etc.)
+
+It is, then, useful to be able to simulate this.
+
+@subsubsection Configure the design
+
+First, ensure the build is configured to boot from the flash memory. @xref{ML501 boot from flash configuration}.
+
+@subsubsection Prepare the image
+
+Next, generate an image to preload into the flash. @emph{Note}: this is not done automatically at present and must be done manually.
+
+Create the executable for the program you wish to boot out of flash. Generate a binary of it using @code{or32-elf-objcopy} like so:
+
+@example
+@kbd{or32-elf-objcopy -O binary @emph{yourexe.elf} @emph{youroutputfile.bin}}
+@end example
+
+@emph{Note}: how to create software to execute out of flash on OpenRISC is not covered here, but it's likely an executable intended to execute from RAM will require subtle modifications to the reset vector code and linker script to ensure it executes from flash correctly. Consulting the OpenRISC project wiki is recommended.
+
+Next, turn this into a VMEM image that the flash model can load. To do this use the tool found in the root @kbd{sw/utils} path called @kbd{bin2vmem}. Save this resulting VMEM it into the board's @kbd{sim/run} path and name it @kbd{cfi-flash.vmem}.
+
+@example
+@kbd{.../orpsocv2/sw/utils/bin2vmem @emph{youroutputfile.bin} -bpw=2 > \}
+@kbd{.../orpsocv2/boards/xilinx/ml501/sim/run/cfi-flash.vmem}
+@end example
+
+The resulting VMEM file should consist of the program in 2-byte words  (the point of the @kbd{-bpw=2} switch.)
+
+@subsubsection Run the simulation
+
+As the software to be run is potentially not from ORPSoC's testsuite, and there's no way to override the name of the test being run in a way that allows things to compile correctly, simply run the following, and all results will be stored in the board's @kbd{sim/out} path prefixed with the name of the default test, @kbd{or1200-simple}.
+
+@example
+@kbd{make rtl-test}
+@end example
+
+The processor will now boot from @kbd{0xf0000100} and begin executing the image from the flash.
 
 @node ML501 Synthesis
 @section Synthesis
@@ -1263,6 +1306,24 @@ The following page has more information about the steps required. @uref{http://w
 
 @emph{Note:} iMPACT from ISE 12 introduced errors in the software image when being programmed. It is advisable that versions of iMPACT from ISEs other than 12 are used until this bug is fixed.
 
+@node ML501 platform flash programming file
+@subsection platform flash programming file generation
+
+There are options in the backend makefile to generate programming files for the platform flash found on the ML501.
+
+The following command will make the @code{orpsoc_platformflash.mcs} file which can be programmed into the flash via the iMPACT tool.
+
+@example
+@kbd{boards/xilinx/ml501/backend/par/run$ make orpsoc_platformflash.mcs}
+@end example
+
+This flash is designed to be loaded in the high-speed selectMAP mode, as it is formatted in such a way as it should be read out over a 16-bit data bus.
+
+To program the platform flash, launch iMPACT, and initialise the scanchain.
+
+Assign the orpsoc_platformflash.mcs file to the xcf32p part. @emph{Note:} I got a warning about the .mcs file not appearing to be a configuration file and that ``This file will not configure a Xilinx device in Serial or SelectMap modes and may not be intended for configuration.''
+
+The option where the PROM is slave during programming was left enabled.
 
 @node ML501 Customising
 @section Customising
@@ -1270,6 +1331,28 @@ The following page has more information about the steps required. @uref{http://w
 The large amount of peripherals on the ML501 means that things will want to be added or removed to suit the design.
 
 The following sections have information on how to configure the design.
+
+@node ML501 boot from flash configuration
+@subsection Enabling Flash Boot Configuration
+
+The following will outline how to make the OR1200 boot from the CFI flash part at reset.
+
+In the board's @code{rtl/verilog/include/orpsoc-defines.v} ensure the following is uncommented:
+
+@example
+@kbd{`define CFI_FLASH}
+@end example
+
+In the board's @code{rtl/verilog/include/or1200_defines.v} ensure the following is uncommented:
+ 
+@example
+@kbd{`define OR1200_BOOT_PCREG_DEFAULT 30'h3c00003f}
+@kbd{`define OR1200_BOOT_ADR 32'hf0000100}
+@end example
+
+All other @code{OR1200_BOOT_*} defines nearby should be commented out.
+
+This will ensure that (1) the CFI flash controller is enabled, and (2) the OR1200 will go straight to its reset vector in the flash memory at reset. Note that this will completely bypass the bootrom (at @code{0xe0000000}) so its configuration now is meaningless. This is on purpose, as any init code can and should be handled by software in the flash (such as u-boot.)
 
 @node ML501 Customising Enabling Existing Modules
 @subsection Enabling Existing RTL Modules

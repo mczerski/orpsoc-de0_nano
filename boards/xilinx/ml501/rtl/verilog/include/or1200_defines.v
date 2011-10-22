@@ -862,7 +862,7 @@
 // 1'b0 - OR1200_EXCEPT_EPH0_P (0x0000_0000)
 // 1'b1 - OR1200_EXCEPT_EPH1_P (0xF000_0000)
 //
-`define OR1200_SR_EPH_DEF	1'b0
+`define OR1200_SR_EPH_DEF	1'b1
 
 
 //
@@ -1814,9 +1814,12 @@
 // comment below.                                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
+// Boot from 0xe0000100
+`define OR1200_BOOT_PCREG_DEFAULT 30'h3800003f
+`define OR1200_BOOT_ADR 32'he0000100
 // Boot from 0xf0000100
-`define OR1200_BOOT_PCREG_DEFAULT 30'h3c00003f
-`define OR1200_BOOT_ADR 32'hf0000100
+//`define OR1200_BOOT_PCREG_DEFAULT 30'h3c00003f
+//`define OR1200_BOOT_ADR 32'hf0000100
 // Boot from 0x100
 //`define OR1200_BOOT_PCREG_DEFAULT 30'h0000003f
 //`define OR1200_BOOT_ADR 32'h00000100

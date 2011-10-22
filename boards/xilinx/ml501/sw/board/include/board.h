@@ -11,8 +11,8 @@
 // file, which is compiled and converted into Verilog for inclusion at 
 // synthesis time. See bootloader/bootloader.S for details on each option.
 #ifndef PRELOAD_RAM
-#define BOOTROM_SPI_FLASH
-//#define BOOTROM_GOTO_RESET
+//#define BOOTROM_SPI_FLASH
+#define BOOTROM_GOTO_RESET
 //#define BOOTROM_LOOP_AT_ZERO
 //#define BOOTROM_LOOP_IN_ROM
 #else
@@ -63,7 +63,10 @@
 //
 #define TICKS_PER_SEC   100
 
-
+//
+// CFI flash controller base
+//
+#define CFI_CTRL_BASE 0xf0000000
 
 //
 // UART driver configuration

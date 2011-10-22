@@ -49,6 +49,11 @@ module orpsoc_top
     sram_clk, sram_clk_fb, sram_flash_addr, sram_flash_data,
     sram_cen, sram_flash_oe_n, sram_flash_we_n, sram_bw,
     sram_adv_ld_n, sram_mode,
+`endif
+`ifdef CFI_FLASH
+    flash_dq_io, flash_adr_o, flash_adv_n_o, flash_ce_n_o,
+    flash_clk_o, flash_oe_n_o, flash_rst_n_o, flash_wait_i,
+    flash_we_n_o, 
 `endif    
 `ifdef UART0
     uart0_srx_pad_i, uart0_stx_pad_o,
@@ -124,7 +129,18 @@ module orpsoc_top
     output [3:0]   sram_bw;
     output 	   sram_adv_ld_n;
     output 	   sram_mode;
-`endif
+`endif //  `ifdef XILINX_SSRAM
+`ifdef CFI_FLASH
+   inout [15:0]    flash_dq_io;
+   output [23:0]    flash_adr_o;
+   output 	    flash_adv_n_o;
+   output 	    flash_ce_n_o;
+   output 	    flash_clk_o;
+   output 	    flash_oe_n_o;
+   output 	    flash_rst_n_o;
+   input 	    flash_wait_i;
+   output 	    flash_we_n_o;
+`endif   
 `ifdef UART0
    input 	 uart0_srx_pad_i;
    output 	 uart0_stx_pad_o;
@@ -308,6 +324,20 @@ module orpsoc_top
    wire 			    wbs_i_mc0_ack_o;
    wire 			    wbs_i_mc0_err_o;
    wire 			    wbs_i_mc0_rty_o;   
+
+   // flash instruction bus wires
+   wire [31:0] 			    wbs_i_flash_adr_i;
+   wire [wbs_i_flash_data_width-1:0] wbs_i_flash_dat_i;
+   wire [3:0] 			     wbs_i_flash_sel_i;
+   wire 			     wbs_i_flash_we_i;
+   wire 			     wbs_i_flash_cyc_i;
+   wire 			     wbs_i_flash_stb_i;
+   wire [2:0] 			     wbs_i_flash_cti_i;
+   wire [1:0] 			     wbs_i_flash_bte_i;   
+   wire [wbs_i_flash_data_width-1:0] wbs_i_flash_dat_o;   
+   wire 			     wbs_i_flash_ack_o;
+   wire 			     wbs_i_flash_err_o;
+   wire 			     wbs_i_flash_rty_o;   
    
    // Data bus slave wires //
    
@@ -423,6 +453,20 @@ module orpsoc_top
    wire 				  wbm_eth0_err_i;
    wire 				  wbm_eth0_rty_i;
 
+   // flash slave wires
+   wire [31:0] 				  wbs_d_flash_adr_i;
+   wire [wbs_d_flash_data_width-1:0] 	  wbs_d_flash_dat_i;
+   wire [3:0] 				  wbs_d_flash_sel_i;
+   wire 				  wbs_d_flash_we_i;
+   wire 				  wbs_d_flash_cyc_i;
+   wire 				  wbs_d_flash_stb_i;
+   wire [2:0] 				  wbs_d_flash_cti_i;
+   wire [1:0] 				  wbs_d_flash_bte_i;   
+   wire [wbs_d_flash_data_width-1:0] 	  wbs_d_flash_dat_o;   
+   wire 				  wbs_d_flash_ack_o;
+   wire 				  wbs_d_flash_err_o;
+   wire 				  wbs_d_flash_rty_o;
+   
 
 
    //
@@ -479,14 +523,31 @@ module orpsoc_top
       .wbs1_err_o			(wbs_i_mc0_err_o),
       .wbs1_rty_o			(wbs_i_mc0_rty_o),
 
+      // Slave 2
+      // Inputs to slave from arbiter
+      .wbs2_adr_i			(wbs_i_flash_adr_i),
+      .wbs2_dat_i			(wbs_i_flash_dat_i),
+      .wbs2_sel_i			(wbs_i_flash_sel_i),
+      .wbs2_we_i			(wbs_i_flash_we_i),
+      .wbs2_cyc_i			(wbs_i_flash_cyc_i),
+      .wbs2_stb_i			(wbs_i_flash_stb_i),
+      .wbs2_cti_i			(wbs_i_flash_cti_i),
+      .wbs2_bte_i			(wbs_i_flash_bte_i),
+      // Outputs from slave to arbiter
+      .wbs2_dat_o			(wbs_i_flash_dat_o),
+      .wbs2_ack_o			(wbs_i_flash_ack_o),
+      .wbs2_err_o			(wbs_i_flash_err_o),
+      .wbs2_rty_o			(wbs_i_flash_rty_o),
+
       // Clock, reset inputs
       .wb_clk				(wb_clk),
       .wb_rst				(wb_rst));
 
    defparam arbiter_ibus0.wb_addr_match_width = ibus_arb_addr_match_width;
 
-   defparam arbiter_ibus0.slave0_adr = ibus_arb_slave0_adr; // FLASH ROM
-   defparam arbiter_ibus0.slave1_adr = ibus_arb_slave1_adr; // Main memory
+   defparam arbiter_ibus0.slave0_adr = ibus_arb_slave0_adr; // flash ROM
+   defparam arbiter_ibus0.slave1_adr = ibus_arb_slave1_adr; // main memory
+   defparam arbiter_ibus0.slave2_adr = ibus_arb_slave2_adr; // CFI flash
 
    //
    // Wishbone data bus arbiter
@@ -553,19 +614,32 @@ module orpsoc_top
       .wbs1_ack_o			(wbs_d_eth0_ack_o),
       .wbs1_err_o			(wbs_d_eth0_err_o),
       .wbs1_rty_o			(wbs_d_eth0_rty_o),
+
+      .wbs2_adr_i			(wbs_d_flash_adr_i),
+      .wbs2_dat_i			(wbs_d_flash_dat_i),
+      .wbs2_sel_i			(wbs_d_flash_sel_i),
+      .wbs2_we_i			(wbs_d_flash_we_i),
+      .wbs2_cyc_i			(wbs_d_flash_cyc_i),
+      .wbs2_stb_i			(wbs_d_flash_stb_i),
+      .wbs2_cti_i			(wbs_d_flash_cti_i),
+      .wbs2_bte_i			(wbs_d_flash_bte_i),
+      .wbs2_dat_o			(wbs_d_flash_dat_o),
+      .wbs2_ack_o			(wbs_d_flash_ack_o),
+      .wbs2_err_o			(wbs_d_flash_err_o),
+      .wbs2_rty_o			(wbs_d_flash_rty_o),
       
-      .wbs2_adr_i			(wbm_b_d_adr_o),
-      .wbs2_dat_i			(wbm_b_d_dat_o),
-      .wbs2_sel_i			(wbm_b_d_sel_o),
-      .wbs2_we_i			(wbm_b_d_we_o),
-      .wbs2_cyc_i			(wbm_b_d_cyc_o),
-      .wbs2_stb_i			(wbm_b_d_stb_o),
-      .wbs2_cti_i			(wbm_b_d_cti_o),
-      .wbs2_bte_i			(wbm_b_d_bte_o),
-      .wbs2_dat_o			(wbm_b_d_dat_i),
-      .wbs2_ack_o			(wbm_b_d_ack_i),
-      .wbs2_err_o			(wbm_b_d_err_i),
-      .wbs2_rty_o			(wbm_b_d_rty_i),
+      .wbs3_adr_i			(wbm_b_d_adr_o),
+      .wbs3_dat_i			(wbm_b_d_dat_o),
+      .wbs3_sel_i			(wbm_b_d_sel_o),
+      .wbs3_we_i			(wbm_b_d_we_o),
+      .wbs3_cyc_i			(wbm_b_d_cyc_o),
+      .wbs3_stb_i			(wbm_b_d_stb_o),
+      .wbs3_cti_i			(wbm_b_d_cti_o),
+      .wbs3_bte_i			(wbm_b_d_bte_o),
+      .wbs3_dat_o			(wbm_b_d_dat_i),
+      .wbs3_ack_o			(wbm_b_d_ack_i),
+      .wbs3_err_o			(wbm_b_d_err_i),
+      .wbs3_rty_o			(wbm_b_d_rty_i),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -576,6 +650,7 @@ module orpsoc_top
    defparam arbiter_dbus0.wb_num_slaves = dbus_arb_wb_num_slaves;
    defparam arbiter_dbus0.slave0_adr = dbus_arb_slave0_adr;
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
+   defparam arbiter_dbus0.slave2_adr = dbus_arb_slave2_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1072,12 +1147,128 @@ module orpsoc_top
    defparam ram_wb0.aw = wb_aw;
    defparam ram_wb0.dw = wb_dw;
    
-   defparam ram_wb0.mem_size_bytes = (8192*1024); // 8MB
-   defparam ram_wb0.mem_adr_width = 23; // log2(8192*1024)
+   defparam ram_wb0.mem_size_bytes = internal_sram_mem_span;
+   defparam ram_wb0.mem_adr_width = internal_sram_adr_width_for_span;
    ////////////////////////////////////////////////////////////////////////
 `endif //  `ifdef RAM_WB
 
+`ifdef CFI_FLASH
 
+   /* Lighweight arbiter between instruction and data busses going
+    into the CFI controller */
+
+   wire [31:0] 				  flash_wb_adr_i;
+   wire [31:0] 				  flash_wb_dat_i;
+   wire [31:0] 				  flash_wb_dat_o;
+   wire [3:0] 				  flash_wb_sel_i;
+   wire 				  flash_wb_cyc_i;
+   wire 				  flash_wb_stb_i;
+   wire 				  flash_wb_we_i;
+   wire 				  flash_wb_ack_o;
+
+   reg [1:0] 				  flash_mst_sel;
+   
+reg [9:0] 				  flash_arb_timeout;
+   wire 				  flash_arb_reset;
+   
+   always @(posedge wb_clk)
+     if (wb_rst)
+       flash_mst_sel <= 0;
+     else begin
+	if (flash_mst_sel==2'b00) begin
+	   /* wait for new access from masters. data takes priority */
+	   if (wbs_d_flash_cyc_i & wbs_d_flash_stb_i)
+	     flash_mst_sel[1] <= 1;
+	   else if (wbs_i_flash_cyc_i & wbs_i_flash_stb_i)
+	     flash_mst_sel[0] <= 1;
+	end
+	else begin
+	   if (flash_wb_ack_o | flash_arb_reset)
+	     flash_mst_sel <= 0;
+	end // else: !if(flash_mst_sel==2'b00)
+     end // else: !if(wb_rst)
+   
+   assign flash_wb_adr_i = flash_mst_sel[0] ? wbs_i_flash_adr_i :
+			   wbs_d_flash_adr_i;
+   assign flash_wb_dat_i = flash_mst_sel[0] ? wbs_i_flash_dat_i :
+			   wbs_d_flash_dat_i;
+   assign flash_wb_stb_i = flash_mst_sel[0] ?  wbs_i_flash_stb_i :
+			   flash_mst_sel[1]  ? wbs_d_flash_stb_i : 0;
+   assign flash_wb_cyc_i = flash_mst_sel[0] ?  wbs_i_flash_cyc_i :
+			   flash_mst_sel[1] ?  wbs_d_flash_cyc_i : 0;
+   assign flash_wb_we_i = flash_mst_sel[0] ? wbs_i_flash_we_i :
+			  wbs_d_flash_we_i;
+   assign flash_wb_sel_i = flash_mst_sel[0] ? wbs_i_flash_sel_i :
+			  wbs_d_flash_sel_i;
+
+   assign wbs_i_flash_dat_o = flash_wb_dat_o;
+   assign wbs_d_flash_dat_o = flash_wb_dat_o;
+   assign wbs_i_flash_ack_o = flash_wb_ack_o & flash_mst_sel[0];
+   assign wbs_d_flash_ack_o = flash_wb_ack_o & flash_mst_sel[1];
+   assign wbs_i_flash_err_o = flash_arb_reset & flash_mst_sel[0];
+   assign wbs_i_flash_rty_o = 0;
+   assign wbs_d_flash_err_o = flash_arb_reset & flash_mst_sel[1];
+   assign wbs_d_flash_rty_o = 0;
+
+  
+   
+   always @(posedge wb_clk)
+     if (wb_rst)
+       flash_arb_timeout <= 0;
+     else if (flash_wb_ack_o)
+       flash_arb_timeout <= 0;
+     else if (flash_wb_stb_i & flash_wb_cyc_i)
+       flash_arb_timeout <= flash_arb_timeout + 1;
+
+   assign flash_arb_reset = (&flash_arb_timeout);
+      
+   cfi_ctrl
+     /* Use the simple flash interface */
+     #(.cfi_engine("DISABLED"))
+     cfi_ctrl0
+     (
+      .wb_clk_i(wb_clk), 
+      .wb_rst_i(wb_rst | flash_arb_reset),
+
+      .wb_adr_i(flash_wb_adr_i),
+      .wb_dat_i(flash_wb_dat_i),
+      .wb_stb_i(flash_wb_stb_i),
+      .wb_cyc_i(flash_wb_cyc_i),
+      .wb_we_i (flash_wb_we_i ),
+      .wb_sel_i(flash_wb_sel_i),
+      .wb_dat_o(flash_wb_dat_o),
+      .wb_ack_o(flash_wb_ack_o), 
+      .wb_err_o(),
+      .wb_rty_o(),
+      
+      .flash_dq_io(flash_dq_io),
+      .flash_adr_o(flash_adr_o),
+      .flash_adv_n_o(flash_adv_n_o),
+      .flash_ce_n_o(flash_ce_n_o),
+      .flash_clk_o(flash_clk_o),
+      .flash_oe_n_o(flash_oe_n_o),
+      .flash_rst_n_o(flash_rst_n_o),
+      .flash_wait_i(flash_wait_i),
+      .flash_we_n_o(flash_we_n_o),
+      .flash_wp_n_o()
+      );
+
+`else
+
+   assign wbs_i_flash_dat_o = 0;
+   assign wbs_i_flash_ack_o = 0;
+   assign wbs_i_flash_err_o = 0;
+   assign wbs_i_flash_rty_o = 0;
+
+   assign wbs_d_flash_dat_o = 0;
+   assign wbs_d_flash_ack_o = 0;
+   assign wbs_d_flash_err_o = 0;
+   assign wbs_d_flash_rty_o = 0;
+   
+   
+   
+`endif //  `ifdef CFI_FLASH
+   
 `ifdef ETH0
 
    //

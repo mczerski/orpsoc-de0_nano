@@ -80,7 +80,14 @@ parameter uart0_addr_width = 3;
 // ROM
 parameter wbs_i_rom0_data_width = 32;
 parameter wbs_i_rom0_addr_width = 6;
-parameter rom0_wb_adr = 4'hf;
+parameter rom0_wb_adr = 4'he;
+
+// CFI flash
+parameter wbs_i_flash_data_width = 32;
+parameter wbs_i_flash_addr_width = 32;
+parameter wbs_d_flash_data_width = 32;
+parameter wbs_d_flash_addr_width = 32;
+parameter flash_wb_adr = 4'hf;
 
 // MC0 (SDRAM, or other)
 parameter wbs_i_mc0_data_width = 32;   
@@ -94,8 +101,13 @@ parameter wbm_eth0_data_width = 32;
 parameter wbm_eth0_addr_width = 32;
 
 // Memory sizing for synthesis (small)
-parameter internal_sram_mem_span = 32'h0080_0000;
-parameter internal_sram_adr_width_for_span = 23;   
+//parameter internal_sram_mem_span = 32'h0200_0000; /* 32MB */
+//parameter internal_sram_adr_width_for_span = 25;   
+//parameter internal_sram_mem_span = 32'h0080_0000; /* 8MB */
+//parameter internal_sram_adr_width_for_span = 23;   
+parameter internal_sram_mem_span = 32'h0001_0000; /* 64KB */
+parameter internal_sram_adr_width_for_span = 17;   
+
 
 //////////////////////////////////////////////////////
 //                                                  //
@@ -119,8 +131,9 @@ parameter wb_aw = 32; // Default Wishbone full address width
 ///////////////////////////
 parameter ibus_arb_addr_match_width = 4;
 // Slave addresses
-parameter ibus_arb_slave0_adr = rom0_wb_adr; // FLASH ROM
+parameter ibus_arb_slave0_adr = rom0_wb_adr; // ROM
 parameter ibus_arb_slave1_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
+parameter ibus_arb_slave2_adr = flash_wb_adr; // Flash
 
 ///////////////////////////
 //                       //
@@ -133,6 +146,7 @@ parameter dbus_arb_wb_num_slaves = 5;
 // Slave addresses
 parameter dbus_arb_slave0_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 parameter dbus_arb_slave1_adr = eth0_wb_adr; // Ethernet 0
+parameter dbus_arb_slave2_adr = flash_wb_adr; // Flash
 
 ///////////////////////////////
 //                           //

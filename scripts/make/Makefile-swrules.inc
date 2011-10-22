@@ -23,6 +23,10 @@ flash.in: $(SW_TEST_DIR)/$(TEST).flashin
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)ln -s $< $@
 
+flash16.in: $(SW_TEST_DIR)/$(TEST).flash16
+	$(Q)if [ -L $@ ]; then unlink $@; fi
+	$(Q)ln -s $< $@
+
 sram.vmem: $(SW_TEST_DIR)/$(TEST).vmem
 	$(Q)if [ -L $@ ]; then unlink $@; fi
 	$(Q)ln -s $< $@
@@ -36,6 +40,11 @@ $(SW_TEST_DIR)/$(TEST).flashin:
 $(SW_TEST_DIR)/$(TEST).vmem:
 	$(Q) echo; echo "\t### Compiling software ###"; echo;
 	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).vmem
+
+.PHONY: $(SW_TEST_DIR)/$(TEST).flash16
+$(SW_TEST_DIR)/$(TEST).flash16:
+	$(Q) echo; echo "\t### Compiling software ###"; echo;
+	$(Q)$(MAKE) -C $(SW_TEST_DIR) $(TEST).flash16
 
 # Create test software disassembly
 

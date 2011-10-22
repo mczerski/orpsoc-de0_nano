@@ -162,7 +162,19 @@ module orpsoc_testbench;
    wire 		     sram_flash_we_n;
    wire 		     sram_mode;
 `endif
+`ifdef CFI_FLASH
+   wire [15:0] 	     flash_dq_io;
+   wire [23:0] 	     flash_adr_o;
+   wire 	     flash_adv_n_o;
+   wire 	     flash_ce_n_o;
+   wire 	     flash_clk_o;
+   wire 	     flash_oe_n_o;
+   wire 	     flash_rst_n_o;
+   wire 	     flash_wait_i;
+   wire 	     flash_we_n_o;
+`endif //  `ifdef CFI_FLASH
 
+   
    orpsoc_top dut
      (
 `ifdef JTAG_DEBUG          
@@ -198,7 +210,18 @@ module orpsoc_testbench;
       .sram_mode                        (sram_mode),
       .sram_clk_fb                      (sram_clk_fb),
       .sram_flash_data                  (sram_flash_data),
-`endif
+`endif //  `ifdef XILINX_SSRAM
+`ifdef CFI_FLASH
+      .flash_dq_io                      (flash_dq_io),
+      .flash_adr_o                      (flash_adr_o),
+      .flash_adv_n_o                    (flash_adv_n_o),
+      .flash_ce_n_o                     (flash_ce_n_o),
+      .flash_clk_o                      (flash_clk_o),
+      .flash_oe_n_o                     (flash_oe_n_o),
+      .flash_rst_n_o                    (flash_rst_n_o),
+      .flash_wait_i                     (flash_wait_i),
+      .flash_we_n_o                     (flash_we_n_o),
+`endif      
 `ifdef UART0      
       .uart0_stx_pad_o			(uart0_stx_pad_o),
       .uart0_srx_pad_i			(uart0_srx_pad_i),
@@ -492,7 +515,16 @@ module orpsoc_testbench;
      begin
 	
  `ifdef VCD_DELAY
-	#(`VCD_DELAY);   
+	#(`VCD_DELAY);/*#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+	#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);#(`VCD_DELAY);
+*/
  `endif
 
 	// Delay by x insns
@@ -575,6 +607,35 @@ module orpsoc_testbench;
    assign uart0_srx_pad_i = uart0_stx_pad_o;
 
 `endif //  `ifdef UART0
+
+`ifdef CFI_FLASH
+   
+  wire [35:0] VCC;  // Supply Voltage
+  wire [35:0] VCCQ; // Supply Voltage for I/O Buffers
+  wire [35:0] VPP; // Optional Supply Voltage for Fast Program & Erase  
+  
+   wire       Info;      // Activate/Deactivate info device operation
+   assign Info = 1;
+   assign VCC = 36'd1700;
+   assign VCCQ = 36'd1700;
+   assign VPP = 36'd2000;
+
+   x28fxxxp30 cfi_flash(flash_adr_o, 
+			flash_dq_io, 
+			flash_we_n_o, 
+			flash_oe_n_o, 
+			flash_ce_n_o, 
+			flash_adv_n_o, 
+			flash_clk_o, 
+			flash_wait_i, 
+			1'b1, 
+			flash_rst_n_o, 
+			VCC, 
+			VCCQ, 
+			VPP, 
+			Info);
+   
+`endif //  `ifdef CFI_FLASH
    
 endmodule // orpsoc_testbench
 
