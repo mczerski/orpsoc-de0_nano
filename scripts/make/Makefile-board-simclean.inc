@@ -4,7 +4,7 @@ clean: clean-sim clean-sim-test-sw clean-bootrom clean-out clean-sw
 
 clean-sim:
 	$(Q) echo; echo "\t### Cleaning simulation run directory ###"; echo;
-	$(Q)rm -rf *.* lib_* work transcript check-test-log
+	$(Q)rm -rf *.* lib_* work transcript check-test-log orpsoc_testbench
 	$(Q) if [ -e $(VPI_SRC_C_DIR) ]; then $(MAKE) -C $(VPI_SRC_C_DIR) clean; fi
 
 clean-out:
