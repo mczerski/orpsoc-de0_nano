@@ -222,6 +222,8 @@ _start:
 
 	SHOULD_BE_LESS_THAN_UNSIGNED(0x7ffffffe, 0x7fffffff)
 
+	SHOULD_BE_LESS_THAN_UNSIGNED(0x2024fae0, 0xfef03220)
+
 _finish:	
 	l.movhi r3, hi(0x8000000d)
 	l.ori 	r3, r3, lo(0x8000000d)
