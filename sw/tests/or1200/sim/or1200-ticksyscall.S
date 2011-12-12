@@ -356,10 +356,10 @@ _syscall_function:
 	l.mtspr r0, r7, SPR_ESR_BASE /* SR before syscall */
 	l.mtspr r0, r8, SPR_EPCR_BASE
 	l.add r16, r16, r3 /* Add syscall number to our counter */
-	l.movhi r4, hi(0x01000000) /* 16MB mark of memory */
+	l.movhi r4, hi(0x00400000) /* 4MB mark of memory */
 	/* Ensure memory access OK */
 	l.slli r3, r3, 2 /* Turn syscall number into a word address (<< 2) */
-	l.add r4, r4, r3 /* Access this offset from 16MB mark */
+	l.add r4, r4, r3 /* Access this offset from 4MB mark */
 	l.sw 0(r4), r16 /* Do a write to memory */
 	l.lwz r16, 0(r4) /* Do a read from memory */
 	/* Report running value of syscall counter */
