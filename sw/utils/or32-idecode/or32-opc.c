@@ -487,7 +487,7 @@ insn_extract (char param_ch, char *enc_initial)
 	  {
 	    opc_pos--;
 	    if (param_ch == *enc)
-	      ret |= 1 << opc_pos;
+	      ret |= 1UL << opc_pos;
 	  }
 	enc++;
       }
@@ -590,15 +590,15 @@ cover_insn (unsigned long * cur, int pass, unsigned int mask)
 
       *cur = best_first;
       cur++;
-      *cur = (1 << best_len) - 1;
+      *cur = (1UL << best_len) - 1;
       cur++;
       next = cur;    
 
       /* Allocate space for pointers.  */
-      cur += 1 << best_len;
-      cur_mask = (1 << (unsigned long) best_len) - 1;
+      cur += 1UL << best_len;
+      cur_mask = (1UL << (unsigned long) best_len) - 1;
       
-      for (i = 0; i < ((unsigned) 1 << best_len); i++)
+      for (i = 0; i < (1U << best_len); i++)
 	{
 	  unsigned int j;
 	  unsigned long *c;
@@ -710,7 +710,7 @@ parse_params (const struct or32_opcode * opcode,
 		}
 	      cur->type = type | shr;
 	      cur->data = mask;
-	      arg &= ~(((1 << mask) - 1) << shr);
+	      arg &= ~(((1UL << mask) - 1) << shr);
 	      debug (6, "|%08lX %08lX\n", cur->type, cur->data);
 	      cur++;
         num_cur_op++;
@@ -895,7 +895,7 @@ extend_imm (unsigned long imm, char l)
   /* First truncate all bits above valid range for this letter
      in case it is zero extend.  */
   letter_bits = letter_range (l);
-  mask = (1 << letter_bits) - 1;
+  mask = (1UL << letter_bits) - 1;
   imm &= mask;
   
   /* Do sign extend if this is the right one.  */
@@ -947,7 +947,7 @@ or32_extract (char param_ch, char *enc_initial, unsigned long insn)
       {
         opc_pos--;
         if (param_ch == *enc)
-          ret |= 1 << opc_pos;
+          ret |= 1UL << opc_pos;
         enc++;
       }
     else if (*enc == param_ch) 
