@@ -148,8 +148,8 @@ _dtlb_handler:
 	/* Find the entry/set for this address */
 	l.srli r13, r2, 13 /* r13 = VPN, shift by size 8192 = 2**13 */
 	l.andi r4, r13, 0x3f /* 64 entries = 6 bit mask, r4 = set number */
-	/* If page is in the 0xc0000000 space we map to 16MB part of
-	memory, ie 0x0 => 0x01000000, otherwise 1-1 mapping */
+	/* If page is in the 0xc0000000 space we map to 4MB part of
+	memory, ie 0x0 => 0x00400000, otherwise 1-1 mapping */
 	l.movhi r5, hi(0xc0000000)
 	l.ori r5, r5, lo(0xc0000000)
 	l.srli r5, r5, 13 /* Get page address, shift by page size, 13 bits */
@@ -180,15 +180,15 @@ _lomem_map:
 	l.addi r14, r14, 1 /* Incremement low-mapping counter */
 
 _highmem_map:
-	/* Do top byte, 0xc0->0x01, mapping for this request */
+	/* Do top byte, 0xc00->0x004, mapping for this request */
 	/* Setup value for translate register */
 	l.movhi r6, hi(SPR_ITLBTR_PPN) /* PPN mask into r6 */
 	l.ori r6, r6, lo(SPR_ITLBTR_PPN)
 	l.and r7, r2, r6 /* AND address with PPN mask */
-	l.movhi r8, hi(0xff000000) /* Top byte address mask */
+	l.movhi r8, hi(0xffff0000) /* Top byte address mask */
 	l.or r7, r8, r7 /* Set top byte to 0xff */
 	l.xor r7, r8, r7 /* Now clear top byte with XOR */
-	l.movhi r8, hi(0x01000000) /* Top address byte */
+	l.movhi r8, hi(0x00400000) /* Top address byte */
 	l.or r7, r8, r7 /* Set top address byte */
 	l.ori r7, r7, DTLB_PR_NOLIMIT /* Set all execute enables, no lims. */
 	l.mtspr r4, r7, SPR_DTLBTR_BASE(0) /* Write to DTLTR register */
@@ -575,7 +575,7 @@ _dmmu_except1:
 	l.jalr r4
 	l.ori r3, r0, 64 /* Put number of entries in r3 */
 
-	l.movhi r5, hi(0x01000000)
+	l.movhi r5, hi(0x00400000)
 	/* Write a word to the place where we'll translate to */
 	l.movhi r7, hi(0xaabbccdd)
 	l.ori r7, r7, lo(0xaabbccdd)
@@ -593,7 +593,7 @@ _dmmu_except1:
 	l.jalr r4
 	l.nop
 
-	/* Now start test. 0xc0000000 should go to 0x01000000 */
+	/* Now start test. 0xc0000000 should go to 0x00400000 */
 	l.lwz r8, 0(r5) /* Should cause DMMU miss, lomem */
 	/* Check value was OK */
 	l.sfne r7, r8
@@ -620,7 +620,7 @@ _dmmu_except1:
 	l.bf _dmmu_test_error
 	l.nop
 
-	/* Now start test. 0xc0000000 should go to 0x01000000 */
+	/* Now start test. 0xc0000000 should go to 0x00400000 */
 	l.lwz r8, 0(r5) /* Should cause DMMU miss, lomem */
 	/* Check value was OK */
 	l.sfne r7, r8

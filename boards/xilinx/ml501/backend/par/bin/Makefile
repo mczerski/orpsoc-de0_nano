@@ -48,8 +48,12 @@ XILINX_FLAGS=-intstyle silent
 XILINX_MAP_FLAGS=-logic_opt off
 XILINX_AREA_TARGET = speed
 TIMING_REPORT_OPTIONS = -u 1000 -e 1000
+#
+# Board programming generation settings
+#
 SPI_FLASH_SIZE_KBYTES ?=2048
 SPI_BOOTLOADER_SW_OFFSET_HEX ?=1c0000
+PLATFORMFLASH_PART ?= xcf32p
 
 print-config:
 	$(Q)echo; echo "\t### Backend make configuration ###"; echo
@@ -69,8 +73,11 @@ PARRED_NCD=$(DESIGN_NAME).ncd
 PCF_FILE=$(DESIGN_NAME).pcf
 BIT_FILE=$(DESIGN_NAME).bit
 BIT_FILE_FOR_SPI=$(DESIGN_NAME)_spiboot.bit
+BIT_FILE_FOR_PLATFORMFLASH=$(DESIGN_NAME)_platformflash.bit
 BATCH_FILE=$(DESIGN_NAME).batch
-MCS_FILE=$(DESIGN_NAME).mcs
+SPI_MCS_FILE=$(DESIGN_NAME)_spi.mcs
+PLATFORMFLASH_MCS_FILE=$(DESIGN_NAME)_platformflash.mcs
+
 
 $(NGC_FILE):
 	$(Q)$(MAKE) -C $(BOARD_SYN_RUN_DIR) $(DESIGN_NAME).ngc
@@ -102,17 +109,26 @@ $(BIT_FILE_FOR_SPI): $(PARRED_NCD)
 	@echo; echo "\t#### Generating .bit file for SPI load ####";
 	$(Q)bitgen -w $(XILINX_FLAGS) -g StartUpClk:CClk $< $@
 
+$(BIT_FILE_FOR_PLATFORMFLASH): $(PARRED_NCD)
+	@echo; echo "\t#### Generating .bit file for platform flash load ####";
+	$(Q)bitgen -w $(XILINX_FLAGS) -g StartUpClk:CClk $< $@
+
 # Generate MCS with bootloader specified by user, if BOOTLOADER_BIN defined.
 ifeq ($(BOOTLOADER_BIN),)
-$(MCS_FILE): $(BIT_FILE_FOR_SPI)
+$(SPI_MCS_FILE): $(BIT_FILE_FOR_SPI)
 	@echo; echo "\t#### Generating .mcs file for SPI load ####";
 	$(Q)promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $<
 else
-$(MCS_FILE): $(BIT_FILE_FOR_SPI)
+$(SPI_MCS_FILE): $(BIT_FILE_FOR_SPI)
 	@echo; echo "\t#### Generating .mcs file with bootloader for SPI load ####";
 	$(Q)promgen -spi -p mcs -w -o $@ -s $(SPI_FLASH_SIZE_KBYTES) -u 0 $< \
 	-data_file up $(SPI_BOOTLOADER_SW_OFFSET_HEX) $(BOOTLOADER_BIN)
 endif
+
+$(PLATFORMFLASH_MCS_FILE): $(BIT_FILE_FOR_PLATFORMFLASH)
+	@echo; echo "\t#### Generating .mcs file for platform flash load ####";
+	$(Q)promgen -p mcs -w -o $@ -x $(PLATFORMFLASH_PART) -data_width 16 \
+	-u 0 $<
 
 #this target downloads the bitstream to the target fpga
 download: $(BIT_FILE) $(BATCH_FILE)

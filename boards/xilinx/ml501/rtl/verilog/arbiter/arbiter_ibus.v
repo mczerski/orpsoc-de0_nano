@@ -10,7 +10,7 @@
 ///                                                               ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
+//// Copyright (C) 2009, 2010, 2011 Authors and OPENCORES.ORG     ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -87,6 +87,24 @@ module arbiter_ibus
    wbs1_err_o,
    wbs1_rty_o,
 
+
+   // Slave three
+   // Wishbone Slave interface
+   wbs2_adr_i,
+   wbs2_dat_i,
+   wbs2_sel_i,
+   wbs2_we_i,
+   wbs2_cyc_i,
+   wbs2_stb_i,
+   wbs2_cti_i,
+   wbs2_bte_i,
+  
+   wbs2_dat_o,
+   wbs2_ack_o,
+   wbs2_err_o,
+   wbs2_rty_o,
+   
+   
    wb_clk,
    wb_rst
    );
@@ -97,8 +115,9 @@ module arbiter_ibus
 
    parameter wb_addr_match_width = 8;
 
-   parameter slave0_adr = 8'hf0; // FLASH ROM
+   parameter slave0_adr = 8'he0; // FLASH ROM
    parameter slave1_adr = 8'h00; // Main memory (SDRAM/FPGA SRAM)
+   parameter slave2_adr = 8'hf0; // External flash
 
 `define WB_ARB_ADDR_MATCH_SEL wb_adr_width-1:wb_adr_width-wb_addr_match_width
    
@@ -148,7 +167,23 @@ module arbiter_ibus
    input 		     wbs1_err_o;
    input 		     wbs1_rty_o;   
 
-   wire [1:0] 		     slave_sel; // One bit per slave
+
+   // WB Slave 2
+   output [wb_adr_width-1:0] wbs2_adr_i;
+   output [wb_dat_width-1:0] wbs2_dat_i;
+   output [3:0] 	     wbs2_sel_i;
+   output 		     wbs2_we_i;
+   output 		     wbs2_cyc_i;
+   output 		     wbs2_stb_i;
+   output [2:0] 	     wbs2_cti_i;
+   output [1:0] 	     wbs2_bte_i;
+   input [wb_dat_width-1:0]  wbs2_dat_o;   
+   input 		     wbs2_ack_o;
+   input 		     wbs2_err_o;
+   input 		     wbs2_rty_o;   
+
+   
+   wire [2:0] 		     slave_sel; // One bit per slave
 
    reg 			     watchdog_err;
    
@@ -212,6 +247,10 @@ module arbiter_ibus
    reg 			     wbs1_ack_o_r;
    reg 			     wbs1_err_o_r;
    reg 			     wbs1_rty_o_r;
+   reg [wb_dat_width-1:0]    wbs2_dat_o_r;   
+   reg 			     wbs2_ack_o_r;
+   reg 			     wbs2_err_o_r;
+   reg 			     wbs2_rty_o_r;
 
    wire 		     wbm_ack_i_pre_reg;
 
@@ -238,6 +277,10 @@ module arbiter_ibus
 	wbs1_ack_o_r <= wbs1_ack_o;
 	wbs1_err_o_r <= wbs1_err_o;
 	wbs1_rty_o_r <= wbs1_rty_o;   
+	wbs2_dat_o_r <= wbs2_dat_o;
+	wbs2_ack_o_r <= wbs2_ack_o;
+	wbs2_err_o_r <= wbs2_err_o;
+	wbs2_rty_o_r <= wbs2_rty_o;   
 	
      end // always @ (posedge wb_clk)
 
@@ -247,6 +290,9 @@ module arbiter_ibus
 
    assign slave_sel[1] = wbm_adr_o_r[`WB_ARB_ADDR_MATCH_SEL] ==
 			 slave1_adr;
+
+   assign slave_sel[2] = wbm_adr_o_r[`WB_ARB_ADDR_MATCH_SEL] ==
+			 slave2_adr;
 
    // Slave out assigns
    assign wbs0_adr_i = wbm_adr_o_r;
@@ -267,25 +313,39 @@ module arbiter_ibus
    assign wbs1_cyc_i = wbm_cyc_o_r & slave_sel[1];
    assign wbs1_stb_i = wbm_stb_o_r & slave_sel[1];
 
+   assign wbs2_adr_i = wbm_adr_o_r;
+   assign wbs2_dat_i = wbm_dat_o_r;
+   assign wbs2_we_i = wbm_dat_o_r;
+   assign wbs2_sel_i = wbm_sel_o_r;
+   assign wbs2_cti_i = wbm_cti_o_r;
+   assign wbs2_bte_i = wbm_bte_o_r;
+   assign wbs2_cyc_i = wbm_cyc_o_r & slave_sel[1];
+   assign wbs2_stb_i = wbm_stb_o_r & slave_sel[1];
+
+   
    // Master out assigns
    // Don't care about none selected...
-   assign wbm_dat_i = slave_sel[1] ? wbs1_dat_o_r :
+   assign wbm_dat_i = slave_sel[2] ? wbs2_dat_o_r :
+		      slave_sel[1] ? wbs1_dat_o_r :
 		      wbs0_dat_o_r ;
    
    assign wbm_ack_i = (slave_sel[0] & wbs0_ack_o_r) |
-		      (slave_sel[1] & wbs1_ack_o_r)
-     ;
+		      (slave_sel[1] & wbs1_ack_o_r) |
+		      (slave_sel[2] & wbs2_ack_o_r);
    
    assign wbm_err_i = (slave_sel[0] & wbs0_err_o_r) |
 		      (slave_sel[1] & wbs1_err_o_r) |
+		      (slave_sel[2] & wbs2_err_o_r) |
 		      watchdog_err;
    
    assign wbm_rty_i = (slave_sel[0] & wbs0_rty_o_r) |
-		      (slave_sel[1] & wbs1_rty_o_r);
+		      (slave_sel[1] & wbs1_rty_o_r) |
+		      (slave_sel[2] & wbs2_rty_o_r);
 
    // Non-registered ack
    assign wbm_ack_i_pre_reg = (slave_sel[0] & wbs0_ack_o) |
-			      (slave_sel[1] & wbs1_ack_o);
+			      (slave_sel[1] & wbs1_ack_o) |
+			      (slave_sel[2] & wbs2_ack_o);
    
 `else // !`ifdef ARBITER_IBUS_REGISTERING
 
@@ -296,6 +356,10 @@ module arbiter_ibus
    assign slave_sel[1] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] ==
 			 slave1_adr;
 
+   assign slave_sel[2] = wbm_adr_o[`WB_ARB_ADDR_MATCH_SEL] ==
+			 slave2_adr;
+
+   
    // Slave out assigns
    assign wbs0_adr_i = wbm_adr_o;
    assign wbs0_dat_i = wbm_dat_o;
@@ -315,21 +379,34 @@ module arbiter_ibus
    assign wbs1_cyc_i = wbm_cyc_o & slave_sel[1];
    assign wbs1_stb_i = wbm_stb_o & slave_sel[1];
 
+   assign wbs2_adr_i = wbm_adr_o;
+   assign wbs2_dat_i = wbm_dat_o;
+   assign wbs2_we_i  = wbm_we_o;
+   assign wbs2_sel_i = wbm_sel_o;
+   assign wbs2_cti_i = wbm_cti_o;
+   assign wbs2_bte_i = wbm_bte_o;
+   assign wbs2_cyc_i = wbm_cyc_o & slave_sel[2];
+   assign wbs2_stb_i = wbm_stb_o & slave_sel[2];
+
    // Master out assigns
    // Don't care about none selected...
-   assign wbm_dat_i = slave_sel[1] ? wbs1_dat_o :
+   assign wbm_dat_i = slave_sel[2] ? wbs2_dat_o :
+		      slave_sel[1] ? wbs1_dat_o :
 		      wbs0_dat_o ;
    
    assign wbm_ack_i = (slave_sel[0] & wbs0_ack_o) |
-		      (slave_sel[1] & wbs1_ack_o);
+		      (slave_sel[1] & wbs1_ack_o) |
+		      (slave_sel[2] & wbs2_ack_o);
    
    
    assign wbm_err_i = (slave_sel[0] & wbs0_err_o) |
 		      (slave_sel[1] & wbs1_err_o) |
+		      (slave_sel[2] & wbs2_err_o) |
 		      watchdog_err;
    
    assign wbm_rty_i = (slave_sel[0] & wbs0_rty_o) |
-		      (slave_sel[1] & wbs1_rty_o);
+		      (slave_sel[1] & wbs1_rty_o) |
+		      (slave_sel[2] & wbs2_rty_o);
    
 
 `endif

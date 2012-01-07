@@ -272,8 +272,8 @@ NET i2c1_sda_io  IOSTANDARD = LVCMOS18;
 ## # IO Pad Locations Constraints for SPI memory
 ## #------------------------------------------------------------------------------
 
-NET spi0_mosi_o  LOC = AA9  | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
-NET spi0_ss_o<0>  	 LOC = AC14 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
+#NET spi0_mosi_o  LOC = AA9  | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
+#NET spi0_ss_o<0>  	 LOC = AC14 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
 # These go through the STARTUP_VIRTEX5 block - don't worry about assigning them
 # here.
 #NET spi0_miso_i  LOC = K11 | IOSTANDARD = LVCMOS33 | DRIVE = 6 | SLEW = FAST | TIG;
@@ -841,6 +841,66 @@ NET uart0_stx_pad_o TIG;
 #NET sram_adv_ld_n       LOC = U21  | IOSTANDARD = LVDCI_33;
 #NET sram_mode           LOC = AC23 | IOSTANDARD = LVDCI_33;
 # NET flash_audio_reset_n LOC = AD10 | IOSTANDARD = LVCMOS33;
+
+
+## #------------------------------------------------------------------------------
+## # IO Pad Location Constraints / Properties for CFI Flash (shared with SRAM)
+## #------------------------------------------------------------------------------ 
+NET flash_adr_o<23> LOC = Y10;
+NET flash_adr_o<22> LOC = Y11;
+NET flash_adr_o<21> LOC = AA17;
+NET flash_adr_o<20> LOC = AB17;
+NET flash_adr_o<19> LOC = G14;
+NET flash_adr_o<18> LOC = F13;
+NET flash_adr_o<17> LOC = H14;
+NET flash_adr_o<16> LOC = H13;
+NET flash_adr_o<15> LOC = F15;
+NET flash_adr_o<14> LOC = G15;
+NET flash_adr_o<13> LOC = G12;
+NET flash_adr_o<12> LOC = H12;
+NET flash_adr_o<11> LOC = G16;
+NET flash_adr_o<10> LOC = H16;
+NET flash_adr_o<9>  LOC = H11;
+NET flash_adr_o<8>  LOC = G11;
+NET flash_adr_o<7>  LOC = H17;
+NET flash_adr_o<6>  LOC = G17;
+NET flash_adr_o<5>  LOC = G10;
+NET flash_adr_o<4>  LOC = G9;
+NET flash_adr_o<3>  LOC = G19;
+NET flash_adr_o<2>  LOC = H18;
+NET flash_adr_o<1>  LOC = H9;
+NET flash_adr_o<0>  LOC = H8;
+NET flash_adr_o<*>  IOSTANDARD = LVCMOS33;
+NET flash_adr_o<*>  SLEW = FAST;
+NET flash_adr_o<*>  DRIVE = 8;
+
+
+NET flash_dq_io<15> LOC = AD18 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<14> LOC = AC18 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<13> LOC = AB10 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<12> LOC = AB9  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<11> LOC = AC17 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<10> LOC = AC16 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<9> LOC = AC8  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<8> LOC = AC9  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<7> LOC = Y12  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<6> LOC = Y13  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<5> LOC = AA15 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<4> LOC = AB14 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<3> LOC = AA12 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<2> LOC = AB11 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<1> LOC = AA13 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_dq_io<0> LOC = AA14 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW  = FAST;
+
+NET flash_dq_io<*> PULLDOWN;
+
+NET flash_adv_n_o   LOC = AA20  | IOSTANDARD = LVCMOS33;
+NET flash_oe_n_o    LOC = AA9  | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_we_n_o    LOC = AB15 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_ce_n_o    LOC = AA10 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_clk_o     LOC = AB19 | IOSTANDARD = LVCMOS33 | DRIVE = 12 | SLEW = FAST;
+NET flash_wait_i    LOC = AA19 | IOSTANDARD = LVCMOS33;
+NET flash_rst_n_o   LOC = AD10 | IOSTANDARD = LVCMOS33;
 
 #------------------------------------------------------------------------------
 # IO Pad Location Constraints / Properties for TFT VGA LCD Controller

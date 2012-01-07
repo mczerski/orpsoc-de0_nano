@@ -70,7 +70,7 @@ OPT_MODE ?=Speed
 OPT_LEVEL ?=2
 
 XILINX_FLAGS ?=-intstyle silent
-XILINX_XST_FLAGS ?= -power NO -glob_opt AllClockNets -write_timing_constraints NO -cross_clock_analysis NO -slice_utilization_ratio 100 -bram_utilization_ratio 100 -dsp_utilization_ratio 100 -safe_implementation No -fsm_style lut -ram_extract Yes -ram_style Auto -rom_extract Yes -rom_style Auto -auto_bram_packing NO -mux_extract YES -mux_style Auto -decoder_extract YES -priority_extract YES -shreg_extract YES -shift_extract YES -xor_collapse YES -resource_sharing YES -async_to_sync NO -use_dsp48 auto -iobuf YES -max_fanout 100000 -bufg 32 -register_duplication YES -equivalent_register_removal YES -register_balancing No -slice_packing YES -optimize_primitives NO -use_clock_enable Auto -use_sync_set Auto -use_sync_reset Auto -iob Auto -slice_utilization_ratio_maxmargin 5
+XILINX_XST_FLAGS ?= -power NO -glob_opt AllClockNets -write_timing_constraints NO -cross_clock_analysis NO -slice_utilization_ratio 100 -bram_utilization_ratio 100 -dsp_utilization_ratio 100 -safe_implementation No -fsm_style lut -ram_extract Yes -ram_style Auto -rom_extract Yes -rom_style Auto -auto_bram_packing NO -mux_extract YES -mux_style Auto -decoder_extract YES -priority_extract YES -shreg_extract YES -shift_extract YES -xor_collapse YES -resource_sharing YES -async_to_sync NO -use_dsp48 auto -iobuf YES -max_fanout 100000 -bufg 32 -register_duplication YES -equivalent_register_removal YES -register_balancing No -slice_packing YES -optimize_primitives NO -use_clock_enable Auto -use_sync_set Auto -use_sync_reset Auto -iob yes -slice_utilization_ratio_maxmargin 5
 
 XCF_FILE=$(DESIGN_NAME).xcf
 XST_FILE=$(DESIGN_NAME).xst

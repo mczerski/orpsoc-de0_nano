@@ -51,10 +51,11 @@
  `define JTAG_DEBUG
 // `define RAM_WB
 // `define XILINX_SSRAM
+ `define CFI_FLASH
  `define XILINX_DDR2
  `define UART0
  `define GPIO0
- `define SPI0
+// `define SPI0
  `define I2C0
  `define I2C1
  `define ETH0

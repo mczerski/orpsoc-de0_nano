@@ -1,3 +1,4 @@
+//`include "synthesis-defines.v"
 module ram_wb_b3(
 		 wb_adr_i, wb_bte_i, wb_cti_i, wb_cyc_i, wb_dat_i, wb_sel_i,
 		 wb_stb_i, wb_we_i,
@@ -119,7 +120,7 @@ module ram_wb_b3(
     If not Verilator model, always do load, otherwise only load when called
     from SystemC testbench.
     */
-
+// synthesis translate_off
    parameter memory_file = "sram.vmem";
 
 `ifdef verilator
@@ -135,9 +136,11 @@ module ram_wb_b3(
      begin
 	$readmemh(memory_file, mem);
      end
-   
-`endif // !`ifdef verilator
 
+`endif // !`ifdef verilator
+   
+//synthesis translate_on
+   
    assign wb_rty_o = 0;
 
    // mux for data to ram, RMW on part sel != 4'hf
@@ -209,9 +212,9 @@ module ram_wb_b3(
    // Error signal generation
    //
    
-   // Error when out of bounds of memory - skip top byte of address in case
-   // this is mapped somewhere other than 0x00.
-   assign addr_err  = wb_cyc_i & wb_stb_i & (|wb_adr_i[aw-1-8:mem_adr_width]);  
+   // Error when out of bounds of memory - skip top nibble of address in case
+   // this is mapped somewhere other than 0x0.
+   assign addr_err  = wb_cyc_i & wb_stb_i & (|wb_adr_i[aw-1-4:mem_adr_width]);  
    
    // OR in other errors here...
    assign wb_err_o =  wb_ack_o_r & wb_stb_i & 

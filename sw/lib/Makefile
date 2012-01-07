@@ -20,5 +20,5 @@ clean:
 $(USER_ELF_BIN): $(USER_ELF)
 	$(Q)$(OR32_OBJCOPY) -O binary $< $@
 $(USER_ELF_VMEM): $(USER_ELF_BIN) $(UTILS_BIN2VMEM)
-	$(Q)$(UTILS_BIN2VMEM) $< > $@
+	$(Q)$(UTILS_BIN2VMEM) $< $(USER_ELF_VMEM_GEN_OPTS) > $@
 gen-user-elf-vmem: $(USER_ELF_VMEM)

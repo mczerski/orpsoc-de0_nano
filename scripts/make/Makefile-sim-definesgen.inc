@@ -18,6 +18,9 @@ $(TEST_DEFINES_VLG):
 	$(Q)if [ ! -z $$VCD_DELAY ]; \
 		then echo "\`define VCD_DELAY "$$VCD_DELAY >> $@; \
 	fi
+	$(Q)if [ ! -z $$VCD_DELAY_MULTIPLY ]; \
+		then echo "\`define VCD_DELAY_MULTIPLY "$$VCD_DELAY_MULTIPLY >> $@; \
+	fi
 	$(Q)if [ ! -z $$VCD_DEPTH ]; \
 		then echo "\`define VCD_DEPTH "$$VCD_DEPTH >> $@; \
 	fi
