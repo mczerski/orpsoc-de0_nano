@@ -91,7 +91,7 @@ module vga_enh_top (
 	// parameters
 	//
 	parameter ARST_LVL = 1'b0;
-	parameter LINE_FIFO_AWIDTH = 7;
+	parameter LINE_FIFO_AWIDTH = 10;
 
 	//
 	// inputs & outputs
