@@ -93,10 +93,12 @@ module gpio(
        begin
 	  if (wb_adr_i == 0)
 	    gpio_o[7:0] <= wb_dat_i;
+/*
 	  if (wb_adr_i == 1)
 	    gpio_o[15:8] <= wb_dat_i;
-   	  if (wb_adr_i == 2)
+ 	  if (wb_adr_i == 2)
 	    gpio_o[23:16] <= wb_dat_i;
+ */
 	  /* Add appropriate address detection here for wider GPIO */
        end
 
@@ -109,12 +111,13 @@ module gpio(
        begin
 	  if (wb_adr_i == ((gpio_io_width/8)))
 	    gpio_dir[7:0] <= wb_dat_i;
+/*
 	  if (wb_adr_i == ((gpio_io_width/8)+1))
 	    gpio_dir[15:8] <= wb_dat_i;
    	  if (wb_adr_i == ((gpio_io_width/8)+2))
 	    //gpio_dir[23:16] <= wb_dat_i;
 	    gpio_dir[21:16] <= wb_dat_i[5:0];
-
+*/
 	  /* Add appropriate address detection here for wider GPIO */
 
        end
@@ -125,19 +128,22 @@ module gpio(
 	// Data regs
 	if (wb_adr_i == 0)
 	  wb_dat_o[7:0] <= gpio_i[7:0];
+/*
 	if (wb_adr_i == 1)
 	  wb_dat_o[7:0] <= gpio_i[15:8];
 	if (wb_adr_i == 2)
 	  wb_dat_o[7:0] <= gpio_i[23:16];
+ */
 	/* Add appropriate address detection here for wider GPIO */	  
 	// Direction regs
 	if (wb_adr_i == ((gpio_io_width/8)))
 	  wb_dat_o[7:0] <= gpio_dir[7:0];
+/*
 	if (wb_adr_i == ((gpio_io_width/8)+1))
 	  wb_dat_o[7:0] <= gpio_dir[15:8];
 	if (wb_adr_i == ((gpio_io_width/8)+2))
 	  wb_dat_o[7:0] <= gpio_dir[23:16];
-
+*/
  	/* Add appropriate address detection here for wider GPIO */
 
      end
