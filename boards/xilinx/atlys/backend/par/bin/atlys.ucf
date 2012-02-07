@@ -356,8 +356,8 @@ TIMEGRP "bramra" = FFS(dvi_gen0/enc0/pixel2x/ra<*>);
 TIMESPEC "TS_ramdo" = FROM "bramgrp" TO "fddbgrp" TS_PCLK;
 TIMESPEC "TS_ramra" = FROM "bramra" TO "fddbgrp" TS_PCLK;
 # VGA constraints
-NET vga0/line_fifo/BU2/U0/gconvfifo.rf/grf.rf/gcx.clkx/wr_pntr_gc<*> TIG;
-NET vga0/line_fifo/BU2/U0/gconvfifo.rf/grf.rf/gcx.clkx/rd_pntr_gc<*> TIG;
+#NET vga0/line_fifo/BU2/U0/gconvfifo.rf/grf.rf/gcx.clkx/wr_pntr_gc<*> TIG;
+#NET vga0/line_fifo/BU2/U0/gconvfifo.rf/grf.rf/gcx.clkx/rd_pntr_gc<*> TIG;
 
 # DDR2 Constraints 
 NET "xilinx_ddr2_0/xilinx_ddr2_if0/ddr2_mig/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/selfrefresh_mcb_mode" TIG;

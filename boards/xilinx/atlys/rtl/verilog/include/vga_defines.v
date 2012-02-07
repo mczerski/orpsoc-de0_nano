@@ -78,7 +78,7 @@
 
 //
 // use spartan6 technology dependant linefifo
-`define VGA_SPARTAN6_COREGEN_FIFO_DC
+//`define VGA_SPARTAN6_COREGEN_FIFO_DC
 
 ////////////////////////
 //
