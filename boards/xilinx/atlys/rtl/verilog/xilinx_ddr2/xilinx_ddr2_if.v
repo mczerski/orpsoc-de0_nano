@@ -243,6 +243,7 @@ module xilinx_ddr2_if (
    wire                ddr2_p0_rd_overflow;
    wire                ddr2_p0_rd_error;
    wire 	       ddr2_calib_done;
+   reg [1:0]           ddr2_calib_done_r;
 
    wire [30:0]         readfrom_af_addr;
    wire [30:0] 	       writeback_af_addr;
@@ -334,7 +335,10 @@ module xilinx_ddr2_if (
    assign wb_req_addr_hit = (wb_req & cache_hit & cached_addr_valid);
    
    // Wishbone request detection
-   assign wb_req = wb_stb_i & wb_cyc_i & ddr2_calib_done & !sync; 
+   assign wb_req = wb_stb_i & wb_cyc_i & ddr2_calib_done_r[0] & !sync;
+
+   always @ (posedge wb_clk)
+     ddr2_calib_done_r[1:0] <= {ddr2_calib_done, ddr2_calib_done_r[1]};
    
    always @(posedge wb_clk)
      wb_req_r <= wb_req;
