@@ -1380,6 +1380,7 @@ module orpsoc_top
 
    wb_sdram_ctrl 
      #(
+       .TECHNOLOGY			("ALTERA"),
        .CLK_FREQ_MHZ			(100),	// sdram_clk freq in MHZ
        .POWERUP_DELAY			(200),	// power up delay in us
        .WB_PORTS			(3),	// Number of wishbone ports
