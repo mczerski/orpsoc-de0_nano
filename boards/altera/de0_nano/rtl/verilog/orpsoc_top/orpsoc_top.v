@@ -2637,7 +2637,11 @@ module orpsoc_top
    assign vga0_vsync_pad_o = ~vga0_vsync;
    assign vga0_clk_p_o = vga0_pclk_o;
    
-   vga_enh_top vga0
+   vga_enh_top
+   #(
+    .LINE_FIFO_AWIDTH(10)
+    )
+   vga0
     (
     .wb_clk_i            (wb_clk), 
     .wb_rst_i            (wb_rst),  
