@@ -184,6 +184,7 @@ module xilinx_ddr2_if (
     wire                ddr2_px_rd_overflow[NUM_USERPORTS-1:0];
     wire                ddr2_px_rd_error[NUM_USERPORTS-1:0];
     wire 	              ddr2_calib_done;
+    reg [1:0]           ddr2_calib_done_r;
 
     assign wb_px_adr_i[0] = wb0_adr_i;
     assign wb_px_stb_i[0] = wb0_stb_i;
@@ -265,11 +266,15 @@ module xilinx_ddr2_if (
                               ((wb2_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[2]) |
                               ((wb3_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[3]) |
                               ((wb4_adr_i[31:P3_BURST_ADDR_ALIGN] == px_cache_addr[4][31:P3_BURST_ADDR_ALIGN]) & wb_px_wr_req[4]);
+
+   always @ (posedge wb_clk)
+     ddr2_calib_done_r[1:0] <= {ddr2_calib_done, ddr2_calib_done_r[1]};
+
     genvar i;
     generate
     for (i = 0; i < NUM_USERPORTS; i = i + 1) begin : userport
     
-      assign wb_px_req[i]     = wb_px_stb_i[i] & wb_px_cyc_i[i] & ddr2_calib_done; 
+      assign wb_px_req[i]     = wb_px_stb_i[i] & wb_px_cyc_i[i] & ddr2_calib_done_r[0]; 
       assign wb_px_req_new[i] = wb_px_req[i] & !wb_px_req_r[i];
       assign wb_px_wr_req[i]  = wb_px_req_new[i] & wb_px_we_i[i];
 
