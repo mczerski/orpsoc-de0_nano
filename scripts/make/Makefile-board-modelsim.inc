@@ -82,6 +82,9 @@ modelsim_backend.scr: $(BOARD_BACKEND_VERILOG_SRC)
 modelsim_dut.scr: $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) $(BOOTROM_VERILOG)
 	$(Q)echo "+incdir+"$(BOARD_RTL_VERILOG_INCLUDE_DIR) > $@;
 	$(Q)echo "+incdir+"$(BOOTROM_SW_DIR) >> $@;
+ifneq ($(DEVICE_TREE_DIR), "")
+	$(Q)echo "+incdir+"$(DEVICE_TREE_DIR) >> $@;
+endif
 	$(Q)echo "+incdir+"$(BOARD_BENCH_VERILOG_INCLUDE_DIR) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
 	$(Q)for module in $(BOARD_RTL_VERILOG_MODULES); do if [ -d $(BOARD_RTL_VERILOG_DIR)/$$module ]; then echo "-y " $(BOARD_RTL_VERILOG_DIR)/$$module >> $@; fi; done
