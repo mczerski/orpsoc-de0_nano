@@ -7,7 +7,8 @@
  * First lot of bytes are the GPIO I/O regs
  * Second lot are the direction registers
  * 
- * Set direction bit to '1' to output corresponding data bit.
+ * ----Set direction bit to '1' to output corresponding data bit.
+ * Set direction bit to '0' to output according to jbtrivial.
  *
  * Register mapping:
  *  
@@ -101,7 +102,8 @@ module gpio(
      else if (wb_stb_i & wb_we_i)
        begin
 	  if (wb_adr_i == ((gpio_io_width/8)))
-	    gpio_dir[7:0] <= wb_dat_i;
+	    gpio_dir[7:0] <= ~wb_dat_i;
+		/* Fixed to jbtrivial by gongtao0607@gmail.com */
 /*
 	  if (wb_adr_i == ((gpio_io_width/8)+1))
 	    gpio_dir[15:8] <= wb_dat_i;
