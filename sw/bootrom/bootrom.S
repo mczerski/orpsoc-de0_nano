@@ -63,6 +63,10 @@
 #define RAM_LOAD_BASE SDRAM_BASE
 #define RESET_ADDR 0x100
 
+#define BOOTROM_ADDR_BYTE2 0x0b
+#define BOOTROM_ADDR_BYTE1 0x00
+#define BOOTROM_ADDR_BYTE0 0x00
+
 boot_init:	
 	l.movhi r0, 0
 	l.movhi r1, RAM_LOAD_BASE
