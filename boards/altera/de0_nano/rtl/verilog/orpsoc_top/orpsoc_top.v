@@ -116,6 +116,9 @@ module orpsoc_top
     vga0_r_pad_o, vga0_g_pad_o, vga0_b_pad_o,
     vga0_data_en_o,
 `endif
+`ifdef EINT
+	eint_pad_i,
+`endif
     sys_clk_pad_i,
 
     rst_n_pad_i  
@@ -241,6 +244,9 @@ module orpsoc_top
    output [7:0] 	      vga0_r_pad_o;
    output [7:0]		      vga0_g_pad_o;
    output [7:0]		      vga0_b_pad_o;   
+`endif
+`ifdef EINT
+   input [6:0] eint_pad_i;
 `endif
    ////////////////////////////////////////////////////////////////////////
    //
@@ -2778,6 +2784,15 @@ module orpsoc_top
    assign or1200_pic_ints[22] = 0;
    assign or1200_pic_ints[23] = 0;
 `endif   
+`ifdef EINT
+   assign or1200_pic_ints[24] = eint_pad_i[0];
+   assign or1200_pic_ints[25] = eint_pad_i[1];
+   assign or1200_pic_ints[26] = eint_pad_i[2];
+   assign or1200_pic_ints[27] = eint_pad_i[3];
+   assign or1200_pic_ints[28] = ~eint_pad_i[4];
+   assign or1200_pic_ints[29] = ~eint_pad_i[5];
+   assign or1200_pic_ints[30] = ~eint_pad_i[6];
+`else
    assign or1200_pic_ints[24] = 0;
    assign or1200_pic_ints[25] = 0;
    assign or1200_pic_ints[26] = 0;
@@ -2785,6 +2800,7 @@ module orpsoc_top
    assign or1200_pic_ints[28] = 0;
    assign or1200_pic_ints[29] = 0;
    assign or1200_pic_ints[30] = 0;
+`endif
    
 endmodule // orpsoc_top
 

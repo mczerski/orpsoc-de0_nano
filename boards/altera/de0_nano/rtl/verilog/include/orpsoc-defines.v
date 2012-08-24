@@ -50,10 +50,10 @@
 `define VERSATILE_SDRAM
 //`define RAM_WB
 `define UART0
-//`define SPI0
-//`define SPI1
+`define SPI0
+`define SPI1
 //`define SPI2
-//`define I2C0
+`define I2C0
 //`define I2C1
 //`define I2C2
 //`define I2C3
@@ -62,7 +62,8 @@
 `define GPIO0
 //`define ETH0
 //`define SDC_CONTROLLER
-`define VGA0
+//`define VGA0
+`define EINT
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 `ifdef SPI0
