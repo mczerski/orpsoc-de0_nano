@@ -1,4 +1,3 @@
-
 # Expecting BOARD_SW_ROOT already set to indicate how far below directory we're
 # in the board's software root path is.
 
@@ -12,7 +11,7 @@ SW_ROOT=$(BOARD_SW_ROOT)/$(PROJ_ROOT)/sw
 # to this project.
 BOARD=actel/ordb1a3pe1500
 
-# Set RTL_VERILOG_INCLUDE_DIR so software 
+# Set RTL_VERILOG_INCLUDE_DIR so software
 RTL_VERILOG_INCLUDE_DIR=$(shell pwd)/$(BOARD_SW_ROOT)/../rtl/verilog/include
 
 # Set the processor capability flags
