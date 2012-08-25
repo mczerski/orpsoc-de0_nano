@@ -9,7 +9,7 @@ SW_ROOT=$(BOARD_SW_ROOT)/$(PROJ_ROOT)/sw
 
 # Set the BOARD to be the path within the board/ path of the project that goes
 # to this project.
-BOARD=actel/ordb1a3pe1500
+BOARD=altera/de0_nano
 
 # Set RTL_VERILOG_INCLUDE_DIR so software
 RTL_VERILOG_INCLUDE_DIR=$(shell pwd)/$(BOARD_SW_ROOT)/../rtl/verilog/include
