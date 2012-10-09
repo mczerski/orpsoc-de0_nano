@@ -146,7 +146,7 @@ module vga_enh_top (
 	output        csync_pad_o;               // composite sync
 	output        blank_pad_o;               // blanking signal
 	output [ 7:0] r_pad_o, g_pad_o, b_pad_o; // RGB color signals
-    output [15:0] Tvlen, Thlen;
+	output [15:0] Tvlen, Thlen;
 	//
 	// variable declarations
 	//
@@ -171,7 +171,7 @@ module vga_enh_top (
 
 	// to wb_slave
 	wire stat_avmp, stat_acmp, vmem_swint, clut_swint, hint, vint, sint;
-	wire wmb_busy;
+	wire wbm_busy;
 	reg luint;
 	wire [ 3: 0] cc0_adr_i, cc1_adr_i;
 
