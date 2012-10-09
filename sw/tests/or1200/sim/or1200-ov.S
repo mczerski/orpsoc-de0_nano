@@ -265,6 +265,16 @@ _main:
 	l.add 	r3, r0, r0	;// Should clear overflow
 	l.nop	0x2
 	CHECK_OV_CLEAR
+
+	// Subtract the biggest negative number from the
+	// biggest positive number.
+	l.movhi	r4,0x7fff
+	l.ori	r4,r4,0xffff
+	l.movhi	r5,0x8000
+	l.sub	r3,r4,r5
+	l.nop	2
+	CHECK_OV_SET
+	
 #endif	
 	
 	l.movhi	r4, 0x8000

@@ -90,6 +90,7 @@ module or1200_cpu(
 
 parameter dw = `OR1200_OPERAND_WIDTH;
 parameter aw = `OR1200_REGFILE_ADDR_WIDTH;
+parameter boot_adr = `OR1200_BOOT_ADR;
 
 //
 // I/O ports
@@ -289,6 +290,7 @@ wire 				fpcsr_we;
 wire				sr_we;
 wire	[`OR1200_SR_WIDTH-1:0]	to_sr;
 wire	[`OR1200_SR_WIDTH-1:0]	sr;
+wire    			dsx;
 wire				except_flushpipe;
 wire				except_start;
 wire				except_started;
@@ -412,7 +414,7 @@ assign sig_range = sr[`OR1200_SR_OV];
 //
 // Instantiation of instruction fetch block
 //
-or1200_genpc or1200_genpc(
+or1200_genpc #(.boot_adr(boot_adr)) or1200_genpc(
 	.clk(clk),
 	.rst(rst),
 	.icpu_adr_o(icpu_adr_o),
@@ -723,7 +725,8 @@ or1200_sprs or1200_sprs(
 	.sr_we(sr_we),
 	.to_sr(to_sr),
 	.sr(sr),
-	.branch_op(branch_op)
+	.branch_op(branch_op),
+	.dsx(dsx)
 );
 
 //
@@ -877,7 +880,8 @@ or1200_except or1200_except(
 	.sr_we(sr_we),
 	.to_sr(to_sr),
 	.sr(sr),
-	.abort_ex(abort_ex)
+	.abort_ex(abort_ex),
+	.dsx(dsx)
 );
 
 //

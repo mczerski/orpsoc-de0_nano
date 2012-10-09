@@ -196,6 +196,25 @@ _main:
 	l.bf	fail
 	l.nop
 
+	l.movhi	r4,0x7fff
+	l.ori 	r4,r4,0xffff
+
+	l.extws	r3,r4
+
+	l.nop 	0x2
+	
+	l.sfne	r3,r4
+	l.bf	fail
+	l.nop
+
+	l.extwz	r3,r4
+
+	l.nop 	0x2
+	
+	l.sfne	r3,r4
+	l.bf	fail
+	l.nop
+	
 	
 	l.movhi r3, hi(0x8000000d)
 	l.ori 	r3, r3, lo(0x8000000d)

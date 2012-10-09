@@ -169,6 +169,11 @@ assign b_mux = b;
 assign {cy_sum, result_sum} = (a + b_mux) + carry_in;
 // Numbers either both +ve and bit 31 of result set
 assign ov_sum = ((!a[width-1] & !b_mux[width-1]) & result_sum[width-1]) |
+`ifdef OR1200_IMPL_SUB
+		// Subtract larger negative from smaller positive
+		((!a[width-1] & b_mux[width-1]) & result_sum[width-1] &
+		 alu_op==`OR1200_ALUOP_SUB) |
+`endif
 // or both -ve and bit 31 of result clear
 		((a[width-1] & b_mux[width-1]) & !result_sum[width-1]);  
 assign result_and = a & b;
@@ -247,7 +252,7 @@ always @(alu_op or alu_op2 or a or b or result_sum or result_and or macrc_op
 		                result = extended;
 		end
 		`OR1200_ALUOP_EXTW  : begin
-		                result = extended;
+		                result = a;
 		end		
 `endif     
 		`OR1200_ALUOP_MOVHI : begin
