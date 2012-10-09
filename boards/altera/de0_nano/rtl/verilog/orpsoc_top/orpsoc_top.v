@@ -1126,7 +1126,24 @@ module orpsoc_top
       .debug_select_o                     (dbg_if_select)
       );
 `endif
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // Processor debug wires
+   // 
+   ////////////////////////////////////////////////////////////////////////
+   
+   wire [31:0] 				  or1k_dbg_dat_i;
+   wire [31:0] 				  or1k_dbg_adr_i;
+   wire 				  or1k_dbg_we_i;
+   wire 				  or1k_dbg_stb_i;
+   wire 				  or1k_dbg_ack_o;
+   wire [31:0] 				  or1k_dbg_dat_o;
+   
+   wire 				  or1k_dbg_stall_i;
+   wire 				  or1k_dbg_bp_o;
+   wire 				  or1k_dbg_rst;
 
+`ifdef OR1200   
    ////////////////////////////////////////////////////////////////////////
    //
    // OpenRISC processor
@@ -1137,22 +1154,11 @@ module orpsoc_top
    // Wires
    // 
    
-   wire [30:0] 				  or1200_pic_ints;
-
-   wire [31:0] 				  or1200_dbg_dat_i;
-   wire [31:0] 				  or1200_dbg_adr_i;
-   wire 				  or1200_dbg_we_i;
-   wire 				  or1200_dbg_stb_i;
-   wire 				  or1200_dbg_ack_o;
-   wire [31:0] 				  or1200_dbg_dat_o;
-   
-   wire 				  or1200_dbg_stall_i;
-   wire 				  or1200_dbg_ewt_i;
-   wire [3:0] 				  or1200_dbg_lss_o;
-   wire [1:0] 				  or1200_dbg_is_o;
-   wire [10:0] 				  or1200_dbg_wp_o;
-   wire 				  or1200_dbg_bp_o;
-   wire 				  or1200_dbg_rst;   
+   wire [31:0] 				  cpu_irq;
+   wire 				  or1k_dbg_ewt_i;
+   wire [3:0] 				  or1k_dbg_lss_o;
+   wire [1:0] 				  or1k_dbg_is_o;
+   wire [10:0] 				  or1k_dbg_wp_o;
 
    wire 				  or1200_clk, or1200_rst;
    wire 				  sig_tick;
@@ -1161,7 +1167,7 @@ module orpsoc_top
    // Assigns
    //
    assign or1200_clk = wb_clk;
-   assign or1200_rst = wb_rst /* | or1200_dbg_rst*/;
+   assign or1200_rst = wb_rst /* | or1k_dbg_rst*/;
 
    // 
    // Instantiation
@@ -1179,7 +1185,7 @@ module orpsoc_top
 	.iwb_cyc_o			(wbm_i_or12_cyc_o),
 	.iwb_adr_o			(wbm_i_or12_adr_o),
 	.iwb_stb_o			(wbm_i_or12_stb_o),
-	.iwb_we_o				(wbm_i_or12_we_o),
+	.iwb_we_o			(wbm_i_or12_we_o),
 	.iwb_sel_o			(wbm_i_or12_sel_o),
 	.iwb_dat_o			(wbm_i_or12_dat_o),
 	.iwb_cti_o			(wbm_i_or12_cti_o),
@@ -1196,27 +1202,27 @@ module orpsoc_top
 	.dwb_cyc_o			(wbm_d_or12_cyc_o),
 	.dwb_adr_o			(wbm_d_or12_adr_o),
 	.dwb_stb_o			(wbm_d_or12_stb_o),
-	.dwb_we_o				(wbm_d_or12_we_o),
+	.dwb_we_o			(wbm_d_or12_we_o),
 	.dwb_sel_o			(wbm_d_or12_sel_o),
 	.dwb_dat_o			(wbm_d_or12_dat_o),
 	.dwb_cti_o			(wbm_d_or12_cti_o),
 	.dwb_bte_o			(wbm_d_or12_bte_o),
 	
 	// Debug interface ports
-	.dbg_stall_i			(or1200_dbg_stall_i),
-	//.dbg_ewt_i			(or1200_dbg_ewt_i),
+	.dbg_stall_i			(or1k_dbg_stall_i),
+	//.dbg_ewt_i			(or1k_dbg_ewt_i),
 	.dbg_ewt_i			(1'b0),
-	.dbg_lss_o			(or1200_dbg_lss_o),
-	.dbg_is_o				(or1200_dbg_is_o),
-	.dbg_wp_o				(or1200_dbg_wp_o),
-	.dbg_bp_o				(or1200_dbg_bp_o),
+	.dbg_lss_o			(or1k_dbg_lss_o),
+	.dbg_is_o			(or1k_dbg_is_o),
+	.dbg_wp_o			(or1k_dbg_wp_o),
+	.dbg_bp_o			(or1k_dbg_bp_o),
 
-	.dbg_adr_i			(or1200_dbg_adr_i),      
-	.dbg_we_i				(or1200_dbg_we_i ), 
-	.dbg_stb_i			(or1200_dbg_stb_i),          
-	.dbg_dat_i			(or1200_dbg_dat_i),
-	.dbg_dat_o			(or1200_dbg_dat_o),
-	.dbg_ack_o			(or1200_dbg_ack_o),
+	.dbg_adr_i			(or1k_dbg_adr_i),      
+	.dbg_we_i			(or1k_dbg_we_i ), 
+	.dbg_stb_i			(or1k_dbg_stb_i),          
+	.dbg_dat_i			(or1k_dbg_dat_i),
+	.dbg_dat_o			(or1k_dbg_dat_o),
+	.dbg_ack_o			(or1k_dbg_ack_o),
 	
 	.pm_clksd_o			(),
 	.pm_dc_gate_o			(),
@@ -1232,9 +1238,9 @@ module orpsoc_top
 	.clk_i				(or1200_clk),
 	.rst_i				(or1200_rst),
 	
-	.clmode_i				(2'b00),
+	.clmode_i			(2'b00),
 	// Interrupts      
-	.pic_ints_i			(or1200_pic_ints),
+	.pic_ints_i			(cpu_irq),
 	.sig_tick(sig_tick),
 	/*
 	 .mbist_so_o			(),
@@ -1247,7 +1253,78 @@ module orpsoc_top
 	);
    
    ////////////////////////////////////////////////////////////////////////
+`endif //  `ifdef OR1200
 
+`ifdef MOR1KX
+
+   parameter MOR1KX_CPU0_OPTION_CPU = "CAPPUCCINO";
+
+   wire [31:0] 				  cpu_irq;
+
+   mor1kx
+     #(
+       .FEATURE_DEBUGUNIT("ENABLED"),
+       .FEATURE_CMOV("ENABLED"),
+       .FEATURE_INSTRUCTIONCACHE("ENABLED"),
+       .OPTION_ICACHE_BLOCK_WIDTH(4),
+       .OPTION_ICACHE_SET_WIDTH(8),
+       .OPTION_ICACHE_WAYS(2),
+       .OPTION_ICACHE_LIMIT_WIDTH(32),
+       .FEATURE_DATACACHE("ENABLED"),
+       .OPTION_DCACHE_BLOCK_WIDTH(4),
+       .OPTION_DCACHE_SET_WIDTH(8),
+       .OPTION_DCACHE_WAYS(2),
+       .OPTION_DCACHE_LIMIT_WIDTH(31),
+       .OPTION_CPU0(MOR1KX_CPU0_OPTION_CPU),
+       .OPTION_RESET_PC(32'hf0000100)
+       )
+     mor1kx0
+     (
+      .iwbm_adr_o(wbm_i_or12_adr_o),
+      .iwbm_stb_o(wbm_i_or12_stb_o),
+      .iwbm_cyc_o(wbm_i_or12_cyc_o),
+      .iwbm_sel_o(wbm_i_or12_sel_o),
+      .iwbm_we_o (wbm_i_or12_we_o ),
+      .iwbm_cti_o(wbm_i_or12_cti_o),
+      .iwbm_bte_o(wbm_i_or12_bte_o),
+      .iwbm_dat_o(wbm_i_or12_dat_o),
+
+      .dwbm_adr_o(wbm_d_or12_adr_o),
+      .dwbm_stb_o(wbm_d_or12_stb_o),
+      .dwbm_cyc_o(wbm_d_or12_cyc_o),
+      .dwbm_sel_o(wbm_d_or12_sel_o),
+      .dwbm_we_o (wbm_d_or12_we_o ),
+      .dwbm_cti_o(wbm_d_or12_cti_o),
+      .dwbm_bte_o(wbm_d_or12_bte_o),
+      .dwbm_dat_o(wbm_d_or12_dat_o),
+
+      .clk(wb_clk),
+      .rst(wb_rst),
+
+      .iwbm_err_i(wbm_i_or12_err_i),
+      .iwbm_ack_i(wbm_i_or12_ack_i),
+      .iwbm_dat_i(wbm_i_or12_dat_i),
+      .iwbm_rty_i(wbm_i_or12_rty_i),
+
+      .dwbm_err_i(wbm_d_or12_err_i),
+      .dwbm_ack_i(wbm_d_or12_ack_i),
+      .dwbm_dat_i(wbm_d_or12_dat_i),
+      .dwbm_rty_i(wbm_d_or12_rty_i),
+
+      .irq_i(cpu_irq),
+
+      .du_addr_i(or1k_dbg_adr_i[15:0]),
+      .du_stb_i(or1k_dbg_stb_i),
+      .du_dat_i(or1k_dbg_dat_i),
+      .du_we_i(or1k_dbg_we_i),
+      .du_dat_o(or1k_dbg_dat_o),
+      .du_ack_o(or1k_dbg_ack_o),
+      .du_stall_i(or1k_dbg_stall_i),
+      .du_stall_o(or1k_dbg_bp_o)
+
+      );
+
+`endif
 
 `ifdef LEGACY_DBG_IF
    ////////////////////////////////////////////////////////////////////////
@@ -1259,18 +1336,18 @@ module orpsoc_top
    dbg_if dbg_if0
      (
       // OR1200 interface
-      .cpu0_clk_i			(or1200_clk),
-      .cpu0_rst_o			(or1200_dbg_rst),      
-      .cpu0_addr_o			(or1200_dbg_adr_i),
-      .cpu0_data_o			(or1200_dbg_dat_i),
-      .cpu0_stb_o			(or1200_dbg_stb_i),
-      .cpu0_we_o			(or1200_dbg_we_i),
-      .cpu0_data_i			(or1200_dbg_dat_o),
-      .cpu0_ack_i			(or1200_dbg_ack_o),      
+      .cpu0_clk_i			(wb_clk),
+      .cpu0_rst_o			(or1k_dbg_rst),      
+      .cpu0_addr_o			(or1k_dbg_adr_i),
+      .cpu0_data_o			(or1k_dbg_dat_i),
+      .cpu0_stb_o			(or1k_dbg_stb_i),
+      .cpu0_we_o			(or1k_dbg_we_i),
+      .cpu0_data_i			(or1k_dbg_dat_o),
+      .cpu0_ack_i			(or1k_dbg_ack_o),      
 
 
-      .cpu0_stall_o			(or1200_dbg_stall_i),
-      .cpu0_bp_i			(or1200_dbg_bp_o),      
+      .cpu0_stall_o			(or1k_dbg_stall_i),
+      .cpu0_bp_i			(or1k_dbg_bp_o),      
       
       // TAP interface
       .tck_i				(dbg_tck),
@@ -1304,16 +1381,16 @@ module orpsoc_top
    adv_dbg_if dbg_if0 
      (
       // OR1200 interface
-      .cpu0_clk_i			(or1200_clk),
-      .cpu0_rst_o			(or1200_dbg_rst),      
-      .cpu0_addr_o			(or1200_dbg_adr_i),
-      .cpu0_data_o			(or1200_dbg_dat_i),
-      .cpu0_stb_o			(or1200_dbg_stb_i),
-      .cpu0_we_o			(or1200_dbg_we_i),
-      .cpu0_data_i			(or1200_dbg_dat_o),
-      .cpu0_ack_i			(or1200_dbg_ack_o),      
-      .cpu0_stall_o			(or1200_dbg_stall_i),
-      .cpu0_bp_i			(or1200_dbg_bp_o),      
+      .cpu0_clk_i			(wb_clk),
+      .cpu0_rst_o			(or1k_dbg_rst),      
+      .cpu0_addr_o			(or1k_dbg_adr_i),
+      .cpu0_data_o			(or1k_dbg_dat_i),
+      .cpu0_stb_o			(or1k_dbg_stb_i),
+      .cpu0_we_o			(or1k_dbg_we_i),
+      .cpu0_data_i			(or1k_dbg_dat_o),
+      .cpu0_ack_i			(or1k_dbg_ack_o),      
+      .cpu0_stall_o			(or1k_dbg_stall_i),
+      .cpu0_bp_i			(or1k_dbg_bp_o),      
 
       // TAP interface
       .tck_i				(dbg_tck),
@@ -1352,11 +1429,11 @@ module orpsoc_top
    assign wbm_d_dbg_cti_o = 0;   
    assign wbm_d_dbg_bte_o = 0;  
 
-   assign or1200_dbg_adr_i = 0;   
-   assign or1200_dbg_dat_i = 0;   
-   assign or1200_dbg_stb_i = 0;   
-   assign or1200_dbg_we_i = 0;
-   assign or1200_dbg_stall_i = 0;
+   assign or1k_dbg_adr_i = 0;   
+   assign or1k_dbg_dat_i = 0;   
+   assign or1k_dbg_stb_i = 0;   
+   assign or1k_dbg_we_i = 0;
+   assign or1k_dbg_stall_i = 0;
    
    ////////////////////////////////////////////////////////////////////////   
 `endif // !`ifdef LEGACY_DBG_IF
@@ -2700,102 +2777,103 @@ module orpsoc_top
    // 
    ////////////////////////////////////////////////////////////////////////
    
-   assign or1200_pic_ints[0] = 0; // Non-maskable inside OR1200
-   assign or1200_pic_ints[1] = 0; // Non-maskable inside OR1200
+   assign cpu_irq[0] = 0; // Non-maskable inside OR1200
+   assign cpu_irq[1] = 0; // Non-maskable inside OR1200
 `ifdef UART0
-   assign or1200_pic_ints[2] = uart0_irq;
+   assign cpu_irq[2] = uart0_irq;
 `else   
-   assign or1200_pic_ints[2] = 0;
+   assign cpu_irq[2] = 0;
 `endif
 `ifdef UART1
-   assign or1200_pic_ints[3] = uart1_irq;
+   assign cpu_irq[3] = uart1_irq;
 `else   
-   assign or1200_pic_ints[3] = 0;
+   assign cpu_irq[3] = 0;
 `endif
 `ifdef ETH0
-   assign or1200_pic_ints[4] = eth0_irq;
+   assign cpu_irq[4] = eth0_irq;
 `else
-   assign or1200_pic_ints[4] = 0;
+   assign cpu_irq[4] = 0;
 `endif
 `ifdef UART2
-   assign or1200_pic_ints[5] = uart2_irq;
+   assign cpu_irq[5] = uart2_irq;
 `else   
-   assign or1200_pic_ints[5] = 0;
+   assign cpu_irq[5] = 0;
 `endif
 `ifdef SPI0
-   assign or1200_pic_ints[6] = spi0_irq;
+   assign cpu_irq[6] = spi0_irq;
 `else   
-   assign or1200_pic_ints[6] = 0;
+   assign cpu_irq[6] = 0;
 `endif
 `ifdef SPI1
-   assign or1200_pic_ints[7] = spi1_irq;
+   assign cpu_irq[7] = spi1_irq;
 `else   
-   assign or1200_pic_ints[7] = 0;
+   assign cpu_irq[7] = 0;
 `endif
 `ifdef SPI2
-   assign or1200_pic_ints[8] = spi2_irq;
+   assign cpu_irq[8] = spi2_irq;
 `else   
-   assign or1200_pic_ints[8] = 0;
+   assign cpu_irq[8] = 0;
 `endif
-   assign or1200_pic_ints[9] = 0;
+   assign cpu_irq[9] = 0;
 `ifdef I2C0
-   assign or1200_pic_ints[10] = i2c0_irq;
+   assign cpu_irq[10] = i2c0_irq;
 `else   
-   assign or1200_pic_ints[10] = 0;
+   assign cpu_irq[10] = 0;
 `endif
 `ifdef I2C1
-   assign or1200_pic_ints[11] = i2c1_irq;
+   assign cpu_irq[11] = i2c1_irq;
 `else   
-   assign or1200_pic_ints[11] = 0;
+   assign cpu_irq[11] = 0;
 `endif   
 `ifdef I2C2
-   assign or1200_pic_ints[12] = i2c2_irq;
+   assign cpu_irq[12] = i2c2_irq;
 `else   
-   assign or1200_pic_ints[12] = 0;
+   assign cpu_irq[12] = 0;
 `endif   
 `ifdef I2C3
-   assign or1200_pic_ints[13] = i2c3_irq;
+   assign cpu_irq[13] = i2c3_irq;
 `else   
-   assign or1200_pic_ints[13] = 0;
+   assign cpu_irq[13] = 0;
 `endif
 `ifdef SDC_CONTROLLER
-   assign or1200_pic_ints[14] = sdc_irq_a;
-   assign or1200_pic_ints[15] = sdc_irq_b;
-   assign or1200_pic_ints[16] = sdc_irq_c;
+   assign cpu_irq[14] = sdc_irq_a;
+   assign cpu_irq[15] = sdc_irq_b;
+   assign cpu_irq[16] = sdc_irq_c;
 `else   
-   assign or1200_pic_ints[14] = 0;
-   assign or1200_pic_ints[15] = 0;
-   assign or1200_pic_ints[16] = 0;
+   assign cpu_irq[14] = 0;
+   assign cpu_irq[15] = 0;
+   assign cpu_irq[16] = 0;
 `endif  
-   assign or1200_pic_ints[17] = 0;
-   assign or1200_pic_ints[18] = 0;
-   assign or1200_pic_ints[19] = 0;
+   assign cpu_irq[17] = 0;
+   assign cpu_irq[18] = 0;
+   assign cpu_irq[19] = 0;
 `ifdef USB0
-   assign or1200_pic_ints[20] = usb0_host_irq;
-   assign or1200_pic_ints[21] = usb0_slave_irq;
+   assign cpu_irq[20] = usb0_host_irq;
+   assign cpu_irq[21] = usb0_slave_irq;
 `else   
-   assign or1200_pic_ints[20] = 0;
-   assign or1200_pic_ints[21] = 0;
+   assign cpu_irq[20] = 0;
+   assign cpu_irq[21] = 0;
 `endif
 `ifdef USB1
-   assign or1200_pic_ints[22] = usb1_host_irq;
-   assign or1200_pic_ints[23] = usb1_slave_irq;
+   assign cpu_irq[22] = usb1_host_irq;
+   assign cpu_irq[23] = usb1_slave_irq;
 `else   
-   assign or1200_pic_ints[22] = 0;
-   assign or1200_pic_ints[23] = 0;
+   assign cpu_irq[22] = 0;
+   assign cpu_irq[23] = 0;
 `endif   
 `ifdef EINT
-   assign or1200_pic_ints[24] = eint_pad_i[24];
-   assign or1200_pic_ints[25] = ~eint_pad_i[25];
+   assign cpu_irq[24] = eint_pad_i[24];
+   assign cpu_irq[25] = ~eint_pad_i[25];
 `else
-   assign or1200_pic_ints[24] = 0;
-   assign or1200_pic_ints[25] = 0;
+   assign cpu_irq[24] = 0;
+   assign cpu_irq[25] = 0;
 `endif
-   assign or1200_pic_ints[26] = 0;
-   assign or1200_pic_ints[27] = 0;
-   assign or1200_pic_ints[28] = 0;
-   assign or1200_pic_ints[29] = 0;
-   assign or1200_pic_ints[30] = 0;
+   assign cpu_irq[26] = 0;
+   assign cpu_irq[27] = 0;
+   assign cpu_irq[28] = 0;
+   assign cpu_irq[29] = 0;
+   assign cpu_irq[30] = 0;
+   assign cpu_irq[31] = 0;
    
 endmodule // orpsoc_top
 
