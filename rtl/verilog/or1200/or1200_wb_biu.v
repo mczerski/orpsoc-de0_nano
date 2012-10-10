@@ -243,7 +243,7 @@ module or1200_wb_biu(
 	   if ((!biu_cyc_i | !biu_stb | !biu_cab_i | biu_sel_i != wb_sel_o | 
 		biu_we_i != wb_we_o) & wb_cti_o == 3'b010)
 	     wb_fsm_state_nxt = wb_fsm_last;
-	   else if ((!biu_cyc_i | wb_err_i | wb_rty_i | wb_ack & wb_cti_o==3'b111) & 
+	   else if ((wb_err_i | wb_rty_i | wb_ack & wb_cti_o==3'b111) & 
 		    wb_stb_o)
 	     wb_fsm_state_nxt = wb_fsm_idle;
 	   else
