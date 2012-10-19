@@ -191,6 +191,10 @@ module vga_enh_top (
 	wire [ 8:0] cp_clut_adr;
 	wire [23:0] cp_clut_q;
 
+	// autoresync on fifo underrun;
+	reg wbm_resync;
+	wire wbm_ven;
+
 	//
 	// Module body
 	//
@@ -282,7 +286,7 @@ module vga_enh_top (
 
 		// internal connections
 		.sint        (sint         ),
-		.ctrl_ven    (ctrl_ven     ),
+		.ctrl_ven    (wbm_ven      ),
 		.ctrl_cd     (ctrl_cd      ),
 		.ctrl_vbl    (ctrl_vbl     ),
 		.ctrl_vbsw   (ctrl_vbsw    ),
@@ -405,11 +409,11 @@ module vga_enh_top (
 	);
 
 	// hookup line-fifo
-	wire ctrl_ven_not = ~ctrl_ven;
+	wire wbm_ven_not = ~wbm_ven;
 
 `ifdef VGA_SPARTAN6_COREGEN_FIFO_DC
 	vga_fifo_dc_gen line_fifo (
-	    .rst           (ctrl_ven_not),
+	    .rst           (wbm_ven_not),
 	    .wr_clk        (wb_clk_i),
 	    .rd_clk        (clk_p_i),
 	    .din           (line_fifo_d), // Bus [23 : 0] 
@@ -426,7 +430,7 @@ module vga_enh_top (
 		.rclk  ( clk_p_i            ),
 		.wclk  ( wb_clk_i           ),
 		.rclr  ( 1'b0               ),
-		.wclr  ( ctrl_ven_not       ),
+		.wclr  ( wbm_ven_not        ),
 		.wreq  ( line_fifo_wreq     ),
 		.d     ( line_fifo_d        ),
 		.rreq  ( line_fifo_rreq     ),
@@ -453,4 +457,12 @@ module vga_enh_top (
 	        luint  <= #1 sluint;      // sample again, reduce metastability risk
 	    end
 
+	// auto resync wbm on fifo underrun
+	assign wbm_ven = ~wbm_resync & ctrl_ven;
+
+	always @(posedge wb_clk_i)
+	  if (vint)
+	    wbm_resync <= 1'b0;
+	  else if (luint & !sluint)
+	    wbm_resync <= 1'b1;
 endmodule
