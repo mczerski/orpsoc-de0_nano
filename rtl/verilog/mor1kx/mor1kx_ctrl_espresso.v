@@ -30,7 +30,7 @@
 module mor1kx_ctrl_espresso
   (/*AUTOARG*/
    // Outputs
-   spr_npc_o, spr_ppc_o, mfspr_dat_o, ctrl_mfspr_we_o,
+   flag_o, spr_npc_o, spr_ppc_o, mfspr_dat_o, ctrl_mfspr_we_o,
    pipeline_flush_o, padv_fetch_o, padv_decode_o, padv_execute_o,
    fetch_take_exception_branch_o, exception_taken_o,
    execute_waiting_o, stepping_o, du_dat_o, du_ack_o, du_stall_o,
@@ -96,7 +96,8 @@ module mor1kx_ctrl_espresso
    input [OPTION_OPERAND_WIDTH-1:0] ctrl_rfb_i;
    
    input                            ctrl_flag_set_i, ctrl_flag_clear_i;
-   
+   output                           flag_o;
+ 			    
    output [OPTION_OPERAND_WIDTH-1:0] spr_npc_o;
    output [OPTION_OPERAND_WIDTH-1:0] spr_ppc_o;
 
@@ -230,6 +231,7 @@ module mor1kx_ctrl_espresso
    reg [OPTION_OPERAND_WIDTH-1:0]    exception_pc_addr;
    
    reg                               waiting_for_fetch;
+   reg                               branched_and_waiting_for_fetch;
    
    reg                               doing_rfe_r;
    wire                              doing_rfe;
@@ -486,6 +488,8 @@ module mor1kx_ctrl_espresso
        flag <= ctrl_flag_clear_i ? 0 :
                ctrl_flag_set_i ? 1 : flag;
 
+   assign flag_o = flag;
+
    always @(posedge clk `OR_ASYNC_RST)
      if (rst)
        execute_waiting_r <= 0;
@@ -547,6 +551,17 @@ module mor1kx_ctrl_espresso
      else if (!execute_waiting & execute_waiting_r & !next_fetch_done_i)
        waiting_for_fetch <= 1;
 
+   always @(posedge clk `OR_ASYNC_RST)
+     if (rst)
+       branched_and_waiting_for_fetch <= 0;
+     else if (exception_re)
+       branched_and_waiting_for_fetch <= 0;
+     else if (padv_fetch_o & ctrl_branch_occur_o)
+       branched_and_waiting_for_fetch <= 1;
+     else if (branched_and_waiting_for_fetch)
+       branched_and_waiting_for_fetch <= !next_fetch_done_i;
+   
+   
 
    assign doing_rfe = ((execute_done & op_rfe) | doing_rfe_r) & 
                       !deassert_doing_rfe;
@@ -677,8 +692,8 @@ module mor1kx_ctrl_espresso
             // EPCR after syscall is address of next not executed insn.
             spr_epcr <= spr_npc;
           else if (except_ticktimer | except_pic)
-            spr_epcr <= execute_delay_slot ? spr_ppc-4 :
-			/*check if delayed or not */ spr_ppc+4;
+            spr_epcr <= branched_and_waiting_for_fetch ? spr_npc :
+			execute_delay_slot ? spr_ppc-4 : spr_ppc+4;
           else if (execute_stage_exceptions | decode_stage_exceptions)
             spr_epcr <= execute_delay_slot ? spr_ppc-4 : spr_ppc;
           else

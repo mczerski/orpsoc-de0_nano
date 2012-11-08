@@ -51,5 +51,3 @@ module mor1kx_rf_ram
        ram[wrad_i] <= wrda_i;
 
 endmodule // mor1kx_rf_ram
-
-   
