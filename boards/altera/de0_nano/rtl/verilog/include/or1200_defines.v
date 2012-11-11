@@ -395,7 +395,7 @@
 // implement MAC, multiplier (non-serial) needs to be
 // implemented.
 //
-//`define OR1200_MAC_IMPLEMENTED
+`define OR1200_MAC_IMPLEMENTED
 
 //
 // Implement optional l.div/l.divu instructions
@@ -409,7 +409,7 @@
 //
 // Serial multiplier.
 //
-`define OR1200_MULT_SERIAL
+//`define OR1200_MULT_SERIAL
 
 //
 // Serial divider.

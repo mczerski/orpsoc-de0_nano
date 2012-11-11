@@ -75,6 +75,12 @@ $(TCL_FILE):
 	$(Q)echo "set_global_assignment -name FAMILY \"$(FPGA_FAMILY)\"" >> $@
 	$(Q)echo "set_global_assignment -name DEVICE $(FPGA_PART)" >> $@
 	$(Q)echo "set_global_assignment -name TOP_LEVEL_ENTITY $(RTL_TOP)" >> $@
+	$(Q)echo "set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION \"USE AS REGULAR IO\"" >> $@
+	$(Q)echo "set_global_assignment -name AUTO_RAM_TO_LCELL_CONVERSION ON" >> $@
+	$(Q)echo "set_instance_assignment -name AUTO_RAM_RECOGNITION OFF -to \"uart16550:uart16550_0|uart_regs:regs|uart_transmitter:transmitter|uart_tfifo:fifo_tx|raminfr:tfifo\"" >> $@
+	$(Q)echo "set_instance_assignment -name AUTO_RAM_RECOGNITION OFF -to \"uart16550:uart16550_0|uart_regs:regs|uart_receiver:receiver|uart_rfifo:fifo_rx|raminfr:rfifo\"" >> $@
+	$(Q)echo "set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED" >> $@
+
 	$(Q)for file in $(RTL_VERILOG_SRC); do \
 		echo "set_global_assignment -name VERILOG_FILE $$file" >> $@ ; \
 	done

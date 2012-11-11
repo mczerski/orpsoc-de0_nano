@@ -70,6 +70,11 @@ module clkgen
    vga0_clk_o,
 `endif
 
+`ifdef VERSATILE_VIDEO_SDRAM
+   video_sdram_clk_o,
+   video_sdram_rst_o,
+`endif
+
    // Asynchronous, active low reset in
    rst_n_pad_i
    
@@ -102,6 +107,11 @@ module clkgen
 
 `ifdef VGA0
    output vga0_clk_o;
+`endif
+
+`ifdef VERSATILE_VIDEO_SDRAM
+   output video_sdram_clk_o;
+   output video_sdram_rst_o;
 `endif
 
    // Asynchronous, active low reset (pushbutton, typically)
@@ -148,7 +158,17 @@ module clkgen
     .c2     (vga0_clk_o),
 `else
     .c2     (),
-`endif    
+`endif
+`ifdef VERSATILE_VIDEO_SDRAM      
+    .c3     (video_sdram_clk_o),
+`else
+    .c3     (),
+`endif
+`ifdef USB_CLK
+   .c4		(usb_clk_o),
+`else
+	.c4		(),
+`endif
     .locked (pll_lock)
    );
    
@@ -182,6 +202,18 @@ module clkgen
        sdram_rst_shr <= {sdram_rst_shr[14:0], ~(sync_rst_n)};
    
    assign sdram_rst_o = sdram_rst_shr[15];
+`endif //  `ifdef VERSATILE_SDRAM
+
+`ifdef VERSATILE_VIDEO_SDRAM   
+   // Reset generation for SDRAM controller
+   reg [15:0] 	   video_sdram_rst_shr;
+   always @(posedge video_sdram_clk_o or posedge async_rst)
+     if (async_rst)
+       video_sdram_rst_shr <= 16'hffff;
+     else
+       video_sdram_rst_shr <= {video_sdram_rst_shr[14:0], ~(sync_rst_n)};
+   
+   assign video_sdram_rst_o = video_sdram_rst_shr[15];
 `endif //  `ifdef VERSATILE_SDRAM
 
 `ifdef ETH_CLK

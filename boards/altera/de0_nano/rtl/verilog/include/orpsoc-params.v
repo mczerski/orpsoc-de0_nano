@@ -142,6 +142,18 @@ parameter wbs_d_vga0_addr_width = 12;
 parameter wbm_vga0_data_width = 32;
 parameter wbm_vga0_addr_width = 32;
 
+// ps2 0 params
+parameter ps2_0_wb_adr = 8'h94;
+parameter ps2_0_wb_adr_width = 1;
+parameter wbs_d_ps20_data_width = 8;
+// ps2 0 params
+parameter ps2_1_wb_adr = 8'h95;
+parameter ps2_1_wb_adr_width = 1;
+parameter wbs_d_ps21_data_width = 8;
+// mc 1 params
+parameter mc1_wb_adr = 8'he0;
+parameter wbs_d_mc1_data_width = 32;
+
 // Memory sizing for wb_ram (simulation only)
 parameter internal_sram_mem_span = 32'h0080_0000; // 8MB
 parameter internal_sram_adr_width_for_span = 23;  // log2(8192*1024)
@@ -178,12 +190,13 @@ parameter ibus_arb_slave1_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 ///////////////////////////
 // Has auto foward to last slave when no address hits
 parameter dbus_arb_wb_addr_match_width = 8;
-parameter dbus_arb_wb_num_slaves = 5;
+parameter dbus_arb_wb_num_slaves = 6;
 // Slave addresses
 parameter dbus_arb_slave0_adr = 4'h0; // Main memory (SDRAM/FPGA SRAM)
 parameter dbus_arb_slave1_adr = eth0_wb_adr; // Ethernet 0
 parameter dbus_arb_slave2_adr = sdc_wb_adr;
 parameter dbus_arb_slave3_adr = vga0_wb_adr;
+parameter dbus_arb_slave4_adr = mc1_wb_adr;
 
 ///////////////////////////////
 //                           //
@@ -191,7 +204,7 @@ parameter dbus_arb_slave3_adr = vga0_wb_adr;
 //                           //
 ///////////////////////////////
 parameter bbus_arb_wb_addr_match_width = 8;
-parameter bbus_arb_wb_num_slaves = 12; // Update this when changing slaves!
+parameter bbus_arb_wb_num_slaves = 14; // Update this when changing slaves!
 // Slave addresses
 parameter bbus_arb_slave0_adr  = uart0_wb_adr;
 parameter bbus_arb_slave1_adr  = gpio0_wb_adr;
@@ -205,8 +218,8 @@ parameter bbus_arb_slave8_adr  = spi1_wb_adr;
 parameter bbus_arb_slave9_adr  = spi2_wb_adr; 
 parameter bbus_arb_slave10_adr = flashrom_wb_adr;
 parameter bbus_arb_slave11_adr = usb1_wb_adr;
-parameter bbus_arb_slave12_adr = 0 /* UNASSIGNED */;
-parameter bbus_arb_slave13_adr = 0 /* UNASSIGNED */;
+parameter bbus_arb_slave12_adr = ps2_0_wb_adr;
+parameter bbus_arb_slave13_adr = ps2_1_wb_adr;
 parameter bbus_arb_slave14_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave15_adr = 0 /* UNASSIGNED */;
 parameter bbus_arb_slave16_adr = 0 /* UNASSIGNED */;

@@ -64,10 +64,13 @@
 //`define USB0
 //`define USB1
 `define GPIO0
-//`define ETH0
+`define ETH0
 //`define SDC_CONTROLLER
-//`define VGA0
-`define EINT
+`define VGA0
+`define PS20
+`define PS21
+`define VERSATILE_VIDEO_SDRAM
+//`define EINT
 // end of included module defines - keep this comment line here, scripts depend on it!!
 
 `ifdef SPI0
