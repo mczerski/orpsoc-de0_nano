@@ -24,15 +24,6 @@
 #define BOOTROM_GOTO_RESET
 #endif
 
-// Address bootloader should start from in FLASH
-// Offset 0x0c0000
-#define BOOTROM_ADDR_BYTE2 0x0b
-#define BOOTROM_ADDR_BYTE1 0x00
-#define BOOTROM_ADDR_BYTE0 0x00
-// Causes SPI bootloader to loop if SPI didn't give correct size of image
-#define SPI_RETRY_IF_INSANE_SIZEWORD
-
-
 //
 // Defines for each core (memory map base, OR1200 interrupt line number, etc.)
 //

@@ -7,6 +7,4 @@ derive_pll_clocks -create_base_clocks
 # Automatically calculate clock uncertainty to jitter and other effects.
 derive_clock_uncertainty
 
-# Ignore timing on the reset input
-set_false_path -through [get_nets {rst_n_pad_i}]
 

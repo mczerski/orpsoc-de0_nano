@@ -111,14 +111,30 @@ module orpsoc_top
     sdc_card_detect_pad_i,
 `endif
 `ifdef VGA0
-    vga0_rst_n_o,
-    vga0_clk_p_o, vga0_hsync_pad_o, vga0_vsync_pad_o,
+    //vga0_rst_n_o,
+    //vga0_clk_p_o, 
+    vga0_hsync_pad_o, vga0_vsync_pad_o,
     vga0_r_pad_o, vga0_g_pad_o, vga0_b_pad_o,
-    vga0_data_en_o,
+    //vga0_data_en_o,
 `endif
+`ifdef PS20
+    ps20_clk,
+    ps20_dat,
+`endif
+`ifdef PS21
+    ps21_clk,
+    ps21_dat,
+`endif
+`ifdef VERSATILE_VIDEO_SDRAM
+    video_sdram_ba_pad_o,video_sdram_a_pad_o,video_sdram_cs_n_pad_o, video_sdram_ras_pad_o, 
+    video_sdram_cas_pad_o, video_sdram_we_pad_o, video_sdram_dq_pad_io, video_sdram_dqm_pad_o, 
+    video_sdram_cke_pad_o, video_sdram_clk_pad_o,
+`endif  
 `ifdef EINT
 	eint_pad_i,
 `endif
+    g_sensor_cs_n,
+    g_sensor_int,
     sys_clk_pad_i,
 
     rst_n_pad_i  
@@ -127,6 +143,8 @@ module orpsoc_top
 
 `include "orpsoc-params.v"   
 
+	input g_sensor_int;
+   output g_sensor_cs_n;
    input sys_clk_pad_i;
    
    input rst_n_pad_i;
@@ -236,18 +254,41 @@ module orpsoc_top
    output 		      sdc_clk_pad_o ;
 `endif
 `ifdef VGA0
-   output 		      vga0_rst_n_o;
-   output 		      vga0_clk_p_o;
+   //output 		      vga0_rst_n_o;
+   //output 		      vga0_clk_p_o;
    output 		      vga0_hsync_pad_o;
    output 		      vga0_vsync_pad_o;
-   output 		      vga0_data_en_o;
-   output [7:0] 	      vga0_r_pad_o;
-   output [7:0]		      vga0_g_pad_o;
-   output [7:0]		      vga0_b_pad_o;   
+   //output 		      vga0_data_en_o;
+   output [7:4] 	      vga0_r_pad_o;
+   output [7:4]		      vga0_g_pad_o;
+   output [7:4]		      vga0_b_pad_o;   
 `endif
+`ifdef PS20
+	inout					ps20_clk;
+	inout					ps20_dat;
+`endif
+`ifdef PS21
+	inout					ps21_clk;
+	inout					ps21_dat;
+`endif
+`ifdef VERSATILE_VIDEO_SDRAM
+   output [1:0] video_sdram_ba_pad_o;
+   output [11:0] video_sdram_a_pad_o;
+   output 	 video_sdram_cs_n_pad_o;
+   output 	 video_sdram_ras_pad_o;
+   output 	 video_sdram_cas_pad_o;
+   output 	 video_sdram_we_pad_o;
+   inout [15:0]  video_sdram_dq_pad_io;
+   output [1:0]  video_sdram_dqm_pad_o;
+   output 	 video_sdram_cke_pad_o;
+   output        video_sdram_clk_pad_o; 	 
+`endif  
 `ifdef EINT
    input [30:24] eint_pad_i;
 `endif
+
+   assign g_sensor_cs_n = 1;
+
    ////////////////////////////////////////////////////////////////////////
    //
    // Clock and reset generation module
@@ -266,6 +307,7 @@ module orpsoc_top
    wire 		      eth_smii_clk, eth_smii_rst;
    wire 		      dbg_tck;
    wire 		      vga0_pclk;
+   wire 		      video_sdram_clk, video_sdram_rst;
 
    clkgen clkgen0
      (
@@ -291,6 +333,11 @@ module orpsoc_top
 `endif
 `ifdef VGA0     
       .vga0_clk_o                (vga0_pclk),
+`endif
+
+`ifdef VERSATILE_VIDEO_SDRAM
+		.video_sdram_clk_o(video_sdram_clk),
+		.video_sdram_rst_o(video_sdram_rst),
 `endif
 
       // Asynchronous active low reset
@@ -670,7 +717,47 @@ module orpsoc_top
    wire 				  wbm_vga0_err_i;
    wire 				  wbm_vga0_rty_i;
 
-   
+   // ps20 slave wires
+   wire [31:0] 				  wbs_d_ps20_adr_i;
+   wire [wbs_d_ps20_data_width-1:0] 	  wbs_d_ps20_dat_i;
+   wire [3:0] 				  wbs_d_ps20_sel_i;
+   wire 				  wbs_d_ps20_we_i;
+   wire 				  wbs_d_ps20_cyc_i;
+   wire 				  wbs_d_ps20_stb_i;
+   wire [2:0] 				  wbs_d_ps20_cti_i;
+   wire [1:0] 				  wbs_d_ps20_bte_i;   
+   wire [wbs_d_ps20_data_width-1:0] 	  wbs_d_ps20_dat_o;   
+   wire 				  wbs_d_ps20_ack_o;
+   wire 				  wbs_d_ps20_err_o;
+   wire 				  wbs_d_ps20_rty_o; 
+	
+   // ps21 slave wires
+   wire [31:0] 				  wbs_d_ps21_adr_i;
+   wire [wbs_d_ps21_data_width-1:0] 	  wbs_d_ps21_dat_i;
+   wire [3:0] 				  wbs_d_ps21_sel_i;
+   wire 				  wbs_d_ps21_we_i;
+   wire 				  wbs_d_ps21_cyc_i;
+   wire 				  wbs_d_ps21_stb_i;
+   wire [2:0] 				  wbs_d_ps21_cti_i;
+   wire [1:0] 				  wbs_d_ps21_bte_i;   
+   wire [wbs_d_ps21_data_width-1:0] 	  wbs_d_ps21_dat_o;   
+   wire 				  wbs_d_ps21_ack_o;
+   wire 				  wbs_d_ps21_err_o;
+   wire 				  wbs_d_ps21_rty_o; 
+	
+   // video_sdram data bus wires
+   wire [31:0] 			    wbs_d_mc1_adr_i;
+   wire [wbs_d_mc1_data_width-1:0]  wbs_d_mc1_dat_i;
+   wire [3:0] 			    wbs_d_mc1_sel_i;
+   wire 			    wbs_d_mc1_we_i;
+   wire 			    wbs_d_mc1_cyc_i;
+   wire 			    wbs_d_mc1_stb_i;
+   wire [2:0] 			    wbs_d_mc1_cti_i;
+   wire [1:0] 			    wbs_d_mc1_bte_i;   
+   wire [wbs_d_mc1_data_width-1:0]  wbs_d_mc1_dat_o;   
+   wire 			    wbs_d_mc1_ack_o;
+   wire 			    wbs_d_mc1_err_o;
+   wire 			    wbs_d_mc1_rty_o;
 
 
    //
@@ -827,20 +914,32 @@ module orpsoc_top
       .wbs3_ack_o			(wbs_d_vga0_ack_o),
       .wbs3_err_o			(wbs_d_vga0_err_o),
       .wbs3_rty_o			(wbs_d_vga0_rty_o),
+		
+      .wbs4_adr_i			(wbs_d_mc1_adr_i),
+      .wbs4_dat_i			(wbs_d_mc1_dat_i),
+      .wbs4_sel_i			(wbs_d_mc1_sel_i),
+      .wbs4_we_i			(wbs_d_mc1_we_i),
+      .wbs4_cyc_i			(wbs_d_mc1_cyc_i),
+      .wbs4_stb_i			(wbs_d_mc1_stb_i),
+      .wbs4_cti_i			(wbs_d_mc1_cti_i),
+      .wbs4_bte_i			(wbs_d_mc1_bte_i),
+      .wbs4_dat_o			(wbs_d_mc1_dat_o),
+      .wbs4_ack_o			(wbs_d_mc1_ack_o),
+      .wbs4_err_o			(wbs_d_mc1_err_o),
+      .wbs4_rty_o			(wbs_d_mc1_rty_o),
 
-      .wbs4_adr_i			(wbm_b_d_adr_o),
-      .wbs4_dat_i			(wbm_b_d_dat_o),
-      .wbs4_sel_i			(wbm_b_d_sel_o),
-      .wbs4_we_i			(wbm_b_d_we_o),
-      .wbs4_cyc_i			(wbm_b_d_cyc_o),
-      .wbs4_stb_i			(wbm_b_d_stb_o),
-      .wbs4_cti_i			(wbm_b_d_cti_o),
-      .wbs4_bte_i			(wbm_b_d_bte_o),
-      .wbs4_dat_o			(wbm_b_d_dat_i),
-      .wbs4_ack_o			(wbm_b_d_ack_i),
-      .wbs4_err_o			(wbm_b_d_err_i),
-      .wbs4_rty_o			(wbm_b_d_rty_i),
-
+      .wbs5_adr_i			(wbm_b_d_adr_o),
+      .wbs5_dat_i			(wbm_b_d_dat_o),
+      .wbs5_sel_i			(wbm_b_d_sel_o),
+      .wbs5_we_i			(wbm_b_d_we_o),
+      .wbs5_cyc_i			(wbm_b_d_cyc_o),
+      .wbs5_stb_i			(wbm_b_d_stb_o),
+      .wbs5_cti_i			(wbm_b_d_cti_o),
+      .wbs5_bte_i			(wbm_b_d_bte_o),
+      .wbs5_dat_o			(wbm_b_d_dat_i),
+      .wbs5_ack_o			(wbm_b_d_ack_i),
+      .wbs5_err_o			(wbm_b_d_err_i),
+      .wbs5_rty_o			(wbm_b_d_rty_i),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -853,6 +952,7 @@ module orpsoc_top
    defparam arbiter_dbus0.slave1_adr = dbus_arb_slave1_adr;
    defparam arbiter_dbus0.slave2_adr = dbus_arb_slave2_adr;
    defparam arbiter_dbus0.slave3_adr = dbus_arb_slave3_adr;
+	defparam arbiter_dbus0.slave4_adr = dbus_arb_slave4_adr;
 
    //
    // Wishbone byte-wide bus arbiter
@@ -1022,6 +1122,30 @@ module orpsoc_top
       .wbs11_ack_o			(wbs_d_usb1_ack_o),
       .wbs11_err_o			(wbs_d_usb1_err_o),
       .wbs11_rty_o			(wbs_d_usb1_rty_o),
+		
+      .wbs12_adr_i			(wbs_d_ps20_adr_i),
+      .wbs12_dat_i			(wbs_d_ps20_dat_i),
+      .wbs12_we_i			(wbs_d_ps20_we_i),
+      .wbs12_cyc_i			(wbs_d_ps20_cyc_i),
+      .wbs12_stb_i			(wbs_d_ps20_stb_i),
+      .wbs12_cti_i			(wbs_d_ps20_cti_i),
+      .wbs12_bte_i			(wbs_d_ps20_bte_i),
+      .wbs12_dat_o			(wbs_d_ps20_dat_o),
+      .wbs12_ack_o			(wbs_d_ps20_ack_o),
+      .wbs12_err_o			(wbs_d_ps20_err_o),
+      .wbs12_rty_o			(wbs_d_ps20_rty_o),
+		
+      .wbs13_adr_i			(wbs_d_ps21_adr_i),
+      .wbs13_dat_i			(wbs_d_ps21_dat_i),
+      .wbs13_we_i			(wbs_d_ps21_we_i),
+      .wbs13_cyc_i			(wbs_d_ps21_cyc_i),
+      .wbs13_stb_i			(wbs_d_ps21_stb_i),
+      .wbs13_cti_i			(wbs_d_ps21_cti_i),
+      .wbs13_bte_i			(wbs_d_ps21_bte_i),
+      .wbs13_dat_o			(wbs_d_ps21_dat_o),
+      .wbs13_ack_o			(wbs_d_ps21_ack_o),
+      .wbs13_err_o			(wbs_d_ps21_err_o),
+      .wbs13_rty_o			(wbs_d_ps21_rty_o),
 
       // Clock, reset inputs
       .wb_clk			(wb_clk),
@@ -1042,6 +1166,8 @@ module orpsoc_top
    defparam arbiter_bytebus0.slave9_adr = bbus_arb_slave9_adr;
    defparam arbiter_bytebus0.slave10_adr = bbus_arb_slave10_adr;
    defparam arbiter_bytebus0.slave11_adr = bbus_arb_slave11_adr;
+	defparam arbiter_bytebus0.slave12_adr = bbus_arb_slave12_adr;
+	defparam arbiter_bytebus0.slave13_adr = bbus_arb_slave13_adr;
 
 
 `ifdef GENERIC_JTAG_TAP
@@ -1476,7 +1602,11 @@ module orpsoc_top
        .TECHNOLOGY			("ALTERA"),
        .CLK_FREQ_MHZ			(100),	// sdram_clk freq in MHZ
        .POWERUP_DELAY			(200),	// power up delay in us
+`ifdef VERSATILE_VIDEO_SDRAM
        .WB_PORTS			(3),	// Number of wishbone ports
+`else
+       .WB_PORTS			(4),	// Number of wishbone ports
+`endif
        .ROW_WIDTH			(13),	// Row width
        .COL_WIDTH			(9),	// Column width
        .BA_WIDTH			(2),	// Ba width
@@ -1509,52 +1639,92 @@ module orpsoc_top
       .wb_adr_i				({
 					  wbs_i_mc0_adr_i,
 					  wbs_d_mc0_adr_i,
-					  wbm_vga0_adr_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_adr_o,
+`endif
+					  wbm_eth0_adr_o
 					  }),
       .wb_stb_i				({
 					  wbs_i_mc0_stb_i,
 					  wbs_d_mc0_stb_i,
-					  wbm_vga0_stb_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_stb_o,
+`endif
+					  wbm_eth0_stb_o
 					  }),
       .wb_cyc_i				({
 					  wbs_i_mc0_cyc_i,
 					  wbs_d_mc0_cyc_i,
-					  wbm_vga0_cyc_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_cyc_o,
+`endif
+					  wbm_eth0_cyc_o
 					  }),
       .wb_cti_i				({
 					  wbs_i_mc0_cti_i,
 					  wbs_d_mc0_cti_i,
-					  wbm_vga0_cti_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_cti_o,
+`endif
+					  wbm_eth0_cti_o
 					  }),
       .wb_bte_i				({
 					  wbs_i_mc0_bte_i,
 					  wbs_d_mc0_bte_i,
-					  wbm_vga0_bte_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_bte_o,
+`endif
+					  wbm_eth0_bte_o
 					  }),
       .wb_we_i				({
 					  wbs_i_mc0_we_i,
 					  wbs_d_mc0_we_i,
-					  wbm_vga0_we_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_we_o,
+`endif
+					  wbm_eth0_we_o
 					  }),
       .wb_sel_i				({
 					  wbs_i_mc0_sel_i,
 					  wbs_d_mc0_sel_i,
-					  wbm_vga0_sel_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_sel_o,
+`endif
+					  wbm_eth0_sel_o
 					  }),
       .wb_dat_i				({
 					  wbs_i_mc0_dat_i,
 					  wbs_d_mc0_dat_i,
-					  wbm_vga0_dat_o
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_dat_o,
+`endif
+					  wbm_eth0_dat_o
 					  }),      
       .wb_dat_o				({
 					  wbs_i_mc0_dat_o,
 					  wbs_d_mc0_dat_o,
-					  wbm_vga0_dat_i
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_dat_i,
+`endif
+					  wbm_eth0_dat_i
 					  }),
       .wb_ack_o				({
 					  wbs_i_mc0_ack_o,
 					  wbs_d_mc0_ack_o,
-					  wbm_vga0_ack_i
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
+					  wbm_vga0_ack_i,
+`endif
+					  wbm_eth0_ack_i
 					  })
       );
       
@@ -1569,8 +1739,11 @@ module orpsoc_top
    assign wbm_eth0_err_i = 0;
    assign wbm_eth0_rty_i = 0;
 
+`ifdef VERSATILE_VIDEO_SDRAM
+`else
    assign wbm_vga0_err_i = 0;
    assign wbm_vga0_rty_i = 0;
+`endif
    
    ////////////////////////////////////////////////////////////////////////
 `endif //  `ifdef VERSATILE_SDRAM
@@ -2722,6 +2895,9 @@ module orpsoc_top
    wire vga0_hsync;
    wire vga0_vsync;   
    wire vga0_pclk_o;
+	wire [7:0] vga0_r_pad_int;
+	wire [7:0] vga0_g_pad_int;
+	wire [7:0] vga0_b_pad_int;
    
    assign vga0_data_en_o = ~vga0_blank;
    assign vga0_rst_n_o = ~wb_rst;
@@ -2729,6 +2905,9 @@ module orpsoc_top
    assign vga0_hsync_pad_o = ~vga0_hsync;
    assign vga0_vsync_pad_o = ~vga0_vsync;
    assign vga0_clk_p_o = vga0_pclk_o;
+	assign vga0_r_pad_o[7:4] = vga0_r_pad_int[7:4];
+	assign vga0_g_pad_o[7:4] = vga0_g_pad_int[7:4];
+	assign vga0_b_pad_o[7:4] = vga0_b_pad_int[7:4];
    
    vga_enh_top
    #(
@@ -2774,12 +2953,213 @@ module orpsoc_top
     .vsync_pad_o         (vga0_vsync),
     .csync_pad_o         (), 
     .blank_pad_o         (vga0_blank),
-    .r_pad_o             (vga0_r_pad_o), 
-    .g_pad_o             (vga0_g_pad_o),
-    .b_pad_o             (vga0_b_pad_o)
+    .r_pad_o             (vga0_r_pad_int), 
+    .g_pad_o             (vga0_g_pad_int),
+    .b_pad_o             (vga0_b_pad_int)
     );
 `endif //  `ifdef VGA0
    assign wbm_vga0_dat_o = 0;
+	
+`ifdef PS20
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // ps2 controller 0
+   // 
+   ////////////////////////////////////////////////////////////////////////
+
+   //
+   // Wires
+   //
+   wire 			     ps20_irq;
+   
+	ps2_wb ps2_wb0 
+	(
+		.wb_clk_i			(wb_clk),
+		.wb_rst_i			(wb_rst),
+		.wb_dat_i			(wbs_d_ps20_dat_i),
+		.wb_dat_o			(wbs_d_ps20_dat_o),
+		.wb_adr_i			(wbs_d_ps20_adr_i[ps2_0_wb_adr_width-1:0]),
+		.wb_stb_i			(wbs_d_ps20_stb_i),
+		.wb_we_i				(wbs_d_ps20_we_i ),
+		.wb_ack_o			(wbs_d_ps20_ack_o),
+		.irq_o				(ps20_irq),
+		.ps2_clk				(ps20_clk),
+		.ps2_dat				(ps20_dat)
+	);
+
+   assign wbs_d_ps20_err_o = 0;
+   assign wbs_d_ps20_rty_o = 0;
+
+
+   ////////////////////////////////////////////////////////////////////////
+`else // !`ifdef PS20
+
+   assign wbs_d_ps20_dat_o = 0;
+   assign wbs_d_ps20_ack_o = 0;
+   assign wbs_d_ps20_err_o = 0;
+   assign wbs_d_ps20_rty_o = 0;
+
+   ////////////////////////////////////////////////////////////////////////
+`endif // !`ifdef PS20   
+
+`ifdef PS21
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // ps2 controller 1
+   // 
+   ////////////////////////////////////////////////////////////////////////
+
+   //
+   // Wires
+   //
+   wire 			     ps21_irq;
+   
+	ps2_wb ps2_wb1 
+	(
+		.wb_clk_i			(wb_clk),
+		.wb_rst_i			(wb_rst),
+		.wb_dat_i			(wbs_d_ps21_dat_i),
+		.wb_dat_o			(wbs_d_ps21_dat_o),
+		.wb_adr_i			(wbs_d_ps21_adr_i[ps2_1_wb_adr_width-1:0]),
+		.wb_stb_i			(wbs_d_ps21_stb_i),
+		.wb_we_i				(wbs_d_ps21_we_i ),
+		.wb_ack_o			(wbs_d_ps21_ack_o),
+		.irq_o				(ps21_irq),
+		.ps2_clk				(ps21_clk),
+		.ps2_dat				(ps21_dat)
+	);
+
+   assign wbs_d_ps21_err_o = 0;
+   assign wbs_d_ps21_rty_o = 0;
+
+
+   ////////////////////////////////////////////////////////////////////////
+`else // !`ifdef PS21
+
+   assign wbs_d_ps21_dat_o = 0;
+   assign wbs_d_ps21_ack_o = 0;
+   assign wbs_d_ps21_err_o = 0;
+   assign wbs_d_ps21_rty_o = 0;
+
+   ////////////////////////////////////////////////////////////////////////
+`endif // !`ifdef PS21  
+
+`ifdef VERSATILE_VIDEO_SDRAM
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // Versatile Video Memory Controller (SDRAM configured)
+   // 
+   ////////////////////////////////////////////////////////////////////////
+
+   //
+   // Wires
+   //
+
+   wire [15:0] 				  video_sdram_dq_i;
+   wire [15:0] 				  video_sdram_dq_o;
+   wire 				  video_sdram_dq_oe;
+   
+   //
+   // Assigns
+   //
+   
+   assign video_sdram_dq_i = video_sdram_dq_pad_io;
+   assign video_sdram_dq_pad_io = video_sdram_dq_oe ? video_sdram_dq_o : 16'bz;
+   assign video_sdram_clk_pad_o = video_sdram_clk;
+
+   wb_sdram_ctrl 
+     #(
+       .TECHNOLOGY      ("ALTERA"),
+       .CLK_FREQ_MHZ			(75),	// sdram_clk freq in MHZ
+       .POWERUP_DELAY			(200),	// power up delay in us
+       .WB_PORTS			(2),	// Number of wishbone ports
+       .ROW_WIDTH			(12),	// Row width
+       .COL_WIDTH			(10),	// Column width
+       .BA_WIDTH			(2),	// Ba width
+       .tCAC				(2),	// CAS Latency
+       .tRAC				(5),	// RAS Latency
+       .tRP				(2),	// Command Period (PRE to ACT)
+       .tRC				(7),	// Command Period (REF to REF / ACT to ACT)
+       .tMRD				(2)	// Mode Register Set To Command Delay time
+      )
+   wb_sdram_ctrl1
+     (
+      // External SDRAM interface
+      .ba_pad_o				(video_sdram_ba_pad_o[1:0]),
+      .a_pad_o				(video_sdram_a_pad_o[11:0]),
+      .cs_n_pad_o			(video_sdram_cs_n_pad_o),
+      .ras_pad_o			(video_sdram_ras_pad_o),
+      .cas_pad_o			(video_sdram_cas_pad_o),
+      .we_pad_o				(video_sdram_we_pad_o),
+      .dq_i				(video_sdram_dq_i[15:0]),      
+      .dq_o				(video_sdram_dq_o[15:0]),
+      .dqm_pad_o			(video_sdram_dqm_pad_o[1:0]),
+      .dq_oe				(video_sdram_dq_oe),
+      .cke_pad_o			(video_sdram_cke_pad_o),
+      .sdram_clk			(video_sdram_clk),           
+      .sdram_rst                        (video_sdram_rst),
+
+      .wb_clk				(wb_clk),
+      .wb_rst				(wb_rst),
+		
+      .wb_adr_i				({
+					  wbm_vga0_adr_o,
+					  wbs_d_mc1_adr_i
+					  }),
+      .wb_stb_i				({
+					  wbm_vga0_stb_o,
+					  wbs_d_mc1_stb_i
+					  }),
+      .wb_cyc_i				({
+					  wbm_vga0_cyc_o,
+					  wbs_d_mc1_cyc_i
+					  }),
+      .wb_cti_i				({
+					  wbm_vga0_cti_o,
+					  wbs_d_mc1_cti_i
+					  }),
+      .wb_bte_i				({
+					  wbm_vga0_bte_o,
+					  wbs_d_mc1_bte_i
+					  }),
+      .wb_we_i				({
+					  wbm_vga0_we_o,
+					  wbs_d_mc1_we_i
+					  }),
+      .wb_sel_i				({
+					  wbm_vga0_sel_o,
+					  wbs_d_mc1_sel_i
+					  }),
+      .wb_dat_i				({
+					  wbm_vga0_dat_o,
+					  wbs_d_mc1_dat_i
+					  }),      
+      .wb_dat_o				({
+					  wbm_vga0_dat_i,
+					  wbs_d_mc1_dat_o
+					  }),
+      .wb_ack_o				({
+					  wbm_vga0_ack_i,
+					  wbs_d_mc1_ack_o
+					  })
+      );
+
+   assign wbm_vga0_err_i = 0;
+   assign wbm_vga0_rty_i = 0;
+	
+   assign wbs_d_mc1_err_o = 0;
+   assign wbs_d_mc1_rty_o = 0;
+	
+   ////////////////////////////////////////////////////////////////////////
+`else // !`ifdef PS21
+
+   assign wbs_d_mc1_dat_o = 0;
+   assign wbs_d_mc1_ack_o = 0;
+   assign wbs_d_mc1_err_o = 0;
+   assign wbs_d_mc1_rty_o = 0;
+
+   ////////////////////////////////////////////////////////////////////////
+`endif // !`ifdef VERSATILE_VIDEO_SDRAM  
    
    ////////////////////////////////////////////////////////////////////////
    //
@@ -2878,9 +3258,17 @@ module orpsoc_top
    assign cpu_irq[24] = 0;
    assign cpu_irq[25] = 0;
 `endif
-   assign cpu_irq[26] = 0;
+   assign cpu_irq[26] = g_sensor_int;
+`ifdef PS20
+   assign cpu_irq[27] = ps20_irq;
+`else
    assign cpu_irq[27] = 0;
+`endif
+`ifdef PS21
+   assign cpu_irq[28] = ps21_irq;
+`else
    assign cpu_irq[28] = 0;
+`endif
    assign cpu_irq[29] = 0;
    assign cpu_irq[30] = 0;
    assign cpu_irq[31] = 0;
