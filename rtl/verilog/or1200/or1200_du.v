@@ -170,7 +170,21 @@ assign du_write = dbg_stb_i && dbg_we_i;
 // We flush the entire pipeline and set the pc to the current address
 // to execute the restored address.
 //
-assign du_flush_pipe = (dbg_stall_i_r && !dbg_stall_i && |du_except_stop);
+assign du_flush_pipe = du_flush_pipe_r;
+
+reg du_flush_pipe_r;
+
+//
+// Register du_flush_pipe
+//
+always @(posedge clk or `OR1200_RST_EVENT rst) begin
+	if (rst == `OR1200_RST_VALUE) begin
+		du_flush_pipe_r   <=  1'b0;
+	end
+	else begin
+		du_flush_pipe_r   <=  (dbg_stall_i_r && !dbg_stall_i && |du_except_stop);
+	end
+end
 
 reg dbg_stall_i_r;
 
