@@ -170,7 +170,7 @@ VPI_SRCS=$(shell ls $(VPI_SRC_C_DIR)/*.[ch])
 # Modelsim VPI compile variables
 MODELTECH_VPILIB=msim_jp_vpi.sl
 # Icarus VPI compile target
-ICARUS_VPILIB=jp_vpi
+ICARUS_VPILIB=jtag_vpi
 
 #
 # Modelsim-specific settings

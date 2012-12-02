@@ -60,13 +60,13 @@ Q ?=@
 QUIET=-quiet
 endif
 
-all: jp_vpi
+all: jtag_vpi
 
-jp_vpi: $(SOURCE_FILES)
+jtag_vpi: $(SOURCE_FILES)
 	iverilog-vpi $(SOURCE_FILES) $(DEBUG_DEFINES) -DICARUS_VPI
 
-SOURCE_FILES= jp_vpi.c rsp-rtl_sim.c gdb.c
-OBJ_FILES=    jp_vpi.o rsp-rtl_sim.o gdb.o
+SOURCE_FILES= jtag_vpi.c
+OBJ_FILES=    jtag_vpi.o
 
 MODELTECH_INC_PATH=$(MGC_PATH)/include
 MODELTECH_VPI_CFLAGS=-fPIC -fno-stack-protector -DMODELSIM_VPI
@@ -82,4 +82,4 @@ msim_jp_vpi.sl: $(OBJ_FILES)
 
 clean:
 	$(Q)echo; echo "\t### Cleaning VPI debug directory ###"; echo;
-	$(Q)rm -f *.o *~ jp_vpi.vpi msim_jp_vpi.sl
+	$(Q)rm -f *.o *~ jtag_vpi.vpi msim_jp_vpi.sl

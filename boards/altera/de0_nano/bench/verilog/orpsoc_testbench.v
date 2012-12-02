@@ -292,7 +292,7 @@ module orpsoc_testbench;
 `ifdef JTAG_DEBUG   
  `ifdef VPI_DEBUG
    // Debugging interface
-   vpi_debug_module vpi_dbg
+   jtag_vpi jtag_vpi0
      (
       .tms(tms_pad_i), 
       .tck(tck_pad_i), 
