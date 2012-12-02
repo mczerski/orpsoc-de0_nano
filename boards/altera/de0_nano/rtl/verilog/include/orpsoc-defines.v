@@ -70,6 +70,7 @@
 `define PS20
 `define PS21
 `define VERSATILE_VIDEO_SDRAM
+`define G_SENSOR
 //`define EINT
 // end of included module defines - keep this comment line here, scripts depend on it!!
 

@@ -133,8 +133,10 @@ module orpsoc_top
 `ifdef EINT
 	eint_pad_i,
 `endif
+`ifdef G_SENSOR
     g_sensor_cs_n,
     g_sensor_int,
+`endif
     sys_clk_pad_i,
 
     rst_n_pad_i  
@@ -143,8 +145,10 @@ module orpsoc_top
 
 `include "orpsoc-params.v"   
 
+`ifdef G_SENSOR
 	input g_sensor_int;
    output g_sensor_cs_n;
+`endif
    input sys_clk_pad_i;
    
    input rst_n_pad_i;
@@ -287,7 +291,9 @@ module orpsoc_top
    input [30:24] eint_pad_i;
 `endif
 
+`ifdef G_SENSOR
    assign g_sensor_cs_n = 1;
+`endif
 
    ////////////////////////////////////////////////////////////////////////
    //
@@ -1531,6 +1537,7 @@ module orpsoc_top
 
       // Wishbone debug master
       .wb_clk_i				(wb_clk),
+      .wb_rst_i				(wb_rst),
       .wb_dat_i				(wbm_d_dbg_dat_i),
       .wb_ack_i				(wbm_d_dbg_ack_i),
       .wb_err_i				(wbm_d_dbg_err_i),
@@ -3248,7 +3255,11 @@ module orpsoc_top
    assign cpu_irq[24] = 0;
    assign cpu_irq[25] = 0;
 `endif
+`ifdef G_SENSOR
    assign cpu_irq[26] = g_sensor_int;
+`else
+	assign cpu_irq[26] = 0;
+`endif
 `ifdef PS20
    assign cpu_irq[27] = ps20_irq;
 `else
