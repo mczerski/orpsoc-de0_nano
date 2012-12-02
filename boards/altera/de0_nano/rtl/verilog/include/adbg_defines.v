@@ -64,7 +64,7 @@
 //`define DBG_CPU1_SUPPORTED
 
 // To include the JTAG Serial Port (JSP), uncomment the following line
-`define DBG_JSP_SUPPORTED  
+//`define DBG_JSP_SUPPORTED  
 
 // Define this if you intend to use the JSP in a system with multiple
 // devices on the JTAG chain
