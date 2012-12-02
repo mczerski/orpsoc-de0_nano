@@ -1,2 +1,2 @@
-
+`define JTAG_DEBUG
 
