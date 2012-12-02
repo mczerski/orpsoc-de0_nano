@@ -165,6 +165,7 @@ assign du_dat_o = dbg_dat_i;
 assign du_read = dbg_stb_i && !dbg_we_i;
 assign du_write = dbg_stb_i && dbg_we_i;
 
+reg du_flush_pipe_r;
 //
 // After a sw breakpoint, the replaced instruction need to be executed.
 // We flush the entire pipeline and set the pc to the current address
@@ -172,8 +173,7 @@ assign du_write = dbg_stb_i && dbg_we_i;
 //
 assign du_flush_pipe = du_flush_pipe_r;
 
-reg du_flush_pipe_r;
-
+reg dbg_stall_i_r;
 //
 // Register du_flush_pipe
 //
@@ -185,8 +185,6 @@ always @(posedge clk or `OR1200_RST_EVENT rst) begin
 		du_flush_pipe_r   <=  (dbg_stall_i_r && !dbg_stall_i && |du_except_stop);
 	end
 end
-
-reg dbg_stall_i_r;
 
 //
 // Detect dbg_stall falling edge
