@@ -40,7 +40,8 @@
 // Included modules: define to include
 `define JTAG_DEBUG
 `define UART0
-`define RAM_WB
+//`define RAM_WB
+`define VERSATILE_SDRAM
 `define INTGEN
 
 // end of included module defines - keep this comment line here

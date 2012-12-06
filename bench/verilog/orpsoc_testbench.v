@@ -67,6 +67,18 @@ module orpsoc_testbench;
    wire 		     tms_pad_i;
    wire 		     tdi_pad_i;
 `endif   
+`ifdef VERSATILE_SDRAM   
+   wire [12:0] 		     sdram_a_pad_o;
+   wire [1:0] 		     sdram_ba_pad_o;
+   wire 		     sdram_cas_pad_o;
+   wire 		     sdram_cke_pad_o;
+   wire 		     sdram_clk_pad_o;
+   wire 		     sdram_cs_n_pad_o;
+   wire [15:0] 		     sdram_dq_pad_io;
+   wire [1:0] 		     sdram_dqm_pad_o;
+   wire 		     sdram_ras_pad_o;
+   wire 		     sdram_we_pad_o;
+`endif
 `ifdef UART0
    wire 		     uart0_stx_pad_o;
    wire 		     uart0_srx_pad_i;
@@ -80,7 +92,19 @@ module orpsoc_testbench;
       .tck_pad_i			(tck_pad_i),
       .tdi_pad_i			(tdi_pad_i),
       .tdo_pad_o			(tdo_pad_o),
-`endif      
+`endif     
+`ifdef VERSATILE_SDRAM
+      .sdram_dq_pad_io			(sdram_dq_pad_io),            
+      .sdram_ba_pad_o			(sdram_ba_pad_o),
+      .sdram_a_pad_o			(sdram_a_pad_o),
+      .sdram_cs_n_pad_o			(sdram_cs_n_pad_o),
+      .sdram_ras_pad_o			(sdram_ras_pad_o),
+      .sdram_cas_pad_o			(sdram_cas_pad_o),
+      .sdram_we_pad_o			(sdram_we_pad_o),
+      .sdram_dqm_pad_o			(sdram_dqm_pad_o),
+      .sdram_cke_pad_o			(sdram_cke_pad_o),
+      .sdram_clk_pad_o                  (sdram_clk_pad_o),
+`endif 
 `ifdef UART0      
       .uart0_stx_pad_o			(uart0_stx_pad_o),
       .uart0_srx_pad_i			(uart0_srx_pad_i),
@@ -124,6 +148,62 @@ module orpsoc_testbench;
  `endif // !`ifdef VPI_DEBUG_ENABLE
 `endif //  `ifdef JTAG_DEBUG
    
+`ifdef VERSATILE_SDRAM
+   parameter TPROP_PCB = 2.0;
+   reg [12:0] 		     sdram_a_pad_o_to_sdram;
+   reg [1:0] 		     sdram_ba_pad_o_to_sdram;
+   reg 		             sdram_cas_pad_o_to_sdram;
+   reg 		             sdram_cke_pad_o_to_sdram;
+   reg 		             sdram_cs_n_pad_o_to_sdram;
+   wire [15:0] 		     sdram_dq_pad_io_to_sdram;
+   reg [1:0] 		     sdram_dqm_pad_o_to_sdram;
+   reg 		             sdram_ras_pad_o_to_sdram;
+   reg 		             sdram_we_pad_o_to_sdram;
+
+   always @( * ) begin
+      sdram_a_pad_o_to_sdram    <= #(TPROP_PCB) sdram_a_pad_o;
+      sdram_ba_pad_o_to_sdram   <= #(TPROP_PCB) sdram_ba_pad_o;
+      sdram_cas_pad_o_to_sdram  <= #(TPROP_PCB) sdram_cas_pad_o;
+      sdram_cke_pad_o_to_sdram  <= #(TPROP_PCB) sdram_cke_pad_o;
+      sdram_cs_n_pad_o_to_sdram <= #(TPROP_PCB) sdram_cs_n_pad_o;
+      sdram_dqm_pad_o_to_sdram  <= #(TPROP_PCB) sdram_dqm_pad_o;
+      sdram_ras_pad_o_to_sdram  <= #(TPROP_PCB) sdram_ras_pad_o;
+      sdram_we_pad_o_to_sdram   <= #(TPROP_PCB) sdram_we_pad_o;
+   end
+
+   genvar dqwd;
+   generate
+      for (dqwd = 0;dqwd < 16 ;dqwd = dqwd+1) begin : dq_delay
+	 wiredelay #
+	   (
+            .Delay_g     (TPROP_PCB),
+            .Delay_rd    (TPROP_PCB)
+	    )
+	 u_delay_dq
+	   (
+            .A           (sdram_dq_pad_io[dqwd]),
+            .B           (sdram_dq_pad_io_to_sdram[dqwd]),
+            .reset       (rst_n)
+	    );
+      end
+   endgenerate
+   
+   // SDRAM
+   mt48lc16m16a2 sdram0
+     (
+      // Inouts
+      .Dq    (sdram_dq_pad_io_to_sdram),
+      // Inputs
+      .Addr  (sdram_a_pad_o_to_sdram),
+      .Ba    (sdram_ba_pad_o_to_sdram),
+      .Clk   (sdram_clk_pad_o),
+      .Cke   (sdram_cke_pad_o_to_sdram),
+      .Cs_n  (sdram_cs_n_pad_o_to_sdram),
+      .Ras_n (sdram_ras_pad_o_to_sdram),
+      .Cas_n (sdram_cas_pad_o_to_sdram),
+      .We_n  (sdram_we_pad_o_to_sdram),
+      .Dqm   (sdram_dqm_pad_o_to_sdram));
+`endif //  `ifdef VERSATILE_SDRAM
 
    initial 
      begin

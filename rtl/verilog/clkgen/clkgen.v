@@ -54,6 +54,11 @@ module clkgen
    tck_pad_i,
    dbg_tck_o,
 `endif      
+   // Main memory clocks
+`ifdef VERSATILE_SDRAM
+   sdram_clk_o,
+   sdram_rst_o,
+`endif
 
    // Asynchronous, active low reset in
    rst_n_pad_i
@@ -71,6 +76,11 @@ module clkgen
    input  tck_pad_i;
    output dbg_tck_o;
 `endif      
+
+`ifdef VERSATILE_SDRAM
+   output sdram_clk_o;
+   output sdram_rst_o;
+`endif
    
    // Asynchronous, active low reset (pushbutton, typically)
    input  rst_n_pad_i;
@@ -114,5 +124,18 @@ module clkgen
        wb_rst_shr <= {wb_rst_shr[14:0], ~(sync_rst_n)};
    
    assign wb_rst_o = wb_rst_shr[15];
+
+`ifdef VERSATILE_SDRAM   
+   assign sdram_clk_o = clk_pad_i;
+   // Reset generation for SDRAM controller
+   reg [15:0] 	   sdram_rst_shr;
+   always @(posedge sdram_clk_o or posedge async_rst_o)
+     if (async_rst_o)
+       sdram_rst_shr <= 16'hffff;
+     else
+       sdram_rst_shr <= {sdram_rst_shr[14:0], ~(sync_rst_n)};
+   
+   assign sdram_rst_o = sdram_rst_shr[15];
+`endif //  `ifdef VERSATILE_SDRAM
    
 endmodule // clkgen
