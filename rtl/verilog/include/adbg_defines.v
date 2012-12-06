@@ -1,14 +1,18 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// orpsoc-defines                                               ////
+////  adbg_defines.v                                              ////
 ////                                                              ////
-//// Top level ORPSoC defines file                                ////
 ////                                                              ////
-//// Included in toplevel and testbench                           ////
+////  This file is part of the Advanced Debug Interface.          ////
+////                                                              ////
+////  Author(s):                                                  ////
+////       Nathan Yawn (nathan.yawn@opencores.org)                ////
+////                                                              ////
+////                                                              ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
+//// Copyright (C) 2008 - 2010 Authors                            ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -33,41 +37,39 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-// Define board clock - main system clock period
-// 20ns period = 50MHz freq.
-`define BOARD_CLOCK_PERIOD 20
 
-// Included modules: define to include
-`define JTAG_DEBUG
-`define ADV_DBG_IF
-`define UART0
-//`define RAM_WB
-`define VERSATILE_SDRAM
-`define INTGEN
+// Length of the MODULE ID register
+`define	DBG_TOP_MODULE_ID_LENGTH	2
 
-// end of included module defines - keep this comment line here
+// How many modules can be supported by the module id length
+`define     DBG_TOP_MAX_MODULES           4
 
-//
-// Arbiter defines
-//
+// Chains
+`define DBG_TOP_WISHBONE_DEBUG_MODULE  2'h0
+`define DBG_TOP_CPU0_DEBUG_MODULE      2'h1
+`define DBG_TOP_CPU1_DEBUG_MODULE      2'h2
+`define DBG_TOP_JSP_DEBUG_MODULE       2'h3
 
-// Uncomment to register things through arbiter (hopefully quicker design)
-// Instruction bus arbiter
-//`define ARBITER_IBUS_REGISTERING
-`define ARBITER_IBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_IBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 12
+// Length of data
+`define DBG_TOP_MODULE_DATA_LEN  53
 
-// Data bus arbiter
 
-//`define ARBITER_DBUS_REGISTERING
-`define ARBITER_DBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_DBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 12
+// If WISHBONE sub-module is supported uncomment the following line
+`define DBG_WISHBONE_SUPPORTED
 
-// Byte bus (peripheral bus) arbiter
-// Don't really need the watchdog here - the databus will pick it up
-//`define ARBITER_BYTEBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_BYTEBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_BYTEBUS_WATCHDOG_TIMER_WIDTH 9
+// If CPU_0 sub-module is supported uncomment the following line
+`define DBG_CPU0_SUPPORTED
 
+// If CPU_1 sub-module is supported uncomment the following line
+//`define DBG_CPU1_SUPPORTED
+
+// To include the JTAG Serial Port (JSP), uncomment the following line
+`define DBG_JSP_SUPPORTED  
+
+// Define this if you intend to use the JSP in a system with multiple
+// devices on the JTAG chain
+`define ADBG_JSP_SUPPORT_MULTI
+
+// If this is defined, status bits will be skipped on burst
+// reads and writes to improve download speeds.
+`define ADBG_USE_HISPEED

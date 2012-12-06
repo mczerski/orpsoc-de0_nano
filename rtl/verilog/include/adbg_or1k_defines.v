@@ -1,14 +1,18 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// orpsoc-defines                                               ////
+////  adbg_or1k_defines.v                                         ////
 ////                                                              ////
-//// Top level ORPSoC defines file                                ////
 ////                                                              ////
-//// Included in toplevel and testbench                           ////
+////  This file is part of the SoC Advanced Debug Interface.      ////
+////                                                              ////
+////  Author(s):                                                  ////
+////       Nathan Yawn (nathan.yawn@opencores.org)                ////
+////                                                              ////
+////                                                              ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2009, 2010 Authors and OPENCORES.ORG           ////
+//// Copyright (C) 2008 - 2010       Authors                      ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -32,42 +36,54 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
-
-// Define board clock - main system clock period
-// 20ns period = 50MHz freq.
-`define BOARD_CLOCK_PERIOD 20
-
-// Included modules: define to include
-`define JTAG_DEBUG
-`define ADV_DBG_IF
-`define UART0
-//`define RAM_WB
-`define VERSATILE_SDRAM
-`define INTGEN
-
-// end of included module defines - keep this comment line here
-
 //
-// Arbiter defines
+// CVS Revision History
+//
+// $Log: adbg_or1k_defines.v,v $
+// Revision 1.3  2010-01-10 22:54:10  Nathan
+// Update copyright dates
+//
+// Revision 1.2  2009/05/17 20:54:56  Nathan
+// Changed email address to opencores.org
+//
+// Revision 1.1  2008/07/22 20:28:31  Nathan
+// Changed names of all files and modules (prefixed an a, for advanced).  Cleanup, indenting.  No functional changes.
+//
+// Revision 1.3  2008/07/06 20:02:54  Nathan
+// Fixes for synthesis with Xilinx ISE (also synthesizable with 
+// Quartus II 7.0).  Ran through dos2unix.
+//
+// Revision 1.2  2008/06/26 20:52:31  Nathan
+// OR1K module tested and working.  Added copyright / license info 
+// to _define files.  Other cleanup.
 //
 
-// Uncomment to register things through arbiter (hopefully quicker design)
-// Instruction bus arbiter
-//`define ARBITER_IBUS_REGISTERING
-`define ARBITER_IBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_IBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_IBUS_WATCHDOG_TIMER_WIDTH 12
 
-// Data bus arbiter
+// These relate to the number of internal registers, and how
+// many bits are required in the Reg. Select register
+`define DBG_OR1K_REGSELECT_SIZE 1
+`define DBG_OR1K_NUM_INTREG 1
 
-//`define ARBITER_DBUS_REGISTERING
-`define ARBITER_DBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_DBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_DBUS_WATCHDOG_TIMER_WIDTH 12
+// Register index definitions for module-internal registers
+// Index 0 is the Status register, used for stall and reset
+`define DBG_OR1K_INTREG_STATUS 1'b0
 
-// Byte bus (peripheral bus) arbiter
-// Don't really need the watchdog here - the databus will pick it up
-//`define ARBITER_BYTEBUS_WATCHDOG
-// Watchdog timeout: 2^(ARBITER_BYTEBUS_WATCHDOG_TIMER_WIDTH+1) cycles
-`define ARBITER_BYTEBUS_WATCHDOG_TIMER_WIDTH 9
+`define DBG_OR1K_STATUS_LEN 2
 
+// Valid commands/opcodes for the or1k debug module
+// 0000  NOP
+// 0001 - 0010 Reserved
+// 0011  Write burst, 32-bit access
+// 0100 - 0110  Reserved
+// 0111  Read burst, 32-bit access
+// 1000  Reserved
+// 1001  Internal register select/write
+// 1010 - 1100 Reserved
+// 1101  Internal register select
+// 1110 - 1111 Reserved
+
+
+`define DBG_OR1K_CMD_BWRITE32 4'h3
+`define DBG_OR1K_CMD_BREAD32  4'h7
+`define DBG_OR1K_CMD_IREG_WR  4'h9
+`define DBG_OR1K_CMD_IREG_SEL 4'hd
