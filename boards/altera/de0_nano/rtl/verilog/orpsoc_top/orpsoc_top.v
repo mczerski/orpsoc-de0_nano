@@ -51,7 +51,7 @@ module orpsoc_top
     uart0_srx_pad_i, uart0_stx_pad_o, 
 `endif
 `ifdef SPI0
-    spi0_sck_o, spi0_mosi_o, spi0_miso_i, spi0_hold_n_o, spi0_w_n_o,
+    spi0_sck_o, spi0_mosi_o, spi0_miso_i,
  `ifdef SPI0_SLAVE_SELECTS
     spi0_ss_o,
  `endif
@@ -180,8 +180,6 @@ module orpsoc_top
  `ifdef SPI0_SLAVE_SELECTS
    output [spi0_ss_width-1:0] spi0_ss_o;
  `endif
-   output 		      spi0_hold_n_o;
-   output 		      spi0_w_n_o;
    input 		      spi0_miso_i;
 `endif
 `ifdef SPI1
@@ -2105,8 +2103,6 @@ module orpsoc_top
    //
    assign wbs_d_spi0_err_o = 0;
    assign wbs_d_spi0_rty_o = 0;
-   assign spi0_hold_n_o = 1;
-   assign spi0_w_n_o = 1;
    
    
    simple_spi spi0
