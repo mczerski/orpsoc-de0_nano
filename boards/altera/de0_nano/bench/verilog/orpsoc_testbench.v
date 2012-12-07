@@ -102,8 +102,6 @@ module orpsoc_testbench;
    wire 		     spi0_mosi_o;
    wire 		     spi0_miso_i;
    wire 		     spi0_sck_o;
-   wire 		     spi0_hold_n_o;
-   wire 		     spi0_w_n_o;   
    wire [spi0_ss_width-1:0]  spi0_ss_o;
 `endif
 `ifdef SPI1
@@ -184,8 +182,6 @@ module orpsoc_testbench;
  `ifdef SPI0_SLAVE_SELECTS      
       .spi0_ss_o			(spi0_ss_o),
  `endif      
-      .spi0_hold_n_o                    (spi0_hold_n_o),
-      .spi0_w_n_o                       (spi0_w_n_o),
 `endif
 `ifdef SPI1
       .spi1_sck_o			(spi1_sck_o),
