@@ -513,12 +513,15 @@ module vga_pgen (
 	wire [7:0] b = line_fifo_q[ 7: 0];
 
 	always @(posedge pclk_i)
-	  if (pclk_ena) begin
+	  if (pclk_ena && gate) begin
 	    r_o <= #1 r;
 	    g_o <= #1 g;
 	    b_o <= #1 b;
+     end else begin
+	    r_o <= #1 0;
+	    g_o <= #1 0;
+	    b_o <= #1 0;		 
 	  end
-
 
 	//
 	// DVI section
