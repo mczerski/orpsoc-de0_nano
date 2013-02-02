@@ -81,7 +81,7 @@ module orpsoc_top
     i2c3_sda_io, i2c3_scl_io,
 `endif    
 `ifdef USB0
-    usb0dat_pad_i, usb0dat_pad_o, usb0ctrl_pad_o, usb0fullspeed_pad_o,
+    usb0dat_pad_io, usb0ctrl_pad_o, usb0fullspeed_pad_o,
 `endif
 `ifdef USB1
     usb1dat_pad_i, usb1dat_pad_o, usb1ctrl_pad_o, usb1fullspeed_pad_o,
@@ -211,9 +211,9 @@ module orpsoc_top
    inout 		      i2c3_sda_io, i2c3_scl_io;
 `endif   
 `ifdef USB0
-   input [1:0] 		      usb0dat_pad_i;
+   inout [1:0] 		      usb0dat_pad_io;
    //   input 		      usb0vbusdetect;
-   output [1:0] 	      usb0dat_pad_o;
+   //output [1:0] 	      usb0dat_pad_o;
    output 		      usb0ctrl_pad_o;
    output 		      usb0fullspeed_pad_o;
 `endif
@@ -2564,7 +2564,7 @@ module orpsoc_top
    reg [1:0] 			     usb0_tx_data /*synthesis syn_useioff=1 syn_allow_retiming=0 */;
    reg 				     usb0_oe_n  /*synthesis syn_useioff=1 syn_allow_retiming=0 */;
 
-   always @(posedge usb_clk) usb0_rx_data <= usb0dat_pad_i;
+   always @(posedge usb_clk) usb0_rx_data <= usb0dat_pad_io;
    always @(posedge usb_clk) usb0_tx_data <= usb0dat_o_int;
    always @(posedge usb_clk) usb0_oe_n <= ~usb0_oe;
    
@@ -2572,7 +2572,7 @@ module orpsoc_top
    //
    // Assigns
    //
-   assign usb0dat_pad_o = usb0_tx_data;   
+   assign usb0dat_pad_io = usb0_oe_n ? 1'bz : usb0_tx_data;
    assign usb0ctrl_pad_o = usb0_oe_n; // Actual oe to transciever
    assign usb0_host_irq = usb0_hostSOFSentIntOut | usb0_hostConnEventIntOut |
 			 usb0_hostResumeIntOut | usb0_hostTransDoneIntOut;
