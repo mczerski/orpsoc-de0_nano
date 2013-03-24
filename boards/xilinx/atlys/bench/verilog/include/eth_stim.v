@@ -609,24 +609,6 @@ initial
 
 `endif   
 
-`ifdef XILINX_DDR2
-   task sync_controller_cache_xilinx_ddr;
-      begin
-	 // Sync cache (writeback dirty lines) with external memory
-	 dut.xilinx_ddr2_0.xilinx_ddr2_if0.do_sync;
-	 // Wait for it to occur.
-	 while (dut.xilinx_ddr2_0.xilinx_ddr2_if0.sync)
-	   #100;
-
-	 // Wait just incase writeback of all data hasn't fully occurred.
-	 // 4uS, in case RAM needs to refresh while writing back.
-	 #4_000_000;
-	 
-	 
-      end
-   endtask // sync_controller_cache_xilinx_ddr
-`endif
-     
 
    //
    // Check packet TX'd by MAC was good
@@ -663,10 +645,6 @@ initial
 	      $finish;
 	   end
 
-`ifdef XILINX_DDR2
-	 sync_controller_cache_xilinx_ddr;
-`endif
-	 
 	 get_bd_addr(tx_bd_num, tx_bd_addr);
 	 
 	 // We're never going to be using more than about 256K of receive buffer
@@ -1190,10 +1168,6 @@ initial
 	 // packet over Wishbone and into whatever memory it's going into
 	 #Td_rx_packet_check;
 
-`ifdef XILINX_DDR2
-	 sync_controller_cache_xilinx_ddr;
-`endif
-	
 	 // Ok, buffer filled, let's get its offset in memory
 	 get_bd_addr(rx_bd_num, rx_bd_addr);
 
