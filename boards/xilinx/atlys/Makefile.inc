@@ -43,7 +43,7 @@ VOPT_ARGS= -L secureip
 
 # Xilinx Xlib specific settings
 DO_XILINX_COMPXLIB=1
-XLIB_ARGS=-intstyle silent -s mti_se -l all -arch $(FPGA_ARCH) -lib all
+XLIB_ARGS=-intstyle silent -s mti_se -l all -arch $(FPGA_ARCH) -lib unisim
 
 #Device tree blob
 DEVICE_TREE_DIR=$(BOARD_SW_DIR)/device_tree
