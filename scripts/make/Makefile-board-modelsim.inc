@@ -24,12 +24,20 @@ MGC_VSIM_TGT=tb
 endif
 
 
+ifeq ($(MOR1KX_CPU),)
+MOR1KX_CPU=cappuccino
+endif
+
+
 # If VCD dump is desired, tell Modelsim not to optimise
 # away everything.
 ifeq ($(VCD), 1)
 #VOPT_ARGS=-voptargs="+acc=rnp"
 VOPT_ARGS+=+acc=rnpqv
 endif
+
+# Enable trace
+VSIM_ARGS+= +trace_enable
 
 # VSIM commands
 # Suppressed warnings - 3009: Failed to open $readmemh() file
@@ -110,6 +118,7 @@ modelsim_bench.scr: $(BOARD_BENCH_VERILOG_SRC) $(COMMON_BENCH_VERILOG_SRC)
 	$(Q)for path in $(BENCH_VERILOG_SUBDIRS); do echo "+incdir+"$$path >> $@; done
 	$(Q)for path in $(BENCH_VERILOG_SUBDIRS); do echo "-y "$$path >> $@; done
 	$(Q)echo "+incdir+"$(BOARD_RTL_VERILOG_INCLUDE_DIR) >> $@;
+	$(Q)echo "+define+MOR1KX_CPU_PIPELINE="$(MOR1KX_CPU) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
 	$(Q)for vsrc in $(BOARD_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
 	$(Q)for vsrc in $(COMMON_BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
