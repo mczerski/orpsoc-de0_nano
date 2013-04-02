@@ -38,32 +38,28 @@ reg [`BD_WIDTH -1 :0] s_rd_pnt ;
  //Main side read/write  
 always @(posedge clk or posedge rst )
 begin
-   new_bw <=0;  
   
   if (rst) begin
     m_wr_pnt<=0;
     
     write_cnt<=0;
     new_bw <=0; 
-
-   
+  end else begin
+     new_bw <=0;  
+     if (we_m) begin    
+	if (free_bd >0) begin
+	   write_cnt <=~ write_cnt;
+	   m_wr_pnt<=m_wr_pnt+1;
+	   if (!write_cnt) begin  //First write indicate source buffer addr
+              bd_mem[m_wr_pnt]<=dat_in_m;            
+	   end
+	   else begin        //Second write indicate SD card block addr
+              bd_mem[m_wr_pnt]<=dat_in_m;
+              new_bw <=1;     
+	   end
+	end
+     end // if (we_m)
   end
-  else if (we_m) begin    
-    if (free_bd >0) begin
-      write_cnt <=~ write_cnt;
-      m_wr_pnt<=m_wr_pnt+1;
-      if (!write_cnt) begin  //First write indicate source buffer addr
-        bd_mem[m_wr_pnt]<=dat_in_m;            
-      end
-      else begin        //Second write indicate SD card block addr
-        bd_mem[m_wr_pnt]<=dat_in_m;
-        new_bw <=1;     
-      end
-     end
-  end   
-  
-        
-          
         
 end  
 
@@ -119,7 +115,6 @@ reg [`BD_WIDTH -1 :0] s_rd_pnt ;
  //Main side read/write  
 always @(posedge clk or posedge rst )
 begin
-   new_bw <=0;  
   
   if (rst) begin
     m_wr_pnt<=0;
@@ -130,6 +125,7 @@ begin
    
   end
   else if (we_m) begin    
+    new_bw <=0;  
     if (free_bd >0) begin
       write_cnt <=write_cnt+1;
       m_wr_pnt<=m_wr_pnt+1;
@@ -141,8 +137,9 @@ begin
         new_bw <=write_cnt[0];      //Second 16 bytes writen, complete BD
       end
      end
-  end   
-   
+  end else
+    new_bw <=0;  
+
     
 
 end

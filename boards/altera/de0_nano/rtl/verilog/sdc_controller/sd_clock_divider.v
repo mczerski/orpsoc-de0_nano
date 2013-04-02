@@ -16,7 +16,7 @@ module sd_clock_divider (
    );
   `else
    
-   assign SD_CLK = SDC_CLK_O;
+   assign SD_CLK = SD_CLK_O;
   
   `endif
    

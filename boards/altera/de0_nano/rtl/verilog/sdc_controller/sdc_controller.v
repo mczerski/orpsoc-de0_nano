@@ -221,6 +221,14 @@ module sdc_controller
    wire [7:0] 		     serial_status;
    wire [39:0] 		     cmd_out_master;
    wire [39:0] 		     cmd_in_host;
+   wire new_cmd, d_write, d_read, error_isr_reset, normal_isr_reset, go_idle,
+	req_out_master, ack_out_master, ack_in_host, req_in_host;
+   wire ack_o_s_tx, ack_o_s_rx, we_ack, start_tx_fifo, start_rx_fifo, tx_e, tx_f;
+   wire full_rx, busy_n, trans_complete, crc_ok, ack_transfer, bd_isr_reset;
+   wire cidat_w, rd, we_rx, we_m_rx_bd, we_m_tx_bd;
+   wire m_wb_we_o_tx, m_wb_cyc_o_tx, m_wb_stb_o_tx;
+   wire m_wb_we_o_rx, m_wb_cyc_o_rx, m_wb_stb_o_rx;
+   wire int_ack, cmd_int_busy;
 
    sd_cmd_master cmd_master_1
      (
@@ -305,7 +313,7 @@ module sdc_controller
       .crc_ok         (crc_ok),
       .ack_transfer   (ack_transfer),
       .Dat_Int_Status (bd_int_st_w),
-      .Dat_Int_Status_rst (Bd_isr_reset),
+      .Dat_Int_Status_rst (bd_isr_reset),
       .CIDAT           (cidat_w),
       .transfer_type  (cmd_setting_reg[15:14])
       );
@@ -416,7 +424,7 @@ module sdc_controller
       .we_ack             (we_ack),
       .int_ack            (int_ack),
       .cmd_int_busy       (cmd_int_busy),
-      .Bd_isr_reset       (Bd_isr_reset),     
+      .Bd_isr_reset       (bd_isr_reset),     
       .normal_isr_reset   (normal_isr_reset),
       .error_isr_reset    (error_isr_reset),
       .int_busy           (int_busy),
@@ -443,19 +451,19 @@ module sdc_controller
 
    //MUX For WB master acces granted to RX or TX FIFO filler
    assign m_wb_cyc_o = start_tx_fifo ? m_wb_cyc_o_tx : 
-		       start_rx_fifo ? m_wb_cyc_o_rx: 0;
+		       start_rx_fifo ? m_wb_cyc_o_rx: 1'b0;
    assign m_wb_stb_o = start_tx_fifo ? m_wb_stb_o_tx : 
-		       start_rx_fifo ? m_wb_stb_o_rx: 0;
+		       start_rx_fifo ? m_wb_stb_o_rx: 1'b0;
 
    assign m_wb_cti_o = start_tx_fifo ? m_wb_cti_o_tx :
-		       start_rx_fifo ? m_wb_cti_o_rx : 0;
+		       start_rx_fifo ? m_wb_cti_o_rx : 3'b000;
    assign m_wb_bte_o = start_tx_fifo ? m_wb_bte_o_tx :
-		       start_rx_fifo ? m_wb_bte_o_rx : 0;
+		       start_rx_fifo ? m_wb_bte_o_rx : 2'b00;
 
    assign m_wb_we_o = start_tx_fifo ? m_wb_we_o_tx :
-		      start_rx_fifo ? m_wb_we_o_rx : 0;
+		      start_rx_fifo ? m_wb_we_o_rx : 1'b0;
    assign m_wb_adr_o = start_tx_fifo ? m_wb_adr_o_tx :
-		       start_rx_fifo ? m_wb_adr_o_rx : 0;
+		       start_rx_fifo ? m_wb_adr_o_rx : 32'h0;
 
 `ifdef SDC_IRQ_ENABLE
    assign int_a =  |(normal_int_status_reg &  normal_int_signal_enable_reg) ;

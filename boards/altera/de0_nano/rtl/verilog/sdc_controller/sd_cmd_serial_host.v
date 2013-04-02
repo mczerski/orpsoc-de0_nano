@@ -318,7 +318,7 @@ begin : FSM_OUT
  else begin
   case(state)
 	INIT : begin
-		Cmd_Cnt=Cmd_Cnt+1;
+		Cmd_Cnt=Cmd_Cnt+8'd1;
 		cmd_oe_o=1; 		
 		cmd_out_o = 1;  
 	end
@@ -326,7 +326,7 @@ begin : FSM_OUT
 	IDLE : begin
 		cmd_oe_o=0;      //Put CMD to Z  
 		Delay_Cnt =0;
-		Cmd_Cnt =0;
+		Cmd_Cnt =8'd0;
 		CRC_RST =1;
 		CRC_Enable=0; 
 		CMD_OUT=0;

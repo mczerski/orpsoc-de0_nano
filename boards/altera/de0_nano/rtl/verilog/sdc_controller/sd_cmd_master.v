@@ -266,7 +266,7 @@ begin
  end   
  
  EXECUTE: begin   
-    Watchdog_Cnt = Watchdog_Cnt +1;
+    Watchdog_Cnt = Watchdog_Cnt + 16'd1;
     if (Watchdog_Cnt>TIMEOUT_REG) begin
       `CTE=1;
       `EI = 1;

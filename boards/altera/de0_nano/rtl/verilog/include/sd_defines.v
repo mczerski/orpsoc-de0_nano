@@ -8,10 +8,10 @@
 
 `define SDC_IRQ_ENABLE
 
-`define ACTEL
+//`define ACTEL
 
 //`define CUSTOM
-//`define ALTERA
+`define ALTERA
 //`define XLINX
 //`define SIMULATOR
 
@@ -36,6 +36,16 @@
 //   `define RAM_MEM_WIDTH 32
 //`endif
 
+`ifndef BD_WIDTH
+ `define BD_WIDTH 5
+`endif
+`ifndef BD_SIZE
+ `define BD_SIZE 32
+`endif
+`ifndef RAM_MEM_WIDTH
+ `define RAM_MEM_WIDTH_16
+ `define RAM_MEM_WIDTH 16
+`endif
 
 
 `ifdef SYN
