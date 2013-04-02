@@ -144,14 +144,7 @@ reg [1:0] we;
 
 always @(posedge wb_clk_i or posedge wb_rst_i)
 	begin
-	/*
-	  we_m_rx_bd <= 0;
-   	we_m_tx_bd <= 0;
-	  new_cmd<= 1'b0 ;
-	  we_ack <= 0;
-	  int_ack =  1;
-	  cmd_int_busy<=0;
-	  */
+
      if ( wb_rst_i )begin
 	    argument_reg <=0;
       cmd_setting_reg <= 0;
@@ -173,7 +166,15 @@ always @(posedge wb_clk_i or posedge wb_rst_i)
 	    normal_isr_reset<=0;
 	    error_isr_reset<=0;
 	  end
-	  else if ((wb_stb_i  & wb_cyc_i) || wb_ack_o )begin 
+	else 
+	begin
+		we_m_rx_bd <= 0;
+		we_m_tx_bd <= 0;
+		new_cmd<= 1'b0 ;
+		we_ack <= 0;
+		int_ack =  1;
+		cmd_int_busy<=0;
+		if ((wb_stb_i  & wb_cyc_i) || wb_ack_o )begin 
 	    Bd_isr_reset<=0; 
 	     normal_isr_reset<=  0;
 	    error_isr_reset<=  0;
@@ -278,6 +279,7 @@ always @(posedge wb_clk_i or posedge wb_rst_i)
 	 
 	 //if (status_reg[0])
 	    int_busy <=  0; 
+	end
 	  
 	//wb_ack_o =   wb_cyc_i & wb_stb_i & ~wb_ack_o & int_ack; 
 end

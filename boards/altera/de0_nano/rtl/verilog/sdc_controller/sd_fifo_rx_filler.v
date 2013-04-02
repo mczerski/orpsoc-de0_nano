@@ -31,6 +31,7 @@ output full
  wire [31:0] dat_o;
 reg rd;
 reg reset_rx_fifo;
+wire   empty;
 sd_rx_fifo Rx_Fifo (
 .d ( dat_i ),
 .wr  (  wr ),
@@ -46,7 +47,7 @@ sd_rx_fifo Rx_Fifo (
 
 //reg [31:0] tmp_dat;
 reg [8:0] offset;
-wire   empty;
+
 assign  m_wb_adr_o = adr+offset;
 //assign  m_wb_dat_o = dat_o;
 
