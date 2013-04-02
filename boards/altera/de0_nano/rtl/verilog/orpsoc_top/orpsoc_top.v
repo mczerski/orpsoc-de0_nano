@@ -108,7 +108,7 @@ module orpsoc_top
 `endif
 `ifdef SDC_CONTROLLER
     sdc_cmd_pad_io , sdc_dat_pad_io ,  sdc_clk_pad_o, 
-    sdc_card_detect_pad_i,
+    //sdc_card_detect_pad_i,
 `endif
 `ifdef VGA0
     //vga0_rst_n_o,
@@ -251,7 +251,7 @@ module orpsoc_top
 `endif
 `ifdef SDC_CONTROLLER
    inout 		      sdc_cmd_pad_io; 
-   input 		      sdc_card_detect_pad_i;
+   //input 		      sdc_card_detect_pad_i;
    inout [3:0] 		      sdc_dat_pad_io ;
    output 		      sdc_clk_pad_o ;
 `endif
@@ -302,7 +302,8 @@ module orpsoc_top
    //
    // Wires
    //
-   wire 		      wb_clk, wb_rst;
+   wire 		      wb_clk /*synthesis keep*/;
+	wire           wb_rst;
    wire 		      sdram_clk, sdram_rst;
    wire 		      ddr2_if_clk, ddr2_if_rst;
    wire 		      clk200;
@@ -1611,9 +1612,9 @@ module orpsoc_top
        .CLK_FREQ_MHZ			(100),	// sdram_clk freq in MHZ
        .POWERUP_DELAY			(200),	// power up delay in us
 `ifdef VERSATILE_VIDEO_SDRAM
-       .WB_PORTS			(3),	// Number of wishbone ports
-`else
        .WB_PORTS			(4),	// Number of wishbone ports
+`else
+       .WB_PORTS			(5),	// Number of wishbone ports
 `endif
        .ROW_WIDTH			(13),	// Row width
        .COL_WIDTH			(9),	// Column width
@@ -1651,6 +1652,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_adr_o,
 `endif
+					  wbm_sdc_adr_o,
 					  wbm_eth0_adr_o
 					  }),
       .wb_stb_i				({
@@ -1660,6 +1662,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_stb_o,
 `endif
+					  wbm_sdc_stb_o,
 					  wbm_eth0_stb_o
 					  }),
       .wb_cyc_i				({
@@ -1669,6 +1672,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_cyc_o,
 `endif
+					  wbm_sdc_cyc_o,
 					  wbm_eth0_cyc_o
 					  }),
       .wb_cti_i				({
@@ -1678,6 +1682,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_cti_o,
 `endif
+					  wbm_sdc_cti_o,
 					  wbm_eth0_cti_o
 					  }),
       .wb_bte_i				({
@@ -1687,6 +1692,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_bte_o,
 `endif
+					  wbm_sdc_bte_o,
 					  wbm_eth0_bte_o
 					  }),
       .wb_we_i				({
@@ -1696,6 +1702,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_we_o,
 `endif
+					  wbm_sdc_we_o,
 					  wbm_eth0_we_o
 					  }),
       .wb_sel_i				({
@@ -1705,6 +1712,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_sel_o,
 `endif
+					  wbm_sdc_sel_o,
 					  wbm_eth0_sel_o
 					  }),
       .wb_dat_i				({
@@ -1714,6 +1722,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_dat_o,
 `endif
+					  wbm_sdc_dat_o,
 					  wbm_eth0_dat_o
 					  }),      
       .wb_dat_o				({
@@ -1723,6 +1732,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_dat_i,
 `endif
+					  wbm_sdc_dat_i,
 					  wbm_eth0_dat_i
 					  }),
       .wb_ack_o				({
@@ -1732,6 +1742,7 @@ module orpsoc_top
 `else
 					  wbm_vga0_ack_i,
 `endif
+					  wbm_sdc_ack_i,
 					  wbm_eth0_ack_i
 					  })
       );
@@ -2830,7 +2841,8 @@ module orpsoc_top
 	 .sd_dat_out_o (sdc_datIn  ) ,
   	 .sd_dat_oe_o  (sdc_dat_oe  ),
 	 .sd_clk_o_pad (sdc_clk_pad_o),
-	 .card_detect  (sdc_card_detect_pad_i),
+	 //.card_detect  (sdc_card_detect_pad_i),
+	 .card_detect  (1'b1),
 
 	 .sd_clk_i_pad (wb_clk),
 	
