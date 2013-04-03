@@ -13,7 +13,7 @@ input ACK_IN;
 input cmd_dat_i;
 
 //---------------Output ports---------------
-output [39:0] CMD_OUT;
+output [127:0] CMD_OUT;
 output ACK_OUT;
 output REQ_OUT;
 output [7:0] STATUS;
@@ -29,7 +29,7 @@ wire REQ_IN;
 wire ACK_IN;
 
 //---------------Output ports Data Type------  
-reg  [39:0] CMD_OUT;
+reg  [127:0] CMD_OUT;
 wire ACK_OUT  ;
 reg  [7:0] STATUS;
 reg  REQ_OUT;
@@ -64,13 +64,13 @@ parameter EIGHT_PAD = 8;
 reg [6:0] Response_Size;
 reg [2:0] Delay_Cycler;
 reg [CONTENT_SIZE-1:0] In_Buff; 
-reg [39:0] Out_Buff;
+reg [127:0] Out_Buff;
 //-Internal State input
 reg Write_Read;
 reg Write_Only; 
 
 //-CRC
-reg [4:0] word_select_counter;
+reg [6:0] word_select_counter;
 reg CRC_RST;
 reg [6:0]CRC_IN;
 wire [6:0] CRC_VAL; 
@@ -96,7 +96,6 @@ reg block_read;
 
 
 //
-reg [1:0]word_select;
 reg FSM_ACK;
 reg DECODER_ACK;
 
@@ -243,7 +242,6 @@ always @ (posedge SD_CLK_IN or posedge RST_IN )
 	    In_Buff <=0;
 	    block_write<=0;
 	    block_read <=0;
-	    word_select<=0;
    end
    else begin
 			if (Req_internal_in == 1) begin
@@ -252,7 +250,6 @@ always @ (posedge SD_CLK_IN or posedge RST_IN )
 				Delay_Cycler[2:0] <= SETTING_IN [10:8];
 				block_write <= SETTING_IN [11];
 				block_read <= SETTING_IN [12];
-				word_select <=SETTING_IN [14:13];
 				In_Buff <= CMD_IN;
 				DECODER_ACK<=0;	
 				if (SETTING_IN [6:0]>0) begin
@@ -463,77 +460,46 @@ begin : FSM_OUT
     READ_WR :  begin
       Delay_Cnt =0;
       CRC_RST =0;
-	    CRC_Enable=1;        
+	    CRC_Enable=(Response_Size != 127 || Cmd_Cnt > 7);        
       cmd_oe_o =0;
       
 	   if (Cmd_Cnt==1) begin
        STATUS[3:0] = 16'b0000_0000_0000_0101;
        REQ_OUT=1;
-       Out_Buff[39]=0; //startbit (0)
+       Out_Buff[127]=0; //startbit (0)
      end 
      else if (Ack_internal_in) begin
        REQ_OUT=0;
-     end  
-	     
-	     
-	     
-      if (Cmd_Cnt < (Response_Size))begin
+     end     
+      if (Cmd_Cnt <= (Response_Size))begin
         
         if (Cmd_Cnt<8 ) //1+1+6 (S,T,Index)          
-          Out_Buff[39-Cmd_Cnt] = cmd_dat_i; 
+          Out_Buff[127-Cmd_Cnt] = cmd_dat_i; 
         else begin
-          
-          if (word_select == 2'b00) begin
-            if(Cmd_Cnt<40) begin
-		          word_select_counter<= word_select_counter+1;
-		          Out_Buff[31-word_select_counter] = cmd_dat_i;
-		         end 
-		      end    
-          else if (word_select == 2'b01) begin
-            if ( (Cmd_Cnt>=40) && (Cmd_Cnt<72) )begin
-		          word_select_counter<= word_select_counter+1;
-		          Out_Buff[31-word_select_counter] = cmd_dat_i;
-		         end 
-		      
-		      end 
-          else if  (word_select == 2'b10) begin
-           if ( (Cmd_Cnt>=72) && (Cmd_Cnt<104) )begin
-		          word_select_counter<= word_select_counter+1;
-		          Out_Buff[31-word_select_counter] = cmd_dat_i;
-		         end 
-		      end	     
-          else if  (word_select == 2'b11) begin
-           if ( (Cmd_Cnt>=104) && (Cmd_Cnt<128) )begin
-		          word_select_counter<= word_select_counter+1;
-		          Out_Buff[31-word_select_counter] = cmd_dat_i;
-		         end 
-		      end	  
-          
-          
-		    end
-		    CRC_OUT = cmd_dat_i;  
-		        
+          word_select_counter<= word_select_counter+1;
+          Out_Buff[119-word_select_counter] = cmd_dat_i;
+        end
+        CRC_OUT = cmd_dat_i;  
       end       
-      else if ( Cmd_Cnt - Response_Size <=6 ) begin
-			  CRC_IN [(Response_Size+6)-(Cmd_Cnt)] = cmd_dat_i;
-			  CRC_Enable=0;  
+      else if (Cmd_Cnt - Response_Size <=7 ) begin
+        CRC_IN [(Response_Size+7)-(Cmd_Cnt)] = cmd_dat_i;
+        CRC_Enable=0;
       end
       else begin
-			   if ((CRC_IN != CRC_VAL) && ( CRC_Check_On == 1)) begin
-				   CRC_Valid=0;	
-				   CRC_Enable=0;			  			
-		    	end  
-		    	else begin
-		    	CRC_Valid=1;
-		    	CRC_Enable=0;
-		    	end 
-		    	if (block_read & block_write)
-		    	    st_dat_t<=2'b11;
-		    	else if (block_write)
-		    	  st_dat_t<=2'b01;
-		    	 
+        if ((CRC_IN != CRC_VAL) && ( CRC_Check_On == 1)) begin
+          CRC_Valid=0;	
+          CRC_Enable=0;
+        end  
+        else begin
+          CRC_Valid=1;
+          CRC_Enable=0;
+        end 
+        if (block_read & block_write)
+          st_dat_t<=2'b11;
+        else if (block_write)
+          st_dat_t<=2'b01;
       end        
-       Cmd_Cnt = Cmd_Cnt+1;
+      Cmd_Cnt = Cmd_Cnt+1;
    end
     
    DLY_READ:  begin
@@ -553,7 +519,7 @@ begin : FSM_OUT
 		  Cmd_Cnt = 0; 		 
 		  cmd_oe_o=0; 
       
-      CMD_OUT[39:0]=Out_Buff;
+      CMD_OUT[127:0]=Out_Buff;
 		  Delay_Cnt =Delay_Cnt+1;       
     end	
     

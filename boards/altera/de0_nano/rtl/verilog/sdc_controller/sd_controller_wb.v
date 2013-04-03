@@ -24,6 +24,9 @@ module sd_controller_wb(
   cmd_setting_reg,
   status_reg,
   cmd_resp_1,
+  cmd_resp_2,
+  cmd_resp_3,
+  cmd_resp_4,
   software_reset_reg,
   time_out_reg,
   normal_int_status_reg,
@@ -78,6 +81,9 @@ input wire [31:0] cmd_arg_s;
 `define command 8'h04
 `define status 8'h08
 `define resp1 8'h0c
+`define resp2 8'h64
+`define resp3 8'h68
+`define resp4 8'h6c
 `define controller 8'h1c
 `define block 8'h20
 `define power 8'h24
@@ -119,6 +125,9 @@ output reg [31:0] argument_reg;
 output reg [15:0] cmd_setting_reg;
 input  wire [15:0] status_reg;
 input wire [31:0] cmd_resp_1;
+input wire [31:0] cmd_resp_2;
+input wire [31:0] cmd_resp_3;
+input wire [31:0] cmd_resp_4;
 output reg [7:0] software_reset_reg; 
 output reg [15:0] time_out_reg;   
 input wire [15:0]normal_int_status_reg; 
@@ -290,7 +299,10 @@ always @(posedge wb_clk_i )begin
 	         `argument:  wb_dat_o  <=   argument_reg ;
 	         `command : wb_dat_o <=  cmd_setting_reg ;
 	         `status : wb_dat_o <=  status_reg ;
-           `resp1 : wb_dat_o <=  cmd_resp_1 ;   
+           `resp1 : wb_dat_o <=  cmd_resp_1;
+           `resp2 : wb_dat_o <=  cmd_resp_2;
+           `resp3 : wb_dat_o <=  cmd_resp_3;
+           `resp4 : wb_dat_o <=  cmd_resp_4;
            
            `controller : wb_dat_o <=  controll_setting_reg ;
            `block :  wb_dat_o <=  block_size_reg ;

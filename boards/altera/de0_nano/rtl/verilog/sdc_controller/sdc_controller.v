@@ -119,6 +119,9 @@ module sdc_controller
    //Wires from SD_CMD_MASTER Module 
    wire [15:0] 	     status_reg_w;
    wire [31:0] 	     cmd_resp_1_w;
+   wire [31:0] 	     cmd_resp_2_w;
+   wire [31:0] 	     cmd_resp_3_w;
+   wire [31:0] 	     cmd_resp_4_w;
    wire [15:0] 	     normal_int_status_reg_w;
    wire [4:0] 	     error_int_status_reg_w; 
    
@@ -127,6 +130,9 @@ module sdc_controller
    wire [15:0] 	     cmd_setting_reg;
    reg [15:0] 	     status_reg;
    reg [31:0] 	     cmd_resp_1;
+   reg [31:0] 	     cmd_resp_2;
+   reg [31:0] 	     cmd_resp_3;
+   reg [31:0] 	     cmd_resp_4;
    wire [7:0] 	     software_reset_reg; 
    wire [15:0] 	     time_out_reg;   
    reg [15:0] 	     normal_int_status_reg; 
@@ -220,7 +226,7 @@ module sdc_controller
    wire [15:0] 		     settings;
    wire [7:0] 		     serial_status;
    wire [39:0] 		     cmd_out_master;
-   wire [39:0] 		     cmd_in_host;
+   wire [127:0] 	     cmd_in_host;
    wire new_cmd, d_write, d_read, error_isr_reset, normal_isr_reset, go_idle,
 	req_out_master, ack_out_master, ack_in_host, req_in_host;
    wire ack_o_s_tx, ack_o_s_rx, we_ack, start_tx_fifo, start_rx_fifo, tx_e, tx_f;
@@ -242,6 +248,9 @@ module sdc_controller
       .STATUS_REG     (status_reg_w),
       .TIMEOUT_REG    (time_out_reg),
       .RESP_1_REG     (cmd_resp_1_w),
+      .RESP_2_REG     (cmd_resp_2_w),
+      .RESP_3_REG     (cmd_resp_3_w),
+      .RESP_4_REG     (cmd_resp_4_w),
       .ERR_INT_REG    (error_int_status_reg_w),
       .NORMAL_INT_REG (normal_int_status_reg_w),
       .ERR_INT_RST    (error_isr_reset),
@@ -437,6 +446,9 @@ module sdc_controller
       .cmd_setting_reg    (cmd_setting_reg),
       .status_reg         (status_reg),
       .cmd_resp_1         (cmd_resp_1),
+      .cmd_resp_2         (cmd_resp_2),
+      .cmd_resp_3         (cmd_resp_3),
+      .cmd_resp_4         (cmd_resp_4),
       .software_reset_reg (software_reset_reg ),
       .time_out_reg       (time_out_reg ),
       .normal_int_status_reg  (normal_int_status_reg),
@@ -482,6 +494,9 @@ module sdc_controller
       Bd_Status_reg[15:8]=free_bd_rx_bd;
       Bd_Status_reg[7:0]=free_bd_tx_bd;
       cmd_resp_1<= cmd_resp_1_w;
+      cmd_resp_2<= cmd_resp_2_w;
+      cmd_resp_3<= cmd_resp_3_w;
+      cmd_resp_4<= cmd_resp_4_w;
       normal_int_status_reg<= normal_int_status_reg_w  ;
       error_int_status_reg<= error_int_status_reg_w  ;
       status_reg[0]<= status_reg_busy;

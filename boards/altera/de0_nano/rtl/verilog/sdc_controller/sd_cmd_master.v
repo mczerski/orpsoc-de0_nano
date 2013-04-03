@@ -14,6 +14,9 @@ input [13:0]CMD_SET_REG,
 input [15:0] TIMEOUT_REG,
 output reg [15:0] STATUS_REG,
 output reg [31:0] RESP_1_REG,
+output reg [31:0] RESP_2_REG,
+output reg [31:0] RESP_3_REG,
+output reg [31:0] RESP_4_REG,
 
 output reg [4:0] ERR_INT_REG, 
 output reg [15:0] NORMAL_INT_REG, 
@@ -27,7 +30,7 @@ output reg req_out,
 output reg ack_out,
 input req_in,
 input ack_in,
-input [39:0] cmd_in,
+input [127:0] cmd_in,
 input [7:0] serial_status,
 input card_detect
 );
@@ -198,6 +201,9 @@ begin
     CRC_check_enable=0;
     complete =0;
     RESP_1_REG = 0;
+    RESP_2_REG = 0;
+    RESP_3_REG = 0;
+    RESP_4_REG = 0;
  
     ERR_INT_REG =0;
     NORMAL_INT_REG=0;
@@ -242,7 +248,7 @@ begin
      CRC_check_enable = `CRCE;
     
     if ( (`RTS  == 2'b10 ) || ( `RTS == 2'b11)) begin
-      response_size =  7'b0101000; 
+      response_size =  7'b0100111;
     end
     else if (`RTS == 2'b01) begin
       response_size = 7'b1111111; 
@@ -298,7 +304,7 @@ begin
             `EI = 1;
              
            end 
-           if (index_check_enable &  (cmd_out[37:32] != cmd_in [37:32]) ) begin
+           if (index_check_enable &  (cmd_out[37:32] != cmd_in [125:120]) ) begin
             `CIE=1;
             `EI = 1;
             
@@ -307,8 +313,12 @@ begin
              
              `CC = 1;  
             
-             if (response_size !=0)
-              RESP_1_REG=cmd_in[31:0];
+             if (response_size !=0) begin
+              RESP_1_REG=cmd_in[119:88];
+              RESP_2_REG=cmd_in[87:56];
+              RESP_3_REG=cmd_in[55:24];
+              RESP_4_REG={cmd_in[23:0], 8'h00};
+             end
             
           // end 
          end ////Data avaible
