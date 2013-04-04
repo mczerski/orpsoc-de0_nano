@@ -29,6 +29,8 @@ module sd_controller_wb(
   cmd_resp_4,
   software_reset_reg,
   time_out_reg,
+  block_size_reg,
+  controll_setting_reg,
   normal_int_status_reg,
   error_int_status_reg,
   normal_int_signal_enable_reg,
@@ -111,13 +113,6 @@ input wire [31:0] cmd_arg_s;
    parameter power_controll_reg  = 8'b0000_101_1;
 `endif 
 
-parameter block_size_reg = `BLOCK_SIZE ; //512-Bytes
-
-`ifdef SD_BUS_WIDTH_4
-     parameter controll_setting_reg =16'b0000_0000_0000_0010;
-`else  
-     parameter controll_setting_reg =16'b0000_0000_0000_0000;
-`endif
      parameter capabilies_reg =16'b0000_0000_0000_0000;
    
 //Buss accessible registers    
@@ -128,8 +123,10 @@ input wire [31:0] cmd_resp_1;
 input wire [31:0] cmd_resp_2;
 input wire [31:0] cmd_resp_3;
 input wire [31:0] cmd_resp_4;
-output reg [7:0] software_reset_reg; 
-output reg [15:0] time_out_reg;   
+output reg [7:0] software_reset_reg;
+output reg [15:0] time_out_reg;
+output reg [11:0] block_size_reg;
+output reg [15:0] controll_setting_reg;
 input wire [15:0]normal_int_status_reg; 
 input wire [15:0]error_int_status_reg;
 output reg [15:0]normal_int_signal_enable_reg;
@@ -159,6 +156,8 @@ always @(posedge wb_clk_i or posedge wb_rst_i)
       cmd_setting_reg <= 0;
 	    software_reset_reg <= 0;
 	    time_out_reg <= 0;
+	    block_size_reg <= `RESET_BLOCK_SIZE;
+	    controll_setting_reg <= 0;
 	    normal_int_signal_enable_reg <= 0;
 	    error_int_signal_enable_reg <= 0;	  
 	    clock_divider <=`RESET_CLK_DIV;
@@ -199,6 +198,8 @@ always @(posedge wb_clk_i or posedge wb_rst_i)
 	        end
           `software : software_reset_reg <=  wb_dat_i;
           `timeout : time_out_reg  <=  wb_dat_i;
+          `block : block_size_reg <= wb_dat_i;
+          `controller : controll_setting_reg <= wb_dat_i;
           `normal_iser : normal_int_signal_enable_reg <=  wb_dat_i;
           `error_iser : error_int_signal_enable_reg  <=  wb_dat_i;
           `normal_isr : normal_isr_reset<=  1;

@@ -135,6 +135,8 @@ module sdc_controller
    reg [31:0] 	     cmd_resp_4;
    wire [7:0] 	     software_reset_reg; 
    wire [15:0] 	     time_out_reg;   
+   wire [11:0] 	     block_size_reg;
+   wire [15:0]	     controll_setting_reg;
    reg [15:0] 	     normal_int_status_reg; 
    reg [15:0] 	     error_int_status_reg;
    wire [15:0] 	     normal_int_signal_enable_reg;
@@ -338,6 +340,8 @@ module sdc_controller
       .DAT_oe_o       (sd_dat_oe_o),
       .DAT_dat_o      (sd_dat_out_o),
       .DAT_dat_i      (sd_dat_dat_i),
+      .blksize        (block_size_reg),
+      .bus_width      (controll_setting_reg[0]),
       .start_dat      ({d_read, d_write}),
       .ack_transfer   (ack_transfer),
       .busy_n         (busy_n),
@@ -451,6 +455,8 @@ module sdc_controller
       .cmd_resp_4         (cmd_resp_4),
       .software_reset_reg (software_reset_reg ),
       .time_out_reg       (time_out_reg ),
+      .block_size_reg     (block_size_reg),
+      .controll_setting_reg (controll_setting_reg),
       .normal_int_status_reg  (normal_int_status_reg),
       .error_int_status_reg   (error_int_status_reg ),
       .normal_int_signal_enable_reg   (normal_int_signal_enable_reg),

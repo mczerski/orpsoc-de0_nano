@@ -18,6 +18,8 @@ output reg DAT_oe_o,
 output reg[`SD_BUS_W-1:0] DAT_dat_o,
 input  [`SD_BUS_W-1:0] DAT_dat_i,
 //Controll signals
+input [11:0] blksize,
+input bus_width,
 input [1:0] start_dat,
 input ack_transfer,
 
@@ -26,6 +28,9 @@ output reg transm_complete,
 output reg crc_ok
 );
 
+`define BIT_BLOCK_REC (bus_width ? (blksize << 1) : (blksize << 3))
+`define BIT_BLOCK (`BIT_BLOCK_REC+`CRC_OFF+1)
+
 //CRC16 
 reg [`SD_BUS_W-1:0] crc_in;
 reg crc_en;
@@ -33,7 +38,7 @@ reg crc_rst;
 wire [15:0] crc_out [`SD_BUS_W-1:0];
 reg  [`SD_BUS_W-1:0] temp_in;
   
-reg [10:0] transf_cnt;
+reg [15:0] transf_cnt;
 parameter SIZE = 6;
 reg [SIZE-1:0] state;
 reg [SIZE-1:0] next_state;
@@ -385,9 +390,14 @@ write_buf_1<=0;
      
        
      if (transf_cnt<`BIT_BLOCK_REC) begin
-       we<=1;
-     
-       data_out<=DAT_dat_i;
+       if (bus_width) begin
+         we<=1;
+         data_out<=DAT_dat_i;
+       end
+       else begin
+         we <= (transf_cnt[1:0] == 3);
+         data_out[3-transf_cnt[1:0]]<=DAT_dat_i[0];       
+       end
        crc_in<=DAT_dat_i;
        crc_ok<=1;
        transf_cnt<=transf_cnt+1; 
@@ -409,11 +419,11 @@ write_buf_1<=0;
        `ifdef SD_BUS_WIDTH_4
           if  (crc_out[0][crc_c] != last_din[0])
            crc_ok<=0;
-          if  (crc_out[1][crc_c] != last_din[1])
+          if  (crc_out[1][crc_c] != last_din[1] && bus_width)
            crc_ok<=0;
-          if  (crc_out[2][crc_c] != last_din[2])
+          if  (crc_out[2][crc_c] != last_din[2] && bus_width)
            crc_ok<=0;
-          if  (crc_out[3][crc_c] != last_din[3])
+          if  (crc_out[3][crc_c] != last_din[3] && bus_width)
            crc_ok<=0;  
          
         `endif   
