@@ -127,7 +127,7 @@ case(state)
   end
   GET_TX_BD: begin
     if ( ( bd_cnt> `READ_CYCLE-1) && (tx_full==1) )begin
-     next_state = SEND_CMD;
+     next_state = DATA_TRANSFER;
     end   
     else begin
      next_state = GET_TX_BD;
@@ -136,7 +136,7 @@ case(state)
   
   GET_RX_BD: begin  
     if (bd_cnt >= (`READ_CYCLE-1))begin
-     next_state = SEND_CMD;
+     next_state = DATA_TRANSFER;
     end   
     else begin
      next_state = GET_RX_BD;
@@ -163,10 +163,10 @@ case(state)
    end 
 
   DATA_TRANSFER: begin
-    if (trans_done)
+    if (trans_done || trans_failed)
       next_state = IDLE;
-   else if (trans_failed)
-      next_state = STOP;
+   //else if (trans_failed)
+   //   next_state = STOP;
    else
       next_state = DATA_TRANSFER;
    end
@@ -257,7 +257,7 @@ begin
       rec_done<=0;
       rec_failed<=0;
       start_tx_fifo<=0;
-   
+      start_rx_fifo <=0;
       send_done<=0;     
       d_write <=0;  
       d_read <=0; 
@@ -283,6 +283,7 @@ begin
 	        else if ( bd_cnt == 2'b1) begin  
 	           cmd_arg  <= dat_in_rx;
 	           re_s_rx <= 0; 
+	           start_rx_fifo <=1;
 	        end
 	   end
       `endif
@@ -303,6 +304,7 @@ begin
 	        else if ( bd_cnt == 3) begin
 	           cmd_arg [31:16] <= dat_in_rx;
 	           re_s_rx <= 0;
+	           start_rx_fifo <=1;
 	         end
 	         bd_cnt <= bd_cnt+1;       
 	   	end
@@ -438,12 +440,16 @@ begin
     DATA_TRANSFER: begin
        CIDAT<=1;
      if (tx_cycle) begin 
+        d_write <=1;  
+        d_read <=0; 
       if (tx_empt) begin
          Dat_Int_Status[2] <=1;
          trans_failed<=1;  
        end
      end
-     else begin 
+     else begin
+        d_write <=0;  
+        d_read <=1;
        if (rx_full) begin
          Dat_Int_Status[2] <=1; 
          trans_failed<=1; 
@@ -453,7 +459,8 @@ begin
       //2 DO: if deteced stop transfer, reset data host
       if (internal_transm_complete) begin //Transfer complete
          ack_transfer<=1;
-        
+         d_write <=0;  
+         d_read <=0; 
          if ((!crc_ok) && (busy_n))  begin //Wrong CRC and Data line free.
             Dat_Int_Status[5] <=1; 
             trans_failed<=1;
