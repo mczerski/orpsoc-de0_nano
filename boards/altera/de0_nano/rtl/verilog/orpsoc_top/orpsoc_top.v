@@ -1187,9 +1187,12 @@ module orpsoc_top
    //
    wire 				  dbg_if_select;   
    wire 				  dbg_if_tdo;
-   wire 				  jtag_tap_tdo;   
-   wire 				  jtag_tap_shift_dr, jtag_tap_pause_dr, 
-					  jtag_tap_upate_dr, jtag_tap_capture_dr;
+   wire 				  jtag_tap_tdo;
+	wire 				  jtag_tap_shift_dr;
+	wire 				  jtag_tap_pause_dr;
+	wire 				  jtag_tap_update_dr;
+	wire 				  jtag_tap_capture_dr;
+	wire 				  jtag_tap_shift_dr;
    wire					  test_logic_reset;
 
    assign test_logic_reset = wb_rst;
@@ -1242,7 +1245,8 @@ module orpsoc_top
    wire 				  jtag_tap_tdo;   
    wire 				  jtag_tap_shift_dr;
    wire					  jtag_tap_pause_dr;
-   wire 				  jtag_tap_upate_dr;
+	wire 				  wirejtag_tap_shift_dr;
+   wire 				  jtag_tap_update_dr;
    wire					  jtag_tap_capture_dr;
    wire					  test_logic_reset;
   
@@ -1394,7 +1398,7 @@ module orpsoc_top
    parameter MOR1KX_CPU0_OPTION_CPU = "CAPPUCCINO";
 //   parameter MOR1KX_CPU0_OPTION_CPU = "ESPRESSO";
 
-   wire [31:0] 				  cpu_irq;
+   wire [31:1] 				  cpu_irq;
 
    mor1kx
      #(
@@ -3185,7 +3189,6 @@ module orpsoc_top
    // 
    ////////////////////////////////////////////////////////////////////////
    
-   assign cpu_irq[0] = 0; // Non-maskable inside OR1200
    assign cpu_irq[1] = 0; // Non-maskable inside OR1200
 `ifdef UART0
    assign cpu_irq[2] = uart0_irq;

@@ -180,7 +180,7 @@ module vga_pgen (
 	// variable declarations
 	//
 	reg nVen; // video enable signal (active low)
-	wire eol, eof;
+	wire eol, eof, gate;
 	wire ihsync, ivsync, icsync, iblank;
 	wire pclk_ena;
 
@@ -203,8 +203,13 @@ module vga_pgen (
 	  .pclk_i       ( pclk_i       ),
 	  .rst_i        ( nVen         ),
 	  .pclk_o       ( pclk_o       ),
+	`ifdef VGA_12BIT_DVI
 	  .dvi_pclk_p_o ( dvi_pclk_p_o ),
 	  .dvi_pclk_m_o ( dvi_pclk_m_o ),
+	`else
+	  .dvi_pclk_p_o (              ),
+	  .dvi_pclk_m_o (              ),
+	`endif
 	  .pclk_ena_o   ( pclk_ena     )
 	);
 

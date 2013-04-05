@@ -181,7 +181,7 @@ module vga_enh_top (
 	wire        ImDoneFifoQ;
 
 	// line fifo connections
-	wire        line_fifo_wreq, line_fifo_rreq, line_fifo_empty_rd;
+	wire        line_fifo_wreq, line_fifo_rreq, line_fifo_empty_rd, line_fifo_full_wr;
 	wire [23:0] line_fifo_d, line_fifo_q;
 
 	// clut connections

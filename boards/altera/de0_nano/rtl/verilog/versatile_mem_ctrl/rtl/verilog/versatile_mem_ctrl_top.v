@@ -368,7 +368,6 @@ module versatile_mem_ctrl_top
       .sdram_rst(sdram_rst)
       );
 
-   assign cs_pad_o = 1'b0;
    assign cke_pad_o = 1'b1;
 
    genvar     i;

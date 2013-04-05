@@ -239,7 +239,7 @@ hostSlaveMuxBI u_hostSlaveMuxBI (
   .strobe_i(strobe_i),
   .usbClk(usbClk), 
   .busClk(clk_i), 
-  .hostMode(hostMode), 
+  .hostMode(), 
   .hostSlaveMuxSel(hostSlaveMuxSel),  
   .rstFromWire(rst_i),
   .rstSyncToBusClkOut(rstSyncToBusClk),

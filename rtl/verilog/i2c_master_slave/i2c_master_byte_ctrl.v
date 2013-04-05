@@ -85,7 +85,7 @@ module i2c_master_byte_ctrl
    // inputs & outputs
    //
    input clk;     // master clock
-   input my_addr; // Slave address input
+   input [6:0] my_addr; // Slave address input
    input rst;     // synchronous active high reset
    input nReset;  // asynchronous active low reset
    input ena;     // core enable signal
@@ -141,11 +141,11 @@ module i2c_master_byte_ctrl
 
    reg 		sl_wait;
    // signals for bit_controller
-   wire [6:0] 	my_addr;
    reg [3:0] 	core_cmd;
    reg 		core_txd;
    wire 	core_ack, core_rxd;
    wire 	sl_cont;
+	wire  slave_reset;
    // signals for shift register
    reg [7:0] 	sr; //8bit shift register
    reg 		shift, ld;

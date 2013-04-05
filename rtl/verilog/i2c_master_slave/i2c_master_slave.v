@@ -148,6 +148,8 @@ module i2c_master_slave
    wire 	i2c_al;      // i2c bus arbitration lost
    reg 		al;          // status register arbitration lost bit
    reg 		slave_mode;
+	wire		slave_dat_avail;
+	wire		slave_dat_req;
    //
    // module body
    //
