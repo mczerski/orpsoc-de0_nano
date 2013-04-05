@@ -16,14 +16,14 @@ module sd_clock_divider (
    );
   `else
    
-   assign SD_CLK = SD_CLK_O;
+   assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
   
   `endif
    
  `endif 
  
  `ifdef SIM
-   assign SD_CLK = SD_CLK_O;
+   assign SD_CLK = DIVIDER[7] ? CLK : SD_CLK_O;
 `endif 
  
 always @ (posedge CLK or posedge RST)
