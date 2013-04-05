@@ -20,6 +20,7 @@ input  [`SD_BUS_W-1:0] DAT_dat_i,
 //Controll signals
 input [11:0] blksize,
 input bus_width,
+input [15:0] blkcnt,
 input [1:0] start_dat,
 input ack_transfer,
 
@@ -50,6 +51,8 @@ parameter READ_WAIT   = 6'b010000;
 parameter READ_DAT    = 6'b100000;
 reg [2:0] crc_status; 
 reg busy_int;   
+reg [15:0] block_count;
+reg next_block;
 
 genvar i;
 generate
@@ -115,7 +118,9 @@ case(state)
   end
   
   READ_DAT: begin
-    if ( ack_transfer_int)  //Startbit consumed...
+    if ( next_block)
+       next_state=READ_WAIT;
+    else if ( ack_transfer_int)  //Startbit consumed...
        next_state= IDLE;
     else if (start_dat == 2'b11)
         next_state=IDLE;   
@@ -189,6 +194,8 @@ write_buf_1<=0;
      data_send_index<=0;
         out_buff_ptr<=0;
         in_buff_ptr<=0;
+        next_block <= 0;
+        block_count <= 0;
  end
  else begin
  case(state)
@@ -207,7 +214,9 @@ write_buf_1<=0;
 	  data_send_index<=0;
 	  out_buff_ptr<=0;
 	  in_buff_ptr<=0;
-	  transm_complete <=0;  
+	  transm_complete <=0; 
+	  next_block <= 0;
+	  block_count <= blkcnt;
      
    end
    WRITE_DAT: begin    
@@ -384,6 +393,7 @@ write_buf_1<=0;
       crc_c<=15;// end 
       busy_n<=0;
       transm_complete<=0; 
+      next_block <= 0;
    end
    
    READ_DAT: begin
@@ -407,10 +417,9 @@ write_buf_1<=0;
        transf_cnt<=transf_cnt+1; 
        crc_en<=0;  
        last_din <=DAT_dat_i; 
-       
+       we<=0;
        if (transf_cnt> `BIT_BLOCK_REC) begin       
         crc_c<=crc_c-1;
-          we<=0;
         `ifdef SD_BUS_WIDTH_1
          if  (crc_out[0][crc_status] == last_din[0])
            crc_ok<=0;
@@ -431,9 +440,11 @@ write_buf_1<=0;
           crc_ok<=1;
        `endif
          if (crc_c==0) begin
-          transm_complete <=1;
+          transm_complete <= (block_count == 0);
+          next_block <= (block_count != 0);
+          block_count <= block_count - 1;
+          transf_cnt <= 0;
           busy_n<=0;
-           we<=0;
          end
       end
     end  

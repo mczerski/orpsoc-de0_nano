@@ -19,7 +19,7 @@ module sd_rx_fifo
    wire [32-1:0] ram_din;
    reg [8-1:0] we;
    reg [4*(8)-1:0] tmp;
-   reg ft;
+   //reg ft;
    always @ (posedge wclk or posedge rst)
      if (rst)
        we <= 8'h1;
@@ -30,15 +30,15 @@ module sd_rx_fifo
    always @ (posedge wclk or posedge rst)
      if (rst) begin
        tmp <= {4*(8-1){1'b0}};
-         ft<=0; 
+         //ft<=0; 
    end    
      else
        begin
 	 `ifdef BIG_ENDIAN
 	   
-	  if (wr & we[7]) begin
-	    tmp[4*1-1:4*0] <= d;	 
-	    ft<=1; end 
+	  //if (wr & we[7]) begin
+	  //  tmp[4*1-1:4*0] <= d;	 
+	  //  ft<=1; end 
 	  if (wr & we[6])
 	    tmp[4*2-1:4*1] <= d; 
 	  if (wr & we[5])
@@ -69,15 +69,20 @@ module sd_rx_fifo
 	   tmp[4*6-1:4*5] <= d;	 
 	  if (wr & we[6]) 
 	   tmp[4*7-1:4*6] <= d;	  	  
-	  if (wr & we[7]) begin
-	   tmp[4*8-1:4*7] <= d;
-	       ft<=1; 
+	  //if (wr & we[7]) begin
+	  // tmp[4*8-1:4*7] <= d;
+	  //     ft<=1; 
      end
       `endif 
   end
        
-   assign ram_we = wr & we[0] &ft;
-   assign ram_din = tmp;
+   assign ram_we = wr & we[7];// &ft;
+`ifdef BIG_ENDIAN
+   assign ram_din = {tmp[31:4], d};
+`endif 
+`ifdef LITTLE_ENDIAN 
+   assign ram_din = {d & tmp[27:0]};
+`endif 
    always @ (posedge wclk)
      if (ram_we)
        ram[adr_i[`FIFO_RX_MEM_ADR_SIZE-2:0]] <= ram_din;

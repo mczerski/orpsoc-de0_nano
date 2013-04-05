@@ -342,6 +342,7 @@ module sdc_controller
       .DAT_dat_i      (sd_dat_dat_i),
       .blksize        (block_size_reg),
       .bus_width      (controll_setting_reg[0]),
+      .blkcnt         (cmd_arg_s[15:0]),
       .start_dat      ({d_read, d_write}),
       .ack_transfer   (ack_transfer),
       .busy_n         (busy_n),

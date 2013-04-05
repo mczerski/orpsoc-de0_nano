@@ -46,7 +46,7 @@ sd_rx_fifo Rx_Fifo (
 );
 
 //reg [31:0] tmp_dat;
-reg [8:0] offset;
+reg [31:0] offset;
 
 assign  m_wb_adr_o = adr+offset;
 //assign  m_wb_dat_o = dat_o;
