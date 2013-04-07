@@ -665,6 +665,13 @@ module arbiter_dbus
 */
 
    reg 		     watchdog_err;
+
+   // Slave ins -> |MUX> -> these wires
+   wire [wb_dat_width-1:0]   wbm_dat_i;   
+   wire 		     wbm_ack_i;
+   wire 		     wbm_err_i;
+   wire 		     wbm_rty_i;   
+
    
 `ifdef ARBITER_DBUS_REGISTERING
 
@@ -683,11 +690,6 @@ module arbiter_dbus
    wire 		     wbm_stb_o_w;
    wire [2:0] 		     wbm_cti_o_w;
    wire [1:0] 		     wbm_bte_o_w;
-   // Slave ins -> |MUX> -> these wires
-   wire [wb_dat_width-1:0]   wbm_dat_i;   
-   wire 		     wbm_ack_i;
-   wire 		     wbm_err_i;
-   wire 		     wbm_rty_i;   
 
    // Registers after masters input mux
    reg [wb_adr_width-1:0]    wbm_adr_o_r;
@@ -717,6 +719,8 @@ module arbiter_dbus
 
    // Master select (MUX controls)
    wire [1:0] 		     master_sel;
+
+   
    // priority to wbm1, the debug master
    assign master_sel[0] = wbm0_cyc_o & !wbm1_cyc_o;
    assign master_sel[1] = wbm1_cyc_o;
@@ -794,8 +798,8 @@ module arbiter_dbus
    wire [wb_dat_width-1:0]   wbm_dat_o;
    wire [3:0] 		     wbm_sel_o;
    wire 		     wbm_we_o;
-   wire 		     wbm_cyc_o;
-   wire 		     wbm_stb_o;
+   reg  		     wbm_cyc_o;
+   reg  		     wbm_stb_o;
    wire [2:0] 		     wbm_cti_o;
    wire [1:0] 		     wbm_bte_o;
    
@@ -818,24 +822,54 @@ module arbiter_dbus
 
    assign wbm_we_o = master_sel[1] ? wbm1_we_o :
 		      wbm0_we_o;
+
+   always @(posedge wb_clk)
+     begin
+	// Deassert these on the completion of the final cycle of a 
+	// burst or every classic access cycle.
+	if (master_sel[1])
+	  begin
+	     if (wbm_ack_i & (wbm1_cti_o===3'b000 || wbm1_cti_o===3'b111))
+	       begin
+		  wbm_cyc_o <= 0;
+		  wbm_stb_o <= 0;		  
+	       end
+	     else
+	       begin
+		  wbm_cyc_o <= wbm1_cyc_o;
+		  wbm_stb_o <= wbm1_stb_o;
+	       end
+	  end
+	else
+	  begin
+	     if (wbm_ack_i & (wbm0_cti_o===3'b000 || wbm0_cti_o===3'b111))
+	       begin
+		  wbm_cyc_o <= 0;
+		  wbm_stb_o <= 0;		  
+	       end
+	     else
+	       begin
+		  wbm_cyc_o <= wbm0_cyc_o;
+		  wbm_stb_o <= wbm0_stb_o;
+	       end
+	  end
+	
+     end
+
+   /*
+    assign wbm_cyc_o = master_sel[1] ? wbm1_cyc_o :
+    wbm0_cyc_o;
+    
+    assign wbm_stb_o = master_sel[1] ? wbm1_stb_o :
+    wbm0_stb_o;
+    */
    
-   assign wbm_cyc_o = master_sel[1] ? wbm1_cyc_o :
-		      wbm0_cyc_o;
-
-   assign wbm_stb_o = master_sel[1] ? wbm1_stb_o :
-		     wbm0_stb_o;
-
    assign wbm_cti_o = master_sel[1] ? wbm1_cti_o :
 		     wbm0_cti_o;
 
    assign wbm_bte_o = master_sel[1] ? wbm1_bte_o :
 		      wbm0_bte_o;
 
-
-   wire [wb_dat_width-1:0]   wbm_dat_i;   
-   wire 		     wbm_ack_i;
-   wire 		     wbm_err_i;
-   wire 		     wbm_rty_i;   
 
 
    assign wbm0_dat_i = wbm_dat_i;
