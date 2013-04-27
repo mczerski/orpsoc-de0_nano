@@ -13,8 +13,8 @@ input   [31:0]  m_wb_dat_i,
 output    reg      m_wb_cyc_o,
 output   reg       m_wb_stb_o,
 input           m_wb_ack_i,
-output  [2:0] m_wb_cti_o,
-output	 [1:0]	 m_wb_bte_o,
+output  reg	[2:0] m_wb_cti_o,
+output	reg [1:0]	 m_wb_bte_o,
 
 //Data Master Control signals
 input en,
@@ -59,9 +59,6 @@ reg first;
 reg ackd;
 reg delay;
 
-assign m_wb_bte_o = 2'b00;
-assign m_wb_cti_o = 3'b000;
-
 always @(posedge clk or posedge rst )begin
  if (rst) begin
 	offset <=0;
@@ -76,6 +73,9 @@ always @(posedge clk or posedge rst )begin
 
 	first<=1;
 	din<=0;
+		m_wb_bte_o <= 2'b00;
+		m_wb_cti_o <= 3'b000;
+
 			
  end
  else if (en) begin //Start filling the TX buffer
