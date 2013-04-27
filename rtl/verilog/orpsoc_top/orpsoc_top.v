@@ -40,11 +40,6 @@ module orpsoc_top
 `ifdef JTAG_DEBUG    
     tdo_pad_o, tms_pad_i, tck_pad_i, tdi_pad_i,
 `endif     
-`ifdef VERSATILE_SDRAM
-    sdram_ba_pad_o,sdram_a_pad_o,sdram_cs_n_pad_o, sdram_ras_pad_o, 
-    sdram_cas_pad_o, sdram_we_pad_o, sdram_dq_pad_io, sdram_dqm_pad_o, 
-    sdram_cke_pad_o, sdram_clk_pad_o,
-`endif  
 `ifdef UART0
     uart0_srx_pad_i, uart0_stx_pad_o, 
 `endif
@@ -63,18 +58,6 @@ module orpsoc_top
    input  tck_pad_i;
    input  tdi_pad_i;
 `endif
-`ifdef VERSATILE_SDRAM
-   output [1:0] sdram_ba_pad_o;
-   output [12:0] sdram_a_pad_o;
-   output 	 sdram_cs_n_pad_o;
-   output 	 sdram_ras_pad_o;
-   output 	 sdram_cas_pad_o;
-   output 	 sdram_we_pad_o;
-   inout [15:0]  sdram_dq_pad_io;
-   output [1:0]  sdram_dqm_pad_o;
-   output 	 sdram_cke_pad_o;
-   output        sdram_clk_pad_o; 	 
-`endif 
 `ifdef UART0
    input  uart0_srx_pad_i;
    output uart0_stx_pad_o;
@@ -108,10 +91,6 @@ module orpsoc_top
       .tck_pad_i                 (tck_pad_i),
       .dbg_tck_o                 (dbg_tck),
 `endif      
-`ifdef VERSATILE_SDRAM      
-      .sdram_clk_o               (sdram_clk),
-      .sdram_rst_o               (sdram_rst),
-`endif
 
       // Asynchronous active low reset
       .rst_n_pad_i               (rst_n_pad_i)
@@ -713,116 +692,6 @@ module orpsoc_top
    ////////////////////////////////////////////////////////////////////////   
 `endif // !`ifdef JTAG_DEBUG
    
-`ifdef VERSATILE_SDRAM
-   ////////////////////////////////////////////////////////////////////////
-   //
-   // Versatile Memory Controller (SDRAM configured)
-   // 
-   ////////////////////////////////////////////////////////////////////////
-
-   //
-   // Wires
-   //
-
-   wire [15:0] 				  sdram_dq_i;
-   wire [15:0] 				  sdram_dq_o;
-   wire 				  sdram_dq_oe;
-   
-   //
-   // Assigns
-   //
-   
-   assign sdram_dq_i = sdram_dq_pad_io;
-   assign sdram_dq_pad_io = sdram_dq_oe ? sdram_dq_o : 16'bz;
-   assign sdram_clk_pad_o = sdram_clk;
-
-   wb_sdram_ctrl 
-     #(
-       .TECHNOLOGY			("GENERIC"),
-       .CLK_FREQ_MHZ			(50),	// sdram_clk freq in MHZ
-       .POWERUP_DELAY			(1),	// power up delay in us
-       .WB_PORTS			(2),	// Number of wishbone ports
-       .ROW_WIDTH			(13),	// Row width
-       .COL_WIDTH			(9),	// Column width
-       .BA_WIDTH			(2),	// Ba width
-       .tCAC				(2),	// CAS Latency
-       .tRAC				(5),	// RAS Latency
-       .tRP				(2),	// Command Period (PRE to ACT)
-       .tRC				(7),	// Command Period (REF to REF / ACT to ACT)
-       .tMRD				(2)	// Mode Register Set To Command Delay time
-      )
-   wb_sdram_ctrl0
-     (
-      // External SDRAM interface
-      .ba_pad_o				(sdram_ba_pad_o[1:0]),
-      .a_pad_o				(sdram_a_pad_o[12:0]),
-      .cs_n_pad_o			(sdram_cs_n_pad_o),
-      .ras_pad_o			(sdram_ras_pad_o),
-      .cas_pad_o			(sdram_cas_pad_o),
-      .we_pad_o				(sdram_we_pad_o),
-      .dq_i				(sdram_dq_i[15:0]),      
-      .dq_o				(sdram_dq_o[15:0]),
-      .dqm_pad_o			(sdram_dqm_pad_o[1:0]),
-      .dq_oe				(sdram_dq_oe),
-      .cke_pad_o			(sdram_cke_pad_o),
-      .sdram_clk			(sdram_clk),           
-      .sdram_rst                        (sdram_rst),
-
-      .wb_clk				(wb_clk),
-      .wb_rst				(wb_rst),
-
-      .wb_adr_i				({
-					  wbs_i_mc0_adr_i,
-					  wbs_d_mc0_adr_i
-					  }),
-      .wb_stb_i				({
-					  wbs_i_mc0_stb_i,
-					  wbs_d_mc0_stb_i
-					  }),
-      .wb_cyc_i				({
-					  wbs_i_mc0_cyc_i,
-					  wbs_d_mc0_cyc_i
-					  }),
-      .wb_cti_i				({
-					  wbs_i_mc0_cti_i,
-					  wbs_d_mc0_cti_i
-					  }),
-      .wb_bte_i				({
-					  wbs_i_mc0_bte_i,
-					  wbs_d_mc0_bte_i
-					  }),
-      .wb_we_i				({
-					  wbs_i_mc0_we_i,
-					  wbs_d_mc0_we_i
-					  }),
-      .wb_sel_i				({
-					  wbs_i_mc0_sel_i,
-					  wbs_d_mc0_sel_i
-					  }),
-      .wb_dat_i				({
-					  wbs_i_mc0_dat_i,
-					  wbs_d_mc0_dat_i
-					  }),      
-      .wb_dat_o				({
-					  wbs_i_mc0_dat_o,
-					  wbs_d_mc0_dat_o
-					  }),
-      .wb_ack_o				({
-					  wbs_i_mc0_ack_o,
-					  wbs_d_mc0_ack_o
-					  })
-      );
-      
-      
-
-   assign wbs_i_mc0_err_o = 0;
-   assign wbs_i_mc0_rty_o = 0;
-
-   assign wbs_d_mc0_err_o = 0;
-   assign wbs_d_mc0_rty_o = 0;
-   
-   ////////////////////////////////////////////////////////////////////////
-`endif //  `ifdef VERSATILE_SDRAM
 
    ////////////////////////////////////////////////////////////////////////
    //
