@@ -464,21 +464,18 @@ module orpsoc_top
    // Instantiation
    //
 
-   tap_top jtag_tap0
+   jtag_tap jtag_tap0
      (
       // Ports to pads
       .tdo_pad_o			(tdo_pad_o),
       .tms_pad_i			(tms_pad_i),
       .tck_pad_i			(dbg_tck),
-      .trstn_pad_i			(rst_n_pad_i),
+      .trst_pad_i			(async_rst),
       .tdi_pad_i			(tdi_pad_i),
       
-      .tdo_padoe_o			(tdo_padoe_o),
+      .tdo_padoe_o			(),
       
-      .tdi_o				(jtag_tap_tdo),
-		
-      .test_logic_reset_o	(),
-      .run_test_idle_o		(),
+      .tdo_o				(jtag_tap_tdo),
 
       .shift_dr_o			(jtag_tap_shift_dr),
       .pause_dr_o			(jtag_tap_pause_dr),
@@ -491,9 +488,9 @@ module orpsoc_top
       .debug_select_o			(dbg_if_select),
 
       
-      .bs_chain_tdo_i			(1'b0),
-      .mbist_tdo_i			(1'b0),
-      .debug_tdo_i			(dbg_if_tdo)
+      .bs_chain_tdi_i			(1'b0),
+      .mbist_tdi_i			(1'b0),
+      .debug_tdi_i			(dbg_if_tdo)
       
       );
    

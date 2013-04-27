@@ -383,6 +383,8 @@ wire crc_match;
 wire data_shift_en;
 wire selecting_command;
 
+reg tdo_o;
+
 
 
 
@@ -564,7 +566,7 @@ dbg_crc32_d1 i_dbg_crc32_d1_out
 // 4. bit:          0 (always)
 
 
-always @ (status_cnt or crc_match or module_select_error or crc_out)
+always @ (status_cnt or crc_match or module_select_error or crc_out or selecting_command)
 begin
   case (status_cnt)                   /* synthesis full_case parallel_case */ 
     `DBG_TOP_STATUS_CNT_WIDTH'd0  : begin
@@ -584,6 +586,9 @@ begin
                       end
      default : begin    tdo_module_select = 1'b0; end			//me added
   endcase
+  
+  if (selecting_command)
+    tdo_module_select = 1'b0;
 	 
 end
 
@@ -622,7 +627,11 @@ begin
     tdo_tmp = tdo_module_select;
 end
 
-assign tdo_o = tdo_tmp;
+
+always @ (tdo_tmp/*negedge tck_i*/)
+begin
+  tdo_o <=  tdo_tmp;
+end
 
 
 
