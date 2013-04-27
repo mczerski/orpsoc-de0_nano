@@ -39,7 +39,6 @@
 
 // Included modules: define to include
 `define JTAG_DEBUG
-`define ADV_DBG_IF
 `define UART0
 //`define RAM_WB
 `define VERSATILE_SDRAM
