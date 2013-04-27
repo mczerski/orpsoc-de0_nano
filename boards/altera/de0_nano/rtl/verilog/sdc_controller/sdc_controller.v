@@ -37,489 +37,276 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
+module sdc_controller(
+           // WISHBONE common
+           wb_clk_i, wb_rst_i, wb_dat_i, wb_dat_o,
+           // WISHBONE slave
+           wb_adr_i, wb_sel_i, wb_we_i, wb_cyc_i, wb_stb_i, wb_ack_o,
+           // WISHBONE master
+           m_wb_adr_o, m_wb_sel_o, m_wb_we_o,
+           m_wb_dat_o, m_wb_dat_i, m_wb_cyc_o,
+           m_wb_stb_o, m_wb_ack_i,
+           m_wb_cti_o, m_wb_bte_o,
+           //SD BUS
+           sd_cmd_dat_i,sd_cmd_out_o, sd_cmd_oe_o, //card_detect,
+           sd_dat_dat_i, sd_dat_out_o, sd_dat_oe_o, sd_clk_o_pad,
+           sd_clk_i_pad,
+           int_a, int_b, int_c
+       );
 
+input wb_clk_i;
+input wb_rst_i;
+input [31:0] wb_dat_i;
+output [31:0] wb_dat_o;
+//input card_detect;
+input [7:0] wb_adr_i;
+input [3:0] wb_sel_i;
+input wb_we_i;
+input wb_cyc_i;
+input wb_stb_i;
+output wb_ack_o;
+output [31:0] m_wb_adr_o;
+output [3:0] m_wb_sel_o;
+output m_wb_we_o;
+input [31:0] m_wb_dat_i;
+output [31:0] m_wb_dat_o;
+output m_wb_cyc_o;
+output m_wb_stb_o;
+input m_wb_ack_i;
+output [2:0] m_wb_cti_o;
+output [1:0] m_wb_bte_o;
+input wire [3:0] sd_dat_dat_i;
+output wire [3:0] sd_dat_out_o;
+output wire sd_dat_oe_o;
+input wire sd_cmd_dat_i;
+output wire sd_cmd_out_o;
+output wire sd_cmd_oe_o;
+output sd_clk_o_pad;
+input wire sd_clk_i_pad;
+output int_a, int_b, int_c;
 
+//SD clock
+wire sd_clk_i; //Sd_clk provided to the system
+wire sd_clk_o; //Sd_clk used in the system
 
-module sdc_controller
-  (
-   
-   // WISHBONE common
-   wb_clk_i, wb_rst_i, wb_dat_i, wb_dat_o, 
+wire go_idle;
+wire cmd_start;
+wire [1:0] cmd_setting;
+wire cmd_start_tx;
+wire [39:0] cmd;
+wire [119:0] cmd_response;
+wire cmd_crc_ok;
+wire cmd_index_ok;
+wire cmd_finish;
 
-   // WISHBONE slave
-   wb_adr_i, wb_sel_i, wb_we_i, wb_cyc_i, wb_stb_i, wb_ack_o, 
+wire d_write;
+wire d_read;
+wire [31:0] data_in_rx_fifo;
+wire [31:0] data_out_tx_fifo;
+wire start_tx_fifo;
+wire start_rx_fifo;
+wire tx_fifo_empty;
+wire tx_fifo_full;
+wire rx_fifo_full;
+wire data_busy;
+wire data_crc_ok;
+wire rd_fifo;
+wire we_fifo;
 
-   // WISHBONE master
-   m_wb_adr_o, m_wb_sel_o, m_wb_we_o, 
-   m_wb_dat_o, m_wb_dat_i, m_wb_cyc_o, 
-   m_wb_stb_o, m_wb_ack_i, 
-   m_wb_cti_o, m_wb_bte_o,
-   //SD BUS
+wire data_start_rx;
+wire data_start_tx;
+wire cmd_int_rst;
+wire data_int_rst;
 
-   sd_cmd_dat_i,sd_cmd_out_o,  sd_cmd_oe_o, card_detect,
-   sd_dat_dat_i, sd_dat_out_o , sd_dat_oe_o, sd_clk_o_pad
+//wb accessible registers
+wire [31:0] argument_reg;
+wire [13:0] command_reg;
+wire [15:0] timeout_reg;
+wire [0:0] software_reset_reg;
+wire [15:0] time_out_reg;
+wire [31:0] response_0_reg;
+wire [31:0] response_1_reg;
+wire [31:0] response_2_reg;
+wire [31:0] response_3_reg;
+wire [11:0] block_size_reg;
+wire [15:0] controll_setting_reg;
+wire [4:0] cmd_int_status_reg;
+wire [2:0] data_int_status_reg;
+wire [4:0] cmd_int_enable_reg;
+wire [2:0] data_int_enable_reg;
+wire [`BLKCNT_W-1:0] block_count_reg;
+wire [31:0] dma_addr_reg;
+wire [7:0] clock_divider_reg;
 
-   ,sd_clk_i_pad
-
-   ,int_a, int_b, int_c  
-
-   );
-
-
-
-   // WISHBONE common
-   input           wb_clk_i;     // WISHBONE clock
-   input           wb_rst_i;     // WISHBONE reset
-   input [31:0]    wb_dat_i;     // WISHBONE data input
-   output [31:0]   wb_dat_o;     // WISHBONE data output
-   // WISHBONE error output
-   input 	   card_detect;
-   // WISHBONE slave
-   input [7:0] 	   wb_adr_i;     // WISHBONE address input
-   input [3:0] 	   wb_sel_i;     // WISHBONE byte select input
-   input 	   wb_we_i;      // WISHBONE write enable input
-   input 	   wb_cyc_i;     // WISHBONE cycle input
-   input 	   wb_stb_i;     // WISHBONE strobe input
-
-   output          wb_ack_o;     // WISHBONE acknowledge output
-
-   // WISHBONE master
-   output [31:0]   m_wb_adr_o;
-   output [3:0]    m_wb_sel_o;
-   output          m_wb_we_o;
-
-   input [31:0]    m_wb_dat_i;
-   output [31:0]   m_wb_dat_o;
-   output          m_wb_cyc_o;
-   output          m_wb_stb_o;
-   input           m_wb_ack_i;
-   output [2:0]    m_wb_cti_o;
-   output [1:0]    m_wb_bte_o;
-   //SD port
-
-   input  wire [3:0] sd_dat_dat_i;   //Data in from SDcard
-   output wire [3:0] sd_dat_out_o; //Data out to SDcard
-   output wire 	     sd_dat_oe_o; //SD Card tristate Data Output enable (Connects on the SoC TopLevel)
-
-   input  wire 	     sd_cmd_dat_i; //Command in from SDcard
-   output wire 	     sd_cmd_out_o; //Command out to SDcard
-   output wire 	     sd_cmd_oe_o; //SD Card tristate CMD Output enable (Connects on the SoC TopLevel)
-   output 	     sd_clk_o_pad;
-
-   input wire 	     sd_clk_i_pad;
-
-   //IRQ
-   output 	     int_a, int_b, int_c ; 
-   
-   
-   wire 	     int_busy;
-
-
-
-   //Wires from SD_CMD_MASTER Module 
-   wire [15:0] 	     status_reg_w;
-   wire [31:0] 	     cmd_resp_1_w;
-   wire [31:0] 	     cmd_resp_2_w;
-   wire [31:0] 	     cmd_resp_3_w;
-   wire [31:0] 	     cmd_resp_4_w;
-   wire [15:0] 	     normal_int_status_reg_w;
-   wire [4:0] 	     error_int_status_reg_w; 
-   
-
-   wire [31:0] 	     argument_reg;
-   wire [15:0] 	     cmd_setting_reg;
-   reg [15:0] 	     status_reg;
-   reg [31:0] 	     cmd_resp_1;
-   reg [31:0] 	     cmd_resp_2;
-   reg [31:0] 	     cmd_resp_3;
-   reg [31:0] 	     cmd_resp_4;
-   wire [7:0] 	     software_reset_reg; 
-   wire [15:0] 	     time_out_reg;   
-   wire [11:0] 	     block_size_reg;
-   wire [15:0]	     controll_setting_reg;
-   reg [15:0] 	     normal_int_status_reg; 
-   reg [15:0] 	     error_int_status_reg;
-   wire [15:0] 	     normal_int_signal_enable_reg;
-   wire [15:0] 	     error_int_signal_enable_reg;
-   wire [7:0] 	     clock_divider;
-   reg [15:0] 	     Bd_Status_reg;   
-   reg [7:0] 	     Bd_isr_reg;
-   wire [7:0] 	     Bd_isr_enable_reg;
-
-   
-   //Rx Buffer  Descriptor internal signals
-
-
-
-   wire [`BD_WIDTH-1 :0] free_bd_rx_bd; //NO free Rx_bd
-   wire 		 new_rx_bd;  // New Bd writen
-   wire [`RAM_MEM_WIDTH-1:0] dat_out_s_rx_bd; //Data out from Rx_bd to Slave
-
-   //Tx Buffer Descriptor internal signals
-   wire [`RAM_MEM_WIDTH-1:0] dat_in_m_rx_bd; //Data in to Rx_bd from Master
-   wire [`RAM_MEM_WIDTH-1:0] dat_in_m_tx_bd;
-   wire [`BD_WIDTH-1 :0]     free_bd_tx_bd;
-   wire 		     new_tx_bd;
-   wire [`RAM_MEM_WIDTH-1:0] dat_out_s_tx_bd;
-   wire [7:0] 		     bd_int_st_w; //Wire to BD status register
-
-   //Wires for connecting Bd registers with the SD_Data_master module
-   wire 		     re_s_tx_bd_w;
-   wire 		     a_cmp_tx_bd_w;
-   wire 		     re_s_rx_bd_w;
-   wire 		     a_cmp_rx_bd_w;
-   wire 		     write_req_s; //SD_Data_master want acces to the CMD line.
-   wire 		     cmd_busy; //CMD line busy no access granted
-
-   wire [31:0] 		     cmd_arg_s; //SD_Data_master CMD Argument
-   wire [15:0] 		     cmd_set_s; //SD_Data_master Settings Argument
-   wire [31:0] 		     sys_adr; //System addres the DMA whil Read/Write to/from
-   wire [1:0] 		     start_dat_t; //Start data transfer
-
-   //Signals to Syncronize busy signaling betwen Wishbone access and SD_Data_master access to the CMD line (Also manage the status reg uppdate)
-
-   assign cmd_busy = int_busy | status_reg[0];
-   wire 		     status_reg_busy;
-
-
-   //Wires from SD_DATA_SERIAL_HOST_1 to the FIFO
-   wire [`SD_BUS_W -1 : 0 ]  data_in_rx_fifo;
-   wire [31: 0 ] 	     data_out_tx_fifo;
-   wire [31:0] 		     m_wb_dat_o_rx;
-   wire [3:0] 		     m_wb_sel_o_tx;
-   wire [31:0] 		     m_wb_adr_o_tx;
-   wire [31:0] 		     m_wb_adr_o_rx;
-
-   //SD clock 
-   wire 		     sd_clk_i; //Sd_clk provided to the system
-   wire 		     sd_clk_o; //Sd_clk used in the system
-
-   wire [2:0] 		     m_wb_cti_o_rx;
-   wire [2:0] 		     m_wb_cti_o_tx;
-   wire [1:0] 		     m_wb_bte_o_rx;
-   wire [1:0] 		     m_wb_bte_o_tx;
-
-   
-
-
-   //sd_clk_o to be used i set here
+//sd_clk_o to be used i set here
 `ifdef SDC_CLK_BUS_CLK
-   assign sd_clk_i = wb_clk_i;
+assign sd_clk_i = wb_clk_i;
 `endif 
 `ifdef SDC_CLK_SEP
-   assign sd_clk_i = sd_clk_i_pad;
+assign sd_clk_i = sd_clk_i_pad;
 `endif
-
 `ifdef SDC_CLK_STATIC
-   assign sd_clk_o = sd_clk_i;
+assign sd_clk_o = sd_clk_i;
 `endif
-   
 `ifdef SDC_CLK_DYNAMIC
-   sd_clock_divider clock_divider_1 
-     (
-      .CLK (sd_clk_i),
-      .DIVIDER (clock_divider),
-      .RST  (wb_rst_i | software_reset_reg[0]),
-      .SD_CLK  (sd_clk_o)  
-      );
+sd_clock_divider clock_divider_1(
+                     .CLK (sd_clk_i),
+                     .DIVIDER (clock_divider_reg),
+                     .RST  (wb_rst_i | software_reset_reg[0]),
+                     .SD_CLK  (sd_clk_o)
+                 );
 `endif
-   assign sd_clk_o_pad  = sd_clk_o ;
 
-   wire [15:0] 		     settings;
-   wire [7:0] 		     serial_status;
-   wire [39:0] 		     cmd_out_master;
-   wire [127:0] 	     cmd_in_host;
-   wire new_cmd, d_write, d_read, error_isr_reset, normal_isr_reset, go_idle,
-	req_out_master, ack_out_master, ack_in_host, req_in_host;
-   wire ack_o_s_tx, ack_o_s_rx, we_ack, start_tx_fifo, start_rx_fifo, tx_e, tx_f;
-   wire full_rx, busy_n, trans_complete, crc_ok, ack_transfer, bd_isr_reset;
-   wire cidat_w, rd, we_rx, we_m_rx_bd, we_m_tx_bd;
-   wire m_wb_we_o_tx, m_wb_cyc_o_tx, m_wb_stb_o_tx;
-   wire m_wb_we_o_rx, m_wb_cyc_o_rx, m_wb_stb_o_rx;
-   wire int_ack, cmd_int_busy;
+assign sd_clk_o_pad  = sd_clk_o ;
 
-   sd_cmd_master cmd_master_1
-     (
-      .CLK_PAD_IO     (wb_clk_i),
-      .RST_PAD_I      (wb_rst_i | software_reset_reg[0]),
-      .New_CMD        (new_cmd),
-      .data_write     (1'b0),
-      .data_read      (1'b0),
-      .ARG_REG        (argument_reg),
-      .CMD_SET_REG    (cmd_setting_reg[13:0]),
-      .STATUS_REG     (status_reg_w),
-      .TIMEOUT_REG    (time_out_reg),
-      .RESP_1_REG     (cmd_resp_1_w),
-      .RESP_2_REG     (cmd_resp_2_w),
-      .RESP_3_REG     (cmd_resp_3_w),
-      .RESP_4_REG     (cmd_resp_4_w),
-      .ERR_INT_REG    (error_int_status_reg_w),
-      .NORMAL_INT_REG (normal_int_status_reg_w),
-      .ERR_INT_RST    (error_isr_reset),
-      .NORMAL_INT_RST (normal_isr_reset),
-      .settings       (settings),
-      .go_idle_o      (go_idle),
-      .cmd_out        (cmd_out_master ),
-      .req_out        (req_out_master ),
-      .ack_out        (ack_out_master ),
-      .req_in         (req_in_host),
-      .ack_in         (ack_in_host),
-      .cmd_in         (cmd_in_host),
-      .serial_status (serial_status),
-      .card_detect (card_detect)
+sd_cmd_master sd_cmd_master0(
+           .sd_clk       (sd_clk_o),
+           .rst          (wb_rst_i | software_reset_reg[0]),
+           .start_i      (cmd_start),
+           .int_status_rst_i(cmd_int_rst),
+           .setting_o    (cmd_setting),
+           .start_xfr_o  (cmd_start_tx),
+           .go_idle_o    (go_idle),
+           .cmd_o        (cmd),
+           .response_i   (cmd_response),
+           .crc_ok_i     (cmd_crc_ok),
+           .index_ok_i   (cmd_index_ok),
+           .busy_i       (!sd_dat_dat_i[0]),
+           .finish_i     (cmd_finish),
+           //input card_detect,
+           .argument_i   (argument_reg),
+           .command_i    (command_reg),
+           .timeout_i    (timeout_reg),
+           .int_status_o (cmd_int_status_reg),
+           .response_0_o (response_0_reg),
+           .response_1_o (response_1_reg),
+           .response_2_o (response_2_reg),
+           .response_3_o (response_3_reg)
+       );
+       
+sd_cmd_serial_host cmd_serial_host0(
+                       .sd_clk     (sd_clk_o),
+                       .rst        (wb_rst_i | software_reset_reg[0] | go_idle),
+                       .setting_i  (cmd_setting),
+                       .cmd_i      (cmd),
+                       .start_i    (cmd_start_tx),
+                       .finish_o   (cmd_finish),
+                       .response_o (cmd_response),
+                       .crc_ok_o   (cmd_crc_ok),
+                       .index_ok_o (cmd_index_ok),
+                       .cmd_dat_i  (sd_cmd_dat_i),
+                       .cmd_out_o  (sd_cmd_out_o),
+                       .cmd_oe_o   (sd_cmd_oe_o)
+                   );
+                   
+sd_data_master sd_data_master0(
+           .sd_clk           (sd_clk_o),
+           .rst              (wb_rst_i | software_reset_reg[0]),
+           .start_tx_i       (data_start_tx),
+           .start_rx_i       (data_start_rx),
+           .d_write_o        (d_write),
+           .d_read_o         (d_read),
+           .start_tx_fifo_o  (start_tx_fifo),
+           .start_rx_fifo_o  (start_rx_fifo),
+           .tx_fifo_empty_i  (tx_fifo_empty),
+           .tx_fifo_full_i   (tx_fifo_full),
+           .rx_fifo_full_i   (rx_fifo_full),
+           .xfr_complete_i   (!data_busy),
+           .crc_ok_i         (data_crc_ok),
+           .int_status_o     (data_int_status_reg),
+           .int_status_rst_i (data_int_rst)
+       );
 
-      );
+sd_data_serial_host sd_data_serial_host0(
+                        .sd_clk         (sd_clk_o),
+                        .rst            (wb_rst_i | software_reset_reg[0]),
+                        .data_in        (data_out_tx_fifo),
+                        .rd             (rd_fifo),
+                        .data_out       (data_in_rx_fifo),
+                        .we             (we_fifo),
+                        .DAT_oe_o       (sd_dat_oe_o),
+                        .DAT_dat_o      (sd_dat_out_o),
+                        .DAT_dat_i      (sd_dat_dat_i),
+                        .blksize        (block_size_reg),
+                        .bus_4bit       (controll_setting_reg[0]),
+                        .blkcnt         (block_count_reg),
+                        .start          ({d_read, d_write}),
+                        .busy           (data_busy),
+                        .crc_ok         (data_crc_ok)
+                    );
+       
+sd_fifo_filler sd_fifo_filler0(
+            .wb_clk    (wb_clk_i),
+            .rst       (wb_rst_i | software_reset_reg[0]),
+            .wbm_adr_o (m_wb_adr_o),
+            .wbm_we_o  (m_wb_we_o),
+            .wbm_dat_o (m_wb_dat_o),
+            .wbm_dat_i (m_wb_dat_i),
+            .wbm_cyc_o (m_wb_cyc_o),
+            .wbm_stb_o (m_wb_stb_o),
+            .wbm_ack_i (m_wb_ack_i),
+            .en_rx_i   (start_rx_fifo),
+            .en_tx_i   (start_tx_fifo),
+            .adr_i     (dma_addr_reg),
+            .sd_clk    (sd_clk_o),
+            .dat_i     (data_in_rx_fifo),
+            .dat_o     (data_out_tx_fifo),
+            .wr_i      (we_fifo),
+            .rd_i      (rd_fifo),
+            .sd_empty_o   (tx_fifo_empty),
+            .sd_full_o   (rx_fifo_full),
+            .wb_empty_o   (),
+            .wb_full_o    (tx_fifo_full)
+        );
 
+sd_controller_wb sd_controller_wb0(
+                     .wb_clk_i                       (wb_clk_i),
+                     .wb_rst_i                       (wb_rst_i),
+                     .wb_dat_i                       (wb_dat_i),
+                     .wb_dat_o                       (wb_dat_o),
+                     .wb_adr_i                       (wb_adr_i),
+                     .wb_sel_i                       (wb_sel_i),
+                     .wb_we_i                        (wb_we_i),
+                     .wb_stb_i                       (wb_stb_i),
+                     .wb_cyc_i                       (wb_cyc_i),
+                     .wb_ack_o                       (wb_ack_o),
+                     .cmd_start                      (cmd_start),
+                     .data_start_tx                  (data_start_tx),
+                     .data_start_rx                  (data_start_rx),
+                     .data_int_rst                   (data_int_rst),
+                     .cmd_int_rst                    (cmd_int_rst),
+                     .argument_reg                   (argument_reg),
+                     .command_reg                    (command_reg),
+                     .response_0_reg                 (response_0_reg),
+                     .response_1_reg                 (response_1_reg),
+                     .response_2_reg                 (response_2_reg),
+                     .response_3_reg                 (response_3_reg),
+                     .software_reset_reg             (software_reset_reg),
+                     .timeout_reg                    (timeout_reg),
+                     .block_size_reg                 (block_size_reg),
+                     .controll_setting_reg           (controll_setting_reg),
+                     .cmd_int_status_reg             (cmd_int_status_reg),
+                     .cmd_int_enable_reg             (cmd_int_enable_reg),
+                     .clock_divider_reg              (clock_divider_reg),
+                     .block_count_reg                (block_count_reg),
+                     .dma_addr_reg                   (dma_addr_reg),
+                     .data_int_status_reg            (data_int_status_reg),
+                     .data_int_enable_reg            (data_int_enable_reg)
+                 );
 
-   sd_cmd_serial_host cmd_serial_host_1
-     (
-      .SD_CLK_IN  (sd_clk_o), 
-      .RST_IN     (wb_rst_i | software_reset_reg[0] | go_idle),
-      .SETTING_IN (settings),
-      .CMD_IN     (cmd_out_master),
-      .REQ_IN     (req_out_master),
-      .ACK_IN     (ack_out_master),
-      .REQ_OUT    (req_in_host), 
-      .ACK_OUT    (ack_in_host),
-      .CMD_OUT    (cmd_in_host),
-      .STATUS     (serial_status),
-      .cmd_dat_i  (sd_cmd_dat_i),
-      .cmd_out_o  (sd_cmd_out_o),
-      .cmd_oe_o   ( sd_cmd_oe_o),
-      .st_dat_t   (start_dat_t)
-      );
-
-
-   sd_data_master data_master_1 
-     (
-      .clk            (wb_clk_i),
-      .rst            (wb_rst_i | software_reset_reg[0]),
-      .dat_in_tx      (dat_out_s_tx_bd),
-      .free_tx_bd     (free_bd_tx_bd),
-      .ack_i_s_tx     (ack_o_s_tx ),
-      .re_s_tx        (re_s_tx_bd_w), 
-      .a_cmp_tx       (a_cmp_tx_bd_w),
-      .dat_in_rx      (dat_out_s_rx_bd),
-      .free_rx_bd     (free_bd_rx_bd),
-      .ack_i_s_rx     (ack_o_s_rx),
-      .re_s_rx        (re_s_rx_bd_w), 
-      .a_cmp_rx       (a_cmp_rx_bd_w),
-      .cmd_busy       (cmd_busy),
-      .we_req         (write_req_s),
-      .we_ack         (we_ack),
-      .d_write        (d_write),
-      .d_read         (d_read),
-      .cmd_arg        (cmd_arg_s),
-      .cmd_set        (cmd_set_s),
-      .cmd_tsf_err    (normal_int_status_reg[15]) ,
-      .card_status    (cmd_resp_1[12:8])   ,
-      .start_tx_fifo  (start_tx_fifo),
-      .start_rx_fifo  (start_rx_fifo),
-      .sys_adr        (sys_adr),
-      .tx_empt        (tx_e ),
-      .tx_full        (tx_f ),
-      .rx_full        (full_rx ),
-      .busy_n         (busy_n),
-      .transm_complete(trans_complete ),
-      .crc_ok         (crc_ok),
-      .ack_transfer   (ack_transfer),
-      .Dat_Int_Status (bd_int_st_w),
-      .Dat_Int_Status_rst (bd_isr_reset),
-      .CIDAT           (cidat_w),
-      .transfer_type  (cmd_setting_reg[15:14])
-      );
-   
-   sd_data_serial_host sd_data_serial_host_1
-     (
-      .sd_clk         (sd_clk_o),
-      .rst            (wb_rst_i | software_reset_reg[0]),
-      .data_in        (data_out_tx_fifo),
-      .rd             (rd), 
-      .data_out       (data_in_rx_fifo),
-      .we             (we_rx),
-      .DAT_oe_o       (sd_dat_oe_o),
-      .DAT_dat_o      (sd_dat_out_o),
-      .DAT_dat_i      (sd_dat_dat_i),
-      .blksize        (block_size_reg),
-      .bus_width      (controll_setting_reg[0]),
-      .blkcnt         (cmd_arg_s[15:0]),
-      .start_dat      ({d_read, d_write}),
-      .ack_transfer   (ack_transfer),
-      .busy_n         (busy_n),
-      .transm_complete(trans_complete ),
-      .crc_ok         (crc_ok)
-      );
-
-
-   sd_bd rx_bd
-     (
-      .clk        (wb_clk_i),
-      .rst       (wb_rst_i | software_reset_reg[0]),
-      .we_m      (we_m_rx_bd),
-      .dat_in_m  (dat_in_m_rx_bd),
-      .free_bd   (free_bd_rx_bd),
-      .re_s      (re_s_rx_bd_w),
-      .ack_o_s   (ack_o_s_rx),
-      .a_cmp     (a_cmp_rx_bd_w),
-      .dat_out_s (dat_out_s_rx_bd)
-
-      );
-
-   sd_bd tx_bd
-     (
-      .clk       (wb_clk_i),
-      .rst       (wb_rst_i | software_reset_reg[0]),
-      .we_m      (we_m_tx_bd),
-      .dat_in_m  (dat_in_m_tx_bd),
-      .free_bd   (free_bd_tx_bd),
-      .ack_o_s   (ack_o_s_tx),
-      .re_s      (re_s_tx_bd_w),
-      .a_cmp     (a_cmp_tx_bd_w),
-      .dat_out_s (dat_out_s_tx_bd)
-      );
-
-
-   sd_fifo_tx_filler fifo_filer_tx 
-     (
-      .clk        (wb_clk_i),
-      .rst        (wb_rst_i | software_reset_reg[0]),
-      .m_wb_adr_o (m_wb_adr_o_tx),
-      .m_wb_we_o  (m_wb_we_o_tx),
-      .m_wb_dat_i (m_wb_dat_i),
-      .m_wb_cyc_o (m_wb_cyc_o_tx),
-      .m_wb_stb_o (m_wb_stb_o_tx),
-      .m_wb_ack_i (m_wb_ack_i),
-      .m_wb_cti_o (m_wb_cti_o_tx),
-      .m_wb_bte_o (m_wb_bte_o_tx),
-      .en         (start_tx_fifo),
-      .adr        (sys_adr),
-      .sd_clk     (sd_clk_o),
-      .dat_o      (data_out_tx_fifo   ),
-      .rd         (rd),
-      .empty      (tx_e),
-      .fe         (tx_f)
-      );
-
-   sd_fifo_rx_filler fifo_filer_rx 
-     (
-      .clk        (wb_clk_i),
-      .rst        (wb_rst_i | software_reset_reg[0]),
-      .m_wb_adr_o (m_wb_adr_o_rx),
-      .m_wb_we_o  (m_wb_we_o_rx),
-      .m_wb_dat_o (m_wb_dat_o),
-      .m_wb_cyc_o (m_wb_cyc_o_rx),
-      .m_wb_stb_o (m_wb_stb_o_rx),
-      .m_wb_ack_i (m_wb_ack_i),
-      .m_wb_cti_o (m_wb_cti_o_rx),
-      .m_wb_bte_o (m_wb_bte_o_rx),
-      .en         (start_rx_fifo),
-      .adr        (sys_adr),
-      .sd_clk     (sd_clk_o),
-      .dat_i      (data_in_rx_fifo   ),
-      .wr         (we_rx),
-      .full       (full_rx)
-      );
-
-   sd_controller_wb sd_controller_wb0
-     (
-      .wb_clk_i          (wb_clk_i),
-      .wb_rst_i          (wb_rst_i),
-      .wb_dat_i          (wb_dat_i),
-      .wb_dat_o          (wb_dat_o),
-      .wb_adr_i          (wb_adr_i[7:0]),
-      .wb_sel_i          (wb_sel_i),
-      .wb_we_i           (wb_we_i),
-      .wb_stb_i          (wb_stb_i),
-      .wb_cyc_i          (wb_cyc_i),
-      .wb_ack_o          (wb_ack_o),
-      .we_m_tx_bd        (we_m_tx_bd),
-      .new_cmd           (new_cmd), 
-      .we_m_rx_bd        (we_m_rx_bd),   
-      .we_ack             (we_ack),
-      .int_ack            (int_ack),
-      .cmd_int_busy       (cmd_int_busy),
-      .Bd_isr_reset       (bd_isr_reset),     
-      .normal_isr_reset   (normal_isr_reset),
-      .error_isr_reset    (error_isr_reset),
-      .int_busy           (int_busy),
-      .dat_in_m_tx_bd     (dat_in_m_tx_bd),
-      .dat_in_m_rx_bd     (dat_in_m_rx_bd),
-      .write_req_s        (write_req_s),
-      .cmd_set_s          (cmd_set_s),
-      .cmd_arg_s          (cmd_arg_s),
-      .argument_reg       (argument_reg),
-      .cmd_setting_reg    (cmd_setting_reg),
-      .status_reg         (status_reg),
-      .cmd_resp_1         (cmd_resp_1),
-      .cmd_resp_2         (cmd_resp_2),
-      .cmd_resp_3         (cmd_resp_3),
-      .cmd_resp_4         (cmd_resp_4),
-      .software_reset_reg (software_reset_reg ),
-      .time_out_reg       (time_out_reg ),
-      .block_size_reg     (block_size_reg),
-      .controll_setting_reg (controll_setting_reg),
-      .normal_int_status_reg  (normal_int_status_reg),
-      .error_int_status_reg   (error_int_status_reg ),
-      .normal_int_signal_enable_reg   (normal_int_signal_enable_reg),
-      .error_int_signal_enable_reg    (error_int_signal_enable_reg),
-      .clock_divider                  (clock_divider ),
-      .Bd_Status_reg                  (Bd_Status_reg),
-      .Bd_isr_reg                     (Bd_isr_reg ),
-      .Bd_isr_enable_reg              (Bd_isr_enable_reg)
-      );
-
-   //MUX For WB master acces granted to RX or TX FIFO filler
-   assign m_wb_cyc_o = start_tx_fifo ? m_wb_cyc_o_tx : 
-		       start_rx_fifo ? m_wb_cyc_o_rx: 1'b0;
-   assign m_wb_stb_o = start_tx_fifo ? m_wb_stb_o_tx : 
-		       start_rx_fifo ? m_wb_stb_o_rx: 1'b0;
-
-   assign m_wb_cti_o = start_tx_fifo ? m_wb_cti_o_tx :
-		       start_rx_fifo ? m_wb_cti_o_rx : 3'b000;
-   assign m_wb_bte_o = start_tx_fifo ? m_wb_bte_o_tx :
-		       start_rx_fifo ? m_wb_bte_o_rx : 2'b00;
-
-   assign m_wb_we_o = start_tx_fifo ? m_wb_we_o_tx :
-		      start_rx_fifo ? m_wb_we_o_rx : 1'b0;
-   assign m_wb_adr_o = start_tx_fifo ? m_wb_adr_o_tx :
-		       start_rx_fifo ? m_wb_adr_o_rx : 32'h0;
+assign m_wb_cti_o = 3'b000;
+assign m_wb_bte_o = 2'b00;
 
 `ifdef SDC_IRQ_ENABLE
-   assign int_a =  |(normal_int_status_reg &  normal_int_signal_enable_reg) ;
-   assign int_b =  |(error_int_status_reg & error_int_signal_enable_reg);
-   assign int_c =  |(Bd_isr_reg & Bd_isr_enable_reg);
+assign int_a =  |(cmd_int_status_reg & cmd_int_enable_reg);
+assign int_b =  |(data_int_status_reg & data_int_enable_reg);
+assign int_c =  0;
 `else
-   assign int_a = 0;
-   assign int_b = 0;
-   assign int_c = 0;
+assign int_a = 0;
+assign int_b = 0;
+assign int_c = 0;
 `endif
 
-   assign m_wb_sel_o = 4'b1111;
-
-   //Set Bd_Status_reg
-   always @ (posedge wb_clk_i ) begin
-      Bd_Status_reg[15:8]=free_bd_rx_bd;
-      Bd_Status_reg[7:0]=free_bd_tx_bd;
-      cmd_resp_1<= cmd_resp_1_w;
-      cmd_resp_2<= cmd_resp_2_w;
-      cmd_resp_3<= cmd_resp_3_w;
-      cmd_resp_4<= cmd_resp_4_w;
-      normal_int_status_reg<= normal_int_status_reg_w  ;
-      error_int_status_reg<= error_int_status_reg_w  ;
-      status_reg[0]<= status_reg_busy;
-      status_reg[15:1]<=  status_reg_w[15:1]; 
-      status_reg[1] <= cidat_w; 
-      Bd_isr_reg<=bd_int_st_w;
-
-   end
-
-
-   
-   //cmd_int_busy is set when an internal access to the CMD buss is granted then immidetly uppdate the status busy bit to prevent buss access to cmd
-   assign status_reg_busy = cmd_int_busy ? 1'b1: status_reg_w[0];
-
-
-
-
+assign m_wb_sel_o = 4'b1111;
 
 endmodule
