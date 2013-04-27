@@ -142,7 +142,7 @@ module fsm_sdr_16 (
    
    always @*
      begin
-	next = 3'bx;
+	next = 3'bxxx;
 	case (state)
 	  `FSM_INIT:
 	    if (shreg[31])          

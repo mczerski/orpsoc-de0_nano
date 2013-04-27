@@ -445,11 +445,11 @@
 //`define OR1200_RFRAM_TWOPORT
 //
 // Memory macro dual port (see or1200_dpram.v)
-`define OR1200_RFRAM_DUALPORT
+//`define OR1200_RFRAM_DUALPORT
 
 //
 // Generic (flip-flop based) register file (see or1200_rfram_generic.v)
-//`define OR1200_RFRAM_GENERIC
+`define OR1200_RFRAM_GENERIC
 //  Generic register file supports - 16 registers 
 `ifdef OR1200_RFRAM_GENERIC
 //    `define OR1200_RFRAM_16REG

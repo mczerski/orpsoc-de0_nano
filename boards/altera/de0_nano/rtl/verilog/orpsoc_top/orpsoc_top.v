@@ -1603,7 +1603,7 @@ module orpsoc_top
    //
    
    assign sdram_dq_i = sdram_dq_pad_io;
-   assign sdram_dq_pad_io = sdram_dq_oe ? sdram_dq_o : 16'bz;
+   assign sdram_dq_pad_io = sdram_dq_oe ? sdram_dq_o : {16{1'bz}};
    assign sdram_clk_pad_o = sdram_clk;
 
    wb_sdram_ctrl 
@@ -2802,7 +2802,7 @@ module orpsoc_top
    wire 			     sdc_irq_c;
 
    assign sdc_cmd_pad_io = sdc_cmd_oe ? sdc_cmdIn : 1'bz;
-   assign sdc_dat_pad_io = sdc_dat_oe  ? sdc_datIn : 4'bz;
+   assign sdc_dat_pad_io = sdc_dat_oe  ? sdc_datIn : 4'bzzzz;
    
    assign wbs_d_sdc_err_o = 0;   
    assign wbs_d_sdc_rty_o= 0;	
@@ -2842,7 +2842,7 @@ module orpsoc_top
   	 .sd_dat_oe_o  (sdc_dat_oe  ),
 	 .sd_clk_o_pad (sdc_clk_pad_o),
 	 //.card_detect  (sdc_card_detect_pad_i),
-	 .card_detect  (1'b1),
+	 //.card_detect  (1'b1),
 
 	 .sd_clk_i_pad (wb_clk),
 	
@@ -3082,7 +3082,7 @@ module orpsoc_top
    //
    
    assign video_sdram_dq_i = video_sdram_dq_pad_io;
-   assign video_sdram_dq_pad_io = video_sdram_dq_oe ? video_sdram_dq_o : 16'bz;
+   assign video_sdram_dq_pad_io = video_sdram_dq_oe ? video_sdram_dq_o : {16{1'bz}};
    assign video_sdram_clk_pad_o = video_sdram_clk;
 
    wb_sdram_ctrl 
