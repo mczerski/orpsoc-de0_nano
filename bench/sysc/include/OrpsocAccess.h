@@ -30,6 +30,7 @@
 #define ORPSOC_ACCESS__H
 
 #include <stdint.h>
+#define wishbone_ram orpsoc_top->v->ram_wb0->ram_wb_b3_0
 
 class Vorpsoc_top;
 class Vorpsoc_top_orpsoc_top;
@@ -107,11 +108,7 @@ private:
 	Vorpsoc_top_or1200_except *or1200_except;
 	Vorpsoc_top_or1200_sprs *or1200_sprs;
 	Vorpsoc_top_or1200_dpram *rf_a;
-	/*Vorpsoc_top_ram_wb_sc_sw *//*Vorpsoc_top_ram_wb_sc_sw__D20_A19_M800000 *//*Vorpsoc_top_wb_ram_b3__D20_A17_M800000 *ram_wb_sc_sw; */
-	Vorpsoc_top_ram_wb_b3__pi3 *wishbone_ram;
-	// Arbiter
-	//Vorpsoc_top_wb_conbus_top__pi1 *wb_arbiter;
-
+	Vorpsoc_top *orpsoc_top;
 };				// OrpsocAccess ()
 
 #endif // ORPSOC_ACCESS__H
