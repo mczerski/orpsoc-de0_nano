@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 extern int monitor_to_gdb_pipe[2][2];	// [0][] - monitor to gdb, [1][] - gdb to monitor, [][0] - read, [][1] - write
 
 using std::cerr;

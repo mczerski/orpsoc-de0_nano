@@ -34,6 +34,7 @@
 
 #ifdef UART_SC_STDIN_ENABLE
 #include <termios.h>
+#include <unistd.h>
 #endif
 
 SC_HAS_PROCESS(UartSC);

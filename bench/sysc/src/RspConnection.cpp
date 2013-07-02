@@ -32,6 +32,7 @@
 #include <cerrno>
 #include <csignal>
 #include <cstring>
+#include <unistd.h>
 
 #include <netdb.h>
 #include <arpa/inet.h>
