@@ -94,7 +94,7 @@ module ps2(
     reg  [7:0]               data_i_reg;
     reg  [7:0]               data_o_reg;
     reg                      obf_set;
-        
+
     // Syncronize input signals
     always @(posedge clk_i or negedge rst_i) begin
         if (!rst_i) begin     // asynchronous reset (active low)
@@ -127,33 +127,33 @@ module ps2(
             case (debounce_state)
                 stable: begin
                     if (ps2_clk_clean != ps2_clk_syn) begin
-                        if (ps2_clk_syn) 
+                        if (ps2_clk_syn)
                             debounce_state <= rise;
                         else
                             debounce_state <= fall;
                     end
                 end
-                
+
                 wait_stable: begin
-	                if (debounce_cao)
+                    if (debounce_cao)
                         debounce_state <= stable;
                 end
-                
+
                 rise: begin
                     debounce_state <= wait_stable;
                     ps2_clk_clean  <= 1'b1;
                 end
-                
+
                 fall: begin
                     debounce_state <= wait_stable;
                     ps2_clk_clean  <= 1'b0;
                 end
-                
+
                 //default:
             endcase
         end
     end
-    
+
     assign ps2_clk_fall = (debounce_state == fall);
     assign ps2_clk_rise = (debounce_state == rise);
 
@@ -191,7 +191,7 @@ module ps2(
                     shift_reg[8]   <= 1'b1;
                 end
             end
-   
+
     // Shift counter
     always @(posedge clk_i or negedge rst_i)
         if (!rst_i) // asynchronous reset (active low)
@@ -289,11 +289,10 @@ module ps2(
                     end
                 end
                 //default:
-                
             endcase
 
     // State flags
-    always @(posedge clk_i or negedge rst_i)  
+    always @(posedge clk_i or negedge rst_i)
         if (!rst_i) begin // asynchronous reset (active low)
             ibf <= 1'b0;
             parity_err <= 1'b0;
