@@ -68,11 +68,13 @@ module ps2(
     reg  [2:0]               debounce_state;
     reg  [DEBOUNCE_BITS-1:0] debounce_cnt;
     wire                     debounce_cao;
-    reg                      ps2_clk_syn;       // PS2 clock input syncronized
+    reg  [1:0]               ps2_clk_r;         // PS2 clock input registered
+    wire                     ps2_clk_syn;       // PS2 clock input syncronized
     reg                      ps2_clk_clean;     // PS2 clock debounced and clean
     wire                     ps2_clk_fall;      // PS2 clock fall edge
     wire                     ps2_clk_rise;      // PS2 clock rise edge
-    reg                      ps2_data_syn;      // PS2 data  input syncronized
+    reg  [1:0]               ps2_data_r;        // PS2 data input registered
+    wire                     ps2_data_syn;      // PS2 data  input syncronized
     reg                      ps2_clk_out;       // PS2 clock output
     reg                      ps2_data_out;      // PS2 clock output
     reg                      writing;           // read / write cycle flag
@@ -98,20 +100,22 @@ module ps2(
     // Syncronize input signals
     always @(posedge clk_i or negedge rst_i) begin
         if (!rst_i) begin     // asynchronous reset (active low)
-            ps2_clk_syn  <= 0;
-            ps2_data_syn <= 0;
+            ps2_clk_r  <= 0;
+            ps2_data_r <= 0;
         end else begin
-            ps2_clk_syn  <= ps2_clk_io;
-            ps2_data_syn <= ps2_data_io;
+            ps2_clk_r  <= {ps2_clk_io, ps2_clk_r[1]};
+            ps2_data_r <= {ps2_data_io, ps2_data_r[1]};
         end
     end
+    assign ps2_clk_syn = ps2_clk_r[0];
+    assign ps2_data_syn = ps2_data_r[0];
 
     // clk debounce timer
     always @(posedge clk_i or negedge rst_i)
         if (!rst_i)     // asynchronous reset (active low)
             debounce_cnt <= 0;
         else 
-            if ((debounce_state == fall) | (debounce_state == rise) | debounce_cao)
+            if (ps2_clk_fall | ps2_clk_rise | debounce_cao)
                 debounce_cnt <= 0;
             else
                 debounce_cnt <= debounce_cnt + 1;
@@ -199,8 +203,7 @@ module ps2(
         else
             if (state == start)
                 shift_cnt <= 0;
-            else if (((ps2_clk_fall & !writing) | (ps2_clk_rise & writing)) &
-                    (state == data))
+            else if (ps2_clk_fall & (state == data))
                 shift_cnt <= shift_cnt + 1;
 
     assign shift_cao = (&shift_cnt);
@@ -229,14 +232,12 @@ module ps2(
                         writing <= 1'b1;
                     end else if (ps2_clk_fall)
                         state <= start;
-                    else if (wdt_cao & writing)
-                        writing <= 1'b0;
                 end
 
                 // Write request, clk low
                 write_request: begin
                     if (wdt_cao)
-                        state <= idle;
+                        state <= start;
                 end
 
                 // Clock 1, start bit
@@ -244,9 +245,6 @@ module ps2(
                     if (wdt_cao) begin
                         writing <= 1'b0;
                         state   <= idle;
-                    end else if (writing) begin
-                        if (ps2_clk_rise)
-                            state <= data;
                     end else if (ps2_clk_fall)
                         state <= data;
                 end
@@ -256,9 +254,6 @@ module ps2(
                     if (wdt_cao) begin
                         writing <= 1'b0;
                         state   <= idle;
-                    end else if (writing) begin
-                        if (ps2_clk_rise & shift_cao)
-                            state <= parity;
                     end else if (ps2_clk_fall & shift_cao)
                         state <= parity;
                 end
@@ -268,9 +263,6 @@ module ps2(
                     if (wdt_cao) begin
                         writing <= 1'b0;
                         state   <= idle;
-                    end else if (writing) begin 
-                        if (ps2_clk_rise)
-                            state <= stop;
                     end else if (ps2_clk_fall)
                         state <= stop;
                 end
@@ -325,9 +317,9 @@ module ps2(
 
     // Shift register control
     assign shift_load        = (obf_set & state == write_request);
-    assign shift_calc_parity = (state == idle & writing);
+    assign shift_calc_parity = (state == start & writing);
     assign shift_in_read     = (state == data | state == start)  ? ps2_clk_fall : 1'b0;
-    assign shift_in_write    = (state == data | state == parity) ? ps2_clk_rise : 1'b0;
+    assign shift_in_write    = (state == data | state == parity) ? ps2_clk_fall : 1'b0;
 
     // PS2 Registered outputs
     always @(posedge clk_i or negedge rst_i)
@@ -337,7 +329,7 @@ module ps2(
         end else begin
             // PS2 Data out
             if (writing) begin
-                if (state == idle | state == start)
+                if (state == write_request | state == start)
                     ps2_data_out <= 1'b0;
                 else if (state == data | state == parity)
                     ps2_data_out <= shift_reg[0];
