@@ -19,7 +19,7 @@ Usage
 Board specific files are located in boards/altera/de0_nano directory. To synthesise the design just go
 to the root directory of the project and then:
 
-cd boards/altera/de0_nano/syn/quartus/run
-make
+    cd boards/altera/de0_nano/syn/quartus/run
+    make
 
 If synthesis ends without errors, orpsoc.sof file will be generated in the same directory.
