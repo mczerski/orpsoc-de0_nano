@@ -2,15 +2,15 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_fifo_filler.v                                             ////
+//// sd_data_xfer_trig.v                                          ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://www.opencores.org/cores/xxx/                          ////
 ////                                                              ////
 //// Description                                                  ////
-//// Fifo interface between sd card and wishbone clock domains    ////
-//// and DMA engine eble to write/read to/from CPU memory         ////
+//// Module resposible for triggering data transfer based on      ////
+//// command transfer completition code                           ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -18,11 +18,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
 //// Copyright (C) 2013 Authors                                   ////
-////                                                              ////
-//// Based on original work by                                    ////
-////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
-////                                                              ////
-////     Copyright (C) 2009 Authors                               ////
 ////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
@@ -46,103 +41,86 @@
 //// from http://www.opencores.org/lgpl.shtml                     ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
+`include "sd_defines.h" 
 
-module sd_fifo_filler(
-           input wb_clk,
-           input rst,
-           //WB Signals
-           output [31:0] wbm_adr_o,
-           output wbm_we_o,
-           output [31:0] wbm_dat_o,
-           input [31:0] wbm_dat_i,
-           output wbm_cyc_o,
-           output wbm_stb_o,
-           input wbm_ack_i,
-           //Data Master Control signals
-           input en_rx_i,
-           input en_tx_i,
-           input [31:0] adr_i,
-           //Data Serial signals
+module sd_data_xfer_trig (
            input sd_clk,
-           input [31:0] dat_i,
-           output [31:0] dat_o,
-           input wr_i,
-           input rd_i,
-           output sd_full_o,
-           output sd_empty_o,
-           output wb_full_o,
-           output wb_empty_o
+           input rst,
+           input cmd_with_data_start_i,
+           input r_w_i,
+           input [`INT_CMD_SIZE-1:0] cmd_int_status_i,
+           output reg start_tx_o,
+           output reg start_rx_o
        );
 
-`define FIFO_MEM_ADR_SIZE 4
-`define MEM_OFFSET 4
+reg r_w_reg;
+parameter SIZE = 2;
+reg [SIZE-1:0] state;
+reg [SIZE-1:0] next_state;
+parameter IDLE             = 2'b00;
+parameter WAIT_FOR_CMD_INT = 2'b01;
+parameter TRIGGER_XFER     = 2'b10;
 
-wire reset_fifo;
-wire fifo_rd;
-reg [31:0] offset;
-reg fifo_rd_ack;
-reg fifo_rd_reg;
+always @(state or cmd_with_data_start_i or r_w_i or cmd_int_status_i)
+begin: FSM_COMBO
+    case(state)
+        IDLE: begin
+            if (cmd_with_data_start_i & r_w_i)
+                next_state <= TRIGGER_XFER;
+            else if (cmd_with_data_start_i)
+                next_state <= WAIT_FOR_CMD_INT;
+            else
+                next_state <= IDLE;
+        end
+        WAIT_FOR_CMD_INT: begin
+            if (cmd_int_status_i[`INT_CMD_CC])
+                next_state <= TRIGGER_XFER;
+            else if (cmd_int_status_i[`INT_CMD_EI])
+                next_state <= IDLE;
+            else
+                next_state <= WAIT_FOR_CMD_INT;
+        end
+        TRIGGER_XFER: begin
+            next_state <= IDLE;
+        end
+        default: next_state <= IDLE;
+    endcase
+end
 
-assign fifo_rd = wbm_cyc_o & wbm_ack_i;
-assign reset_fifo = !en_rx_i & !en_tx_i;
-
-assign wbm_we_o = en_rx_i & !wb_empty_o;
-assign wbm_cyc_o = en_rx_i ? en_rx_i & !wb_empty_o : en_tx_i & !wb_full_o;
-assign wbm_stb_o = en_rx_i ? wbm_cyc_o & fifo_rd_ack : wbm_cyc_o;
-
-generic_fifo_dc_gray #(
-    .dw(32), 
-    .aw(`FIFO_MEM_ADR_SIZE)
-    ) generic_fifo_dc_gray0 (
-    .rd_clk(wb_clk),
-    .wr_clk(sd_clk), 
-    .rst(!(rst | reset_fifo)), 
-    .clr(1'b0), 
-    .din(dat_i), 
-    .we(wr_i),
-    .dout(wbm_dat_o), 
-    .re(en_rx_i & wbm_cyc_o & wbm_ack_i), 
-    .full(sd_full_o), 
-    .empty(wb_empty_o), 
-    .wr_level(), 
-    .rd_level() 
-    );
-    
-generic_fifo_dc_gray #(
-    .dw(32), 
-    .aw(`FIFO_MEM_ADR_SIZE)
-    ) generic_fifo_dc_gray1 (
-    .rd_clk(sd_clk),
-    .wr_clk(wb_clk), 
-    .rst(!(rst | reset_fifo)), 
-    .clr(1'b0), 
-    .din(wbm_dat_i), 
-    .we(en_tx_i & wbm_cyc_o & wbm_stb_o & wbm_ack_i),
-    .dout(dat_o), 
-    .re(rd_i), 
-    .full(wb_full_o), 
-    .empty(sd_empty_o), 
-    .wr_level(), 
-    .rd_level() 
-    );
-
-assign wbm_adr_o = adr_i+offset;
-
-always @(posedge wb_clk or posedge rst)
+always @(posedge sd_clk or posedge rst)
+begin: FSM_SEQ
     if (rst) begin
-        offset <= 0;
-        fifo_rd_reg <= 0;
-        fifo_rd_ack <= 1;
+        state <= IDLE;
     end
     else begin
-        fifo_rd_reg <= fifo_rd;
-        fifo_rd_ack <= fifo_rd_reg | !fifo_rd;
-        if (wbm_cyc_o & wbm_stb_o & wbm_ack_i)
-            offset <= offset + `MEM_OFFSET;
-        else if (reset_fifo)
-            offset <= 0;
+        state <= next_state;
     end
+end
+
+always @(posedge sd_clk or posedge rst)
+begin
+    if (rst) begin
+        start_tx_o <= 0;
+        start_rx_o <= 0;
+        r_w_reg <= 0;
+    end
+    else begin
+        case(state)
+            IDLE: begin
+                start_tx_o <= 0;
+                start_rx_o <= 0;
+                r_w_reg <= r_w_i;
+            end
+            WAIT_FOR_CMD_INT: begin
+                start_tx_o <= 0;
+                start_rx_o <= 0;
+            end
+            TRIGGER_XFER: begin
+                start_tx_o <= ~r_w_reg;
+                start_rx_o <= r_w_reg;
+            end
+        endcase
+    end
+end
 
 endmodule
-
-

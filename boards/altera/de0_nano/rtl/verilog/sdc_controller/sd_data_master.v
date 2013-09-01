@@ -1,4 +1,52 @@
-`include "sd_defines.v"
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// WISHBONE SD Card Controller IP Core                          ////
+////                                                              ////
+//// sd_data_master.v                                             ////
+////                                                              ////
+//// This file is part of the WISHBONE SD Card                    ////
+//// Controller IP Core project                                   ////
+//// http://www.opencores.org/cores/xxx/                          ////
+////                                                              ////
+//// Description                                                  ////
+//// State machine resposible for controlling data transfers      ////
+//// on 4-bit sd card data interface                              ////
+////                                                              ////
+//// Author(s):                                                   ////
+////     - Marek Czerski, ma.czerski@gmail.com                    ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// Copyright (C) 2013 Authors                                   ////
+////                                                              ////
+//// Based on original work by                                    ////
+////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
+////                                                              ////
+////     Copyright (C) 2009 Authors                               ////
+////                                                              ////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE. See the GNU Lesser General Public License for more  ////
+//// details.                                                     ////
+////                                                              ////
+//// You should have received a copy of the GNU Lesser General    ////
+//// Public License along with this source; if not, download it   ////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+`include "sd_defines.h"
 
 module sd_data_master (
            input sd_clk,
@@ -18,7 +66,7 @@ module sd_data_master (
            input xfr_complete_i,
            input crc_ok_i,
            //status output
-           output reg  [2:0] int_status_o,
+           output reg [`INT_DATA_SIZE-1:0] int_status_o,
            input int_status_rst_i
        );
 
@@ -33,11 +81,11 @@ parameter DATA_TRANSFER = 3'b100;
 
 reg trans_done;
 
-always @ (state or start_tx_i or start_rx_i or tx_fifo_full_i or xfr_complete_i or trans_done)
-begin : FSM_COMBO
+always @(state or start_tx_i or start_rx_i or tx_fifo_full_i or xfr_complete_i or trans_done)
+begin: FSM_COMBO
     case(state)
         IDLE: begin
-            if (start_tx_i == 1)begin
+            if (start_tx_i == 1) begin
                 next_state <= START_TX_FIFO;
             end
             else if (start_rx_i == 1) begin
@@ -65,14 +113,14 @@ begin : FSM_COMBO
             else
                 next_state <= DATA_TRANSFER;
         end
-        default : next_state <= IDLE;
+        default: next_state <= IDLE;
     endcase
 end
 
 //----------------Seq logic------------
-always @ (posedge sd_clk or posedge rst)
-begin : FSM_SEQ
-    if (rst ) begin
+always @(posedge sd_clk or posedge rst)
+begin: FSM_SEQ
+    if (rst) begin
         state <= IDLE;
     end
     else begin
@@ -81,7 +129,7 @@ begin : FSM_SEQ
 end
 
 //Output logic-----------------
-always @ (posedge sd_clk or posedge rst)
+always @(posedge sd_clk or posedge rst)
 begin
     if (rst) begin
         start_tx_fifo_o <= 0;
@@ -121,7 +169,7 @@ begin
                 if (tx_cycle) begin
                     if (tx_fifo_empty_i) begin
                         if (!trans_done)
-                            int_status_o[2] <= 1;
+                            int_status_o[`INT_DATA_CFE] <= 1;
                         trans_done <= 1;
                         //stop sd_data_serial_host
                         d_write_o <= 1;
@@ -131,7 +179,7 @@ begin
                 else begin
                     if (rx_fifo_full_i) begin
                         if (!trans_done)
-                            int_status_o[2] <= 1;
+                            int_status_o[`INT_DATA_CFE] <= 1;
                         trans_done <= 1;
                         //stop sd_data_serial_host
                         d_write_o <= 1;
@@ -144,11 +192,11 @@ begin
                     trans_done <= 1;
                     if (!crc_ok_i)  begin //Wrong CRC and Data line free.
                         if (!trans_done)
-                            int_status_o[1] <= 1;
+                            int_status_o[`INT_DATA_CCRCE] <= 1;
                     end
                     else if (crc_ok_i) begin //Data Line free
                         if (!trans_done)
-                            int_status_o[0] <= 1;
+                            int_status_o[`INT_DATA_CC] <= 1;
                     end
                 end
             end

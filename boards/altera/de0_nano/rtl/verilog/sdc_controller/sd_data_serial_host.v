@@ -1,5 +1,52 @@
-
-`include "sd_defines.v"
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// WISHBONE SD Card Controller IP Core                          ////
+////                                                              ////
+//// sd_data_serial_host.v                                        ////
+////                                                              ////
+//// This file is part of the WISHBONE SD Card                    ////
+//// Controller IP Core project                                   ////
+//// http://www.opencores.org/cores/xxx/                          ////
+////                                                              ////
+//// Description                                                  ////
+//// Module resposible for sending and receiving data through     ////
+//// 4-bit sd card data interface                                 ////
+////                                                              ////
+//// Author(s):                                                   ////
+////     - Marek Czerski, ma.czerski@gmail.com                    ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// Copyright (C) 2013 Authors                                   ////
+////                                                              ////
+//// Based on original work by                                    ////
+////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
+////                                                              ////
+////     Copyright (C) 2009 Authors                               ////
+////                                                              ////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE. See the GNU Lesser General Public License for more  ////
+//// details.                                                     ////
+////                                                              ////
+//// You should have received a copy of the GNU Lesser General    ////
+//// Public License along with this source; if not, download it   ////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+`include "sd_defines.h"
 
 module sd_data_serial_host(
            input sd_clk,
@@ -19,10 +66,12 @@ module sd_data_serial_host(
            input bus_4bit,
            input [`BLKCNT_W-1:0] blkcnt,
            input [1:0] start,
+           output sd_data_busy,
            output busy,
            output reg crc_ok
        );
 
+reg [3:0] DAT_dat_reg;
 reg [`BLKSIZE_W-1+3:0] data_cycles;
 reg bus_4bit_reg;
 //CRC16
@@ -34,12 +83,12 @@ reg [15:0] transf_cnt;
 parameter SIZE = 6;
 reg [SIZE-1:0] state;
 reg [SIZE-1:0] next_state;
-parameter IDLE        = 6'b000001;
-parameter WRITE_DAT   = 6'b000010;
-parameter WRITE_CRC   = 6'b000100;
-parameter WRITE_BUSY  = 6'b001000;
-parameter READ_WAIT   = 6'b010000;
-parameter READ_DAT    = 6'b100000;
+parameter IDLE       = 6'b000001;
+parameter WRITE_DAT  = 6'b000010;
+parameter WRITE_CRC  = 6'b000100;
+parameter WRITE_BUSY = 6'b001000;
+parameter READ_WAIT  = 6'b010000;
+parameter READ_DAT   = 6'b100000;
 reg [2:0] crc_status;
 reg busy_int;
 reg [`BLKCNT_W-1:0] blkcnt_reg;
@@ -50,18 +99,23 @@ reg [3:0] last_din;
 reg [2:0] crc_s ;
 reg [4:0] data_send_index;
 
+//sd data input pad register
+always @(posedge sd_clk)
+    DAT_dat_reg <= DAT_dat_i;
+
 genvar i;
 generate
-    for(i=0; i<4; i=i+1) begin:CRC_16_gen
+    for(i=0; i<4; i=i+1) begin: CRC_16_gen
         sd_crc_16 CRC_16_i (crc_in[i],crc_en, sd_clk, crc_rst, crc_out[i]);
     end
 endgenerate
 
 assign busy = (state != IDLE);
-assign start_bit = !DAT_dat_i[0];
+assign start_bit = !DAT_dat_reg[0];
+assign sd_data_busy = !DAT_dat_reg[0];
 
-always @ (state or start or start_bit or  transf_cnt or data_cycles or crc_status or busy_int or next_block or DAT_dat_i)
-begin : FSM_COMBO
+always @(state or start or start_bit or  transf_cnt or data_cycles or crc_status or crc_ok or busy_int or next_block)
+begin: FSM_COMBO
     case(state)
         IDLE: begin
             if (start == 2'b01)
@@ -72,7 +126,7 @@ begin : FSM_COMBO
                 next_state <= IDLE;
         end
         WRITE_DAT: begin
-            if (transf_cnt >= data_cycles+20 && start_bit)
+            if (transf_cnt >= data_cycles+21 && start_bit)
                 next_state <= WRITE_CRC;
             else if (start == 2'b11)
                 next_state <= IDLE;
@@ -113,7 +167,7 @@ begin : FSM_COMBO
     endcase
 end
 
-always @ (posedge sd_clk or posedge rst)
+always @(posedge sd_clk or posedge rst)
 begin: FSM_OUT
     if (rst) begin
         state <= IDLE;
@@ -212,7 +266,7 @@ begin: FSM_OUT
                             data_send_index<=data_send_index + 5'h1;
                     end
                     DAT_dat_o<= last_din;
-                    if ( transf_cnt == data_cycles+1 )
+                    if (transf_cnt == data_cycles+1)
                         crc_en<=0;
                 end
                 else if (transf_cnt > data_cycles+1 & crc_c!=0) begin
@@ -229,23 +283,23 @@ begin: FSM_OUT
                     DAT_oe_o <= 1;
                     DAT_dat_o <= 4'hf;
                 end
-                else if (transf_cnt == data_cycles+19) begin
+                else if (transf_cnt >= data_cycles+19) begin
                     DAT_oe_o <= 0;
                 end
             end
-            WRITE_CRC : begin
+            WRITE_CRC: begin
                 DAT_oe_o <= 0;
                 if (crc_status < 3)
-                    crc_s[crc_status] <= DAT_dat_i[0];
+                    crc_s[crc_status] <= DAT_dat_reg[0];
                 crc_status <= crc_status + 3'h1;
                 busy_int <= 1;
             end
-            WRITE_BUSY : begin
+            WRITE_BUSY: begin
                 if (crc_s == 3'b010)
                     crc_ok <= 1;
                 else
                     crc_ok <= 0;
-                busy_int <= !DAT_dat_i[0];
+                busy_int <= !DAT_dat_reg[0];
                 next_block <= (blkcnt_reg != 0);
                 if (next_state != WRITE_BUSY) begin
                     blkcnt_reg <= blkcnt_reg - `BLKCNT_W'h1;
@@ -255,7 +309,7 @@ begin: FSM_OUT
                 end
                 transf_cnt <= 0;
             end
-            READ_WAIT:begin
+            READ_WAIT: begin
                 DAT_oe_o <= 0;
                 crc_rst <= 0;
                 crc_en <= 1;
@@ -268,23 +322,23 @@ begin: FSM_OUT
                 if (transf_cnt < data_cycles) begin
                     if (bus_4bit_reg) begin
                         we <= (transf_cnt[2:0] == 7);
-                        data_out[31-(transf_cnt[2:0]<<2)] <= DAT_dat_i[3];
-                        data_out[30-(transf_cnt[2:0]<<2)] <= DAT_dat_i[2];
-                        data_out[29-(transf_cnt[2:0]<<2)] <= DAT_dat_i[1];
-                        data_out[28-(transf_cnt[2:0]<<2)] <= DAT_dat_i[0];
+                        data_out[31-(transf_cnt[2:0]<<2)] <= DAT_dat_reg[3];
+                        data_out[30-(transf_cnt[2:0]<<2)] <= DAT_dat_reg[2];
+                        data_out[29-(transf_cnt[2:0]<<2)] <= DAT_dat_reg[1];
+                        data_out[28-(transf_cnt[2:0]<<2)] <= DAT_dat_reg[0];
                     end
                     else begin
                         we <= (transf_cnt[4:0] == 31);
-                        data_out[31-transf_cnt[4:0]] <= DAT_dat_i[0];
+                        data_out[31-transf_cnt[4:0]] <= DAT_dat_reg[0];
                     end
-                    crc_in <= DAT_dat_i;
+                    crc_in <= DAT_dat_reg;
                     crc_ok <= 1;
                     transf_cnt <= transf_cnt + 16'h1;
                 end
-                else if  (transf_cnt <= data_cycles+16) begin
+                else if (transf_cnt <= data_cycles+16) begin
                     transf_cnt <= transf_cnt + 16'h1;
                     crc_en <= 0;
-                    last_din <= DAT_dat_i;
+                    last_din <= DAT_dat_reg;
                     we<=0;
                     if (transf_cnt > data_cycles) begin
                         crc_c <= crc_c - 5'h1;

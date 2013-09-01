@@ -1,4 +1,52 @@
-`include "sd_defines.v"
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// WISHBONE SD Card Controller IP Core                          ////
+////                                                              ////
+//// sd_cmd_master.v                                              ////
+////                                                              ////
+//// This file is part of the WISHBONE SD Card                    ////
+//// Controller IP Core project                                   ////
+//// http://www.opencores.org/cores/xxx/                          ////
+////                                                              ////
+//// Description                                                  ////
+//// State machine resposible for controlling command transfers   ////
+//// on 1-bit sd card command interface                           ////
+////                                                              ////
+//// Author(s):                                                   ////
+////     - Marek Czerski, ma.czerski@gmail.com                    ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// Copyright (C) 2013 Authors                                   ////
+////                                                              ////
+//// Based on original work by                                    ////
+////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
+////                                                              ////
+////     Copyright (C) 2009 Authors                               ////
+////                                                              ////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE. See the GNU Lesser General Public License for more  ////
+//// details.                                                     ////
+////                                                              ////
+//// You should have received a copy of the GNU Lesser General    ////
+//// Public License along with this source; if not, download it   ////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+`include "sd_defines.h"
 
 module sd_cmd_master(
            input sd_clk,
@@ -16,20 +64,14 @@ module sd_cmd_master(
            input busy_i, //direct signal from data sd data input (data[0])
            //input card_detect,
            input [31:0] argument_i,
-           input [13:0] command_i,
+           input [`CMD_REG_SIZE-1:0] command_i,
            input [15:0] timeout_i,
-           output [4:0] int_status_o,
+           output [`INT_CMD_SIZE-1:0] int_status_o,
            output reg [31:0] response_0_o,
            output reg [31:0] response_1_o,
            output reg [31:0] response_2_o,
            output reg [31:0] response_3_o
        );
-
-`define CC int_status_reg[0]
-`define EI int_status_reg[1]
-`define CTE int_status_reg[2]
-`define CCRCE int_status_reg[3]
-`define CIE  int_status_reg[4]
 
 //-----------Types--------------------------------------------------------
 reg [15:0] timeout_reg;
@@ -38,7 +80,7 @@ reg index_check;
 reg busy_check;
 reg expect_response;
 reg long_response;
-reg [4:0] int_status_reg;
+reg [`INT_CMD_SIZE-1:0] int_status_reg;
 //reg card_present;
 //reg [3:0]debounce;
 reg [15:0] watchdog;
@@ -75,10 +117,10 @@ assign int_status_o = state == IDLE ? int_status_reg : 5'h0;
 //     end
 // end
 
-always @ ( state or start_i or finish_i or go_idle_o or busy_check or busy_i)
-begin : FSM_COMBO
+always @(state or start_i or finish_i or go_idle_o or busy_check or busy_i)
+begin: FSM_COMBO
     case(state)
-        IDLE:   begin
+        IDLE: begin
             if (start_i)
                 next_state <= EXECUTE;
             else
@@ -98,13 +140,13 @@ begin : FSM_COMBO
             else
                 next_state <= BUSY_CHECK;
         end
-        default : next_state <= IDLE;
+        default: next_state <= IDLE;
     endcase
 end
 
-always @ (posedge sd_clk or posedge rst   )
-begin : FSM_SEQ
-    if (rst ) begin
+always @(posedge sd_clk or posedge rst)
+begin: FSM_SEQ
+    if (rst) begin
         state <= IDLE;
     end
     else begin
@@ -112,7 +154,7 @@ begin : FSM_SEQ
     end
 end
 
-always @ (posedge sd_clk or posedge rst)
+always @(posedge sd_clk or posedge rst)
 begin
     if (rst) begin
         crc_check <= 0;
@@ -133,16 +175,16 @@ begin
     end
     else begin
         case(state)
-            IDLE:  begin
+            IDLE: begin
                 go_idle_o <= 0;
-                index_check <= command_i[4];
-                crc_check <= command_i[3];
-                busy_check <= command_i[2];
-                if (command_i[1:0]  == 2'b10 || command_i[1:0] == 2'b11) begin
+                index_check <= command_i[`CMD_IDX_CHECK];
+                crc_check <= command_i[`CMD_CRC_CHECK];
+                busy_check <= command_i[`CMD_BUSY_CHECK];
+                if (command_i[`CMD_RESPONSE_CHECK]  == 2'b10 || command_i[`CMD_RESPONSE_CHECK] == 2'b11) begin
                     expect_response <=  1;
                     long_response <= 1;
                 end
-                else if (command_i[1:0] == 2'b01) begin
+                else if (command_i[`CMD_RESPONSE_CHECK] == 2'b01) begin
                     expect_response <= 1;
                     long_response <= 0;
                 end
@@ -151,7 +193,7 @@ begin
                     long_response <= 0;
                 end
                 cmd_o[39:38] <= 2'b01;
-                cmd_o[37:32] <= command_i[13:8];  //CMD_INDEX
+                cmd_o[37:32] <= command_i[`CMD_INDEX];  //CMD_INDEX
                 cmd_o[31:0] <= argument_i; //CMD_Argument
                 timeout_reg <= timeout_i;
                 watchdog <= 0;
@@ -164,22 +206,22 @@ begin
                 start_xfr_o <= 0;
                 watchdog <= watchdog + 16'd1;
                 if (watchdog > timeout_reg) begin
-                    `CTE <= 1;
-                    `EI <= 1;
+                    int_status_reg[`INT_CMD_CTE] <= 1;
+                    int_status_reg[`INT_CMD_EI] <= 1;
                     go_idle_o <= 1;
                 end
                 //Incoming New Status
                 else begin //if ( req_in_int == 1) begin
                     if (finish_i) begin //Data avaible
                         if (crc_check & !crc_ok_i) begin
-                            `CCRCE <= 1;
-                            `EI <= 1;
+                            int_status_reg[`INT_CMD_CCRCE] <= 1;
+                            int_status_reg[`INT_CMD_EI] <= 1;
                         end
                         if (index_check & !index_ok_i) begin
-                            `CIE <= 1;
-                            `EI <= 1;
+                            int_status_reg[`INT_CMD_CIE] <= 1;
+                            int_status_reg[`INT_CMD_EI] <= 1;
                         end
-                        `CC <= 1;
+                        int_status_reg[`INT_CMD_CC] <= 1;
                         if (expect_response != 0) begin
                             response_0_o <= response_i[119:88];
                             response_1_o <= response_i[87:56];

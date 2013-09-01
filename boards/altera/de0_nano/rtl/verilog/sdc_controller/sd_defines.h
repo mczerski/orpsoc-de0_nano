@@ -2,15 +2,14 @@
 ////                                                              ////
 //// WISHBONE SD Card Controller IP Core                          ////
 ////                                                              ////
-//// sd_fifo_filler.v                                             ////
+//// sd_defines.v                                                 ////
 ////                                                              ////
 //// This file is part of the WISHBONE SD Card                    ////
 //// Controller IP Core project                                   ////
 //// http://www.opencores.org/cores/xxx/                          ////
 ////                                                              ////
 //// Description                                                  ////
-//// Fifo interface between sd card and wishbone clock domains    ////
-//// and DMA engine eble to write/read to/from CPU memory         ////
+//// Header file with common definitions                          ////
 ////                                                              ////
 //// Author(s):                                                   ////
 ////     - Marek Czerski, ma.czerski@gmail.com                    ////
@@ -47,102 +46,55 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sd_fifo_filler(
-           input wb_clk,
-           input rst,
-           //WB Signals
-           output [31:0] wbm_adr_o,
-           output wbm_we_o,
-           output [31:0] wbm_dat_o,
-           input [31:0] wbm_dat_i,
-           output wbm_cyc_o,
-           output wbm_stb_o,
-           input wbm_ack_i,
-           //Data Master Control signals
-           input en_rx_i,
-           input en_tx_i,
-           input [31:0] adr_i,
-           //Data Serial signals
-           input sd_clk,
-           input [31:0] dat_i,
-           output [31:0] dat_o,
-           input wr_i,
-           input rd_i,
-           output sd_full_o,
-           output sd_empty_o,
-           output wb_full_o,
-           output wb_empty_o
-       );
+//global defines
+`define BLKSIZE_W 12
+`define BLKCNT_W 16
 
-`define FIFO_MEM_ADR_SIZE 4
-`define MEM_OFFSET 4
+//cmd module interrupts
+`define INT_CMD_SIZE 5
+`define INT_CMD_CC 0
+`define INT_CMD_EI 1
+`define INT_CMD_CTE 2
+`define INT_CMD_CCRCE 3
+`define INT_CMD_CIE  4
 
-wire reset_fifo;
-wire fifo_rd;
-reg [31:0] offset;
-reg fifo_rd_ack;
-reg fifo_rd_reg;
+//data module interrupts
+`define INT_DATA_SIZE 3
+`define INT_DATA_CC 0
+`define INT_DATA_CCRCE 1
+`define INT_DATA_CFE 2
 
-assign fifo_rd = wbm_cyc_o & wbm_ack_i;
-assign reset_fifo = !en_rx_i & !en_tx_i;
+//command register defines
+`define CMD_REG_SIZE 14
+`define CMD_RESPONSE_CHECK 1:0
+`define CMD_BUSY_CHECK 2
+`define CMD_CRC_CHECK 3
+`define CMD_IDX_CHECK 4
+`define CMD_WITH_DATA 6:5
+`define CMD_INDEX 13:8
 
-assign wbm_we_o = en_rx_i & !wb_empty_o;
-assign wbm_cyc_o = en_rx_i ? en_rx_i & !wb_empty_o : en_tx_i & !wb_full_o;
-assign wbm_stb_o = en_rx_i ? wbm_cyc_o & fifo_rd_ack : wbm_cyc_o;
+//register addreses
+`define argument 8'h00
+`define command 8'h04
+`define resp0 8'h08
+`define resp1 8'h0c
+`define resp2 8'h10
+`define resp3 8'h14
+`define controller 8'h1c
+`define timeout 8'h20
+`define clock_d 8'h24
+`define reset 8'h28
+`define voltage 8'h2c
+`define capa 8'h30
+`define cmd_isr 8'h34
+`define cmd_iser 8'h38
+`define data_isr 8'h3c
+`define data_iser 8'h40
+`define blksize 8'h44
+`define blkcnt 8'h48
+`define dst_src_addr 8'h60
 
-generic_fifo_dc_gray #(
-    .dw(32), 
-    .aw(`FIFO_MEM_ADR_SIZE)
-    ) generic_fifo_dc_gray0 (
-    .rd_clk(wb_clk),
-    .wr_clk(sd_clk), 
-    .rst(!(rst | reset_fifo)), 
-    .clr(1'b0), 
-    .din(dat_i), 
-    .we(wr_i),
-    .dout(wbm_dat_o), 
-    .re(en_rx_i & wbm_cyc_o & wbm_ack_i), 
-    .full(sd_full_o), 
-    .empty(wb_empty_o), 
-    .wr_level(), 
-    .rd_level() 
-    );
-    
-generic_fifo_dc_gray #(
-    .dw(32), 
-    .aw(`FIFO_MEM_ADR_SIZE)
-    ) generic_fifo_dc_gray1 (
-    .rd_clk(sd_clk),
-    .wr_clk(wb_clk), 
-    .rst(!(rst | reset_fifo)), 
-    .clr(1'b0), 
-    .din(wbm_dat_i), 
-    .we(en_tx_i & wbm_cyc_o & wbm_stb_o & wbm_ack_i),
-    .dout(dat_o), 
-    .re(rd_i), 
-    .full(wb_full_o), 
-    .empty(sd_empty_o), 
-    .wr_level(), 
-    .rd_level() 
-    );
-
-assign wbm_adr_o = adr_i+offset;
-
-always @(posedge wb_clk or posedge rst)
-    if (rst) begin
-        offset <= 0;
-        fifo_rd_reg <= 0;
-        fifo_rd_ack <= 1;
-    end
-    else begin
-        fifo_rd_reg <= fifo_rd;
-        fifo_rd_ack <= fifo_rd_reg | !fifo_rd;
-        if (wbm_cyc_o & wbm_stb_o & wbm_ack_i)
-            offset <= offset + `MEM_OFFSET;
-        else if (reset_fifo)
-            offset <= 0;
-    end
-
-endmodule
-
-
+//wb module defines
+`define RESET_BLOCK_SIZE 512
+`define RESET_CLK_DIV 0
+`define SUPPLY_VOLTAGE_mV 3300
