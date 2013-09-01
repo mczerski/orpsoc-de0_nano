@@ -2800,7 +2800,6 @@ module orpsoc_top
    wire [3:0] 			     sdc_datIn ;
    wire 			     sdc_irq_a;
    wire 			     sdc_irq_b;
-   wire 			     sdc_irq_c;
 
    assign sdc_cmd_pad_io = sdc_cmd_oe ? sdc_cmdIn : 1'bz;
    assign sdc_dat_pad_io = sdc_dat_oe  ? sdc_datIn : 4'bzzzz;
@@ -2847,9 +2846,8 @@ module orpsoc_top
 
 	 .sd_clk_i_pad (wb_clk),
 	
-	 .int_a (sdc_irq_a),
-	 .int_b (sdc_irq_b),
-	 .int_c (sdc_irq_c) 
+	 .int_cmd (sdc_irq_a),
+	 .int_data (sdc_irq_b)
 	 );
 
 `else
@@ -3246,7 +3244,7 @@ module orpsoc_top
 `ifdef SDC_CONTROLLER
    assign cpu_irq[14] = sdc_irq_a;
    assign cpu_irq[15] = sdc_irq_b;
-   assign cpu_irq[16] = sdc_irq_c;
+   assign cpu_irq[16] = 0;
 `else   
    assign cpu_irq[14] = 0;
    assign cpu_irq[15] = 0;
