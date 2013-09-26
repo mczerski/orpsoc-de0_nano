@@ -507,8 +507,6 @@ module orpsoc_top
    // Wires
    // 
    
-   wire [19:0] 				  or1200_pic_ints;
-
    wire [31:0] 				  or1200_dbg_dat_i;
    wire [31:0] 				  or1200_dbg_adr_i;
    wire 				  or1200_dbg_we_i;
@@ -517,21 +515,27 @@ module orpsoc_top
    wire [31:0] 				  or1200_dbg_dat_o;
    
    wire 				  or1200_dbg_stall_i;
+   wire 				  or1200_dbg_bp_o;
+   wire 				  or1200_dbg_rst;   
+
+`ifdef OR1200   
+   ////////////////////////////////////////////////////////////////////////
+   //
+   // OpenRISC processor
+   // 
+   ////////////////////////////////////////////////////////////////////////
+
+   // 
+   // Wires
+   // 
+   
+   wire [19:0] 				  or1200_pic_ints;
    wire 				  or1200_dbg_ewt_i;
    wire [3:0] 				  or1200_dbg_lss_o;
    wire [1:0] 				  or1200_dbg_is_o;
    wire [10:0] 				  or1200_dbg_wp_o;
-   wire 				  or1200_dbg_bp_o;
-   wire 				  or1200_dbg_rst;   
-   
-   wire 				  or1200_clk, or1200_rst;
+
    wire 				  sig_tick;
-   
-   //
-   // Assigns
-   //
-   assign or1200_clk = wb_clk;
-   assign or1200_rst = wb_rst | or1200_dbg_rst;
 
    // 
    // Instantiation
@@ -599,8 +603,8 @@ module orpsoc_top
 	.pm_lvolt_o			(),
 
 	// Core clocks, resets
-	.clk_i				(or1200_clk),
-	.rst_i				(or1200_rst),
+	.clk_i				(wb_clk),
+	.rst_i				(wb_rst),
 	
 	.clmode_i			(2'b00),
 	// Interrupts      
@@ -617,6 +621,114 @@ module orpsoc_top
 	);
    
    ////////////////////////////////////////////////////////////////////////
+`endif //  `ifdef OR1200
+
+`ifdef MOR1KX
+
+   parameter MOR1KX_CPU0_OPTION_CPU = "CAPPUCCINO";
+//   parameter MOR1KX_CPU0_OPTION_CPU = "ESPRESSO";
+
+   wire [31:0] 				  or1200_pic_ints;
+
+   assign or1200_pic_ints[31:20] = 0;
+
+   mor1kx
+     #(
+       .FEATURE_DEBUGUNIT("ENABLED"),
+       .FEATURE_CMOV("ENABLED"),
+//       .FEATURE_FFL1("REGISTERED"),
+//       .FEATURE_FFL1("NONE"),
+//       .OPTION_SHIFTER("SERIAL"),
+       .FEATURE_INSTRUCTIONCACHE("ENABLED"),
+       .OPTION_ICACHE_BLOCK_WIDTH(5),
+       .OPTION_ICACHE_SET_WIDTH(8),
+       .OPTION_ICACHE_WAYS(2),
+       .OPTION_ICACHE_LIMIT_WIDTH(32),
+       .FEATURE_IMMU("ENABLED"),
+       .FEATURE_DATACACHE("ENABLED"),
+       .OPTION_DCACHE_BLOCK_WIDTH(5),
+       .OPTION_DCACHE_SET_WIDTH(8),
+       .OPTION_DCACHE_WAYS(2),
+       .OPTION_DCACHE_LIMIT_WIDTH(31),
+       .FEATURE_DMMU("ENABLED"),
+       .OPTION_PIC_TRIGGER("LATCHED_LEVEL"),
+
+       .IBUS_WB_TYPE("B3_REGISTERED_FEEDBACK"),
+       .DBUS_WB_TYPE("B3_REGISTERED_FEEDBACK"),
+       .OPTION_CPU0(MOR1KX_CPU0_OPTION_CPU),
+`ifdef BOOTROM
+       .OPTION_RESET_PC(32'hf0000100)
+`else
+       .OPTION_RESET_PC(32'h00000100)
+`endif
+       )
+     mor1kx0
+     (
+      .iwbm_adr_o(wbm_i_or12_adr_o),
+      .iwbm_stb_o(wbm_i_or12_stb_o),
+      .iwbm_cyc_o(wbm_i_or12_cyc_o),
+      .iwbm_sel_o(wbm_i_or12_sel_o),
+      .iwbm_we_o (wbm_i_or12_we_o ),
+      .iwbm_cti_o(wbm_i_or12_cti_o),
+      .iwbm_bte_o(wbm_i_or12_bte_o),
+      .iwbm_dat_o(wbm_i_or12_dat_o),
+
+      .dwbm_adr_o(wbm_d_or12_adr_o),
+      .dwbm_stb_o(wbm_d_or12_stb_o),
+      .dwbm_cyc_o(wbm_d_or12_cyc_o),
+      .dwbm_sel_o(wbm_d_or12_sel_o),
+      .dwbm_we_o (wbm_d_or12_we_o ),
+      .dwbm_cti_o(wbm_d_or12_cti_o),
+      .dwbm_bte_o(wbm_d_or12_bte_o),
+      .dwbm_dat_o(wbm_d_or12_dat_o),
+
+      .avm_d_address_o(), 
+      .avm_d_byteenable_o(), 
+      .avm_d_read_o(),
+      .avm_d_burstcount_o(), 
+      .avm_d_write_o(), 
+      .avm_d_writedata_o(),
+      .avm_i_address_o(), 
+      .avm_i_byteenable_o(), 
+      .avm_i_read_o(),
+      .avm_i_burstcount_o(),
+
+      .clk(wb_clk),
+      .rst(wb_rst),
+
+      .iwbm_err_i(wbm_i_or12_err_i),
+      .iwbm_ack_i(wbm_i_or12_ack_i),
+      .iwbm_dat_i(wbm_i_or12_dat_i),
+      .iwbm_rty_i(wbm_i_or12_rty_i),
+
+      .dwbm_err_i(wbm_d_or12_err_i),
+      .dwbm_ack_i(wbm_d_or12_ack_i),
+      .dwbm_dat_i(wbm_d_or12_dat_i),
+      .dwbm_rty_i(wbm_d_or12_rty_i),
+
+      .avm_d_readdata_i(32'b0),
+      .avm_d_waitrequest_i(1'b0), 
+      .avm_d_readdatavalid_i(1'b0), 
+      .avm_i_readdata_i(32'b0),
+      .avm_i_waitrequest_i(1'b0), 
+      .avm_i_readdatavalid_i(1'b0),
+
+      .irq_i(or1200_pic_ints),
+
+      .du_addr_i(or1200_dbg_adr_i[15:0]),
+      .du_stb_i(or1200_dbg_stb_i),
+      .du_dat_i(or1200_dbg_dat_i),
+      .du_we_i(or1200_dbg_we_i),
+      .du_dat_o(or1200_dbg_dat_o),
+      .du_ack_o(or1200_dbg_ack_o),
+      .du_stall_i(or1200_dbg_stall_i),
+      .du_stall_o(or1200_dbg_bp_o)
+
+      );
+
+`endif
+
+   ////////////////////////////////////////////////////////////////////////
 
 
 `ifdef JTAG_DEBUG
@@ -629,7 +741,7 @@ module orpsoc_top
    dbg_if dbg_if0
      (
       // OR1200 interface
-      .cpu0_clk_i			(or1200_clk),
+      .cpu0_clk_i			(wb_clk),
       .cpu0_rst_o			(or1200_dbg_rst),      
       .cpu0_addr_o			(or1200_dbg_adr_i),
       .cpu0_data_o			(or1200_dbg_dat_i),

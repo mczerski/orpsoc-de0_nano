@@ -88,6 +88,7 @@ module orpsoc_testbench;
       .rst_n_pad_i			(rst_n)
       );
 
+`ifdef OR1200
    //
    // Instantiate OR1200 monitor
    //
@@ -105,6 +106,14 @@ module orpsoc_testbench;
      $display("Or1200 DC enabled at %t", $time);
 `endif
 
+`endif
+`ifdef MOR1KX
+   //
+   // Instantiate mor1kx monitor
+   //
+   mor1kx_monitor monitor();
+
+`endif
 
 `ifdef JTAG_DEBUG   
  `ifdef VPI_DEBUG

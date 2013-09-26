@@ -775,7 +775,7 @@ module mor1kx_monitor #(parameter LOG_DIR= "../out") ();
 		    $sformat(insnstring, "l.mul   r%0d,r%0d,r%0d",rD_num,rA_num,rB_num); 
 		  `OR1K_ALU_OPC_SHRT:
 		    begin
-		       case(insn[`OR1K_ALU_OPC_SECONDAY_SELECT])
+		       case(insn[`OR1K_ALU_OPC_SECONDARY_SELECT])
 			 `OR1K_ALU_OPC_SECONDARY_SHRT_SLL:
 			   $sformat(insnstring, "l.sll   r%0d,r%0d,r%0d",rD_num,rA_num,rB_num);
 			 `OR1K_ALU_OPC_SECONDARY_SHRT_SRL:
@@ -784,7 +784,7 @@ module mor1kx_monitor #(parameter LOG_DIR= "../out") ();
 			   $sformat(insnstring, "l.sra   r%0d,r%0d,r%0d",rD_num,rA_num,rB_num);
 			 `OR1K_ALU_OPC_SECONDARY_SHRT_ROR:
 			   $sformat(insnstring, "l.ror   r%0d,r%0d,r%0d",rD_num,rA_num,rB_num);
-		       endcase // case (insn[`OR1K_ALU_OPC_SECONDAY_SELECT])
+		       endcase // case (insn[`OR1K_ALU_OPC_SECONDARY_SELECT])
 		    end
 		  `OR1K_ALU_OPC_DIV:
 		    $sformat(insnstring, "l.div   r%0d,r%0d,r%0d",rD_num,rA_num,rB_num); 
@@ -810,7 +810,7 @@ module mor1kx_monitor #(parameter LOG_DIR= "../out") ();
 	   
 	   `OR1K_OPCODE_SHRTI:
 	     begin
-		case(insn[`OR1K_ALU_OPC_SECONDAY_SELECT])
+		case(insn[`OR1K_ALU_OPC_SECONDARY_SELECT])
 		  `OR1K_ALU_OPC_SECONDARY_SHRT_SLL:
 		    $sformat(insnstring, "l.slli  r%0d,r%0d,0x%01h",rD_num,rA_num,insn[5:0]);
 		  `OR1K_ALU_OPC_SECONDARY_SHRT_SRL:
@@ -819,7 +819,7 @@ module mor1kx_monitor #(parameter LOG_DIR= "../out") ();
 		    $sformat(insnstring, "l.srai  r%0d,r%0d,0x%01h",rD_num,rA_num,insn[5:0]);
 		  `OR1K_ALU_OPC_SECONDARY_SHRT_ROR:
 		    $sformat(insnstring, "l.rori  r%0d,r%0d,0x%01h",rD_num,rA_num,insn[5:0]);		  
-		endcase // case (insn[`OR1K_ALU_OPC_SECONDAY_SELECT])
+		endcase // case (insn[`OR1K_ALU_OPC_SECONDARY_SELECT])
 		//$sformat(insnstring, "r%0d,r%0d,0x%0h",rD_num,rA_num,insn[5:0]);				
 	     end // case: `OR1K_OPCODE_SHRTI
 	   

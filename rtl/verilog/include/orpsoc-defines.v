@@ -38,6 +38,8 @@
 `define BOARD_CLOCK_PERIOD 20
 
 // Included modules: define to include
+//`define OR1200
+`define MOR1KX
 `define JTAG_DEBUG
 `define UART0
 `define RAM_WB

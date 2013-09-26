@@ -172,6 +172,10 @@ MODELTECH_VPILIB=msim_jp_vpi.sl
 # Icarus VPI compile target
 ICARUS_VPILIB=jtag_vpi
 
+ifeq ($(MOR1KX_CPU),)
+MOR1KX_CPU=cappuccino
+endif
+
 #
 # Modelsim-specific settings
 #
@@ -194,7 +198,7 @@ endif
 else
 
 ifeq ($(MGC_NO_VOPT), 1)
-MGC_VSIM_ARGS += -vopt
+#MGC_VSIM_ARGS += -vopt
 MGC_VOPT_CMD=echo
 MGC_VSIM_TGT=orpsoc_testbench
 else
@@ -329,6 +333,7 @@ modelsim_bench.scr: $(BENCH_VERILOG_SRC)
 		echo "-y "$$path >> $@; \
 	done
 	$(Q)echo "+incdir+"$(RTL_VERILOG_INCLUDE_DIR) >> $@;
+	$(Q)echo "+define+MOR1KX_CPU_PIPELINE="$(MOR1KX_CPU) >> $@;
 	$(Q)echo "+libext+.v" >> $@;
 	$(Q)for vsrc in $(BENCH_VERILOG_SRC); do echo $$vsrc >> $@; done
 	$(Q)echo >> $@
@@ -364,6 +369,7 @@ $(ICARUS_SCRIPT):  $(RTL_VERILOG_SRC) $(RTL_VERILOG_INCLUDES) \
 	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
 		echo "+incdir+"$$path >> $@; \
 	done
+	$(Q)echo "+define+MOR1KX_CPU_PIPELINE="$(MOR1KX_CPU) >> $@;
 	$(Q)for path in $(BENCH_VERILOG_SRC_SUBDIRS); do \
 		echo "-y "$$path >> $@; \
 	done
